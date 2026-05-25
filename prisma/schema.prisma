@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RequestStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_INFO
+  READY_FOR_SUPPLIER_RFQ
+  QUOTED
+  PURCHASED
+}
+
+enum OperatorCompleteness {
+  READY_FOR_REVIEW
+  MISSING_INFO
+  COMPLETE
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  users     User[]
+  requests  Request[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Request {
+  id                   String                 @id @default(cuid())
+  title                String
+  process              String
+  dueDate              DateTime?
+  status               RequestStatus          @default(DRAFT)
+  buyerCompanyId       String?
+  buyerCompany         Company?               @relation(fields: [buyerCompanyId], references: [id])
+  requesterName        String
+  operatorCompleteness OperatorCompleteness    @default(READY_FOR_REVIEW)
+  assignedOwner        String?
+  internalNotes        String                 @default("")
+  supplierPackageNotes String                 @default("")
+  estimatedPriceCents  Int?
+  leadTimeDays         Int?
+  quoteSummary         String                 @default("")
+  lineItems            RequestLineItem[]
+  files                UploadedFile[]
+  statusEvents         StatusEvent[]
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+}
+
+model RequestLineItem {
+  id                   String   @id @default(cuid())
+  requestId            String
+  request              Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  partName             String
+  quantity             Int
+  material             String
+  generalTolerance     String   @default("")
+  surfaceFinish        String   @default("")
+  qualityDocumentation String[] @default([])
+  notes                String   @default("")
+  createdAt            DateTime @default(now())
+}
+
+model UploadedFile {
+  id        String   @id @default(cuid())
+  requestId String
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name      String
+  sizeBytes Int
+  type      String
+  storageKey String?
+  createdAt DateTime @default(now())
+}
+
+model StatusEvent {
+  id        String         @id @default(cuid())
+  requestId String
+  request   Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  from      RequestStatus?
+  to        RequestStatus
+  actor     String
+  createdAt DateTime       @default(now())
+}

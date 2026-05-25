@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lattice
+      POSTGRES_PASSWORD: lattice
+      POSTGRES_DB: lattice_os
+    ports:
+      - "5432:5432"
+    volumes:
+      - lattice_postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: lattice
+      MINIO_ROOT_PASSWORD: lattice-dev-password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - lattice_minio_data:/data
+
+volumes:
+  lattice_postgres_data:
+  lattice_minio_data:

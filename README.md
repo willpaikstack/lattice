@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lattice OS
 
-## Getting Started
+Owned-code manufacturing RFQ and procurement workflow platform.
 
-First, run the development server:
+## Current vertical slice
+
+- Buyer creates a manufacturable request.
+- Buyer adds one line item.
+- Buyer adds one file reference.
+- Buyer submits the request.
+- Request appears in the internal operator queue.
+
+This slice now persists submitted requests through the Next.js API layer into PostgreSQL via Prisma. Browser `localStorage` was removed from the active request handoff path.
+
+## Stack
+
+- Next.js App Router + TypeScript
+- Tailwind CSS
+- Vitest + Testing Library
+- Prisma + PostgreSQL
+- S3-compatible storage target via MinIO/S3 env placeholders
+- Docker-ready deployment skeleton
+
+## Local development
 
 ```bash
+npm install
+cp .env.example .env
+docker compose up -d postgres minio
+npm run prisma:generate
+npm run db:push
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Command Center: <http://localhost:3000>
+- New Request: <http://localhost:3000/requests/new>
+- Operator Queue: <http://localhost:3000/operator/requests>
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Verification
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm test
+npm run lint
+npm run build
+```
