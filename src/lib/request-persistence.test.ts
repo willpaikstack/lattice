@@ -39,6 +39,11 @@ describe("request persistence", () => {
       requesterName: "William Paik",
       status: "SUBMITTED",
       operatorCompleteness: "READY_FOR_REVIEW",
+      supplierOrderStatus: "AWAITING_ACKNOWLEDGMENT",
+      supplierShopName: "China supplier team",
+      supplierContactName: "",
+      supplierNotes: "",
+      supplierTrackingNumber: "",
       buyerCompany: {
         create: {
           name: "Amogy Manufacturing",
@@ -89,6 +94,11 @@ describe("request persistence", () => {
       assignedOwner: null,
       internalNotes: "",
       supplierPackageNotes: "",
+      supplierOrderStatus: "QC_IN_PROGRESS" as const,
+      supplierShopName: "Shenzhen Precision",
+      supplierContactName: "Li Wei",
+      supplierNotes: "First article inspection is running.",
+      supplierTrackingNumber: "SF123",
       estimatedPriceCents: null,
       leadTimeDays: null,
       quoteSummary: "",
@@ -110,6 +120,25 @@ describe("request persistence", () => {
           name: "bracket-a.step",
           sizeBytes: 0,
           type: "reference/name-only",
+        },
+      ],
+      supplierDocuments: [
+        {
+          id: "supplier_doc_1",
+          name: "inspection-report.pdf",
+          sizeBytes: 2048,
+          type: "application/pdf",
+          category: "INSPECTION_REPORT" as const,
+          createdAt: new Date("2026-06-02T10:00:00.000Z"),
+        },
+      ],
+      supplierUpdates: [
+        {
+          id: "supplier_update_1",
+          status: "QC_IN_PROGRESS" as const,
+          note: "First article inspection is running.",
+          trackingNumber: "SF123",
+          createdAt: new Date("2026-06-02T10:05:00.000Z"),
         },
       ],
       statusEvents: [
@@ -145,6 +174,32 @@ describe("request persistence", () => {
         assignedOwner: null,
         internalNotes: "",
         supplierPackageNotes: "",
+      },
+      supplierOrder: {
+        status: "QC_IN_PROGRESS",
+        shopName: "Shenzhen Precision",
+        contactName: "Li Wei",
+        notes: "First article inspection is running.",
+        trackingNumber: "SF123",
+        documents: [
+          {
+            id: "supplier_doc_1",
+            name: "inspection-report.pdf",
+            sizeBytes: 2048,
+            type: "application/pdf",
+            category: "INSPECTION_REPORT",
+            uploadedAt: "2026-06-02T10:00:00.000Z",
+          },
+        ],
+        updates: [
+          {
+            id: "supplier_update_1",
+            status: "QC_IN_PROGRESS",
+            note: "First article inspection is running.",
+            trackingNumber: "SF123",
+            createdAt: "2026-06-02T10:05:00.000Z",
+          },
+        ],
       },
       quote: {
         estimatedPriceCents: null,

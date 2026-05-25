@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type IconName = "home" | "analytics" | "project" | "card" | "money";
+type IconName = "home" | "analytics" | "project" | "card" | "money" | "admin" | "factory";
 
 type NavItem = {
   href: string;
@@ -21,6 +21,7 @@ const navSections: NavSection[] = [
     title: "Admin",
     items: [
       { href: "/", label: "Home", icon: "home" },
+      { href: "/admin", label: "Admin Center", icon: "admin" },
       { href: "/analytics", label: "Analytics", icon: "analytics" },
       { href: "/projects", label: "Project Management", icon: "project" },
     ],
@@ -30,6 +31,7 @@ const navSections: NavSection[] = [
     items: [
       { href: "/quotes", label: "Our Quotes", icon: "card" },
       { href: "/orders", label: "Our Orders", icon: "money" },
+      { href: "/supplier/orders", label: "Supplier Portal", icon: "factory" },
     ],
   },
   {
@@ -71,6 +73,18 @@ function SidebarIcon({ name }: { name: IconName }) {
     );
   }
 
+  if (name === "admin") {
+    return (
+      <svg aria-hidden="true" {...common}>
+        <rect height="17" rx="2" width="21" x="5.5" y="8" />
+        <path d="M9.5 13h13" />
+        <path d="M9.5 17h6" />
+        <path d="M19 20.5h3.5" />
+        <path d="M20.8 18.7v3.6" />
+      </svg>
+    );
+  }
+
   if (name === "project") {
     return (
       <svg aria-hidden="true" {...common}>
@@ -81,6 +95,18 @@ function SidebarIcon({ name }: { name: IconName }) {
         <path d="M16 13.3v13" />
         <path d="m16 20.1-4.9 6.1" />
         <path d="m16 20.1 4.9 6.1" />
+      </svg>
+    );
+  }
+
+  if (name === "factory") {
+    return (
+      <svg aria-hidden="true" {...common}>
+        <path d="M5.5 25.5h21" />
+        <path d="M7.5 25.5V13.8l5.8 3.2v-3.2l5.8 3.2v-6.5h5.4v15" />
+        <path d="M10.5 21h2.4" />
+        <path d="M16 21h2.4" />
+        <path d="M21.5 21h2.4" />
       </svg>
     );
   }

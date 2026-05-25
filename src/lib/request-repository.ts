@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
-import type { DraftRequestInput, OperatorStatusUpdateInput } from "./request-model";
-import { applyOperatorStatusUpdate } from "./request-model";
+import type { DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
+import { applyOperatorStatusUpdate, applySupplierOrderUpdate } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude } from "./request-persistence";
 import { getOperatorQueueRequests } from "./request-queue";
 
@@ -27,6 +27,17 @@ export async function listOperatorRequests() {
   });
 
   return getOperatorQueueRequests(storedRequests.map(mapStoredRequest));
+}
+
+export async function listAdminRequests() {
+  const storedRequests = await prisma.request.findMany({
+    include: storedRequestInclude,
+    orderBy: {
+      updatedAt: "desc",
+    },
+  });
+
+  return storedRequests.map(mapStoredRequest);
 }
 
 export async function getRequestById(id: string) {
@@ -133,4 +144,74 @@ export async function listBuyerOrders() {
   });
 
   return storedRequests.map(mapStoredRequest);
+}
+
+export async function listSupplierOrders() {
+  const storedRequests = await prisma.request.findMany({
+    where: {
+      status: "PURCHASED",
+    },
+    include: storedRequestInclude,
+    orderBy: [
+      {
+        supplierOrderStatus: "asc",
+      },
+      {
+        updatedAt: "desc",
+      },
+    ],
+  });
+
+  return storedRequests.map(mapStoredRequest);
+}
+
+export async function updateSupplierOrder(requestId: string, input: SupplierOrderUpdateInput) {
+  const current = await getRequestById(requestId);
+
+  if (!current) {
+    throw new Error("Order not found");
+  }
+
+  const updated = applySupplierOrderUpdate(current, input);
+  const newUpdate = updated.supplierOrder.updates.at(-1);
+
+  const stored = await prisma.request.update({
+    where: { id: requestId },
+    data: {
+      supplierOrderStatus: updated.supplierOrder.status,
+      supplierShopName: updated.supplierOrder.shopName,
+      supplierContactName: updated.supplierOrder.contactName,
+      supplierNotes: updated.supplierOrder.notes,
+      supplierTrackingNumber: updated.supplierOrder.trackingNumber,
+      supplierDocuments: input.documents?.length
+        ? {
+            create: input.documents.map((document) => ({
+              name: document.name,
+              sizeBytes: document.sizeBytes,
+              type: document.type,
+              category: document.category,
+            })),
+          }
+        : undefined,
+      supplierUpdates: newUpdate
+        ? {
+            create: {
+              status: newUpdate.status,
+              note: newUpdate.note,
+              trackingNumber: newUpdate.trackingNumber,
+            },
+          }
+        : undefined,
+      statusEvents: {
+        create: {
+          from: current.status,
+          to: current.status,
+          actor: "supplier",
+        },
+      },
+    },
+    include: storedRequestInclude,
+  });
+
+  return mapStoredRequest(stored);
 }

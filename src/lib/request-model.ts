@@ -2,6 +2,22 @@ export type RequestStatus = "DRAFT" | "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SU
 
 export type OperatorCompleteness = "READY_FOR_REVIEW" | "MISSING_INFO" | "COMPLETE";
 
+export type SupplierOrderStatus =
+  | "AWAITING_ACKNOWLEDGMENT"
+  | "IN_PRODUCTION"
+  | "QC_IN_PROGRESS"
+  | "DOCUMENTS_UPLOADED"
+  | "READY_TO_SHIP"
+  | "SHIPPED";
+
+export type SupplierDocumentCategory =
+  | "INSPECTION_REPORT"
+  | "MATERIAL_CERT"
+  | "CERTIFICATE_OF_CONFORMANCE"
+  | "PHOTO"
+  | "PACKING_SLIP"
+  | "OTHER";
+
 export type RequestLineItemInput = {
   partName: string;
   quantity: number;
@@ -36,11 +52,38 @@ export type UploadedFile = UploadedFileInput & {
   id: string;
 };
 
+export type SupplierDocument = {
+  id: string;
+  name: string;
+  sizeBytes: number;
+  type: string;
+  category: SupplierDocumentCategory;
+  uploadedAt: string;
+};
+
+export type SupplierUpdate = {
+  id: string;
+  status: SupplierOrderStatus;
+  note: string;
+  trackingNumber: string;
+  createdAt: string;
+};
+
+export type SupplierOrder = {
+  status: SupplierOrderStatus;
+  shopName: string;
+  contactName: string;
+  notes: string;
+  trackingNumber: string;
+  documents: SupplierDocument[];
+  updates: SupplierUpdate[];
+};
+
 export type StatusEvent = {
   id: string;
   from: RequestStatus | null;
   to: RequestStatus;
-  actor: "buyer" | "operator" | "system";
+  actor: "buyer" | "operator" | "supplier" | "system";
   at: string;
 };
 
@@ -62,6 +105,7 @@ export type LatticeRequest = {
   lineItems: RequestLineItem[];
   files: UploadedFile[];
   operatorReview: OperatorReview;
+  supplierOrder: SupplierOrder;
   quote: QuoteSummary;
   statusEvents: StatusEvent[];
   createdAt: string;
@@ -133,6 +177,15 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       internalNotes: "",
       supplierPackageNotes: "",
     },
+    supplierOrder: {
+      status: "AWAITING_ACKNOWLEDGMENT",
+      shopName: "China supplier team",
+      contactName: "",
+      notes: "",
+      trackingNumber: "",
+      documents: [],
+      updates: [],
+    },
     quote: {
       estimatedPriceCents: null,
       leadTimeDays: null,
@@ -202,6 +255,20 @@ export type OperatorStatusUpdateInput = {
   quoteSummary?: string;
 };
 
+export type SupplierOrderUpdateInput = {
+  status: SupplierOrderStatus;
+  shopName?: string;
+  contactName?: string;
+  notes?: string;
+  trackingNumber?: string;
+  documents?: Array<{
+    name: string;
+    sizeBytes: number;
+    type: string;
+    category: SupplierDocumentCategory;
+  }>;
+};
+
 function completenessForStatus(status: OperatorStatusUpdateInput["status"]): OperatorCompleteness {
   if (status === "NEEDS_INFO") {
     return "MISSING_INFO";
@@ -251,6 +318,59 @@ export function applyOperatorStatusUpdate(
             at: timestamp,
           },
         ],
+    updatedAt: timestamp,
+  };
+}
+
+export function applySupplierOrderUpdate(
+  request: LatticeRequest,
+  input: SupplierOrderUpdateInput,
+): LatticeRequest {
+  if (request.status !== "PURCHASED") {
+    throw new Error("Only purchased orders can be updated from the supplier portal");
+  }
+
+  const timestamp = nowIso();
+  const nextDocuments = (input.documents ?? []).map((document) => ({
+    id: makeId("supplier_doc"),
+    name: document.name,
+    sizeBytes: document.sizeBytes,
+    type: document.type,
+    category: document.category,
+    uploadedAt: timestamp,
+  }));
+  const trackingNumber = input.trackingNumber?.trim() || request.supplierOrder.trackingNumber;
+
+  return {
+    ...request,
+    supplierOrder: {
+      status: input.status,
+      shopName: input.shopName?.trim() || request.supplierOrder.shopName,
+      contactName: input.contactName?.trim() || request.supplierOrder.contactName,
+      notes: input.notes?.trim() || request.supplierOrder.notes,
+      trackingNumber,
+      documents: [...request.supplierOrder.documents, ...nextDocuments],
+      updates: [
+        ...request.supplierOrder.updates,
+        {
+          id: makeId("supplier_update"),
+          status: input.status,
+          note: input.notes?.trim() || "",
+          trackingNumber,
+          createdAt: timestamp,
+        },
+      ],
+    },
+    statusEvents: [
+      ...request.statusEvents,
+      {
+        id: makeId("event"),
+        from: request.status,
+        to: request.status,
+        actor: "supplier",
+        at: timestamp,
+      },
+    ],
     updatedAt: timestamp,
   };
 }

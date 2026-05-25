@@ -1,6 +1,15 @@
 import Link from "next/link";
 
-import type { LatticeRequest } from "@/lib/request-model";
+import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
+
+const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
+  AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
+  IN_PRODUCTION: "In production",
+  QC_IN_PROGRESS: "QC in progress",
+  DOCUMENTS_UPLOADED: "Quality documents uploaded",
+  READY_TO_SHIP: "Ready to ship",
+  SHIPPED: "Shipped",
+};
 
 function formatPrice(cents: number | null) {
   if (cents === null) {
@@ -48,7 +57,10 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
               </div>
               <p className="text-sm font-semibold text-slate-950">{formatPrice(order.quote.estimatedPriceCents)}</p>
               <p className="text-sm text-slate-600">{order.quote.leadTimeDays ? `${order.quote.leadTimeDays} days` : "Pending"}</p>
-              <p className="text-sm leading-6 text-slate-600">Purchased quote converted to order. Supplier/order fulfillment tracking comes next.</p>
+              <p className="text-sm leading-6 text-slate-600">
+                {supplierStatusLabels[order.supplierOrder.status]}
+                {order.supplierOrder.trackingNumber ? ` - Tracking ${order.supplierOrder.trackingNumber}` : ""}
+              </p>
             </article>
           );
         })}

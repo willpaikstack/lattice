@@ -8,6 +8,8 @@ import { BuyerQuoteDetail } from "./buyer-quote-detail";
 import { BuyerQuotes } from "./buyer-quotes";
 import { OperatorQueue } from "./operator-queue";
 import { OperatorRequestDetail } from "./operator-request-detail";
+import { SupplierOrderDetail } from "./supplier-order-detail";
+import { SupplierOrders } from "./supplier-orders";
 
 function makeSubmittedRequest() {
   return submitDraftRequest(
@@ -107,6 +109,31 @@ describe("BuyerOrders", () => {
 
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
     expect(screen.getByText("$1,825.00")).toBeInTheDocument();
-    expect(screen.getByText(/Purchased quote converted to order/)).toBeInTheDocument();
+    expect(screen.getByText(/Awaiting supplier acknowledgment/)).toBeInTheDocument();
+  });
+});
+
+describe("SupplierOrders", () => {
+  it("links purchased orders to the supplier management page", () => {
+    const order = { ...makeQuotedRequest(), status: "PURCHASED" as const };
+
+    render(<SupplierOrders orders={[order]} />);
+
+    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Manage" })).toHaveAttribute("href", `/supplier/orders/${order.id}`);
+    expect(screen.getByText("Awaiting acknowledgment")).toBeInTheDocument();
+  });
+});
+
+describe("SupplierOrderDetail", () => {
+  it("renders production controls, package details, and document/timeline sections", () => {
+    render(<SupplierOrderDetail order={{ ...makeQuotedRequest(), status: "PURCHASED" }} />);
+
+    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Production status")).toBeInTheDocument();
+    expect(screen.getByLabelText("Document type")).toBeInTheDocument();
+    expect(screen.getByText("Supplier package complete.")).toBeInTheDocument();
+    expect(screen.getByText(/Required docs: Standard Inspection/)).toBeInTheDocument();
+    expect(screen.getByText("Save supplier update")).toBeDisabled();
   });
 });

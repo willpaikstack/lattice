@@ -23,6 +23,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Project Management", "/projects");
     expectAllLinksNamed("Our Quotes", "/quotes");
     expectAllLinksNamed("Our Orders", "/orders");
+    expectAllLinksNamed("Supplier Portal", "/supplier/orders");
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
   });

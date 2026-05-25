@@ -5,6 +5,16 @@ export const storedRequestInclude = {
   buyerCompany: true,
   lineItems: true,
   files: true,
+  supplierDocuments: {
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
+  supplierUpdates: {
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
   statusEvents: {
     orderBy: {
       createdAt: "asc",
@@ -24,6 +34,11 @@ type StoredRequest = {
   assignedOwner: string | null;
   internalNotes: string;
   supplierPackageNotes: string;
+  supplierOrderStatus?: LatticeRequest["supplierOrder"]["status"];
+  supplierShopName?: string;
+  supplierContactName?: string;
+  supplierNotes?: string;
+  supplierTrackingNumber?: string;
   estimatedPriceCents: number | null;
   leadTimeDays: number | null;
   quoteSummary: string;
@@ -42,6 +57,21 @@ type StoredRequest = {
     name: string;
     sizeBytes: number;
     type: string;
+  }>;
+  supplierDocuments?: Array<{
+    id: string;
+    name: string;
+    sizeBytes: number;
+    type: string;
+    category: LatticeRequest["supplierOrder"]["documents"][number]["category"];
+    createdAt: Date;
+  }>;
+  supplierUpdates?: Array<{
+    id: string;
+    status: LatticeRequest["supplierOrder"]["status"];
+    note: string;
+    trackingNumber: string;
+    createdAt: Date;
   }>;
   statusEvents: Array<{
     id: string;
@@ -63,7 +93,7 @@ function formatDueDate(dueDate: Date | null) {
 }
 
 function normalizeActor(actor: string): LatticeRequest["statusEvents"][number]["actor"] {
-  if (actor === "buyer" || actor === "operator" || actor === "system") {
+  if (actor === "buyer" || actor === "operator" || actor === "supplier" || actor === "system") {
     return actor;
   }
   return "system";
@@ -82,6 +112,11 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     assignedOwner: submitted.operatorReview.assignedOwner,
     internalNotes: submitted.operatorReview.internalNotes,
     supplierPackageNotes: submitted.operatorReview.supplierPackageNotes,
+    supplierOrderStatus: submitted.supplierOrder.status,
+    supplierShopName: submitted.supplierOrder.shopName,
+    supplierContactName: submitted.supplierOrder.contactName,
+    supplierNotes: submitted.supplierOrder.notes,
+    supplierTrackingNumber: submitted.supplierOrder.trackingNumber,
     estimatedPriceCents: submitted.quote.estimatedPriceCents,
     leadTimeDays: submitted.quote.leadTimeDays,
     quoteSummary: submitted.quote.summary,
@@ -148,6 +183,28 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       assignedOwner: stored.assignedOwner,
       internalNotes: stored.internalNotes,
       supplierPackageNotes: stored.supplierPackageNotes,
+    },
+    supplierOrder: {
+      status: stored.supplierOrderStatus ?? "AWAITING_ACKNOWLEDGMENT",
+      shopName: stored.supplierShopName ?? "China supplier team",
+      contactName: stored.supplierContactName ?? "",
+      notes: stored.supplierNotes ?? "",
+      trackingNumber: stored.supplierTrackingNumber ?? "",
+      documents: (stored.supplierDocuments ?? []).map((document) => ({
+        id: document.id,
+        name: document.name,
+        sizeBytes: document.sizeBytes,
+        type: document.type,
+        category: document.category,
+        uploadedAt: document.createdAt.toISOString(),
+      })),
+      updates: (stored.supplierUpdates ?? []).map((update) => ({
+        id: update.id,
+        status: update.status,
+        note: update.note,
+        trackingNumber: update.trackingNumber,
+        createdAt: update.createdAt.toISOString(),
+      })),
     },
     quote: {
       estimatedPriceCents: stored.estimatedPriceCents,

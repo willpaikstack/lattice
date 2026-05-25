@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
+import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 
 describe("request model", () => {
   it("builds a buyer draft request with one line item and one uploaded file", () => {
@@ -137,6 +137,70 @@ describe("request model", () => {
       from: "SUBMITTED",
       to: "READY_FOR_SUPPLIER_RFQ",
       actor: "operator",
+    });
+  });
+
+  it("lets suppliers update purchased order status and attach document metadata", () => {
+    const quoted = applyOperatorStatusUpdate(
+      submitDraftRequest(
+        buildDraftRequest({
+          buyerCompany: "Amogy Manufacturing",
+          requesterName: "William Paik",
+          title: "Fabricated frame kit",
+          process: "Sheet metal fabrication",
+          dueDate: "2026-06-20",
+          lineItems: [
+            {
+              partName: "Frame Rail",
+              quantity: 8,
+              material: "304 Stainless Steel",
+            },
+          ],
+          files: [{ name: "frame-rail.pdf", sizeBytes: 4096, type: "application/pdf" }],
+        }),
+      ),
+      {
+        status: "QUOTED",
+        estimatedPriceCents: 125000,
+        leadTimeDays: 14,
+      },
+    );
+
+    const updated = applySupplierOrderUpdate(
+      {
+        ...quoted,
+        status: "PURCHASED",
+      },
+      {
+        status: "QC_IN_PROGRESS",
+        shopName: "Shenzhen Precision",
+        contactName: "Li Wei",
+        notes: "First article inspection is running.",
+        trackingNumber: "SF123",
+        documents: [
+          {
+            name: "inspection-report.pdf",
+            sizeBytes: 2048,
+            type: "application/pdf",
+            category: "INSPECTION_REPORT",
+          },
+        ],
+      },
+    );
+
+    expect(updated.supplierOrder.status).toBe("QC_IN_PROGRESS");
+    expect(updated.supplierOrder.shopName).toBe("Shenzhen Precision");
+    expect(updated.supplierOrder.documents[0]).toMatchObject({
+      name: "inspection-report.pdf",
+      category: "INSPECTION_REPORT",
+    });
+    expect(updated.supplierOrder.updates.at(-1)).toMatchObject({
+      status: "QC_IN_PROGRESS",
+      note: "First article inspection is running.",
+      trackingNumber: "SF123",
+    });
+    expect(updated.statusEvents.at(-1)).toMatchObject({
+      actor: "supplier",
     });
   });
 });
