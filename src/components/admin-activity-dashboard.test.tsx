@@ -23,7 +23,7 @@ function makeRequest(overrides: Partial<LatticeRequest> = {}) {
 }
 
 describe("AdminActivityDashboard", () => {
-  it("renders an administrator management surface for application activity", () => {
+  it("renders a minimal administrator overview for current operations", () => {
     const needsInfo = applyOperatorStatusUpdate(makeRequest({ id: "req_needs_info", title: "Missing tolerance RFQ" }), {
       status: "NEEDS_INFO",
       assignedOwner: "Adam",
@@ -38,14 +38,18 @@ describe("AdminActivityDashboard", () => {
 
     render(<AdminActivityDashboard summary={summary} />);
 
-    expect(screen.getByRole("heading", { name: "Administrator control center" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Admin overview" })).toBeInTheDocument();
     expect(screen.getByText("Total RFQs")).toBeInTheDocument();
-    expect(screen.getByText("Needs admin action")).toBeInTheDocument();
+    expect(screen.getByText("Needs action")).toBeInTheDocument();
     expect(screen.getByText("Supplier ready")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Admin action queue" })).toBeInTheDocument();
+    expect(screen.getByText("Orders in flight")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Next actions" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Resolve missing buyer info/ })).toHaveAttribute("href", "/operator/requests/req_needs_info");
     expect(screen.getByRole("link", { name: /Send supplier RFQ package/ })).toHaveAttribute("href", "/operator/requests/req_ready");
-    expect(screen.getByRole("heading", { name: "Activity by status" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Recent application activity" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recent RFQs" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Activity by status" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Owner workload" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Supplier execution" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Platform timeline" })).not.toBeInTheDocument();
   });
 });

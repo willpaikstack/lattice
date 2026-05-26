@@ -1,22 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import Home from "./page";
+import LandingPage from "./page";
 
-describe("Home dashboard", () => {
-  it("matches the Bubble home page structure with KPIs, inbox, transactions, and orders", () => {
-    render(<Home />);
+describe("Landing page", () => {
+  it("presents the invite-only entry points", () => {
+    render(<LandingPage />);
 
-    expect(screen.getByRole("heading", { name: "Hi" })).toBeInTheDocument();
-    expect(screen.getByText("Active RFQs")).toBeInTheDocument();
-    expect(screen.getByText("43 unread quotes")).toBeInTheDocument();
-    expect(screen.getByText("Shipped")).toBeInTheDocument();
-    expect(screen.getByText("Alerts")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Star inbox" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Transactions" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View All/ })).toHaveAttribute("href", "/quotes");
-    expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();
-    expect(screen.getByText("william.paik@amogy.co")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lattice" })).toBeInTheDocument();
+    expect(screen.getByText("Invite-only manufacturing procurement")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: "Join waiting list" })).toHaveAttribute(
+      "href",
+      "mailto:hello@latticeos.com?subject=Join%20the%20Lattice%20waiting%20list",
+    );
   });
 });

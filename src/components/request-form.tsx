@@ -42,9 +42,9 @@ const makeInitialState = (): FormState => ({
   partName: "",
   quantity: "1",
   material: "ss_304",
-  generalTolerance: "iso_2768_medium__m_",
-  surfaceFinish: "as_machined__ra_3_2__m___ra_126__in_",
-  qualityDocumentation: ["cmm"],
+  generalTolerance: "iso_2768_medium_m",
+  surfaceFinish: "as_machined_ra_3_2",
+  qualityDocumentation: ["standard_inspection"],
   notes: "",
   fileName: "",
 });
@@ -306,7 +306,7 @@ export function RequestForm() {
 
           <div className="rounded-[2rem] border border-blue-100 bg-blue-50 p-6">
             <p className="text-sm font-semibold text-blue-800">Bubble-backed guidance</p>
-            <p className="mt-2 text-sm leading-6 text-blue-900/75">Material, tolerance, finish, process, and quality documentation options now use owned-code lookup tables extracted from the Bubble runtime.</p>
+            <p className="mt-2 text-sm leading-6 text-blue-900/75">Material, tolerance, finish, process, and quality documentation options now use owned-code lookup tables translated from the Bubble editor.</p>
           </div>
 
           {createdRequest ? (

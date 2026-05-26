@@ -34,7 +34,8 @@ npm run dev
 
 Open:
 
-- Command Center: <http://localhost:3000>
+- Landing Page: <http://localhost:3000>
+- Command Center: <http://localhost:3000/dashboard>
 - New Request: <http://localhost:3000/requests/new>
 - Operator Queue: <http://localhost:3000/operator/requests>
 
@@ -45,3 +46,14 @@ npm test
 npm run lint
 npm run build
 ```
+
+## Shared agent context
+
+This repo carries lightweight project memory so AI agents on different computers can pick up the same context:
+
+- `PROJECT_CONTEXT.md` - product, architecture, routes, and current state.
+- `DECISIONS.md` - durable technical and product decisions.
+- `TODO.md` - next priorities and cross-computer handoff checklist.
+- `AGENTS.md` - instructions agents should read before changing the repo.
+
+Keep these files updated before committing/pushing meaningful work.

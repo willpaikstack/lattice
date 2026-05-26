@@ -1,11 +1,35 @@
-import { prisma } from "./prisma";
+import { getDemoRequests } from "./demo-requests";
+import { getPrismaClient } from "./prisma";
 import type { DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
 import { applyOperatorStatusUpdate, applySupplierOrderUpdate } from "./request-model";
-import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude } from "./request-persistence";
-import { getOperatorQueueRequests } from "./request-queue";
+import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
+import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
+
+async function prisma() {
+  return (await getPrismaClient()) as {
+    request: {
+      create: (args: unknown) => Promise<StoredRequest>;
+      findMany: (args: unknown) => Promise<StoredRequest[]>;
+      findUnique: (args: unknown) => Promise<StoredRequest | null>;
+      update: (args: unknown) => Promise<StoredRequest>;
+    };
+  };
+}
+
+async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => T) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma is unavailable; using demo request data.", error);
+    }
+    return fallback();
+  }
+}
 
 export async function createSubmittedRequest(input: DraftRequestInput) {
-  const stored = await prisma.request.create({
+  const client = await prisma();
+  const stored = await client.request.create({
     data: buildSubmittedRequestCreateInput(input),
     include: storedRequestInclude,
   });
@@ -14,55 +38,79 @@ export async function createSubmittedRequest(input: DraftRequestInput) {
 }
 
 export async function listOperatorRequests() {
-  const storedRequests = await prisma.request.findMany({
-    where: {
-      status: {
-        in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"],
-      },
-    },
-    include: storedRequestInclude,
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const storedRequests = await client.request.findMany({
+        where: {
+          status: {
+            in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"],
+          },
+        },
+        include: storedRequestInclude,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
 
-  return getOperatorQueueRequests(storedRequests.map(mapStoredRequest));
+      return getOperatorQueueRequests(storedRequests.map(mapStoredRequest));
+    },
+    () => getOperatorQueueRequests(getDemoRequests()),
+  );
 }
 
 export async function listAdminRequests() {
-  const storedRequests = await prisma.request.findMany({
-    include: storedRequestInclude,
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const storedRequests = await client.request.findMany({
+        include: storedRequestInclude,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
 
-  return storedRequests.map(mapStoredRequest);
+      return storedRequests.map(mapStoredRequest);
+    },
+    () => sortRequestsNewestFirst(getDemoRequests()),
+  );
 }
 
 export async function getRequestById(id: string) {
-  const stored = await prisma.request.findUnique({
-    where: { id },
-    include: storedRequestInclude,
-  });
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const stored = await client.request.findUnique({
+        where: { id },
+        include: storedRequestInclude,
+      });
 
-  return stored ? mapStoredRequest(stored) : null;
+      return stored ? mapStoredRequest(stored) : null;
+    },
+    () => getDemoRequests().find((request) => request.id === id) ?? null,
+  );
 }
 
 export async function listBuyerQuotes() {
-  const storedRequests = await prisma.request.findMany({
-    where: {
-      status: {
-        in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "PURCHASED"],
-      },
-    },
-    include: storedRequestInclude,
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const storedRequests = await client.request.findMany({
+        where: {
+          status: {
+            in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "PURCHASED"],
+          },
+        },
+        include: storedRequestInclude,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
 
-  return storedRequests.map(mapStoredRequest);
+      return storedRequests.map(mapStoredRequest);
+    },
+    () => sortRequestsNewestFirst(getDemoRequests().filter((request) => request.status !== "DRAFT")),
+  );
 }
 
 export async function updateOperatorRequestStatus(id: string, input: OperatorStatusUpdateInput) {
@@ -73,8 +121,9 @@ export async function updateOperatorRequestStatus(id: string, input: OperatorSta
   }
 
   const updated = applyOperatorStatusUpdate(current, input);
+  const client = await prisma();
 
-  const stored = await prisma.request.update({
+  const stored = await client.request.update({
     where: { id },
     data: {
       status: updated.status,
@@ -114,7 +163,8 @@ export async function purchaseQuote(id: string) {
     throw new Error("Only priced quotes can be converted to orders");
   }
 
-  const stored = await prisma.request.update({
+  const client = await prisma();
+  const stored = await client.request.update({
     where: { id },
     data: {
       status: "PURCHASED",
@@ -133,36 +183,48 @@ export async function purchaseQuote(id: string) {
 }
 
 export async function listBuyerOrders() {
-  const storedRequests = await prisma.request.findMany({
-    where: {
-      status: "PURCHASED",
-    },
-    include: storedRequestInclude,
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const storedRequests = await client.request.findMany({
+        where: {
+          status: "PURCHASED",
+        },
+        include: storedRequestInclude,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
 
-  return storedRequests.map(mapStoredRequest);
+      return storedRequests.map(mapStoredRequest);
+    },
+    () => sortRequestsNewestFirst(getDemoRequests().filter((request) => request.status === "PURCHASED")),
+  );
 }
 
 export async function listSupplierOrders() {
-  const storedRequests = await prisma.request.findMany({
-    where: {
-      status: "PURCHASED",
-    },
-    include: storedRequestInclude,
-    orderBy: [
-      {
-        supplierOrderStatus: "asc",
-      },
-      {
-        updatedAt: "desc",
-      },
-    ],
-  });
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const storedRequests = await client.request.findMany({
+        where: {
+          status: "PURCHASED",
+        },
+        include: storedRequestInclude,
+        orderBy: [
+          {
+            supplierOrderStatus: "asc",
+          },
+          {
+            updatedAt: "desc",
+          },
+        ],
+      });
 
-  return storedRequests.map(mapStoredRequest);
+      return storedRequests.map(mapStoredRequest);
+    },
+    () => sortRequestsNewestFirst(getDemoRequests().filter((request) => request.status === "PURCHASED")),
+  );
 }
 
 export async function updateSupplierOrder(requestId: string, input: SupplierOrderUpdateInput) {
@@ -174,8 +236,9 @@ export async function updateSupplierOrder(requestId: string, input: SupplierOrde
 
   const updated = applySupplierOrderUpdate(current, input);
   const newUpdate = updated.supplierOrder.updates.at(-1);
+  const client = await prisma();
 
-  const stored = await prisma.request.update({
+  const stored = await client.request.update({
     where: { id: requestId },
     data: {
       supplierOrderStatus: updated.supplierOrder.status,

@@ -50,23 +50,34 @@ describe("admin activity summary", () => {
     });
     const purchased = { ...quoted, id: "req_purchased", status: "PURCHASED" as const };
 
-    const summary = buildAdminActivitySummary([submitted, needsInfo, readyForSupplier, quoted, purchased]);
+    const summary = buildAdminActivitySummary([submitted, needsInfo, readyForSupplier, quoted, purchased], new Date("2026-05-26T12:00:00.000Z"));
 
     expect(summary.metrics.totalRequests).toBe(5);
     expect(summary.metrics.needsAdminAction).toBe(2);
     expect(summary.metrics.supplierReady).toBe(1);
     expect(summary.metrics.ordersInFlight).toBe(1);
+    expect(summary.metrics.unassignedRequests).toBe(1);
+    expect(summary.metrics.averageQuoteCents).toBe(125000);
     expect(summary.statusCounts).toMatchObject({
       SUBMITTED: 1,
       NEEDS_INFO: 1,
       QUOTED: 1,
       PURCHASED: 1,
     });
-    expect(summary.nextActions.map((action) => action.requestId)).toEqual(["req_needs_info", "req_submitted", "req_ready"]);
+    expect(summary.nextActions.map((action) => action.requestId)).toEqual(["req_needs_info", "req_submitted", "req_ready", "req_quoted"]);
     expect(summary.nextActions[0]).toMatchObject({
       label: "Resolve missing buyer info",
       tone: "warning",
       href: "/operator/requests/req_needs_info",
     });
+    expect(summary.ownerWorkloads[0]).toMatchObject({
+      owner: "Adam",
+      totalRequests: 4,
+    });
+    expect(summary.supplierMonitors[0]).toMatchObject({
+      requestId: "req_purchased",
+      status: "AWAITING_ACKNOWLEDGMENT",
+    });
+    expect(summary.recentEvents.length).toBeGreaterThan(0);
   });
 });

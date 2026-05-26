@@ -40,12 +40,20 @@ enum SupplierDocumentCategory {
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  name      String
-  users     User[]
-  requests  Request[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  website             String   @default("")
+  industry            String   @default("")
+  primaryContactName  String   @default("")
+  primaryContactEmail String   @default("")
+  billingEmail        String   @default("")
+  customerTier        String   @default("Standard")
+  accountStatus       String   @default("Active")
+  notes               String   @default("")
+  users               User[]
+  requests            Request[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model User {
@@ -83,9 +91,34 @@ model Request {
   files                UploadedFile[]
   supplierDocuments    SupplierDocument[]
   supplierUpdates      SupplierUpdate[]
+  supplierQuotes       SupplierQuote[]
   statusEvents         StatusEvent[]
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
+}
+
+enum SupplierQuoteStatus {
+  INVITED
+  QUOTE_RECEIVED
+  DECLINED
+  SELECTED
+}
+
+model SupplierQuote {
+  id           String              @id @default(cuid())
+  requestId    String
+  request      Request             @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  shopName     String
+  country      String              @default("China")
+  contactName  String              @default("")
+  status       SupplierQuoteStatus @default(INVITED)
+  priceCents   Int?
+  leadTimeDays Int?
+  notes        String              @default("")
+  quotedAt     DateTime?
+  isSelected   Boolean             @default(false)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 model RequestLineItem {

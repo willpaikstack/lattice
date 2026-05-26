@@ -14,7 +14,7 @@ describe("RequestForm", () => {
     expect(screen.getByLabelText(/Project Name/)).toBeInTheDocument();
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("SS 304");
     expect(screen.getByLabelText("General tolerance")).toHaveDisplayValue("ISO 2768 Medium (m)");
-    expect(screen.getByLabelText("Surface finish")).toHaveDisplayValue("As machined (Ra 3.2 µm / Ra 126 µin)");
+    expect(screen.getByLabelText("Surface finish")).toHaveDisplayValue("As machined (Ra 3.2 um / Ra 126 uin)");
     expect(screen.getByText("Quality documentation")).toBeInTheDocument();
     expect(screen.getByLabelText("Standard Inspection")).toBeChecked();
     expect(screen.queryByText("HEADER")).not.toBeInTheDocument();

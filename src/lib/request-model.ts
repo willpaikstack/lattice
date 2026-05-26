@@ -79,6 +79,21 @@ export type SupplierOrder = {
   updates: SupplierUpdate[];
 };
 
+export type SupplierQuoteStatus = "INVITED" | "QUOTE_RECEIVED" | "DECLINED" | "SELECTED";
+
+export type SupplierQuote = {
+  id: string;
+  shopName: string;
+  country: string;
+  contactName: string;
+  status: SupplierQuoteStatus;
+  priceCents: number | null;
+  leadTimeDays: number | null;
+  notes: string;
+  quotedAt: string | null;
+  isSelected: boolean;
+};
+
 export type StatusEvent = {
   id: string;
   from: RequestStatus | null;
@@ -106,6 +121,7 @@ export type LatticeRequest = {
   files: UploadedFile[];
   operatorReview: OperatorReview;
   supplierOrder: SupplierOrder;
+  supplierQuotes: SupplierQuote[];
   quote: QuoteSummary;
   statusEvents: StatusEvent[];
   createdAt: string;
@@ -186,6 +202,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       documents: [],
       updates: [],
     },
+    supplierQuotes: [],
     quote: {
       estimatedPriceCents: null,
       leadTimeDays: null,

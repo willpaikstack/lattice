@@ -315,7 +315,8 @@ Operator sees request in queue
 Current visible pages:
 
 ```text
-/                         Command center/home
+/                         Public invite-only landing page
+/dashboard                Command center/home
 /requests/new             Buyer request creation form
 /operator/requests        Internal operator queue
 ```
@@ -679,12 +680,24 @@ Plain English:
 
 ### `src/app/page.tsx`
 
-Home page / command center.
+Public invite-only landing page.
 
 URL:
 
 ```text
 /
+```
+
+---
+
+### `src/app/dashboard/page.tsx`
+
+Home page / command center.
+
+URL:
+
+```text
+/dashboard
 ```
 
 ---
@@ -1261,7 +1274,8 @@ Environment examples:  .env.example
 ### Key current URLs
 
 ```text
-/                         Home
+/                         Public invite-only landing page
+/dashboard                Home
 /requests/new             Buyer request form
 /operator/requests        Operator queue
 /api/requests             Backend request API

@@ -15,6 +15,11 @@ export const storedRequestInclude = {
       createdAt: "asc",
     },
   },
+  supplierQuotes: {
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
   statusEvents: {
     orderBy: {
       createdAt: "asc",
@@ -22,7 +27,7 @@ export const storedRequestInclude = {
   },
 } as const;
 
-type StoredRequest = {
+export type StoredRequest = {
   id: string;
   title: string;
   process: string;
@@ -72,6 +77,18 @@ type StoredRequest = {
     note: string;
     trackingNumber: string;
     createdAt: Date;
+  }>;
+  supplierQuotes?: Array<{
+    id: string;
+    shopName: string;
+    country: string;
+    contactName: string;
+    status: LatticeRequest["supplierQuotes"][number]["status"];
+    priceCents: number | null;
+    leadTimeDays: number | null;
+    notes: string;
+    quotedAt: Date | null;
+    isSelected: boolean;
   }>;
   statusEvents: Array<{
     id: string;
@@ -206,6 +223,18 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
         createdAt: update.createdAt.toISOString(),
       })),
     },
+    supplierQuotes: (stored.supplierQuotes ?? []).map((quote) => ({
+      id: quote.id,
+      shopName: quote.shopName,
+      country: quote.country,
+      contactName: quote.contactName,
+      status: quote.status,
+      priceCents: quote.priceCents,
+      leadTimeDays: quote.leadTimeDays,
+      notes: quote.notes,
+      quotedAt: quote.quotedAt?.toISOString() ?? null,
+      isSelected: quote.isSelected,
+    })),
     quote: {
       estimatedPriceCents: stored.estimatedPriceCents,
       leadTimeDays: stored.leadTimeDays,

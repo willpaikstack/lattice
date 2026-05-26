@@ -141,6 +141,20 @@ describe("request persistence", () => {
           createdAt: new Date("2026-06-02T10:05:00.000Z"),
         },
       ],
+      supplierQuotes: [
+        {
+          id: "supplier_quote_1",
+          shopName: "Shenzhen Precision Manufacturing",
+          country: "China",
+          contactName: "Li Wei",
+          status: "SELECTED" as const,
+          priceCents: 125000,
+          leadTimeDays: 14,
+          notes: "Selected overseas shop quote.",
+          quotedAt: new Date("2026-06-01T12:00:00.000Z"),
+          isSelected: true,
+        },
+      ],
       statusEvents: [
         {
           id: "event_1",
@@ -206,6 +220,20 @@ describe("request persistence", () => {
         leadTimeDays: null,
         summary: "",
       },
+      supplierQuotes: [
+        {
+          id: "supplier_quote_1",
+          shopName: "Shenzhen Precision Manufacturing",
+          country: "China",
+          contactName: "Li Wei",
+          status: "SELECTED",
+          priceCents: 125000,
+          leadTimeDays: 14,
+          notes: "Selected overseas shop quote.",
+          quotedAt: "2026-06-01T12:00:00.000Z",
+          isSelected: true,
+        },
+      ],
       lineItems: [
         {
           id: "line_1",
