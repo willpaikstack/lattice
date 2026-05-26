@@ -19,9 +19,14 @@ export default async function AdminQuotesPage() {
               Manage active customer RFQs and the overseas fabrication shops quoting each request.
             </p>
           </div>
-          <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/operator/requests">
-            RFQ Queue
-          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/admin/quotes/builder">
+              Build Customer Quote
+            </Link>
+            <Link className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-center text-sm font-semibold text-[#262626]" href="/operator/requests">
+              RFQ Queue
+            </Link>
+          </div>
         </div>
       </section>
 

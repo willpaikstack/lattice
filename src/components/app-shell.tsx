@@ -44,6 +44,7 @@ const adminNavSections: NavSection[] = [
       { href: "/admin", label: "Overview", icon: "admin" },
       { href: "/admin/customers", label: "Customers", icon: "user" },
       { href: "/admin/quotes", label: "Quote Submissions", icon: "money" },
+      { href: "/admin/quotes/builder", label: "Quote Builder", icon: "card" },
       { href: "/admin/orders", label: "Placed Orders", icon: "factory" },
       { href: "/operator/requests", label: "RFQ Queue", icon: "queue" },
     ],
@@ -203,7 +204,10 @@ function DesktopNavSection({ section, pathname }: { section: NavSection; pathnam
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#181818]">{section.title}</p>
       <div className="space-y-1">
         {section.items.map((item) => {
-          const isActive = item.href === "/" ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            item.href === "/" || item.href === "/admin/quotes"
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           return (
             <Link

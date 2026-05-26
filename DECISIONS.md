@@ -2,6 +2,18 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-05-26 - Start Customer Quote Issuance With A Local Markdown Builder
+
+Decision: add an internal admin quote builder at `/admin/quotes/builder` that captures quote header fields, line-item pricing, files reviewed, lead time, assumptions, and open questions, then downloads a customer-ready Markdown quote file.
+
+Reason: Lattice needs a usable quote issuance workflow before the full database-backed quote lifecycle is built. Markdown keeps the generated artifact simple to inspect, copy, email, or convert to PDF.
+
+Implications:
+
+- Keep quote file formatting in `src/lib/quote-file.ts` so it can later feed PDF generation or persisted quote records.
+- Treat the builder as an operator/admin tool, not a buyer-facing quote acceptance surface.
+- Later work should connect quote generation to saved RFQs, supplier quotes, and durable quote versions.
+
 ## 2026-05-26 - Use Autodesk Platform Services For Native CAD Preview
 
 Decision: use Autodesk Platform Services Model Derivative plus Viewer SDK for browser-based previews of uploaded manufacturing CAD files.

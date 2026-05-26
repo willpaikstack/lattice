@@ -22,6 +22,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - smoke test upload translation and Autodesk Viewer rendering from `/requests/new`
   - persist original file object IDs and translated model URNs with uploaded file records
 - Make buyer `/quotes` and operator `/operator/requests` role separation clearer.
+- Extend `/admin/quotes/builder` so generated customer quotes can be loaded from an RFQ, saved as durable quote versions, and exported as PDF when the quote lifecycle is ready.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
 - Reuse material/capability catalog data in RFQ form dropdowns where it helps buyers submit cleaner requests.
 - Add or update tests whenever request status, persistence, queue filtering, or role-specific views change.

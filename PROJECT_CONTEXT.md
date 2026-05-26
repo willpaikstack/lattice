@@ -39,6 +39,7 @@ Important routes:
 - `/admin` - admin dashboard.
 - `/admin/customers` and `/admin/customers/[companyId]` - customer management.
 - `/admin/quotes` - admin quote management.
+- `/admin/quotes/builder` - internal customer quote builder for typing line-item pricing and downloading a customer-ready Markdown quote file.
 - `/admin/orders` - admin order management.
 - `/materials` - material catalog.
 - `/capabilities` - fabrication capabilities.
@@ -106,6 +107,7 @@ The Bubble reference worth improving:
 - `src/components/buyer-orders.tsx` - buyer order views.
 - `src/components/supplier-orders.tsx` and `src/components/supplier-order-detail.tsx` - supplier order views.
 - `src/components/admin-*.tsx` - admin operation surfaces.
+- `src/components/customer-quote-builder.tsx` and `src/lib/quote-file.ts` - quote builder UI and customer-facing quote file generation.
 - `src/lib/request-model.ts` - core request types, statuses, and transitions.
 - `src/lib/request-persistence.ts` - app/database mapping.
 - `src/lib/request-repository.ts` - database operations.
