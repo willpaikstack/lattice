@@ -1,8 +1,9 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 
+import { CadUploadPreview, type CadUploadPreviewState } from "@/components/cad-upload-preview";
 import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
   generalToleranceOptions,
@@ -66,6 +67,8 @@ export function RequestForm() {
   const [form, setForm] = useState<FormState>(() => makeInitialState());
   const [error, setError] = useState<string | null>(null);
   const [createdRequest, setCreatedRequest] = useState<LatticeRequest | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [cadPreview, setCadPreview] = useState<CadUploadPreviewState>({ status: "empty" });
 
   const isReady = useMemo(
     () =>
@@ -82,6 +85,59 @@ export function RequestForm() {
 
   function update(field: keyof FormState, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  const updateCadPreview = useCallback((state: CadUploadPreviewState) => {
+    setCadPreview(state);
+  }, []);
+
+  async function handleCadFileSelected(file: File | null) {
+    setSelectedFile(file);
+    update("fileName", file?.name ?? "");
+
+    if (!file) {
+      setCadPreview({ status: "empty" });
+      return;
+    }
+
+    setCadPreview({ status: "uploading", fileName: file.name });
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("/api/cad-previews", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json();
+
+      if (payload.preview?.status === "configuration_required") {
+        setCadPreview({
+          status: "configuration_required",
+          fileName: file.name,
+          message: payload.preview.message,
+        });
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to start CAD preview");
+      }
+
+      setCadPreview({
+        status: "processing",
+        fileName: file.name,
+        urn: payload.preview.urn,
+        progress: "queued",
+      });
+    } catch (caught) {
+      setCadPreview({
+        status: "failed",
+        fileName: file.name,
+        message: caught instanceof Error ? caught.message : "Unable to start CAD preview",
+      });
+    }
   }
 
   function toggleQualityDocumentation(value: string) {
@@ -123,8 +179,8 @@ export function RequestForm() {
       files: [
         {
           name: form.fileName,
-          sizeBytes: 0,
-          type: "reference/name-only",
+          sizeBytes: selectedFile?.size ?? 0,
+          type: selectedFile?.type || "reference/name-only",
         },
       ],
     };
@@ -145,6 +201,8 @@ export function RequestForm() {
 
       setCreatedRequest(payload.request);
       setForm(makeInitialState());
+      setSelectedFile(null);
+      setCadPreview({ status: "empty" });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to submit request");
     }
@@ -180,9 +238,10 @@ export function RequestForm() {
                 className="sr-only"
                 type="file"
                 accept=".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt"
-                onChange={(event) => update("fileName", event.target.files?.[0]?.name ?? "")}
+                onChange={(event) => void handleCadFileSelected(event.target.files?.[0] ?? null)}
               />
             </label>
+            <CadUploadPreview onStatus={updateCadPreview} state={cadPreview} />
           </section>
 
           <section className="rounded-[1.5rem] border border-slate-200 bg-white p-5">

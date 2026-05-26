@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "../lib/request-model";
@@ -84,10 +84,24 @@ describe("BuyerQuotes", () => {
 
     render(<BuyerQuotes requests={[request]} />);
 
-    expect(screen.getByRole("link", { name: "Hydrogen skid bracket RFQ" })).toHaveAttribute("href", `/quotes/${request.id}`);
+    expect(screen.getByRole("button", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
     expect(screen.getByText("Submitted")).toBeInTheDocument();
     expect(screen.getByText(/Your RFQ was received/)).toBeInTheDocument();
     expect(screen.getByText(/Mounting bracket/)).toBeInTheDocument();
+    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
+    expect(screen.getByText("STEP")).toBeInTheDocument();
+  });
+
+  it("opens an RFQ quote preview dialog from the quote row", () => {
+    const request = makeSubmittedRequest();
+
+    render(<BuyerQuotes requests={[request]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Hydrogen skid bracket RFQ" }));
+
+    expect(screen.getByRole("dialog", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+    expect(screen.getByText("Quote preview")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open full quote page" })).toHaveAttribute("href", `/quotes/${request.id}`);
   });
 });
 
@@ -99,6 +113,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("$1,825.00")).toBeInTheDocument();
     expect(screen.getByText("15 days")).toBeInTheDocument();
     expect(screen.getByText("Quoted at $1,825 with a 15 day lead time.")).toBeInTheDocument();
+    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Convert to Order" })).toBeEnabled();
   });
 });

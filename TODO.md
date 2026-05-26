@@ -16,6 +16,11 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator reviews RFQ
   - operator marks missing info or ready for supplier RFQ
   - buyer and operator views stay in sync
+- Configure Autodesk Platform Services for live CAD previews:
+  - create APS app credentials
+  - set `APS_CLIENT_ID`, `APS_CLIENT_SECRET`, and globally unique `APS_BUCKET_KEY`
+  - smoke test upload translation and Autodesk Viewer rendering from `/requests/new`
+  - persist original file object IDs and translated model URNs with uploaded file records
 - Make buyer `/quotes` and operator `/operator/requests` role separation clearer.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
 - Reuse material/capability catalog data in RFQ form dropdowns where it helps buyers submit cleaner requests.

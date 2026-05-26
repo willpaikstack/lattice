@@ -2,6 +2,19 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-05-26 - Use Autodesk Platform Services For Native CAD Preview
+
+Decision: use Autodesk Platform Services Model Derivative plus Viewer SDK for browser-based previews of uploaded manufacturing CAD files.
+
+Reason: supported RFQ formats such as STEP, IGES, SLDPRT, SAT, Parasolid, and Inventor parts are not reliably renderable directly in the browser without translation. APS can translate CAD files into SVF/SVF2 for web viewing and metadata extraction.
+
+Implications:
+
+- Keep Autodesk credentials server-side in `APS_CLIENT_ID`, `APS_CLIENT_SECRET`, and `APS_BUCKET_KEY`.
+- Upload preview files through a backend route before loading them in the browser viewer.
+- Buyer upload UX should show translation progress and a configuration-needed state when APS is not configured locally.
+- Later persistence work should store original file object references and translated model URNs with uploaded files.
+
 ## 2026-05-26 - Public Entry Is Invite-Only
 
 Decision: make `/` the public Lattice landing page and keep it invite-only with only two visible entry points: Log in and Join waiting list.

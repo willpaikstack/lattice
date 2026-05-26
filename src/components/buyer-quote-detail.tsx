@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CadFilePreview } from "@/components/cad-file-preview";
 import type { LatticeRequest } from "@/lib/request-model";
 
 function formatPrice(cents: number | null) {
@@ -109,6 +110,17 @@ export function BuyerQuoteDetail({
               <p className="text-sm text-slate-600"><span className="font-medium text-slate-950">Tolerance:</span> {item.generalTolerance || "Not specified"}</p>
               <p className="text-sm text-slate-600"><span className="font-medium text-slate-950">Finish:</span> {item.surfaceFinish || "Not specified"}</p>
             </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">CAD files</p>
+        </div>
+        <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
+          {request.files.map((file) => (
+            <CadFilePreview file={file} key={file.id} />
           ))}
         </div>
       </section>

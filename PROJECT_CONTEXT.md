@@ -20,10 +20,11 @@ Core users:
 The current working vertical slice:
 
 1. Buyer creates a request.
-2. Request form submits through the Next.js API layer.
-3. Request is validated/transformed by local business logic.
-4. Prisma persists the request to PostgreSQL.
-5. Submitted requests appear in the internal operator queue.
+2. Buyer selects a CAD file and the request form can start an Autodesk Platform Services preview translation when APS credentials are configured.
+3. Request form submits through the Next.js API layer.
+4. Request is validated/transformed by local business logic.
+5. Prisma persists the request to PostgreSQL.
+6. Submitted requests appear in the internal operator queue.
 
 Important routes:
 
@@ -98,6 +99,7 @@ The Bubble reference worth improving:
 
 - `src/components/app-shell.tsx` - shared shell/navigation.
 - `src/components/request-form.tsx` - buyer RFQ form.
+- `src/components/cad-upload-preview.tsx` and `src/components/autodesk-model-viewer.tsx` - upload-time CAD preview and Autodesk Viewer integration.
 - `src/components/operator-queue.tsx` - operator request queue.
 - `src/components/operator-request-detail.tsx` - internal request review.
 - `src/components/buyer-quotes.tsx` and `src/components/buyer-quote-detail.tsx` - buyer quote views.
@@ -107,6 +109,7 @@ The Bubble reference worth improving:
 - `src/lib/request-model.ts` - core request types, statuses, and transitions.
 - `src/lib/request-persistence.ts` - app/database mapping.
 - `src/lib/request-repository.ts` - database operations.
+- `src/lib/autodesk-platform-services.ts` - APS authentication, OSS upload, Model Derivative translation, and viewer token helpers.
 - `src/lib/request-queue.ts` - operator queue filtering/sorting.
 - `src/lib/catalog-data.ts` - materials/capabilities data.
 - `src/lib/customer-profiles.ts` - demo/customer profile data.
