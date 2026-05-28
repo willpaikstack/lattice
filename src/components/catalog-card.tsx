@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
-import type { MaterialVariant } from "../lib/catalog-data";
+import type { MaterialImageSource, MaterialVariant } from "../lib/catalog-data";
 
 type CatalogCardVariant = "standard" | "bubble-material";
 
@@ -176,7 +177,7 @@ function MaterialSubCard({ variant }: { variant: MaterialVariant }) {
 
         <div className="pt-0 text-center text-[16px] leading-6 text-[#252525]">{variant.industry}</div>
 
-        <MaterialImage tone={variant.imageTone} label={`${variant.name} machined part`} />
+        <MaterialImage image={variant.image} label={`${variant.name} material reference`} tone={variant.imageTone} />
       </div>
     </article>
   );
@@ -194,7 +195,28 @@ function Metric({ icon, label, value }: { icon: string; label: string; value: nu
   );
 }
 
-function MaterialImage({ tone, label }: { tone: MaterialVariant["imageTone"]; label: string }) {
+function MaterialImage({
+  image,
+  tone,
+  label,
+}: {
+  image?: MaterialImageSource;
+  tone: MaterialVariant["imageTone"];
+  label: string;
+}) {
+  if (image) {
+    return (
+      <figure className="relative h-[218px] overflow-hidden bg-[#f3f4f6]">
+        <Image alt={image.alt || label} className="object-cover" fill sizes="367px" src={image.src} />
+        <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/45 to-transparent px-3 pb-2 pt-8 text-right">
+          <a className="text-[10px] font-semibold text-white/90 underline decoration-white/30 underline-offset-2" href={image.sourceUrl} rel="noreferrer" target="_blank">
+            {image.credit} / {image.license}
+          </a>
+        </figcaption>
+      </figure>
+    );
+  }
+
   const toneClasses = {
     "dark-fixture": "from-[#07080c] via-[#11131a] to-[#010102] before:left-[38%] before:top-[40%] before:h-[74px] before:w-[170px] before:rounded-[20px] before:bg-gradient-to-r before:from-[#4d4d50] before:via-[#f1f1ed] before:to-[#232328] after:left-[48%] after:top-[26%] after:h-[86px] after:w-[98px] after:rounded-t-full after:bg-gradient-to-br after:from-[#ffffff] after:via-[#b7b7b8] after:to-[#24252a]",
     "round-flange": "from-[#11131a] via-[#262b35] to-[#050508] before:left-[36%] before:top-[24%] before:h-[145px] before:w-[145px] before:rounded-full before:bg-gradient-to-br before:from-[#fafaf7] before:via-[#9d9d9c] before:to-[#26272d] after:left-[47%] after:top-[40%] after:h-[45px] after:w-[45px] after:rounded-full after:border-[10px] after:border-[#2d2e34] after:bg-[#d7d7d2]",

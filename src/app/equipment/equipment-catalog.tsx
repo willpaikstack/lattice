@@ -18,6 +18,15 @@ type PresetFilter = {
 
 type SortOption = "make-model" | "quantity-desc" | "tolerance-asc" | "rpm-desc";
 
+const sectionSummaries: Record<EquipmentSection, string> = {
+  "CNC Milling": "5-axis, 4-axis, and vertical machining centers for tight-tolerance prismatic parts.",
+  "CNC Lathe": "Turning, Swiss-type, and turn-mill capacity for round parts and small precision features.",
+  "QC & Inspection": "Dimensional inspection, material verification, calibration, and shop-floor measurement tools.",
+  "Manual Machines": "Support equipment for tapping, drilling, grinding, and secondary preparation work.",
+  "Sheet Metal": "Laser cutting, forming, riveting, extraction, and sheet processing equipment.",
+  Finishing: "Welding and surface finishing equipment that supports downstream production readiness.",
+};
+
 const sortOptions: { label: string; value: SortOption }[] = [
   { label: "Make / model", value: "make-model" },
   { label: "Quantity", value: "quantity-desc" },
@@ -77,6 +86,7 @@ function searchableText(equipment: VendorEquipment) {
     equipment.summary,
     ...equipment.details.flatMap((detail) => [detail.label, detail.value]),
     ...equipment.fabricatorNotes,
+    ...(equipment.dataSheets ?? []).flatMap((dataSheet) => [dataSheet.label, dataSheet.source]),
   ]
     .join(" ")
     .toLowerCase();
@@ -107,6 +117,27 @@ function getMaxEnvelope(equipment: VendorEquipment) {
   return dimensions.length > 0 ? Math.max(...dimensions) : 0;
 }
 
+function getDetailValue(equipment: VendorEquipment, pattern: RegExp) {
+  return equipment.details.find((detail) => pattern.test(detail.label))?.value;
+}
+
+function getCapacitySignals(equipment: VendorEquipment) {
+  const tolerance = getDetailValue(equipment, /tolerance|accuracy/i);
+  const envelope = getDetailValue(equipment, /envelope|range|processing|turning/i);
+  const rpm = getDetailValue(equipment, /rpm/i);
+  const control = getDetailValue(equipment, /control/i);
+  const power = getDetailValue(equipment, /power/i);
+  const signals = [
+    tolerance ? { label: "Tolerance", value: tolerance } : null,
+    envelope ? { label: "Envelope", value: envelope } : null,
+    rpm ? { label: "RPM", value: rpm } : null,
+    power ? { label: "Power", value: power } : null,
+    control ? { label: "Control", value: control } : null,
+  ].filter((signal): signal is { label: string; value: string } => Boolean(signal));
+
+  return signals.slice(0, 3);
+}
+
 function sortEquipment(equipment: VendorEquipment[], sort: SortOption) {
   return [...equipment].sort((a, b) => {
     if (sort === "quantity-desc") {
@@ -128,10 +159,29 @@ function sortEquipment(equipment: VendorEquipment[], sort: SortOption) {
 function EquipmentRow({ equipment }: { equipment: VendorEquipment }) {
   const [isOpen, setIsOpen] = useState(false);
   const panelId = `${equipment.slug}-details`;
+  const capacitySignals = getCapacitySignals(equipment);
 
   return (
-    <article className="rounded-md border border-[#e5e5e5] bg-white">
-      <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+    <article className="rounded-md border border-[#e5e5e5] bg-white shadow-[0_1px_0_rgba(17,24,39,0.02)]">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 p-4 md:gap-4">
+        <button
+          aria-controls={panelId}
+          aria-expanded={isOpen}
+          aria-label={`${isOpen ? "Hide" : "View"} ${equipment.makeModel} details`}
+          className="mt-1 inline-flex h-8 w-8 items-center justify-center rounded-md text-[#555b63] transition hover:bg-[#f2f4f6] hover:text-[#202020] focus:outline-none focus:ring-2 focus:ring-[#dfe3e8]"
+          onClick={() => setIsOpen((current) => !current)}
+          title={isOpen ? "Hide details" : "View details"}
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            className={["h-4 w-4 fill-current transition-transform", isOpen ? "rotate-90" : ""].join(" ")}
+            viewBox="0 0 16 16"
+          >
+            <path d="M6 3.5 11 8l-5 4.5z" />
+          </svg>
+        </button>
+
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#8c8c8c]">{equipment.section}</p>
@@ -140,25 +190,17 @@ function EquipmentRow({ equipment }: { equipment: VendorEquipment }) {
           <h3 className="mt-2 text-[18px] font-semibold leading-6 text-[#202020]">{equipment.makeModel}</h3>
           <p className="mt-1 text-[13px] font-medium text-[#555b63]">{equipment.name}</p>
           <p className="mt-2 line-clamp-2 max-w-[760px] text-[14px] leading-6 text-[#6f737a]">{equipment.summary}</p>
+          {!isOpen && capacitySignals.length > 0 ? (
+            <dl className="mt-3 flex flex-wrap gap-2">
+              {capacitySignals.map((signal) => (
+                <div className="rounded-md border border-[#eceff3] bg-[#fbfbfc] px-2.5 py-1.5" key={`${equipment.slug}-${signal.label}`}>
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9a9da3]">{signal.label}</dt>
+                  <dd className="mt-0.5 max-w-[260px] truncate text-[12px] font-semibold text-[#343942]">{signal.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
         </div>
-
-        <button
-          aria-controls={panelId}
-          aria-expanded={isOpen}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#dfe3e8] bg-[#f8f9fa] px-3 text-[13px] font-semibold text-[#343942] transition hover:border-[#c6cdd5] hover:bg-white"
-          onClick={() => setIsOpen((current) => !current)}
-          type="button"
-        >
-          <svg
-            aria-hidden="true"
-            className={["h-4 w-4 stroke-[2] transition-transform", isOpen ? "rotate-180" : ""].join(" ")}
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {isOpen ? "Hide details" : "View details"}
-        </button>
       </div>
 
       {isOpen ? (
@@ -195,6 +237,34 @@ function EquipmentRow({ equipment }: { equipment: VendorEquipment }) {
                   ))}
                 </ul>
               </div>
+
+              {equipment.dataSheets && equipment.dataSheets.length > 0 ? (
+                <div className="mt-5 border-t border-[#eeeeee] pt-4">
+                  <p className="text-[13px] font-semibold text-[#252525]">Supplier data sheets</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {equipment.dataSheets.map((dataSheet) => (
+                      <a
+                        className="group flex min-h-12 items-center justify-between gap-3 rounded-md border border-[#e3e7ec] bg-[#fbfbfc] px-3 py-2 text-[13px] font-semibold text-[#343942] transition hover:border-[#c8d0da] hover:bg-white"
+                        download
+                        href={dataSheet.url}
+                        key={`${equipment.slug}-${dataSheet.url}`}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate">{dataSheet.label}</span>
+                          <span className="mt-0.5 block text-[11px] font-medium uppercase tracking-[0.12em] text-[#8c8c8c]">{dataSheet.source}</span>
+                        </span>
+                        <svg aria-hidden="true" className="h-4 w-4 shrink-0 stroke-[1.8] text-[#69717c] transition group-hover:text-[#202020]" fill="none" viewBox="0 0 24 24">
+                          <path d="M12 4v11" stroke="currentColor" strokeLinecap="round" />
+                          <path d="m7 10 5 5 5-5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M5 20h14" stroke="currentColor" strokeLinecap="round" />
+                        </svg>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#eeeeee] pt-4">
                 <div className="text-[12px] leading-5 text-[#8c8c8c]">
@@ -247,11 +317,14 @@ function SectionEquipment({ section }: { section: EquipmentSection }) {
   }, [activePreset, equipmentBySection, query, sort]);
 
   return (
-    <section className="space-y-4" aria-labelledby={headingId}>
+    <section className="scroll-mt-6 space-y-4" aria-labelledby={headingId} id={headingId.replace("-heading", "")}>
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id={headingId} className="text-[28px] font-semibold tracking-[-0.04em] text-[#202020]">
-          {section}
-        </h2>
+        <div>
+          <h2 id={headingId} className="text-[28px] font-semibold tracking-[-0.04em] text-[#202020]">
+            {section}
+          </h2>
+          <p className="mt-1 max-w-[720px] text-[14px] leading-6 text-[#6f737a]">{sectionSummaries[section]}</p>
+        </div>
         <p className="text-[14px] text-[#7a7f87]">
           {filteredEquipment.length} of {equipmentBySection.length} unique make/model cards
         </p>
@@ -326,10 +399,29 @@ function SectionEquipment({ section }: { section: EquipmentSection }) {
 
 export function EquipmentCatalog() {
   return (
-    <>
+    <div className="space-y-8">
+      <nav className="rounded-md border border-[#e6e6e6] bg-white p-4" aria-label="Equipment sections">
+        <div className="flex flex-wrap items-center gap-2">
+          {equipmentSections.map((section) => {
+            const sectionId = section.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            const count = vendorEquipment.filter((equipment) => equipment.section === section).length;
+
+            return (
+              <a
+                className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#dfe3e8] bg-[#f8f9fa] px-3 text-[13px] font-semibold text-[#343942] transition hover:border-[#c6cdd5] hover:bg-white"
+                href={`#${sectionId}`}
+                key={section}
+              >
+                <span>{section}</span>
+                <span className="rounded bg-white px-1.5 py-0.5 text-[11px] text-[#7a7f87]">{count}</span>
+              </a>
+            );
+          })}
+        </div>
+      </nav>
       {equipmentSections.map((section) => (
         <SectionEquipment key={section} section={section} />
       ))}
-    </>
+    </div>
   );
 }

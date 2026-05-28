@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { currentUser } from "@/lib/current-user";
 
 const metrics = [
   { label: "Active RFQs", value: "34", detail: "43 unread quotes", icon: "document" },
@@ -129,7 +130,7 @@ function Avatar({ name }: { name: string }) {
 export default function Home() {
   return (
     <div className="mx-auto max-w-[960px] space-y-5">
-      <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.03em] text-[#171717]">Hi</h1>
+      <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.03em] text-[#171717]">Hi {currentUser.name}</h1>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => {

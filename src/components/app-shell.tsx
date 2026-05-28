@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { currentUser, initialsForName } from "@/lib/current-user";
 
 type IconName = "home" | "analytics" | "project" | "card" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout";
 
@@ -264,6 +265,7 @@ function UtilityLink({ href, icon, label, detail, tone = "customer" }: NavItem &
 
 function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const initials = initialsForName(currentUser.name);
 
   return (
     <div className="relative border-t border-[#eeeeee] pt-3">
@@ -285,11 +287,11 @@ function ProfileMenu() {
 
       <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2f3237] text-[12px] font-semibold text-white">
-          WP
+          {initials}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold leading-5 text-[#303036]">William Paik</p>
-          <p className="truncate text-[12px] font-medium leading-4 text-[#85858c]">william.paik@amogy.co</p>
+          <p className="truncate text-[14px] font-semibold leading-5 text-[#303036]">{currentUser.name}</p>
+          <p className="truncate text-[12px] font-medium leading-4 text-[#85858c]">{currentUser.email}</p>
         </div>
         <button
           aria-expanded={isOpen}

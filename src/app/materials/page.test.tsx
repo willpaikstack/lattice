@@ -19,20 +19,21 @@ describe("MaterialsPage", () => {
     expect(screen.queryByRole("link", { name: "Request Quote" })).not.toBeInTheDocument();
   });
 
-  it("lets each material category expand to show its material types", () => {
+  it("lets each material category expand to show researched grade cards", () => {
     render(<MaterialsPage />);
 
     const mildSteelButton = screen.getByRole("button", { name: /Mild steel/ });
 
     expect(mildSteelButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByRole("heading", { name: "A36" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "ASTM A36" })).not.toBeInTheDocument();
 
     fireEvent.click(mildSteelButton);
 
     expect(mildSteelButton).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByLabelText("Mild steel material types")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "A36" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "1018" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "1020" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Mild steel grade cards")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "ASTM A36" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "AISI 1018" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "AISI 1020" })).toBeInTheDocument();
+    expect(screen.getByText("Common Specs: ASTM A108 / ASTM A29")).toBeInTheDocument();
   });
 });

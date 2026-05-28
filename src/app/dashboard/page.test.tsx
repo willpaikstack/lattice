@@ -7,7 +7,7 @@ describe("Home dashboard", () => {
   it("matches the Bubble home page structure with KPIs, inbox, transactions, and orders", () => {
     render(<Home />);
 
-    expect(screen.getByRole("heading", { name: "Hi" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hi William Paik" })).toBeInTheDocument();
     expect(screen.getByText("Active RFQs")).toBeInTheDocument();
     expect(screen.getByText("43 unread quotes")).toBeInTheDocument();
     expect(screen.getByText("Shipped")).toBeInTheDocument();

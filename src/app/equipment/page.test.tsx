@@ -19,6 +19,8 @@ describe("EquipmentPage", () => {
     expect(screen.getByRole("heading", { name: "Finishing" })).toBeInTheDocument();
     expect(screen.getAllByLabelText("Search").length).toBe(6);
     expect(screen.getAllByLabelText("Sort").length).toBe(6);
+    expect(screen.getByRole("navigation", { name: "Equipment sections" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "CNC Milling 32" })).toHaveAttribute("href", "#cnc-milling");
     expect(screen.getByRole("button", { name: "5-axis" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Laser cutting" })).toBeInTheDocument();
     expect(screen.getByText("Hermle C650")).toBeInTheDocument();
@@ -26,10 +28,12 @@ describe("EquipmentPage", () => {
     expect(screen.getByText("ZEISS ACCURA 9/16/8")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Image source" })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "View details" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /View .* details/ })[0]);
 
-    expect(screen.getByRole("heading", { name: "Recommended additional sections" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Coverage notes" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Welding & Joining" })).toBeInTheDocument();
+    expect(screen.getByText("Supplier data sheets")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Jingdiao JDGR200T high-speed machining center/ })).toHaveAttribute("href", "https://en.jingdiao.com/resource/JDGR/JDGR200T.pdf");
     expect(screen.getAllByRole("link", { name: "Image source" }).length).toBe(1);
     expect(screen.getAllByRole("link", { name: /Open .* machine page/ }).length).toBe(1);
     expect(screen.getByRole("link", { name: "Start an RFQ" })).toHaveAttribute("href", "/requests/new");
@@ -62,12 +66,12 @@ describe("EquipmentPage", () => {
 
     expect(within(millingSection).queryByText("1050 x 900 x 600 mm")).not.toBeInTheDocument();
 
-    fireEvent.click(within(millingSection).getByRole("button", { name: "View details" }));
+    fireEvent.click(within(millingSection).getByRole("button", { name: "View Hermle C650 details" }));
 
     expect(within(millingSection).getByText("1050 x 900 x 600 mm")).toBeInTheDocument();
-    expect(within(millingSection).getByRole("button", { name: "Hide details" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(millingSection).getByRole("button", { name: "Hide Hermle C650 details" })).toHaveAttribute("aria-expanded", "true");
 
-    fireEvent.click(within(millingSection).getByRole("button", { name: "Hide details" }));
+    fireEvent.click(within(millingSection).getByRole("button", { name: "Hide Hermle C650 details" }));
 
     expect(within(millingSection).queryByText("1050 x 900 x 600 mm")).not.toBeInTheDocument();
   });

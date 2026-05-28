@@ -10,12 +10,20 @@ import {
 export default function EquipmentPage() {
   return (
     <div className="mx-auto max-w-[1180px] space-y-8 pb-12">
-      <section className="max-w-[980px]">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#8c8c8c]">Vendor resources</p>
-        <h1 className="mt-3 text-[48px] font-semibold leading-[1.05] tracking-[-0.045em] text-[#202020] md:text-[64px]">Vendor Equipment</h1>
-        <p className="mt-4 max-w-[840px] text-[15px] leading-7 text-[#696f78]">
-          A customer-facing equipment view seeded from Zintilon&apos;s processing, QC, and sheet metal capability lists. Each card represents a unique equipment type, using make and model as the grouping rule, so buyers can compare actual machines instead of broad capability bundles.
-        </p>
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
+        <div className="max-w-[880px]">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#8c8c8c]">Vendor resources</p>
+          <h1 className="mt-3 text-[48px] font-semibold leading-[1.05] text-[#202020] md:text-[64px]">Vendor Equipment</h1>
+          <p className="mt-4 max-w-[820px] text-[15px] leading-7 text-[#696f78]">
+            Browse the machines, inspection tools, and fabrication equipment behind Lattice vendor capacity. Use the section filters to narrow by process, tolerance, work envelope, and production role before routing an RFQ.
+          </p>
+        </div>
+        <div className="rounded-md border border-[#e6e6e6] bg-white p-4">
+          <p className="text-[13px] font-semibold text-[#30343a]">Catalog grouping</p>
+          <p className="mt-2 text-[13px] leading-6 text-[#6f737a]">
+            Equipment is grouped by unique make/model so buyers can compare actual capacity instead of broad capability labels.
+          </p>
+        </div>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Equipment summary">
@@ -30,9 +38,9 @@ export default function EquipmentPage() {
       <section className="rounded-md border border-[#e6e6e6] bg-[#fbfbfb] p-5">
         <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-end">
           <div>
-            <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[#202020]">Catalog format</h2>
+            <h2 className="text-[22px] font-semibold text-[#202020]">How to use this list</h2>
             <p className="mt-2 text-[14px] leading-6 text-[#6f737a]">
-              The page is organized into CNC Milling, CNC Lathe, QC & Inspection, Manual Machines, Sheet Metal, and Finishing. Duplicate rows from the source PDFs are combined only when the make and model match, with quantity and summary information shown in the row and range, tolerance, controls, source links, and process notes available on expansion.
+              Start with the process section, then filter for the specific manufacturing constraint that matters: 5-axis access, large envelope, live tooling, CMM inspection, laser cutting, forming, or finishing. Open a row when you need source links, detailed specs, and fabricator notes.
             </p>
           </div>
           <div className="text-[13px] leading-6 text-[#6f737a]">
@@ -45,7 +53,7 @@ export default function EquipmentPage() {
       </section>
 
       <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
-        <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[#202020]">Recommended additional sections</h2>
+        <h2 className="text-[22px] font-semibold text-[#202020]">Coverage notes</h2>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {recommendedEquipmentSections.map((section) => (
             <article className="rounded-md border border-[#eeeeee] bg-[#fbfbfb] p-4" key={section.name}>

@@ -6,6 +6,12 @@ export type EquipmentSource = {
 
 export type EquipmentSection = "CNC Milling" | "CNC Lathe" | "QC & Inspection" | "Manual Machines" | "Sheet Metal" | "Finishing";
 
+export type EquipmentDataSheet = {
+  label: string;
+  url: string;
+  source: string;
+};
+
 export type VendorEquipment = {
   slug: string;
   vendor: string;
@@ -21,6 +27,7 @@ export type VendorEquipment = {
     value: string;
   }[];
   fabricatorNotes: string[];
+  dataSheets?: EquipmentDataSheet[];
   machineUrl: string;
   source: EquipmentSource;
 };
@@ -78,6 +85,52 @@ const inspectionImage = "/equipment/zeiss-cmm-inspection.jpg";
 const finishingImage = "/equipment/welding-and-finishing.jpg";
 const secondaryImage = "/equipment/sheet-metal-secondary-forming.jpg";
 const weldingImage = "/equipment/sheet-metal-laser-welding-process.jpg";
+
+const hermleTechnicalData = {
+  c22: {
+    label: "HERMLE technical data C 22 GEN2",
+    source: "HERMLE",
+    url: "https://www.hermle.de/fileadmin/website/5_NEWS-UND-MEDIA/5_2_Mediathek/Technische_Daten/Englisch/hermle_technical_data_C22_GEN2_en.pdf",
+  },
+  c42: {
+    label: "HERMLE technical data C 42 GEN2",
+    source: "HERMLE",
+    url: "https://www.hermle.de/fileadmin/website/5_NEWS-UND-MEDIA/5_2_Mediathek/Technische_Daten/Englisch/HERMLE_Technical_Data_C42_GEN2_EN.pdf",
+  },
+  c250: {
+    label: "HERMLE technical data C 250 GEN2",
+    source: "HERMLE",
+    url: "https://www.hermleusa.net/fileadmin/website/5_NEWS-UND-MEDIA/5_2_Mediathek/Technische_Daten/Englisch/HERMLE_Technical-Data_C250-GEN2_2025_EN.pdf",
+  },
+  c400: {
+    label: "HERMLE technical data C 400 GEN2",
+    source: "HERMLE",
+    url: "https://www.hermleusa.net/fileadmin/website/5_NEWS-UND-MEDIA/5_2_Mediathek/Technische_Daten/Englisch/hermle_technical_data_C400_GEN2_en.pdf",
+  },
+  c650: {
+    label: "HERMLE technical data C 650 GEN2",
+    source: "HERMLE",
+    url: "https://www.hermle.de/fileadmin/website/5_NEWS-UND-MEDIA/5_2_Mediathek/Technische_Daten/Englisch/HERMLE_Technical_Data_C650_GEN2_EN.pdf",
+  },
+} satisfies Record<string, EquipmentDataSheet>;
+
+const jingdiaoDataSheets = {
+  jdgr200t: {
+    label: "Jingdiao JDGR200T high-speed machining center",
+    source: "Jingdiao",
+    url: "https://en.jingdiao.com/resource/JDGR/JDGR200T.pdf",
+  },
+  jdgr400t: {
+    label: "Jingdiao JDGR400T high-speed machining center",
+    source: "Jingdiao",
+    url: "https://en.jingdiao.com/resource/JDGR/JDGR400T.pdf",
+  },
+  jdhgt400t: {
+    label: "Jingdiao JDHGT400T high-speed machining center",
+    source: "Jingdiao",
+    url: "https://en.jingdiao.com/resource/JDHGT/JDHGT400T.pdf",
+  },
+} satisfies Record<string, EquipmentDataSheet>;
 
 function millingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string }) {
   return {
@@ -159,6 +212,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "2 sets",
     imageSourceUrl: "https://www.hermleusa.net/machining-centres-automation/models/machining-centre-c-400-gen2/",
     imagePath: "/equipment/hermle-c400.jpg",
+    dataSheets: [hermleTechnicalData.c400],
     summary: "High-accuracy 5-axis milling capacity for complex prismatic parts and multi-face machining.",
     details: [
       { label: "3-axis envelope", value: "850 x 700 x 500 mm" },
@@ -176,6 +230,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "1 set",
     imageSourceUrl: "https://www.hermleusa.net/machining-centres-automation/models/machining-centre-c-250-gen2/",
     imagePath: "/equipment/hermle-c250.jpg",
+    dataSheets: [hermleTechnicalData.c250],
     summary: "Compact Hermle 5-axis platform for smaller precision components.",
     details: [
       { label: "3-axis envelope", value: "600 x 550 x 450 mm" },
@@ -193,6 +248,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "2 sets",
     imageSourceUrl: "https://www.hermle.de/en/machining-centres-automation/models/machining-centre-c-42-gen2/",
     imagePath: "/equipment/hermle-c42u.jpg",
+    dataSheets: [hermleTechnicalData.c42],
     summary: "Mid-large 5-axis Hermle capacity with strong envelope and tolerance control.",
     details: [
       { label: "3-axis envelope", value: "800 x 800 x 550 mm" },
@@ -210,6 +266,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "3 sets",
     imageSourceUrl: "https://www.hermle.de/en/machining-centres-automation/models/machining-centre-c-22-gen2/",
     imagePath: "/equipment/hermle-c22u.jpg",
+    dataSheets: [hermleTechnicalData.c22],
     summary: "Precision 5-axis milling capacity for smaller complex parts and repeat production.",
     details: [
       { label: "3-axis envelope", value: "450 x 600 x 330 mm" },
@@ -227,6 +284,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "1 set",
     imageSourceUrl: "https://www.hermle.de/en/machining-centres-automation/models/machining-centre-c-650-gen2/",
     imagePath: "/equipment/hermle-c650.jpg",
+    dataSheets: [hermleTechnicalData.c650],
     summary: "Large-envelope Hermle 5-axis platform for bigger high-precision components.",
     details: [
       { label: "3-axis envelope", value: "1050 x 900 x 600 mm" },
@@ -333,6 +391,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "1 set",
     imageSourceUrl: "https://en.jingdiao.com/machines/high-speed-machining-centers/5-axis-series/jdgr200t",
     imagePath: "/equipment/jingdiao-jdgr200t.jpg",
+    dataSheets: [jingdiaoDataSheets.jdgr200t],
     summary: "High-speed small-envelope 5-axis Jingdiao machine.",
     details: [
       { label: "3-axis envelope", value: "500 x 280 x 300 mm" },
@@ -350,6 +409,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "4 sets",
     imageSourceUrl: "https://en.jingdiao.com/machines/high-speed-machining-centers/5-axis-series/jdgr400t",
     imagePath: "/equipment/jingdiao-jdgr400t.png",
+    dataSheets: [jingdiaoDataSheets.jdgr400t],
     summary: "Jingdiao 5-axis milling capacity for small to mid-size precision parts.",
     details: [
       { label: "3-axis envelope", value: "450 x 680 x 400 mm" },
@@ -514,6 +574,7 @@ export const vendorEquipment: VendorEquipment[] = [
     quantity: "1 set",
     imageSourceUrl: "https://en.jingdiao.com/machines/high-speed-machining-centers/3-axis-series/jdhgt400t",
     imagePath: "/equipment/jingdiao-jdhgt400t.jpg",
+    dataSheets: [jingdiaoDataSheets.jdhgt400t],
     summary: "High-speed small-envelope Jingdiao machine.",
     details: [
       { label: "Processing envelope", value: "400 x 200 x 200 mm" },
