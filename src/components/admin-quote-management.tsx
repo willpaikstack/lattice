@@ -1,22 +1,33 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import type { LatticeRequest, SupplierQuoteStatus } from "@/lib/request-model";
 
-const statusLabels: Record<LatticeRequest["status"], string> = {
-  DRAFT: "Draft",
-  SUBMITTED: "Submitted",
-  NEEDS_INFO: "Needs info",
-  READY_FOR_SUPPLIER_RFQ: "Supplier ready",
-  QUOTED: "Quoted",
-  PURCHASED: "Purchased",
+const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
+  DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
+  SUBMITTED: { label: "Submitted", nextAction: "Assign owner", tone: "border-blue-100 bg-blue-50 text-blue-700" },
+  NEEDS_INFO: { label: "Needs info", nextAction: "Recover missing info", tone: "border-amber-100 bg-amber-50 text-amber-700" },
+  READY_FOR_SUPPLIER_RFQ: { label: "Supplier ready", nextAction: "Send shop RFQs", tone: "border-indigo-100 bg-indigo-50 text-indigo-700" },
+  QUOTED: { label: "Quoted", nextAction: "Follow buyer decision", tone: "border-emerald-100 bg-emerald-50 text-emerald-700" },
+  PURCHASED: { label: "Purchased", nextAction: "Track order", tone: "border-slate-950 bg-slate-950 text-white" },
 };
 
 const supplierQuoteLabels: Record<SupplierQuoteStatus, string> = {
   INVITED: "Invited",
-  QUOTE_RECEIVED: "Quote received",
+  QUOTE_RECEIVED: "Received",
   DECLINED: "Declined",
   SELECTED: "Selected",
 };
+
+const statusFilters: Array<{ label: string; value: "ALL" | LatticeRequest["status"] }> = [
+  { label: "All", value: "ALL" },
+  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Needs info", value: "NEEDS_INFO" },
+  { label: "Supplier ready", value: "READY_FOR_SUPPLIER_RFQ" },
+  { label: "Quoted", value: "QUOTED" },
+];
 
 function formatCurrency(cents: number | null) {
   if (cents === null) {
@@ -35,38 +46,69 @@ function formatDate(value: string | null) {
     return "Pending";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("en", {
     day: "numeric",
     month: "short",
     year: "numeric",
   }).format(new Date(value));
 }
 
-function quoteStage(request: LatticeRequest) {
-  if (request.status === "QUOTED" || request.status === "PURCHASED") {
-    return "Buyer quote issued";
-  }
-
-  if (request.status === "READY_FOR_SUPPLIER_RFQ") {
-    return "Ready for shop outreach";
-  }
-
-  if (request.status === "NEEDS_INFO") {
-    return "Blocked on customer info";
-  }
-
-  return "Internal review";
+function quoteReference(request: LatticeRequest) {
+  return `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
 function receivedSupplierQuotes(request: LatticeRequest) {
   return request.supplierQuotes.filter((quote) => quote.status === "QUOTE_RECEIVED" || quote.status === "SELECTED");
 }
 
+function supplierSummary(request: LatticeRequest) {
+  if (request.supplierQuotes.length === 0) {
+    return "No shop outreach";
+  }
+
+  const counts = request.supplierQuotes.reduce<Record<SupplierQuoteStatus, number>>(
+    (summary, quote) => ({ ...summary, [quote.status]: summary[quote.status] + 1 }),
+    { DECLINED: 0, INVITED: 0, QUOTE_RECEIVED: 0, SELECTED: 0 },
+  );
+
+  return (Object.entries(counts) as Array<[SupplierQuoteStatus, number]>)
+    .filter(([, count]) => count > 0)
+    .map(([status, count]) => `${count} ${supplierQuoteLabels[status]}`)
+    .join(" / ");
+}
+
 export function AdminQuoteManagement({ requests }: { requests: LatticeRequest[] }) {
-  const quoteRequests = requests.filter((request) => request.status !== "DRAFT" && request.status !== "PURCHASED");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
+
+  const quoteRequests = useMemo(() => requests.filter((request) => request.status !== "DRAFT" && request.status !== "PURCHASED"), [requests]);
   const activeSupplierQuotes = quoteRequests.reduce((count, request) => count + receivedSupplierQuotes(request).length, 0);
   const quotedValueCents = quoteRequests.reduce((sum, request) => sum + (request.quote.estimatedPriceCents ?? 0), 0);
   const blockedRequests = quoteRequests.filter((request) => request.status === "NEEDS_INFO").length;
+
+  const filteredRequests = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return quoteRequests.filter((request) => {
+      const primaryLine = request.lineItems[0];
+      const matchesStatus = statusFilter === "ALL" || request.status === statusFilter;
+      const searchable = [
+        request.title,
+        request.process,
+        request.buyerCompany,
+        request.requesterName,
+        quoteReference(request),
+        primaryLine?.partName,
+        primaryLine?.material,
+        ...request.supplierQuotes.map((quote) => quote.shopName),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
+    });
+  }, [query, quoteRequests, statusFilter]);
 
   return (
     <div className="space-y-5">
@@ -89,98 +131,129 @@ export function AdminQuoteManagement({ requests }: { requests: LatticeRequest[] 
         </article>
       </section>
 
-      <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
-        <div className="border-b border-[#eeeeee] px-5 py-4">
-          <h2 className="text-[19px] font-semibold tracking-tight text-[#202020]">Quote submissions</h2>
-          <p className="mt-1 text-[14px] leading-5 text-[#707782]">
-            Each row ties the customer request to the overseas shops being asked to quote it.
-          </p>
-        </div>
-        {quoteRequests.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-[15px] font-semibold text-[#202020]">No active quote submissions</p>
-            <p className="mt-2 text-[14px] text-[#707782]">Submitted RFQs will appear here once customers request quotes.</p>
+      {quoteRequests.length === 0 ? (
+        <section className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center">
+          <h2 className="text-[22px] font-semibold text-[#202020]">No active quote submissions</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">Submitted RFQs will appear here once customers request quotes.</p>
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
+          <div className="border-b border-[#eeeeee] p-4">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <label className="relative block xl:w-[360px]">
+                <span className="sr-only">Search quote submissions</span>
+                <svg aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8f98]" fill="none" viewBox="0 0 20 20">
+                  <path d="m14 14 3 3" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+                  <circle cx="8.5" cy="8.5" r="5" stroke="currentColor" strokeWidth="1.7" />
+                </svg>
+                <input
+                  className="h-10 w-full rounded-md border border-[#dddddd] bg-[#fbfbfb] pl-9 pr-3 text-[14px] text-[#202020] outline-none transition placeholder:text-[#9a9fa8] focus:border-[#9b9b9b] focus:bg-white"
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Search RFQ, customer, shop..."
+                  type="search"
+                  value={query}
+                />
+              </label>
+              <div aria-label="Admin quote status filters" className="flex gap-2 overflow-x-auto pb-1">
+                {statusFilters.map((filter) => {
+                  const isActive = statusFilter === filter.value;
+
+                  return (
+                    <button
+                      className={`h-9 shrink-0 rounded-md border px-3 text-[13px] font-semibold transition ${
+                        isActive ? "border-[#4f3424] bg-[#4f3424] text-white" : "border-[#e4c0a3] bg-white text-[#6b4a34] hover:bg-[#fff6ee]"
+                      }`}
+                      key={filter.value}
+                      onClick={() => setStatusFilter(filter.value)}
+                      type="button"
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        ) : (
+
+          <div className="grid grid-cols-[1.16fr_0.72fr_0.76fr_0.56fr_0.56fr_0.78fr] gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
+            <span>RFQ</span>
+            <span>Customer</span>
+            <span>Shop quotes</span>
+            <span>Price</span>
+            <span>Due</span>
+            <span>Next step</span>
+          </div>
+
           <div className="divide-y divide-[#eeeeee]">
-            {quoteRequests.map((request) => {
+            {filteredRequests.map((request) => {
               const primaryLine = request.lineItems[0];
-              const supplierQuotes = request.supplierQuotes;
+              const status = statusCopy[request.status];
 
               return (
-                <article className="grid gap-5 p-5 xl:grid-cols-[1fr_1fr_0.72fr]" key={request.id}>
+                <Link
+                  aria-label={`Manage quote submission for ${request.title}`}
+                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4f3424] xl:grid-cols-[1.16fr_0.72fr_0.76fr_0.56fr_0.56fr_0.78fr] xl:items-center"
+                  href={`/operator/requests/${request.id}`}
+                  key={request.id}
+                >
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{quoteReference(request)}</span>
+                      <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
+                    </div>
+                    <h2 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">{request.title}</h2>
+                    <p className="mt-1 truncate text-[13px] text-[#69707a]">
+                      {primaryLine?.partName ?? "No line item"} - {request.process}
+                    </p>
+                  </div>
+
                   <div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[12px] font-semibold text-slate-700">
-                        {statusLabels[request.status]}
-                      </span>
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[12px] font-semibold text-blue-700">
-                        {quoteStage(request)}
-                      </span>
-                    </div>
-                    <h3 className="mt-3 text-[17px] font-semibold text-[#202020]">
-                      <Link className="transition hover:text-blue-700" href={`/operator/requests/${request.id}`}>
-                        {request.title}
-                      </Link>
-                    </h3>
-                    <p className="mt-1 text-[14px] text-[#4b5563]">
-                      Customer: <span className="font-semibold text-[#202020]">{request.buyerCompany}</span>
-                    </p>
-                    <p className="mt-1 text-[13px] text-[#707782]">
-                      {request.requesterName} - {primaryLine?.partName ?? "No line item"} - {request.process}
-                    </p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
+                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{request.buyerCompany}</p>
+                    <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
                   </div>
 
-                  <div className="space-y-3">
-                    {supplierQuotes.length ? (
-                      supplierQuotes.map((quote) => (
-                        <div className="rounded-md border border-[#eeeeee] bg-[#f8fafc] p-3" key={quote.id}>
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                              <p className="text-[14px] font-semibold text-[#202020]">{quote.shopName}</p>
-                              <p className="mt-1 text-[12px] text-[#707782]">
-                                {quote.country} - {quote.contactName || "No contact yet"}
-                              </p>
-                            </div>
-                            <span className="w-fit rounded-full bg-white px-2.5 py-1 text-[12px] font-semibold text-[#4b5563]">
-                              {supplierQuoteLabels[quote.status]}
-                            </span>
-                          </div>
-                          <div className="mt-3 grid gap-2 text-[13px] text-[#4b5563] sm:grid-cols-3">
-                            <span>{formatCurrency(quote.priceCents)}</span>
-                            <span>{quote.leadTimeDays ? `${quote.leadTimeDays} days` : "Lead time pending"}</span>
-                            <span>{formatDate(quote.quotedAt)}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="rounded-md border border-dashed border-[#d7d7d7] bg-[#fafafa] p-3 text-[14px] leading-6 text-[#707782]">
-                        No overseas shop quotes recorded yet.
-                      </p>
-                    )}
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Shop quotes</p>
+                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{supplierSummary(request)}</p>
+                    <p className="mt-1 text-[12px] text-[#8a8f98]">{request.supplierQuotes.length} shop(s) contacted</p>
                   </div>
 
-                  <div className="rounded-md border border-[#eeeeee] bg-white p-4">
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86]">Buyer quote</p>
-                    <p className="mt-3 text-[22px] font-semibold text-[#171717]">{formatCurrency(request.quote.estimatedPriceCents)}</p>
-                    <p className="mt-1 text-[13px] text-[#707782]">
-                      {request.quote.leadTimeDays ? `${request.quote.leadTimeDays} day lead time` : "Lead time pending"}
-                    </p>
-                    <div className="mt-4 flex flex-col gap-2">
-                      <Link className="rounded-md bg-[#171717] px-3 py-2 text-center text-sm font-semibold text-white" href={`/operator/requests/${request.id}`}>
-                        Manage RFQ
-                      </Link>
-                      <Link className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-center text-sm font-semibold text-[#262626]" href={`/quotes/${request.id}`}>
-                        Buyer quote
-                      </Link>
-                    </div>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Price</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{formatCurrency(request.quote.estimatedPriceCents)}</p>
                   </div>
-                </article>
+
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Due</p>
+                    <p className="mt-1 text-[14px] text-[#4b525b] xl:mt-0">{formatDate(request.dueDate)}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Next step</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{status.nextAction}</p>
+                    <p className="mt-1 text-[12px] text-[#8a8f98]">{request.quote.leadTimeDays ? `${request.quote.leadTimeDays} day lead time` : "Lead time pending"}</p>
+                  </div>
+                </Link>
               );
             })}
+
+            {filteredRequests.length === 0 ? (
+              <div className="p-8 text-center">
+                <h2 className="text-[18px] font-semibold text-[#202020]">No quote submissions match this view.</h2>
+                <p className="mt-2 text-[14px] text-[#6f737a]">Clear the search or choose a different status filter.</p>
+              </div>
+            ) : null}
           </div>
-        )}
-      </section>
+
+          <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86]">
+            <span>
+              Showing {filteredRequests.length} of {quoteRequests.length} submissions
+            </span>
+            <span>Rows open operator review</span>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

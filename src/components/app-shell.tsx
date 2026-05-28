@@ -57,6 +57,14 @@ function isAdminRoute(pathname: string) {
   return adminRoutePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
+function isNavItemActive(pathname: string, href: string) {
+  if (href === "/" || href === "/admin" || href === "/admin/quotes") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function SidebarIcon({ name }: { name: IconName }) {
   const common = {
     className: "h-5 w-5 stroke-[1.7] text-[#8d8d8d]",
@@ -187,35 +195,43 @@ function SidebarIcon({ name }: { name: IconName }) {
   );
 }
 
-function LatticeMark() {
+function LatticeMark({ tone = "customer" }: { tone?: "customer" | "admin" }) {
+  const isAdmin = tone === "admin";
+
   return (
-    <Link aria-label="Lattice home" className="flex h-12 w-12 items-center justify-center rounded-md bg-[#2f3237]" href="/dashboard">
+    <Link
+      aria-label="Lattice home"
+      className={`flex h-12 w-12 items-center justify-center rounded-md ${isAdmin ? "bg-[#4f3424]" : "bg-[#2f3237]"}`}
+      href="/dashboard"
+    >
       <svg aria-hidden="true" className="h-7 w-7" viewBox="0 0 28 28">
-        <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill="#f6f7f8" opacity="0.92" />
-        <path d="M14 2.8v11.3l9.8 5.5M14 14.1 4.2 19.6M14 14.1l9.8-5.7M14 14.1 4.2 8.4" fill="none" stroke="#62666d" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+        <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill={isAdmin ? "#FFD3AC" : "#f6f7f8"} opacity="0.92" />
+        <path d="M14 2.8v11.3l9.8 5.5M14 14.1 4.2 19.6M14 14.1l9.8-5.7M14 14.1 4.2 8.4" fill="none" stroke={isAdmin ? "#a26943" : "#62666d"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
       </svg>
     </Link>
   );
 }
 
-function DesktopNavSection({ section, pathname }: { section: NavSection; pathname: string }) {
+function DesktopNavSection({ section, pathname, tone }: { section: NavSection; pathname: string; tone: "customer" | "admin" }) {
   return (
-    <section className="space-y-3 border-b border-[#eeeeee] pb-7 last:border-b-0">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#181818]">{section.title}</p>
+    <section className="space-y-2 border-b border-[#eeeeee] pb-5 last:border-b-0">
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === "admin" ? "text-[#7a4d2d]" : "text-[#181818]"}`}>{section.title}</p>
       <div className="space-y-1">
         {section.items.map((item) => {
-          const isActive =
-            item.href === "/" || item.href === "/admin/quotes"
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive = isNavItemActive(pathname, item.href);
+          const activeClass =
+            tone === "admin"
+              ? "bg-[#FFD3AC] font-semibold text-[#3a281d] shadow-[inset_3px_0_0_#a26943]"
+              : "font-semibold text-[#222222]";
+          const inactiveClass = tone === "admin" ? "font-medium text-[#80614d]" : "font-medium text-[#8c8c8c]";
+          const hoverClass = tone === "admin" ? "hover:bg-[#fff1e4] hover:text-[#4f3424]" : "hover:bg-[#f7f7f7] hover:text-[#555555]";
 
           return (
             <Link
-              className={`group flex min-h-11 items-center gap-4 rounded-md px-3 text-[15px] transition hover:bg-[#f7f7f7] hover:text-[#555555] ${
-                isActive ? "font-semibold text-[#222222]" : "font-medium text-[#8c8c8c]"
-              }`}
+              className={`group flex min-h-10 items-center gap-4 rounded-md px-3 text-[15px] transition ${hoverClass} ${isActive ? activeClass : inactiveClass}`}
               href={item.href}
               key={`${section.title}-${item.label}`}
+              aria-current={isActive ? "page" : undefined}
             >
               <SidebarIcon name={item.icon} />
               <span>{item.label}</span>
@@ -227,15 +243,20 @@ function DesktopNavSection({ section, pathname }: { section: NavSection; pathnam
   );
 }
 
-function UtilityLink({ href, icon, label, detail }: NavItem & { detail: string }) {
+function UtilityLink({ href, icon, label, detail, tone = "customer" }: NavItem & { detail: string; tone?: "customer" | "admin" }) {
   return (
-    <Link className="flex items-center gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3 transition hover:bg-[#f4f4f5]" href={href}>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white">
+    <Link
+      className={`flex items-center gap-3 rounded-md border p-2 transition ${
+        tone === "admin" ? "border-[#efb987] bg-[#fff6ee] hover:bg-[#ffe8d3]" : "border-[#eeeeee] bg-[#fafafa] hover:bg-[#f4f4f5]"
+      }`}
+      href={href}
+    >
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${tone === "admin" ? "bg-[#FFD3AC]" : "bg-white"}`}>
         <SidebarIcon name={icon} />
       </span>
       <span className="min-w-0">
-        <span className="block text-[14px] font-semibold text-[#222222]">{label}</span>
-        <span className="mt-0.5 block text-[12px] leading-4 text-[#7a7f87]">{detail}</span>
+        <span className={`block text-[14px] font-semibold ${tone === "admin" ? "text-[#3a281d]" : "text-[#222222]"}`}>{label}</span>
+        <span className={`mt-0.5 block text-[12px] leading-4 ${tone === "admin" ? "text-[#80614d]" : "text-[#7a7f87]"}`}>{detail}</span>
       </span>
     </Link>
   );
@@ -245,7 +266,7 @@ function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative border-t border-[#eeeeee] pt-4">
+    <div className="relative border-t border-[#eeeeee] pt-3">
       {isOpen ? (
         <div className="absolute bottom-[76px] left-0 right-0 rounded-md border border-[#eeeeee] bg-white py-2 shadow-sm">
           <Link className="flex min-h-11 items-center gap-3 px-3 text-[14px] font-medium text-[#73737c] transition hover:bg-[#f7f7f7] hover:text-[#222222]" href="/account/settings">
@@ -288,7 +309,7 @@ function ProfileMenu() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPublicRoute = pathname === "/";
+  const isPublicRoute = pathname === "/" || pathname === "/login" || pathname === "/waiting-list";
   const inAdminExperience = isAdminRoute(pathname);
   const navSections = inAdminExperience ? adminNavSections : customerNavSections;
 
@@ -297,11 +318,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-950">
-      <div className="flex min-h-screen">
-        <aside className="hidden w-60 shrink-0 border-r border-[#f1f1f1] bg-white px-3 py-9 lg:flex lg:min-h-screen lg:flex-col">
+    <div className={`min-h-screen text-slate-950 ${inAdminExperience ? "bg-[#fff4ea]" : "bg-[#f7f7f7]"}`}>
+      <div className="min-h-screen lg:pl-60">
+        <aside
+          className={`fixed inset-y-0 left-0 z-30 hidden w-60 shrink-0 overflow-y-auto px-3 py-5 shadow-[2px_0_8px_rgba(15,23,42,0.04)] [scrollbar-width:none] lg:flex lg:flex-col [&::-webkit-scrollbar]:hidden ${
+            inAdminExperience ? "border-r border-[#efc29a] bg-[#fffaf6]" : "bg-white"
+          }`}
+        >
           <div>
-            <LatticeMark />
+            <LatticeMark tone={inAdminExperience ? "admin" : "customer"} />
 
             {!inAdminExperience ? (
               <Link
@@ -311,22 +336,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Request Quote
               </Link>
             ) : (
-              <div className="mt-12 rounded-md border border-[#eeeeee] bg-[#f8fafc] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#64748b]">Admin mode</p>
-                <p className="mt-2 text-[14px] leading-5 text-[#343942]">A minimal workspace for current RFQs and supplier follow-up.</p>
+              <div className="mt-12 rounded-md border border-[#efb987] bg-[#FFD3AC] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f4529]">Admin mode</p>
+                <p className="mt-2 text-[14px] leading-5 text-[#3a281d]">A focused workspace for quote requests and supplier follow-up.</p>
               </div>
             )}
 
-            <nav className="mt-5 space-y-7">
+            <nav className="mt-4 space-y-5">
               {navSections.map((section) => (
-                <DesktopNavSection key={section.title} pathname={pathname} section={section} />
+                <DesktopNavSection key={section.title} pathname={pathname} section={section} tone={inAdminExperience ? "admin" : "customer"} />
               ))}
             </nav>
           </div>
 
-          <div className="mt-auto space-y-4 pt-7">
+          <div className="mt-auto space-y-4 pt-4">
             {inAdminExperience ? (
-              <UtilityLink detail="Return to the customer workspace." href="/dashboard" icon="back" label="Customer App" />
+              <UtilityLink detail="Return to the customer workspace." href="/dashboard" icon="back" label="Customer App" tone="admin" />
             ) : (
               <UtilityLink detail="Open internal controls." href="/admin" icon="admin" label="Admin" />
             )}
@@ -335,19 +360,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-5 py-4 backdrop-blur lg:hidden">
+          <header
+            className={`sticky top-0 z-10 border-b px-5 py-4 backdrop-blur lg:hidden ${
+              inAdminExperience ? "border-[#efc29a] bg-[#fff6ee]/95" : "border-slate-200 bg-white/90"
+            }`}
+          >
             <div className="flex items-center justify-between gap-4">
-              <LatticeMark />
-              <Link className="rounded-xl bg-[#858585] px-3 py-2 text-sm font-semibold text-white" href={inAdminExperience ? "/dashboard" : "/admin"}>
+              <LatticeMark tone={inAdminExperience ? "admin" : "customer"} />
+              <Link
+                className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#FFD3AC] text-[#3a281d]" : "bg-[#858585] text-white"}`}
+                href={inAdminExperience ? "/dashboard" : "/admin"}
+              >
                 {inAdminExperience ? "Customer App" : "Admin"}
               </Link>
             </div>
             <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 text-sm font-medium text-slate-600">
-              {navSections.flatMap((section) => section.items).map((item) => (
-                <Link className="rounded-full border border-slate-200 bg-white px-3 py-1.5" href={item.href} key={`mobile-${item.label}`}>
-                  {item.label}
-                </Link>
-              ))}
+              {navSections.flatMap((section) => section.items).map((item) => {
+                const isActive = isNavItemActive(pathname, item.href);
+
+                return (
+                  <Link
+                    aria-current={isActive ? "page" : undefined}
+                    className={`rounded-full border px-3 py-1.5 ${
+                      inAdminExperience
+                        ? isActive
+                          ? "border-[#a26943] bg-[#FFD3AC] font-semibold text-[#3a281d]"
+                          : "border-[#efb987] bg-[#fffaf6] text-[#5c3d28]"
+                        : isActive
+                          ? "border-slate-950 bg-slate-950 font-semibold text-white"
+                          : "border-slate-200 bg-white"
+                    }`}
+                    href={item.href}
+                    key={`mobile-${item.label}`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
             </nav>
           </header>
 

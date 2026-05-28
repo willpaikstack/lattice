@@ -2,6 +2,67 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-05-27 - Keep Buyer RFQ Intake Upload-First
+
+Decision: keep `/requests/new` as an upload-first RFQ flow where the detailed quote configuration stays locked until a CAD file is attached.
+
+Reason: the Bubble prototype's request quote page reveals additional configuration after file upload, which makes the first step obvious and keeps buyers from facing a long form before anchoring the request to a part file.
+
+Implications:
+
+- Customer details, material, tolerance, finish, quantity, and documentation fields should appear after file selection/drop.
+- Empty-state copy should guide buyers to upload a CAD/drawing file first.
+- Post-upload UI should show a part mockup, pre-configured manufacturability parameters, and an optional technical drawing upload.
+- Future multi-file support should preserve this progressive disclosure pattern.
+
+## 2026-05-27 - Treat Customer Dashboard Inbox As Notification Center
+
+Decision: make the buyer `/dashboard` inbox a customer-facing notification center for order changes, RFQ status updates, uploaded quality documents, and buyer action items.
+
+Reason: the inbox should help end customers understand what changed and what needs attention, rather than remaining an empty Bubble placeholder or generic activity feed.
+
+Implications:
+
+- Keep inbox language buyer-facing and manufacturing-specific.
+- Route notification rows to the relevant quote or order area until durable notification detail pages exist.
+- Later work should connect these notifications to persisted RFQ/order/document events instead of static dashboard data.
+
+## 2026-05-27 - Give Admin A Peach Visual Identity
+
+Decision: make the admin experience visually distinct from the customer app by using `#FFD3AC` as the primary peach palette for admin shell, navigation, and dashboard surfaces.
+
+Reason: admin workflows should feel like a separate internal control space while staying inside the same Lattice OS product.
+
+Implications:
+
+- Keep customer-facing app surfaces on the neutral/light operations palette.
+- Apply peach admin styling at the shared shell level so `/admin` and operator/admin routes inherit the internal identity.
+- Use darker warm neutrals for admin text and controls to preserve readability against the peach palette.
+
+## 2026-05-27 - Keep Admin Overview Focused On Quote Request Control
+
+Decision: make `/admin` a concise dashboard for the most critical active quote-request signals instead of a broad cross-admin activity summary.
+
+Reason: the first admin overview should help operators quickly see which quote requests need assignment, missing-info recovery, supplier outreach, overdue attention, or buyer decision follow-up.
+
+Implications:
+
+- Keep `/admin` centered on active quote requests: submitted, needs info, supplier-ready, and quoted.
+- Use `/admin/quotes`, `/admin/customers`, and `/admin/orders` for deeper management surfaces instead of crowding the overview.
+- Prioritize operational risk, due dates, owner assignment, supplier quote progress, and open quoted value in the overview metrics.
+
+## 2026-05-27 - Make Buyer Quote Rows Open A Standard Detail Template
+
+Decision: make each row in `/quotes` navigate directly to `/quotes/[requestId]`, and use that route as the standard buyer-facing quote detail template.
+
+Reason: buyers should be able to click a specific quote and land on a consistent page with the extra detail needed to review pricing, manufacturing requirements, files, supplier basis, activity, and purchase conversion.
+
+Implications:
+
+- Keep row navigation link-based so quote detail pages are shareable and browser-native.
+- Keep granular customer-facing quote detail formatting centralized in `src/components/buyer-quote-detail.tsx`.
+- Later durable quote-version work should feed the same template rather than introducing a competing buyer quote layout.
+
 ## 2026-05-26 - Start Customer Quote Issuance With A Local Markdown Builder
 
 Decision: add an internal admin quote builder at `/admin/quotes/builder` that captures quote header fields, line-item pricing, files reviewed, lead time, assumptions, and open questions, then downloads a customer-ready Markdown quote file.

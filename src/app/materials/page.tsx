@@ -23,9 +23,11 @@ export default function MaterialsPage() {
       <section className="ml-8 mt-[165px] max-w-[961px] space-y-5" aria-label="Material categories">
         {materials.map((material) => (
           <CatalogCard
+            commonGrades={material.commonGrades}
             defaultOpen={material.slug === "stainless-steel"}
             details={material.details}
             key={material.slug}
+            standards={material.standards}
             subCards={material.variants}
             summary={material.summary}
             title={material.name}

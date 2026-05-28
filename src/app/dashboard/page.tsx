@@ -7,6 +7,41 @@ const metrics = [
   { label: "Alerts", value: "4", detail: "2 unread", icon: "alert", tone: "alert" },
 ];
 
+const inboxNotifications = [
+  {
+    title: "Order PO-1042 moved to final inspection",
+    detail: "CNC bracket set is awaiting dimensional report sign-off before packing.",
+    meta: "Order status",
+    time: "12 min ago",
+    href: "/orders",
+    unread: true,
+  },
+  {
+    title: "RFQ RFQ-1187 is ready for review",
+    detail: "Supplier quotes are in for the 6061-T6 housing revision B package.",
+    meta: "RFQ status",
+    time: "48 min ago",
+    href: "/quotes",
+    unread: true,
+  },
+  {
+    title: "Quality documents uploaded",
+    detail: "Material certs and inspection photos were added to order PO-1036.",
+    meta: "Documents",
+    time: "Today",
+    href: "/orders",
+    unread: false,
+  },
+  {
+    title: "Drawing clarification requested",
+    detail: "Operator needs confirmation on thread callout for the manifold fixture.",
+    meta: "Action needed",
+    time: "Yesterday",
+    href: "/quotes",
+    unread: false,
+  },
+];
+
 const transactions = [
   { name: "Frank Bennett", email: "frank.bennett@gmail.com", amount: "$641.00" },
   { name: "Jennifer Li", email: "jennifer.li@gmail.com", amount: "$370.00" },
@@ -120,14 +155,43 @@ export default function Home() {
         })}
       </section>
 
-      <section className="min-h-[285px] rounded-[18px] border border-[#e6e6e6] bg-white p-6">
+      <section className="rounded-[18px] border border-[#e6e6e6] bg-white p-6">
         <div className="flex items-start justify-between">
-          <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-[#202020]">Inbox</h2>
+          <div>
+            <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-[#202020]">Inbox</h2>
+            <p className="mt-1 text-[13px] text-[#8a8a8a]">Customer updates across RFQs, orders, and quality documentation</p>
+          </div>
           <button aria-label="Star inbox" className="flex h-[30px] w-[30px] items-center justify-center rounded-md hover:bg-slate-50" type="button">
             <svg aria-hidden="true" className="h-5 w-5 text-[#1f2937]" fill="none" viewBox="0 0 24 24">
               <path d="m12 3.8 2.5 5.1 5.6.8-4 3.9.9 5.5-5-2.6-5 2.6.9-5.5-4-3.9 5.6-.8Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
             </svg>
           </button>
+        </div>
+
+        <div className="mt-5 divide-y divide-[#eeeeee]">
+          {inboxNotifications.map((notification) => (
+            <Link
+              className="grid gap-3 py-4 transition hover:bg-[#fafafa] sm:grid-cols-[auto_1fr_auto] sm:items-start sm:px-2"
+              href={notification.href}
+              key={notification.title}
+            >
+              <span
+                aria-label={notification.unread ? "Unread notification" : "Read notification"}
+                className={notification.unread ? "mt-1 h-2.5 w-2.5 rounded-full bg-[#171717]" : "mt-1 h-2.5 w-2.5 rounded-full bg-[#d8d8d8]"}
+              />
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#737373]">{notification.meta}</span>
+                  <span className="text-[12px] text-[#a2a2a2]">{notification.time}</span>
+                </span>
+                <span className="mt-1 block text-[15px] font-semibold text-[#202020]">{notification.title}</span>
+                <span className="mt-1 block text-[13px] leading-5 text-[#707070]">{notification.detail}</span>
+              </span>
+              <span className="hidden text-[18px] leading-none text-[#9a9a9a] sm:block" aria-hidden="true">
+                ↗
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 

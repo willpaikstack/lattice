@@ -9,10 +9,10 @@ describe("Landing page", () => {
 
     expect(screen.getByRole("heading", { name: "Lattice" })).toBeInTheDocument();
     expect(screen.getByText("Invite-only manufacturing procurement")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/dashboard");
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
     expect(screen.getByRole("link", { name: "Join waiting list" })).toHaveAttribute(
       "href",
-      "mailto:hello@latticeos.com?subject=Join%20the%20Lattice%20waiting%20list",
+      "/waiting-list",
     );
   });
 });

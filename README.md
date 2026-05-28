@@ -35,6 +35,8 @@ npm run dev
 Open:
 
 - Landing Page: <http://localhost:3000>
+- Log In: <http://localhost:3000/login>
+- Waiting List: <http://localhost:3000/waiting-list>
 - Command Center: <http://localhost:3000/dashboard>
 - New Request: <http://localhost:3000/requests/new>
 - Operator Queue: <http://localhost:3000/operator/requests>

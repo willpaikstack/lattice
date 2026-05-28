@@ -20,24 +20,27 @@ Core users:
 The current working vertical slice:
 
 1. Buyer creates a request.
-2. Buyer selects a CAD file and the request form can start an Autodesk Platform Services preview translation when APS credentials are configured.
+2. Buyer starts with a CAD file upload; customer and manufacturing configuration fields are revealed after a file is attached, a mock part image and optional technical drawing upload are shown, and the request form can start an Autodesk Platform Services preview translation when APS credentials are configured.
 3. Request form submits through the Next.js API layer.
 4. Request is validated/transformed by local business logic.
 5. Prisma persists the request to PostgreSQL.
 6. Submitted requests appear in the internal operator queue.
+7. Buyer quote rows at `/quotes` open a consistent quote detail template at `/quotes/[requestId]` with pricing, lead time, line-item requirements, files, supplier quote basis, activity, and purchase conversion.
 
 Important routes:
 
 - `/` - public invite-only landing page with Log in and waiting list entry points.
+- `/login` - public invite-only login page that hands demo users into the workspace.
+- `/waiting-list` - public waiting list request page that writes local waitlist entries for admin review, blocks exact duplicate emails with an on-page notice, emails same-domain requesters with the existing waitlist contact, and triggers a thank-you email for new entries.
 - `/dashboard` - command center/dashboard.
 - `/requests/new` - buyer RFQ/request creation.
 - `/operator/requests` - internal operator queue.
 - `/operator/requests/[requestId]` - operator request detail/review.
 - `/quotes` and `/quotes/[requestId]` - buyer quote/RFQ tracking.
-- `/orders` - buyer order tracking.
+- `/orders` and `/orders/[requestId]` - buyer order tracking and detail.
 - `/supplier/orders` and `/supplier/orders/[requestId]` - supplier-facing order views.
-- `/admin` - admin dashboard.
-- `/admin/customers` and `/admin/customers/[companyId]` - customer management.
+- `/admin` - critical quote request overview dashboard for active RFQ intake, blocked requests, supplier outreach, overdue items, and buyer decision follow-up.
+- `/admin/customers` and `/admin/customers/[companyId]` - customer management, including a waiting list viewer.
 - `/admin/quotes` - admin quote management.
 - `/admin/quotes/builder` - internal customer quote builder for typing line-item pricing and downloading a customer-ready Markdown quote file.
 - `/admin/orders` - admin order management.
@@ -76,6 +79,7 @@ The UI should move toward a light B2B operations console:
 - dense but readable operational lists/tables
 - restrained accents
 - manufacturing-specific fields and language
+- admin surfaces should feel visually distinct from the customer app, using `#FFD3AC` as the primary peach palette
 
 Avoid making the app feel like a generic startup landing page. Lattice is an operational tool for RFQs, procurement, manufacturing partners, quotes, and orders.
 
@@ -85,7 +89,7 @@ The Bubble reference worth preserving:
 
 - app shell/sidebar information architecture
 - `Request Quote` as a primary action
-- dashboard metrics and activity lists
+- dashboard metrics, customer notification inbox, and activity lists
 - upload-first RFQ flow
 - materials and fabrication capabilities as resource catalogs
 
@@ -104,9 +108,9 @@ The Bubble reference worth improving:
 - `src/components/operator-queue.tsx` - operator request queue.
 - `src/components/operator-request-detail.tsx` - internal request review.
 - `src/components/buyer-quotes.tsx` and `src/components/buyer-quote-detail.tsx` - buyer quote views.
-- `src/components/buyer-orders.tsx` - buyer order views.
+- `src/components/buyer-orders.tsx` and `src/components/buyer-order-detail.tsx` - buyer order views.
 - `src/components/supplier-orders.tsx` and `src/components/supplier-order-detail.tsx` - supplier order views.
-- `src/components/admin-*.tsx` - admin operation surfaces.
+- `src/components/admin-*.tsx` - admin operation surfaces, including the quote-request overview dashboard.
 - `src/components/customer-quote-builder.tsx` and `src/lib/quote-file.ts` - quote builder UI and customer-facing quote file generation.
 - `src/lib/request-model.ts` - core request types, statuses, and transitions.
 - `src/lib/request-persistence.ts` - app/database mapping.
@@ -115,6 +119,8 @@ The Bubble reference worth improving:
 - `src/lib/request-queue.ts` - operator queue filtering/sorting.
 - `src/lib/catalog-data.ts` - materials/capabilities data.
 - `src/lib/customer-profiles.ts` - demo/customer profile data.
+- `src/lib/waiting-list.ts` - local JSON-backed waiting list request store and duplicate/same-domain detection for early admin review.
+- `src/lib/waiting-list-email.ts` - waiting list thank-you and same-domain contact email composition and delivery; uses Resend when configured and a local outbox otherwise.
 - `prisma/schema.prisma` - database model.
 
 ## Verification

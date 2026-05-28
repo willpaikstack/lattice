@@ -2,11 +2,12 @@ import Link from "next/link";
 
 import { AdminCustomerManagement } from "@/components/admin-customer-management";
 import { listCustomerProfiles } from "@/lib/customer-profiles";
+import { listWaitingListEntries } from "@/lib/waiting-list";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCustomersPage() {
-  const customers = await listCustomerProfiles();
+  const [customers, waitingListEntries] = await Promise.all([listCustomerProfiles(), listWaitingListEntries()]);
 
   return (
     <div className="space-y-5">
@@ -25,7 +26,7 @@ export default async function AdminCustomersPage() {
         </div>
       </section>
 
-      <AdminCustomerManagement customers={customers} />
+      <AdminCustomerManagement customers={customers} waitingListEntries={waitingListEntries} />
     </div>
   );
 }

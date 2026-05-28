@@ -36,14 +36,14 @@ export default function LandingPage() {
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  className="inline-flex min-h-12 items-center justify-center rounded-md bg-white px-5 text-[15px] font-semibold text-[#111315] transition hover:bg-[#e8ecef]"
-                  href="/dashboard"
+                  className="inline-flex min-h-12 items-center justify-center rounded-md border border-white/25 bg-[#2a2f33]/70 px-5 text-[15px] font-semibold text-white backdrop-blur transition hover:border-white/40 hover:bg-[#343a3f]/80"
+                  href="/login"
                 >
                   Log in
                 </Link>
                 <Link
                   className="inline-flex min-h-12 items-center justify-center rounded-md border border-white/35 bg-white/10 px-5 text-[15px] font-semibold text-white backdrop-blur transition hover:bg-white/20"
-                  href="mailto:hello@latticeos.com?subject=Join%20the%20Lattice%20waiting%20list"
+                  href="/waiting-list"
                 >
                   Join waiting list
                 </Link>

@@ -1,67 +1,44 @@
-import type { LatticeRequest, RequestStatus, SupplierOrderStatus } from "./request-model";
+import type { LatticeRequest, RequestStatus } from "./request-model";
 import { sortRequestsNewestFirst } from "./request-queue";
 
 export type AdminActionTone = "critical" | "warning" | "success" | "neutral";
 
-export type AdminNextAction = {
+export type AdminCriticalQuoteRequest = {
   requestId: string;
   title: string;
   buyerCompany: string;
-  label: string;
-  detail: string;
+  requesterName: string;
+  status: RequestStatus;
+  owner: string;
+  process: string;
+  primaryLineItem: string;
+  dueDate: string;
+  quoteValueCents: number | null;
+  supplierQuotesReceived: number;
+  supplierQuotesTotal: number;
+  nextStep: string;
+  reason: string;
   tone: AdminActionTone;
   href: string;
+  createdAt: string;
   updatedAt: string;
-};
-
-export type AdminOwnerWorkload = {
-  owner: string;
-  totalRequests: number;
-  needsAction: number;
-  quotedValueCents: number;
-};
-
-export type AdminSupplierMonitor = {
-  requestId: string;
-  title: string;
-  buyerCompany: string;
-  shopName: string;
-  status: SupplierOrderStatus;
-  documentsCount: number;
-  trackingNumber: string;
-  updatedAt: string;
-  href: string;
-};
-
-export type AdminRecentEvent = {
-  id: string;
-  requestId: string;
-  requestTitle: string;
-  actor: string;
-  from: RequestStatus | null;
-  to: RequestStatus;
-  at: string;
-  href: string;
 };
 
 export type AdminActivitySummary = {
   metrics: {
-    totalRequests: number;
+    activeQuoteRequests: number;
     needsAdminAction: number;
+    blockedRequests: number;
+    unassignedRequests: number;
     supplierReady: number;
-    ordersInFlight: number;
     quotedValueCents: number;
     overdueRequests: number;
-    unassignedRequests: number;
-    averageQuoteCents: number;
-    documentsUploaded: number;
+    supplierQuotesReceived: number;
+    buyerDecisionPending: number;
   };
   statusCounts: Record<RequestStatus, number>;
-  nextActions: AdminNextAction[];
+  criticalRequests: AdminCriticalQuoteRequest[];
   recentActivity: LatticeRequest[];
-  ownerWorkloads: AdminOwnerWorkload[];
-  supplierMonitors: AdminSupplierMonitor[];
-  recentEvents: AdminRecentEvent[];
 };
 
 const initialStatusCounts: Record<RequestStatus, number> = {
@@ -73,53 +50,90 @@ const initialStatusCounts: Record<RequestStatus, number> = {
   PURCHASED: 0,
 };
 
-function getNextAction(request: LatticeRequest): AdminNextAction | null {
+const quoteRequestStatuses = new Set<RequestStatus>(["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"]);
+
+function isQuoteRequest(request: LatticeRequest) {
+  return quoteRequestStatuses.has(request.status);
+}
+
+function receivedSupplierQuotes(request: LatticeRequest) {
+  return request.supplierQuotes.filter((quote) => quote.status === "QUOTE_RECEIVED" || quote.status === "SELECTED").length;
+}
+
+function getCriticalQuoteRequest(request: LatticeRequest, now: Date): AdminCriticalQuoteRequest | null {
+  if (!isQuoteRequest(request)) {
+    return null;
+  }
+
+  const owner = request.operatorReview.assignedOwner ?? "Unassigned";
+  const quoteValueCents = request.quote.estimatedPriceCents;
+  const supplierQuotesReceived = receivedSupplierQuotes(request);
+  const supplierQuotesTotal = request.supplierQuotes.length;
+  const dueDate = parseDateOnly(request.dueDate);
+  const overdue = Boolean(dueDate && dueDate.getTime() < startOfToday(now).getTime());
+  const primaryLineItem = request.lineItems[0]?.partName ?? "Line item not captured";
+
   const base = {
     requestId: request.id,
     title: request.title,
     buyerCompany: request.buyerCompany,
-    href: `/operator/requests/${request.id}`,
+    requesterName: request.requesterName,
+    status: request.status,
+    owner,
+    process: request.process,
+    primaryLineItem,
+    dueDate: request.dueDate,
+    quoteValueCents,
+    supplierQuotesReceived,
+    supplierQuotesTotal,
+    createdAt: request.createdAt,
     updatedAt: request.updatedAt,
+    href: `/operator/requests/${request.id}`,
   };
 
   if (request.status === "NEEDS_INFO") {
     return {
       ...base,
-      label: "Resolve missing buyer info",
-      detail: request.operatorReview.internalNotes || "Buyer intake is blocked until missing details are captured.",
+      nextStep: "Resolve missing buyer info",
+      reason: request.operatorReview.internalNotes || "Quote work is blocked until the customer supplies missing details.",
       tone: "warning",
+    };
+  }
+
+  if (overdue) {
+    return {
+      ...base,
+      nextStep: "Recover overdue quote request",
+      reason: "Customer requested due date has passed before quote completion.",
+      tone: "critical",
     };
   }
 
   if (request.status === "SUBMITTED") {
     return {
       ...base,
-      label: request.operatorReview.assignedOwner ? "Complete internal review" : "Assign owner and review",
-      detail: "New buyer RFQ needs triage, owner assignment, and supplier-readiness check.",
-      tone: request.operatorReview.assignedOwner ? "neutral" : "critical",
+      nextStep: owner === "Unassigned" ? "Assign owner and review" : "Complete internal review",
+      reason: "New buyer RFQ needs triage, manufacturability review, and supplier-readiness check.",
+      tone: owner === "Unassigned" ? "critical" : "neutral",
     };
   }
 
   if (request.status === "READY_FOR_SUPPLIER_RFQ") {
     return {
       ...base,
-      label: "Send supplier RFQ package",
-      detail: request.operatorReview.supplierPackageNotes || "Supplier-ready request needs manual outreach package sent.",
+      nextStep: "Send supplier RFQ package",
+      reason: request.operatorReview.supplierPackageNotes || "Supplier-ready package is waiting on shop outreach.",
       tone: "success",
     };
   }
 
-  if (request.status === "QUOTED") {
-    return {
-      ...base,
-      href: `/quotes/${request.id}`,
-      label: "Monitor buyer decision",
-      detail: request.quote.summary || "Priced quote is waiting for buyer review or purchase conversion.",
-      tone: "neutral",
-    };
-  }
-
-  return null;
+  return {
+    ...base,
+    href: `/quotes/${request.id}`,
+    nextStep: "Monitor buyer decision",
+    reason: request.quote.summary || "Customer quote has been issued and is waiting for buyer response.",
+    tone: "neutral",
+  };
 }
 
 function parseDateOnly(value: string) {
@@ -131,8 +145,12 @@ function parseDateOnly(value: string) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function startOfToday(now: Date) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 function isRequestOverdue(request: LatticeRequest, now: Date) {
-  if (request.status === "PURCHASED") {
+  if (!isQuoteRequest(request)) {
     return false;
   }
 
@@ -141,107 +159,41 @@ function isRequestOverdue(request: LatticeRequest, now: Date) {
     return false;
   }
 
-  return dueDate.getTime() < new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-}
-
-function buildOwnerWorkloads(requests: LatticeRequest[]) {
-  const workloads = new Map<string, AdminOwnerWorkload>();
-
-  requests.forEach((request) => {
-    const owner = request.operatorReview.assignedOwner || "Unassigned";
-    const current = workloads.get(owner) ?? {
-      owner,
-      totalRequests: 0,
-      needsAction: 0,
-      quotedValueCents: 0,
-    };
-
-    current.totalRequests += 1;
-    if (request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ") {
-      current.needsAction += 1;
-    }
-    current.quotedValueCents += request.quote.estimatedPriceCents ?? 0;
-    workloads.set(owner, current);
-  });
-
-  return [...workloads.values()].sort(
-    (left, right) => right.needsAction - left.needsAction || right.totalRequests - left.totalRequests || left.owner.localeCompare(right.owner),
-  );
-}
-
-function buildSupplierMonitors(requests: LatticeRequest[]) {
-  return requests
-    .filter((request) => request.status === "PURCHASED")
-    .map((request) => ({
-      requestId: request.id,
-      title: request.title,
-      buyerCompany: request.buyerCompany,
-      shopName: request.supplierOrder.shopName,
-      status: request.supplierOrder.status,
-      documentsCount: request.supplierOrder.documents.length,
-      trackingNumber: request.supplierOrder.trackingNumber,
-      updatedAt: request.updatedAt,
-      href: `/supplier/orders/${request.id}`,
-    }))
-    .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
-    .slice(0, 6);
-}
-
-function buildRecentEvents(requests: LatticeRequest[]) {
-  return requests
-    .flatMap((request) =>
-      request.statusEvents.map((event) => ({
-        id: event.id,
-        requestId: request.id,
-        requestTitle: request.title,
-        actor: event.actor,
-        from: event.from,
-        to: event.to,
-        at: event.at,
-        href: request.status === "PURCHASED" ? `/supplier/orders/${request.id}` : `/operator/requests/${request.id}`,
-      })),
-    )
-    .sort((left, right) => new Date(right.at).getTime() - new Date(left.at).getTime())
-    .slice(0, 8);
+  return dueDate.getTime() < startOfToday(now).getTime();
 }
 
 export function buildAdminActivitySummary(requests: LatticeRequest[], now = new Date()): AdminActivitySummary {
   const sortedRequests = sortRequestsNewestFirst(requests);
-  const statusCounts = sortedRequests.reduce<Record<RequestStatus, number>>(
+  const quoteRequests = sortedRequests.filter(isQuoteRequest);
+  const statusCounts = quoteRequests.reduce<Record<RequestStatus, number>>(
     (counts, request) => ({
       ...counts,
       [request.status]: counts[request.status] + 1,
     }),
     { ...initialStatusCounts },
   );
-  const nextActions = sortedRequests
-    .map(getNextAction)
-    .filter((action): action is AdminNextAction => action !== null)
+  const criticalRequests = quoteRequests
+    .map((request) => getCriticalQuoteRequest(request, now))
+    .filter((request): request is AdminCriticalQuoteRequest => request !== null)
     .sort((left, right) => {
-      const priority: Record<AdminActionTone, number> = { warning: 0, critical: 1, success: 2, neutral: 3 };
+      const priority: Record<AdminActionTone, number> = { critical: 0, warning: 1, success: 2, neutral: 3 };
       return priority[left.tone] - priority[right.tone] || new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
     });
-  const quotedRequests = sortedRequests.filter((request) => request.quote.estimatedPriceCents !== null);
 
   return {
     metrics: {
-      totalRequests: sortedRequests.length,
+      activeQuoteRequests: quoteRequests.length,
       needsAdminAction: statusCounts.SUBMITTED + statusCounts.NEEDS_INFO,
+      blockedRequests: statusCounts.NEEDS_INFO,
+      unassignedRequests: quoteRequests.filter((request) => !request.operatorReview.assignedOwner).length,
       supplierReady: statusCounts.READY_FOR_SUPPLIER_RFQ,
-      ordersInFlight: statusCounts.PURCHASED,
-      quotedValueCents: sortedRequests.reduce((sum, request) => sum + (request.quote.estimatedPriceCents ?? 0), 0),
-      overdueRequests: sortedRequests.filter((request) => isRequestOverdue(request, now)).length,
-      unassignedRequests: sortedRequests.filter((request) => !request.operatorReview.assignedOwner && request.status !== "DRAFT").length,
-      averageQuoteCents: quotedRequests.length
-        ? Math.round(quotedRequests.reduce((sum, request) => sum + (request.quote.estimatedPriceCents ?? 0), 0) / quotedRequests.length)
-        : 0,
-      documentsUploaded: sortedRequests.reduce((count, request) => count + request.files.length + request.supplierOrder.documents.length, 0),
+      quotedValueCents: quoteRequests.reduce((sum, request) => sum + (request.quote.estimatedPriceCents ?? 0), 0),
+      overdueRequests: quoteRequests.filter((request) => isRequestOverdue(request, now)).length,
+      supplierQuotesReceived: quoteRequests.reduce((count, request) => count + receivedSupplierQuotes(request), 0),
+      buyerDecisionPending: statusCounts.QUOTED,
     },
     statusCounts,
-    nextActions: nextActions.slice(0, 8),
-    recentActivity: sortedRequests.slice(0, 10),
-    ownerWorkloads: buildOwnerWorkloads(sortedRequests),
-    supplierMonitors: buildSupplierMonitors(sortedRequests),
-    recentEvents: buildRecentEvents(sortedRequests),
+    criticalRequests: criticalRequests.slice(0, 8),
+    recentActivity: quoteRequests.slice(0, 10),
   };
 }

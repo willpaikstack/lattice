@@ -14,6 +14,11 @@ describe("Home dashboard", () => {
     expect(screen.getByText("Alerts")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Star inbox" })).toBeInTheDocument();
+    expect(screen.getByText("Customer updates across RFQs, orders, and quality documentation")).toBeInTheDocument();
+    expect(screen.getByText("Order PO-1042 moved to final inspection")).toBeInTheDocument();
+    expect(screen.getByText("RFQ RFQ-1187 is ready for review")).toBeInTheDocument();
+    expect(screen.getByText("Quality documents uploaded")).toBeInTheDocument();
+    expect(screen.getByText("Drawing clarification requested")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Transactions" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /View All/ })).toHaveAttribute("href", "/quotes");
     expect(screen.getByRole("heading", { name: "Orders" })).toBeInTheDocument();

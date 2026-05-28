@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "../lib/request-model";
 
 import { BuyerOrders } from "./buyer-orders";
+import { BuyerOrderDetail } from "./buyer-order-detail";
 import { BuyerQuoteDetail } from "./buyer-quote-detail";
 import { BuyerQuotes } from "./buyer-quotes";
 import { OperatorQueue } from "./operator-queue";
@@ -84,24 +85,12 @@ describe("BuyerQuotes", () => {
 
     render(<BuyerQuotes requests={[request]} />);
 
-    expect(screen.getByRole("button", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open quote detail for Hydrogen skid bracket RFQ" })).toHaveAttribute("href", `/quotes/${request.id}`);
     expect(screen.getByText("Submitted")).toBeInTheDocument();
     expect(screen.getByText(/Your RFQ was received/)).toBeInTheDocument();
     expect(screen.getByText(/Mounting bracket/)).toBeInTheDocument();
     expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
     expect(screen.getByText("STEP")).toBeInTheDocument();
-  });
-
-  it("opens an RFQ quote preview dialog from the quote row", () => {
-    const request = makeSubmittedRequest();
-
-    render(<BuyerQuotes requests={[request]} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Hydrogen skid bracket RFQ" }));
-
-    expect(screen.getByRole("dialog", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    expect(screen.getByText("Quote preview")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open full quote page" })).toHaveAttribute("href", `/quotes/${request.id}`);
   });
 });
 
@@ -113,18 +102,83 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("$1,825.00")).toBeInTheDocument();
     expect(screen.getByText("15 days")).toBeInTheDocument();
     expect(screen.getByText("Quoted at $1,825 with a 15 day lead time.")).toBeInTheDocument();
+    expect(screen.getByText("Quote activity")).toBeInTheDocument();
+    expect(screen.getByText("Supplier quote basis")).toBeInTheDocument();
+    expect(screen.getByText(/Standard Inspection/)).toBeInTheDocument();
     expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Convert to Order" })).toBeEnabled();
   });
 });
 
 describe("BuyerOrders", () => {
-  it("renders purchased quotes as order rows", () => {
-    render(<BuyerOrders orders={[{ ...makeQuotedRequest(), status: "PURCHASED" }]} />);
+  it("links purchased quotes to buyer order detail pages", () => {
+    const order = { ...makeQuotedRequest(), status: "PURCHASED" as const };
+
+    render(<BuyerOrders orders={[order]} />);
 
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    expect(screen.getByText("$1,825.00")).toBeInTheDocument();
-    expect(screen.getByText(/Awaiting supplier acknowledgment/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View order details for Hydrogen skid bracket RFQ" })).toHaveAttribute("href", `/orders/${order.id}`);
+    expect(screen.getByText("$1,825")).toBeInTheDocument();
+    expect(screen.getAllByText(/Awaiting supplier acknowledgment/).length).toBeGreaterThan(0);
+  });
+
+  it("filters purchased orders by search text and fulfillment status", () => {
+    const awaitingOrder = { ...makeQuotedRequest(), status: "PURCHASED" as const };
+    const productionOrder = {
+      ...makeQuotedRequest(),
+      id: "production_order",
+      status: "PURCHASED" as const,
+      supplierOrder: {
+        ...awaitingOrder.supplierOrder,
+        status: "IN_PRODUCTION" as const,
+      },
+      title: "Pump housing production order",
+    };
+
+    render(<BuyerOrders orders={[awaitingOrder, productionOrder]} />);
+
+    fireEvent.change(screen.getByPlaceholderText("Search order, part, supplier..."), {
+      target: { value: "pump" },
+    });
+
+    expect(screen.getByText("Pump housing production order")).toBeInTheDocument();
+    expect(screen.queryByText("Hydrogen skid bracket RFQ")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("Search order, part, supplier..."), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Production" }));
+
+    expect(screen.getByText("Pump housing production order")).toBeInTheDocument();
+    expect(screen.queryByText("Hydrogen skid bracket RFQ")).not.toBeInTheDocument();
+  });
+});
+
+describe("BuyerOrderDetail", () => {
+  it("renders granular buyer order tracking details", () => {
+    const quotedRequest = makeQuotedRequest();
+    const order = {
+      ...quotedRequest,
+      status: "PURCHASED" as const,
+      supplierOrder: {
+        ...quotedRequest.supplierOrder,
+        status: "IN_PRODUCTION" as const,
+        shopName: "Shenzhen Precision Manufacturing",
+        contactName: "Li Wei",
+        notes: "Material ordered and machining scheduled.",
+        trackingNumber: "1Z999",
+      },
+    };
+
+    render(<BuyerOrderDetail order={order} />);
+
+    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+    expect(screen.getByText("In production")).toBeInTheDocument();
+    expect(screen.getByText("Shenzhen Precision Manufacturing")).toBeInTheDocument();
+    expect(screen.getByText("1Z999")).toBeInTheDocument();
+    expect(screen.getByText(/Required docs: Standard Inspection/)).toBeInTheDocument();
+    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
+    expect(screen.getByText(/Quality documents will appear here/)).toBeInTheDocument();
   });
 });
 

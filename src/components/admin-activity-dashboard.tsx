@@ -3,6 +3,7 @@ import Link from "next/link";
 import type {
   AdminActionTone,
   AdminActivitySummary,
+  AdminCriticalQuoteRequest,
 } from "@/lib/admin-activity";
 import type { RequestStatus } from "@/lib/request-model";
 
@@ -22,7 +23,13 @@ const actionToneClasses: Record<AdminActionTone, string> = {
   neutral: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
-function formatCurrency(cents: number) {
+const quotePipelineStatuses: RequestStatus[] = ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"];
+
+function formatCurrency(cents: number | null) {
+  if (cents === null) {
+    return "Pending";
+  }
+
   return new Intl.NumberFormat("en-US", {
     currency: "USD",
     maximumFractionDigits: 0,
@@ -31,157 +38,203 @@ function formatCurrency(cents: number) {
 }
 
 function formatDate(value: string) {
+  if (!value) {
+    return "TBD";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "short",
   }).format(new Date(value));
 }
 
-function formatLongDate(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
+function quoteAgeDays(request: AdminCriticalQuoteRequest) {
+  const created = new Date(request.createdAt).getTime();
+  const current = Date.now();
 
-function formatStatus(status: RequestStatus) {
-  return statusLabels[status];
+  if (Number.isNaN(created)) {
+    return "Age unavailable";
+  }
+
+  const days = Math.max(0, Math.floor((current - created) / 86_400_000));
+  return days === 1 ? "1 day open" : `${days} days open`;
 }
 
 function StatCard({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <article className="rounded-md border border-[#e7e7e7] bg-white p-4">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86]">{label}</p>
-      <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{value}</p>
-      <p className="mt-2 text-[13px] leading-5 text-[#6b7280]">{detail}</p>
+    <article className="rounded-md border border-[#efc29a] bg-white p-4 shadow-[0_1px_0_rgba(122,77,45,0.04)]">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a5a38]">{label}</p>
+      <p className="mt-3 text-[30px] font-semibold leading-none text-[#3a281d]">{value}</p>
+      <p className="mt-2 text-[13px] leading-5 text-[#80614d]">{detail}</p>
     </article>
   );
 }
 
 function SectionHeader({ title, detail, action }: { title: string; detail?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-[#eeeeee] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="flex flex-col gap-3 border-b border-[#f0d1b7] px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <h2 className="text-[19px] font-semibold tracking-tight text-[#202020]">{title}</h2>
-        {detail ? <p className="mt-1 text-[14px] leading-5 text-[#707782]">{detail}</p> : null}
+        <h2 className="text-[19px] font-semibold tracking-tight text-[#3a281d]">{title}</h2>
+        {detail ? <p className="mt-1 text-[14px] leading-5 text-[#80614d]">{detail}</p> : null}
       </div>
       {action}
     </div>
   );
 }
 
+function CriticalQueueItem({ request }: { request: AdminCriticalQuoteRequest }) {
+  return (
+    <Link className="block p-5 transition hover:bg-[#fff6ee]" href={request.href}>
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.74fr_0.48fr] xl:items-start">
+        <div>
+          <div className="flex flex-wrap gap-2">
+            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${actionToneClasses[request.tone]}`}>
+              {request.nextStep}
+            </span>
+            <span className="inline-flex rounded-full bg-[#fff1e4] px-2.5 py-1 text-[12px] font-semibold text-[#7a4d2d]">
+              {statusLabels[request.status]}
+            </span>
+          </div>
+          <h3 className="mt-3 text-[17px] font-semibold text-[#3a281d]">{request.title}</h3>
+          <p className="mt-1 text-[14px] text-[#80614d]">
+            {request.buyerCompany} - {request.requesterName}
+          </p>
+          <p className="mt-3 text-[14px] leading-6 text-[#5f4a3c]">{request.reason}</p>
+        </div>
+
+        <div className="grid gap-2 text-[13px] text-[#5f4a3c] sm:grid-cols-2 xl:grid-cols-1">
+          <span>
+            <span className="font-semibold text-[#3a281d]">Part:</span> {request.primaryLineItem}
+          </span>
+          <span>
+            <span className="font-semibold text-[#3a281d]">Process:</span> {request.process}
+          </span>
+          <span>
+            <span className="font-semibold text-[#3a281d]">Owner:</span> {request.owner}
+          </span>
+          <span>
+            <span className="font-semibold text-[#3a281d]">Shops:</span> {request.supplierQuotesReceived}/{request.supplierQuotesTotal} quoted
+          </span>
+        </div>
+
+        <div className="grid gap-2 text-[13px] text-[#5f4a3c] sm:grid-cols-3 xl:grid-cols-1 xl:text-right">
+          <span>
+            <span className="font-semibold text-[#3a281d]">Due:</span> {formatDate(request.dueDate)}
+          </span>
+          <span>
+            <span className="font-semibold text-[#3a281d]">Quote:</span> {formatCurrency(request.quoteValueCents)}
+          </span>
+          <span>{quoteAgeDays(request)}</span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export function AdminActivityDashboard({ summary }: { summary: AdminActivitySummary }) {
   return (
     <div className="mx-auto max-w-[1240px] space-y-5">
-      <section className="rounded-md border border-[#e6e6e6] bg-[#f8fafc] p-5">
+      <section className="rounded-md border border-[#efb987] bg-[#FFD3AC] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#64748b]">Internal operations</p>
-            <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-tight text-[#171717]">Admin overview</h1>
-            <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#5f6673]">
-              A compact starting point for current RFQs, immediate follow-up, and supplier order visibility.
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#6f4529]">Admin</p>
+            <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-tight text-[#3a281d]">Quote request overview</h1>
+            <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#5c3d28]">
+              Critical quote-request signals for intake, missing information, supplier outreach, and buyer decision follow-up.
             </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/admin/customers">
-              Customers
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Link className="rounded-md bg-[#4f3424] px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-[#3a281d]" href="/admin/quotes">
+              Manage Quotes
             </Link>
-            <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/admin/quotes">
-              Quote Submissions
-            </Link>
-            <Link className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-center text-sm font-semibold text-[#262626]" href="/admin/orders">
-              Placed Orders
-            </Link>
-            <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/operator/requests">
+            <Link className="rounded-md border border-[#d8955f] bg-[#fffaf6] px-4 py-2 text-center text-sm font-semibold text-[#4f3424] transition hover:bg-[#fff1e4]" href="/operator/requests">
               RFQ Queue
-            </Link>
-            <Link className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-center text-sm font-semibold text-[#262626]" href="/requests/new">
-              New RFQ
             </Link>
           </div>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard detail="All buyer requests visible to the admin console." label="Total RFQs" value={String(summary.metrics.totalRequests)} />
-        <StatCard detail="Submitted or blocked requests that need internal movement." label="Needs action" value={String(summary.metrics.needsAdminAction)} />
-        <StatCard detail="Supplier-ready packages waiting on outreach." label="Supplier ready" value={String(summary.metrics.supplierReady)} />
-        <StatCard detail="Purchased orders being managed after buyer approval." label="Orders in flight" value={String(summary.metrics.ordersInFlight)} />
+        <StatCard detail="Submitted through quoted requests still moving toward a customer decision." label="Active quote requests" value={String(summary.metrics.activeQuoteRequests)} />
+        <StatCard detail="New or blocked requests requiring immediate internal movement." label="Needs action" value={String(summary.metrics.needsAdminAction)} />
+        <StatCard detail="Customer due dates already past on open quote requests." label="Overdue" value={String(summary.metrics.overdueRequests)} />
+        <StatCard detail="Issued customer quote value still awaiting order conversion." label="Open quoted value" value={formatCurrency(summary.metrics.quotedValueCents)} />
       </section>
 
-      <article className="rounded-md border border-[#e6e6e6] bg-white">
+      <article className="rounded-md border border-[#efc29a] bg-white">
         <SectionHeader
           action={
-            <Link className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-sm font-semibold text-[#262626]" href="/operator/requests">
-              Open queue
+            <Link className="rounded-md border border-[#d8955f] bg-[#fffaf6] px-3 py-2 text-sm font-semibold text-[#4f3424] transition hover:bg-[#fff1e4]" href="/admin/quotes/builder">
+              Build Quote
             </Link>
           }
-          detail="The few items most likely to need an admin decision next."
-          title="Next actions"
+          detail="Highest priority quote requests, ordered by operational risk."
+          title="Critical quote queue"
         />
 
-        {summary.nextActions.length === 0 ? (
+        {summary.criticalRequests.length === 0 ? (
           <div className="p-8 text-center">
-            <p className="text-[15px] font-semibold text-[#202020]">No active admin actions</p>
-            <p className="mt-2 text-[14px] text-[#707782]">Submitted RFQs, missing-info items, and supplier-ready packages will appear here.</p>
+            <p className="text-[15px] font-semibold text-[#3a281d]">No active quote requests</p>
+            <p className="mt-2 text-[14px] text-[#80614d]">Submitted RFQs will appear here once buyers request quotes.</p>
           </div>
         ) : (
-          <div className="divide-y divide-[#eeeeee]">
-            {summary.nextActions.slice(0, 5).map((action) => (
-              <Link className="block p-5 transition hover:bg-[#f8fafc]" href={action.href} key={`${action.requestId}-${action.label}`}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${actionToneClasses[action.tone]}`}>
-                      {action.label}
-                    </span>
-                    <h3 className="mt-3 text-[17px] font-semibold text-[#202020]">{action.title}</h3>
-                    <p className="mt-1 text-[14px] text-[#707782]">{action.buyerCompany}</p>
-                  </div>
-                  <p className="text-[13px] font-medium text-[#8a8f98]">{formatDate(action.updatedAt)}</p>
-                </div>
-                <p className="mt-3 text-[14px] leading-6 text-[#4b5563]">{action.detail}</p>
-              </Link>
+          <div className="divide-y divide-[#f0d1b7]">
+            {summary.criticalRequests.slice(0, 5).map((request) => (
+              <CriticalQueueItem key={request.requestId} request={request} />
             ))}
           </div>
         )}
       </article>
 
-      <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
-        <SectionHeader
-          action={
-            <Link className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-sm font-semibold text-[#262626]" href="/requests/new">
-              New RFQ
-            </Link>
-          }
-          detail="A short list of the latest requests moving through the system."
-          title="Recent RFQs"
-        />
-        <div className="grid grid-cols-[1.25fr_0.75fr_0.7fr_0.65fr_0.55fr] gap-4 border-b border-[#eeeeee] bg-[#f8fafc] px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86] max-lg:hidden">
-          <span>Request</span>
-          <span>Buyer</span>
-          <span>Status</span>
-          <span>Owner</span>
-          <span>Quote</span>
-        </div>
-        <div className="divide-y divide-[#eeeeee]">
-          {summary.recentActivity.slice(0, 8).map((request) => (
-            <Link className="grid gap-3 p-5 transition hover:bg-[#f8fafc] lg:grid-cols-[1.25fr_0.75fr_0.7fr_0.65fr_0.55fr] lg:items-center" href={`/operator/requests/${request.id}`} key={request.id}>
-              <div>
-                <p className="text-[15px] font-semibold text-[#202020]">{request.title}</p>
-                <p className="mt-1 text-[13px] text-[#707782]">
-                  {request.process} - due {request.dueDate || "TBD"} - updated {formatLongDate(request.updatedAt)}
-                </p>
+      <section className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+        <article className="rounded-md border border-[#efc29a] bg-white">
+          <SectionHeader detail="Only active quote-request stages are counted here." title="Quote pipeline" />
+          <div className="divide-y divide-[#f0d1b7]">
+            {quotePipelineStatuses.map((status) => (
+              <div className="flex items-center justify-between gap-4 px-5 py-4" key={status}>
+                <span className="text-[14px] font-semibold text-[#3a281d]">{statusLabels[status]}</span>
+                <span className="text-[24px] font-semibold leading-none text-[#4f3424]">{summary.statusCounts[status]}</span>
               </div>
-              <p className="text-[14px] text-[#4b5563]">{request.buyerCompany}</p>
-              <p className="text-[14px] font-semibold text-[#30343a]">{formatStatus(request.status)}</p>
-              <p className="text-[14px] text-[#4b5563]">{request.operatorReview.assignedOwner ?? "Unassigned"}</p>
-              <p className="text-[14px] font-semibold text-[#202020]">
-                {request.quote.estimatedPriceCents ? formatCurrency(request.quote.estimatedPriceCents) : "Unquoted"}
-              </p>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </div>
+          <div className="border-t border-[#f0d1b7] bg-[#fff6ee] px-5 py-4 text-[13px] leading-5 text-[#5f4a3c]">
+            <span className="font-semibold text-[#3a281d]">{summary.metrics.unassignedRequests}</span> unassigned,{" "}
+            <span className="font-semibold text-[#3a281d]">{summary.metrics.supplierReady}</span> ready for shop outreach,{" "}
+            <span className="font-semibold text-[#3a281d]">{summary.metrics.buyerDecisionPending}</span> waiting on buyer decisions.
+          </div>
+        </article>
+
+        <article className="overflow-hidden rounded-md border border-[#efc29a] bg-white">
+          <SectionHeader detail={`${summary.metrics.supplierQuotesReceived} received shop quotes across active requests.`} title="Recent quote requests" />
+          <div className="grid grid-cols-[1.15fr_0.62fr_0.48fr_0.42fr] gap-4 border-b border-[#f0d1b7] bg-[#fff6ee] px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a5a38] max-lg:hidden">
+            <span>Request</span>
+            <span>Stage</span>
+            <span>Owner</span>
+            <span>Due</span>
+          </div>
+          <div className="divide-y divide-[#f0d1b7]">
+            {summary.recentActivity.slice(0, 6).map((request) => (
+              <Link className="grid gap-3 p-5 transition hover:bg-[#fff6ee] lg:grid-cols-[1.15fr_0.62fr_0.48fr_0.42fr] lg:items-center" href={`/operator/requests/${request.id}`} key={request.id}>
+                <div>
+                  <p className="text-[15px] font-semibold text-[#3a281d]">{request.title}</p>
+                  <p className="mt-1 text-[13px] text-[#80614d]">
+                    {request.buyerCompany} - updated {formatUpdatedAt(request.updatedAt)}
+                  </p>
+                </div>
+                <p className="text-[14px] font-semibold text-[#4f3424]">{statusLabels[request.status]}</p>
+                <p className="text-[14px] text-[#5f4a3c]">{request.operatorReview.assignedOwner ?? "Unassigned"}</p>
+                <p className="text-[14px] text-[#5f4a3c]">{formatDate(request.dueDate)}</p>
+              </Link>
+            ))}
+          </div>
+        </article>
       </section>
     </div>
   );

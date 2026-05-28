@@ -125,77 +125,103 @@ function sortEquipment(equipment: VendorEquipment[], sort: SortOption) {
   });
 }
 
-function EquipmentCard({ equipment }: { equipment: VendorEquipment }) {
+function EquipmentRow({ equipment }: { equipment: VendorEquipment }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const panelId = `${equipment.slug}-details`;
+
   return (
-    <article className="overflow-hidden rounded-md border border-[#e5e5e5] bg-white">
-      <div className="border-b border-[#eeeeee] bg-[#f7f8fa]">
-        <Image
-          alt={`${equipment.name} machine`}
-          className="h-64 w-full object-contain"
-          height={760}
-          src={equipment.imagePath}
-          width={1200}
-        />
-      </div>
-      <div className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+    <article className="rounded-md border border-[#e5e5e5] bg-white">
+      <div className="grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#8c8c8c]">{equipment.section}</p>
-            <h2 className="mt-2 text-[22px] font-semibold leading-7 tracking-[-0.03em] text-[#202020]">{equipment.name}</h2>
+            <span className="rounded-md bg-[#f2f4f6] px-2.5 py-1 text-[12px] font-semibold text-[#343942]">{equipment.quantity}</span>
           </div>
-          <span className="rounded-md bg-[#f2f4f6] px-3 py-1.5 text-[13px] font-semibold text-[#343942]">{equipment.quantity}</span>
+          <h3 className="mt-2 text-[18px] font-semibold leading-6 text-[#202020]">{equipment.makeModel}</h3>
+          <p className="mt-1 text-[13px] font-medium text-[#555b63]">{equipment.name}</p>
+          <p className="mt-2 line-clamp-2 max-w-[760px] text-[14px] leading-6 text-[#6f737a]">{equipment.summary}</p>
         </div>
 
-        <p className="mt-2 text-[14px] leading-6 text-[#6f737a]">{equipment.summary}</p>
-
-        <dl className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <dt className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9a9da3]">Make / model</dt>
-            <dd className="mt-1 text-[14px] font-medium text-[#2b2f36]">{equipment.makeModel}</dd>
-          </div>
-          {equipment.details.map((detail) => (
-            <div key={detail.label}>
-              <dt className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9a9da3]">{detail.label}</dt>
-              <dd className="mt-1 text-[14px] font-medium text-[#2b2f36]">{detail.value}</dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="mt-5 border-t border-[#eeeeee] pt-4">
-          <p className="text-[13px] font-semibold text-[#252525]">Fabricator notes</p>
-          <ul className="mt-2 space-y-2 text-[14px] leading-6 text-[#6f737a]">
-            {equipment.fabricatorNotes.map((note) => (
-              <li className="flex gap-2" key={note}>
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#8b949e]" aria-hidden="true" />
-                <span>{note}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#eeeeee] pt-4">
-          <div className="text-[12px] leading-5 text-[#8c8c8c]">
-            <p>Source: {equipment.source.vendor}, {equipment.source.documentDate}</p>
-            <a className="font-medium text-[#555b63] underline decoration-[#c9ced6] underline-offset-2" href={equipment.imageSourceUrl} rel="noreferrer" target="_blank">
-              Image source
-            </a>
-          </div>
-          <a
-            aria-label={`Open ${equipment.makeModel} machine page`}
-            className="group relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#e0e0e0] bg-white text-[#3b4047] transition hover:border-[#c9ced6] hover:bg-[#f7f8fa] hover:text-[#171717]"
-            href={equipment.machineUrl}
-            rel="noreferrer"
-            target="_blank"
-            title="Open machine page"
+        <button
+          aria-controls={panelId}
+          aria-expanded={isOpen}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#dfe3e8] bg-[#f8f9fa] px-3 text-[13px] font-semibold text-[#343942] transition hover:border-[#c6cdd5] hover:bg-white"
+          onClick={() => setIsOpen((current) => !current)}
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            className={["h-4 w-4 stroke-[2] transition-transform", isOpen ? "rotate-180" : ""].join(" ")}
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            <svg aria-hidden="true" className="h-5 w-5 stroke-[1.8]" fill="none" viewBox="0 0 24 24">
-              <path d="M7 17 17 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M9 7h8v8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M14 17H7V10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" opacity="0.72" />
-            </svg>
-          </a>
-        </div>
+            <path d="m6 9 6 6 6-6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {isOpen ? "Hide details" : "View details"}
+        </button>
       </div>
+
+      {isOpen ? (
+        <div className="border-t border-[#eeeeee] p-4" id={panelId}>
+          <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
+            <div className="rounded-md border border-[#eeeeee] bg-[#f7f8fa] p-3">
+              <Image
+                alt={`${equipment.name} machine`}
+                className="aspect-[4/3] w-full object-contain"
+                height={760}
+                src={equipment.imagePath}
+                width={1200}
+              />
+            </div>
+
+            <div>
+              <dl className="grid gap-3 sm:grid-cols-2">
+                {equipment.details.map((detail) => (
+                  <div key={detail.label}>
+                    <dt className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#9a9da3]">{detail.label}</dt>
+                    <dd className="mt-1 text-[14px] font-medium text-[#2b2f36]">{detail.value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <div className="mt-5 border-t border-[#eeeeee] pt-4">
+                <p className="text-[13px] font-semibold text-[#252525]">Fabricator notes</p>
+                <ul className="mt-2 space-y-2 text-[14px] leading-6 text-[#6f737a]">
+                  {equipment.fabricatorNotes.map((note) => (
+                    <li className="flex gap-2" key={note}>
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#8b949e]" aria-hidden="true" />
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#eeeeee] pt-4">
+                <div className="text-[12px] leading-5 text-[#8c8c8c]">
+                  <p>Source: {equipment.source.vendor}, {equipment.source.documentDate}</p>
+                  <a className="font-medium text-[#555b63] underline decoration-[#c9ced6] underline-offset-2" href={equipment.imageSourceUrl} rel="noreferrer" target="_blank">
+                    Image source
+                  </a>
+                </div>
+                <a
+                  aria-label={`Open ${equipment.makeModel} machine page`}
+                  className="group relative inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#e0e0e0] bg-white text-[#3b4047] transition hover:border-[#c9ced6] hover:bg-[#f7f8fa] hover:text-[#171717]"
+                  href={equipment.machineUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                  title="Open machine page"
+                >
+                  <svg aria-hidden="true" className="h-5 w-5 stroke-[1.8]" fill="none" viewBox="0 0 24 24">
+                    <path d="M7 17 17 7" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M9 7h8v8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M14 17H7V10" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" opacity="0.72" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -284,9 +310,9 @@ function SectionEquipment({ section }: { section: EquipmentSection }) {
       </div>
 
       {filteredEquipment.length > 0 ? (
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="space-y-3">
           {filteredEquipment.map((equipment) => (
-            <EquipmentCard equipment={equipment} key={equipment.slug} />
+            <EquipmentRow equipment={equipment} key={equipment.slug} />
           ))}
         </div>
       ) : (

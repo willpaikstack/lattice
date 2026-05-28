@@ -65,6 +65,8 @@ export function CatalogCard({
                   <MaterialSubCard key={subCard.name} variant={subCard} />
                 ))}
               </div>
+            ) : commonGrades.length ? (
+              <MaterialTypeList materialName={title} standards={standards} types={commonGrades} />
             ) : null}
           </div>
         ) : null}
@@ -125,10 +127,36 @@ export function CatalogCard({
   );
 }
 
+function MaterialTypeList({
+  materialName,
+  standards,
+  types,
+}: {
+  materialName: string;
+  standards: string[];
+  types: string[];
+}) {
+  return (
+    <div className="mt-6" aria-label={`${materialName} material types`}>
+      <p className="text-[12px] font-bold uppercase leading-5 tracking-[0.16em] text-[#9b9b9b]">Material types</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {types.map((type) => (
+          <div className="rounded-[6px] border border-[#e5e5e5] bg-[#fbfbfb] px-4 py-3" key={type}>
+            <h3 className="text-[16px] font-bold leading-6 text-[#222222]">{type}</h3>
+            {standards.length ? (
+              <p className="mt-1 text-[12px] leading-5 text-[#777777]">{standards.slice(0, 2).join(" / ")}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MaterialSubCard({ variant }: { variant: MaterialVariant }) {
   return (
     <article className="relative min-h-[250px] overflow-hidden rounded-[6px] border border-[#e5e5e5] bg-white px-4 py-4 text-[#787878]">
-      <div className="grid min-h-[218px] grid-cols-[minmax(250px,1fr)_170px_367px] gap-5">
+      <div className="grid min-h-[218px] gap-5 lg:grid-cols-[minmax(250px,1fr)_170px_367px]">
         <div className="pt-1">
           <div className="flex items-baseline gap-5">
             <h3 className="text-[21px] font-bold leading-7 text-[#1f1f1f]">{variant.name}</h3>

@@ -32,7 +32,7 @@ export default function EquipmentPage() {
           <div>
             <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[#202020]">Catalog format</h2>
             <p className="mt-2 text-[14px] leading-6 text-[#6f737a]">
-              The page is organized into CNC Milling, CNC Lathe, QC & Inspection, Manual Machines, Sheet Metal, and Finishing. Duplicate rows from the source PDFs are combined only when the make and model match, with quantity, range, tolerance, controls, and process notes preserved inside the card.
+              The page is organized into CNC Milling, CNC Lathe, QC & Inspection, Manual Machines, Sheet Metal, and Finishing. Duplicate rows from the source PDFs are combined only when the make and model match, with quantity and summary information shown in the row and range, tolerance, controls, source links, and process notes available on expansion.
             </p>
           </div>
           <div className="text-[13px] leading-6 text-[#6f737a]">

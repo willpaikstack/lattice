@@ -36,6 +36,34 @@ describe("AppShell", () => {
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
+  it("leaves the public login page outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/login");
+
+    render(
+      <AppShell>
+        <div>login content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("login content")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
+  });
+
+  it("leaves the public waiting list page outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/waiting-list");
+
+    render(
+      <AppShell>
+        <div>waiting list content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("waiting list content")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
+  });
+
   it("keeps customer navigation separate from admin pages", () => {
     render(
       <AppShell>
@@ -79,6 +107,23 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Request Quote" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Quotes" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Materials" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the admin overview link inactive on nested admin pages", () => {
+    mockUsePathname.mockReturnValue("/admin/customers");
+
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    const currentLinks = screen.getAllByRole("link", { current: "page" });
+
+    expect(currentLinks.map((link) => link.textContent)).toEqual(["Customers", "Customers"]);
+    for (const link of screen.getAllByRole("link", { name: "Overview" })) {
+      expect(link).not.toHaveAttribute("aria-current");
+    }
   });
 
   it("opens account actions from the sidebar profile menu", () => {
