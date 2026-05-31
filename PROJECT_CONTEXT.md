@@ -25,7 +25,7 @@ Core users:
 The current working vertical slice:
 
 1. Buyer creates a request.
-2. Buyer starts with a CAD file upload; customer and manufacturing configuration fields are revealed after a file is attached, the uploaded CAD file preview is the primary visual in the request form, and the request form can start an Autodesk Platform Services preview translation when APS credentials are configured.
+2. Buyer starts with a CAD file upload; customer and manufacturing configuration fields are revealed after a file is attached, each uploaded CAD file becomes a configurable line item, buyers can upload additional CAD files from the request form to add more line items, and the request form can start an Autodesk Platform Services preview translation when APS credentials are configured.
 3. Request form submits through the Next.js API layer.
 4. Request is validated/transformed by local business logic.
 5. Prisma persists the request to PostgreSQL.
@@ -39,11 +39,12 @@ Important routes:
 - `/login` - public invite-only login page that hands demo users into the workspace.
 - `/waiting-list` - public waiting list request page that writes local waitlist entries for admin review, blocks exact duplicate emails with an on-page notice, emails same-domain requesters with the existing waitlist contact, and triggers a thank-you email for new entries.
 - `/dashboard` - command center/dashboard.
-- `/requests/new` - buyer RFQ/request creation.
+- `/requests/new` - buyer RFQ/request creation; supports `?reorder=[requestId]` to prefill a new RFQ draft from a prior purchased order.
 - `/operator/requests` - redirects to `/admin/quotes`; the separate RFQ queue page was retired as redundant.
 - `/operator/requests/[requestId]` - legacy/focused operator request detail screen; primary quote-submission review now lives in `/admin/quotes`.
 - `/quotes` and `/quotes/[requestId]` - buyer quote/RFQ tracking.
-- `/orders` and `/orders/[requestId]` - buyer order tracking and detail.
+- `/quotes/[requestId]/checkout` - buyer checkout step for quoted RFQs, collecting delivery, import/compliance, payment/PO, tax, and purchasing terms before order placement.
+- `/orders`, `/orders/[requestId]`, and `/orders/[requestId]/help` - buyer order tracking, detail, and order-specific help request.
 - `/shipped` - buyer shipped-order tracking.
 - `/notifications` - buyer platform notification center for RFQ, order, document, and action alerts.
 - `/supplier/orders` and `/supplier/orders/[requestId]` - supplier-facing order views.

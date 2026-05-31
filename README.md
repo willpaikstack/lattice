@@ -7,8 +7,8 @@ Lattice OS is being built as a machine-shop-focused network platform, similar in
 ## Current vertical slice
 
 - Buyer creates a manufacturable request.
-- Buyer adds one line item.
-- Buyer adds one file reference.
+- Buyer adds one or more CAD-backed line items.
+- Buyer adds file references for each uploaded part and optional drawings.
 - Buyer submits the request.
 - Request appears in the admin quote submissions workflow.
 

@@ -60,6 +60,7 @@ export const materialCostOptions: RfqOption[] = [
 ];
 
 export const rfqMaterialOptions: RfqOption[] = [
+  option("al_6061_t6", "6061-T6 Aluminum"),
   option("pvc", "PVC"),
   option("in_625", "IN 625"),
   option("ss_303", "SS 303"),

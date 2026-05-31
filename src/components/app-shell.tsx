@@ -261,7 +261,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navSections = inAdminExperience ? adminNavSections : customerNavSections;
 
   useEffect(() => {
-    if (!pendingHref || !isNavItemActive(pathname, pendingHref)) {
+    if (!pendingHref || pathname !== pendingHref) {
       return;
     }
 
@@ -279,7 +279,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
 
     event.preventDefault();
-    if (isNavItemActive(pathname, href)) {
+    if (pathname === href) {
+      return;
+    }
+
+    if (pathname.startsWith(`${href}/`)) {
+      router.push(href);
       return;
     }
 

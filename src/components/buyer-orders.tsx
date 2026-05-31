@@ -38,15 +38,6 @@ const supplierStatusCopy: Record<SupplierOrderStatus, { label: string; tone: str
   },
 };
 
-const statusFilters: Array<{ label: string; value: "ALL" | SupplierOrderStatus }> = [
-  { label: "All", value: "ALL" },
-  { label: "Awaiting", value: "AWAITING_ACKNOWLEDGMENT" },
-  { label: "Production", value: "IN_PRODUCTION" },
-  { label: "QC", value: "QC_IN_PROGRESS" },
-  { label: "Docs", value: "DOCUMENTS_UPLOADED" },
-  { label: "Shipped", value: "SHIPPED" },
-];
-
 function formatPrice(cents: number | null) {
   if (cents === null) {
     return "Pending";
@@ -73,14 +64,12 @@ function orderReference(order: LatticeRequest) {
 
 export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
 
   const filteredOrders = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return orders.filter((order) => {
       const primaryLine = order.lineItems[0];
-      const matchesStatus = statusFilter === "ALL" || order.supplierOrder.status === statusFilter;
       const searchable = [
         order.title,
         order.process,
@@ -95,9 +84,9 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
         .join(" ")
         .toLowerCase();
 
-      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
+      return !normalizedQuery || searchable.includes(normalizedQuery);
     });
-  }, [orders, query, statusFilter]);
+  }, [orders, query]);
 
   if (orders.length === 0) {
     return (
@@ -140,24 +129,6 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
               value={query}
             />
           </label>
-          <div aria-label="Order status filters" className="flex gap-2 overflow-x-auto pb-1">
-            {statusFilters.map((filter) => {
-              const isActive = statusFilter === filter.value;
-
-              return (
-                <button
-                  className={`h-9 shrink-0 rounded-md border px-3 text-[13px] font-semibold transition ${
-                    isActive ? "border-[#171717] bg-[#171717] text-white" : "border-[#dddddd] bg-white text-[#5f646c] hover:bg-[#f7f7f7]"
-                  }`}
-                  key={filter.value}
-                  onClick={() => setStatusFilter(filter.value)}
-                  type="button"
-                >
-                  {filter.label}
-                </button>
-              );
-            })}
-          </div>
         </div>
       </div>
 
@@ -227,8 +198,8 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
 
         {filteredOrders.length === 0 ? (
           <div className="p-8 text-center">
-            <h2 className="text-[18px] font-semibold text-[#202020]">No orders match this view.</h2>
-            <p className="mt-2 text-[14px] text-[#6f737a]">Clear the search or choose a different status filter.</p>
+            <h2 className="text-[18px] font-semibold text-[#202020]">No orders match this search.</h2>
+            <p className="mt-2 text-[14px] text-[#6f737a]">Clear the search to see every order.</p>
           </div>
         ) : null}
       </div>

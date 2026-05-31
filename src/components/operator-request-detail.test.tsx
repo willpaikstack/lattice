@@ -6,7 +6,9 @@ import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from
 import { AdminQuoteManagement } from "./admin-quote-management";
 import { BuyerOrders } from "./buyer-orders";
 import { BuyerOrderDetail } from "./buyer-order-detail";
+import { BuyerOrderHelp } from "./buyer-order-help";
 import { BuyerQuoteDetail } from "./buyer-quote-detail";
+import { BuyerQuoteCheckout } from "./buyer-quote-checkout";
 import { BuyerQuotes } from "./buyer-quotes";
 import { OperatorQueue } from "./operator-queue";
 import { OperatorRequestDetail } from "./operator-request-detail";
@@ -173,7 +175,7 @@ describe("BuyerQuoteDetail", () => {
       ],
     };
 
-    render(<BuyerQuoteDetail request={requestWithCustomerQuote} purchaseAction={() => undefined} />);
+    render(<BuyerQuoteDetail checkoutHref={`/quotes/${requestWithCustomerQuote.id}/checkout`} request={requestWithCustomerQuote} />);
 
     expect(screen.getByRole("heading", { name: "LQ-1001" })).toBeInTheDocument();
     expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
@@ -182,12 +184,26 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("15 days (Standard)")).toBeInTheDocument();
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Summary")).toBeInTheDocument();
-    expect(screen.getByText("Accept quote")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
     expect(screen.getByText("Quote activity")).toBeInTheDocument();
     expect(screen.getByText("Quote basis")).toBeInTheDocument();
     expect(screen.getByText(/Standard Inspection/)).toBeInTheDocument();
     expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
+  });
+
+  it("renders checkout fields before placing an order", () => {
+    const quotedRequest = makeQuotedRequest();
+
+    render(<BuyerQuoteCheckout request={quotedRequest} placeOrderAction={() => undefined} />);
+
+    expect(screen.getByRole("heading", { name: /Checkout for/ })).toBeInTheDocument();
+    expect(screen.getByText("Delivery address")).toBeInTheDocument();
+    expect(screen.getByText("Shipping and import method")).toBeInTheDocument();
+    expect(screen.getByText("Customs and compliance")).toBeInTheDocument();
+    expect(screen.getByText("Payment and purchasing")).toBeInTheDocument();
+    expect(screen.getByText("End use")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("PO-1047")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Place order/ })).toBeInTheDocument();
   });
 });
 
@@ -203,7 +219,7 @@ describe("BuyerOrders", () => {
     expect(screen.getAllByText(/Awaiting supplier acknowledgment/).length).toBeGreaterThan(0);
   });
 
-  it("filters purchased orders by search text and fulfillment status", () => {
+  it("filters purchased orders by search text without status filter buttons", () => {
     const awaitingOrder = { ...makeQuotedRequest(), status: "PURCHASED" as const };
     const productionOrder = {
       ...makeQuotedRequest(),
@@ -218,6 +234,9 @@ describe("BuyerOrders", () => {
 
     render(<BuyerOrders orders={[awaitingOrder, productionOrder]} />);
 
+    expect(screen.queryByLabelText("Order status filters")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Production" })).not.toBeInTheDocument();
+
     fireEvent.change(screen.getByPlaceholderText("Search order, part, supplier..."), {
       target: { value: "pump" },
     });
@@ -228,10 +247,9 @@ describe("BuyerOrders", () => {
     fireEvent.change(screen.getByPlaceholderText("Search order, part, supplier..."), {
       target: { value: "" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Production" }));
 
     expect(screen.getByText("Pump housing production order")).toBeInTheDocument();
-    expect(screen.queryByText("Hydrogen skid bracket RFQ")).not.toBeInTheDocument();
+    expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
   });
 });
 
@@ -260,6 +278,41 @@ describe("BuyerOrderDetail", () => {
     expect(screen.getByText(/Required docs: Standard Inspection/)).toBeInTheDocument();
     expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
     expect(screen.getByText(/Quality documents will appear here/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reorder parts" })).toHaveAttribute("href", `/requests/new?reorder=${order.id}`);
+    expect(screen.getAllByRole("link", { name: "Help with order" }).map((link) => link.getAttribute("href"))).toEqual([
+      `/orders/${order.id}/help`,
+      `/orders/${order.id}/help`,
+    ]);
+  });
+
+  it("renders an order-specific help request page", () => {
+    const quotedRequest = makeQuotedRequest();
+    const order = {
+      ...quotedRequest,
+      status: "PURCHASED" as const,
+      supplierOrder: {
+        ...quotedRequest.supplierOrder,
+        status: "IN_PRODUCTION" as const,
+        shopName: "Shenzhen Precision Manufacturing",
+      },
+    };
+
+    render(<BuyerOrderHelp order={order} />);
+
+    expect(screen.getByRole("heading", { name: "Request help with this order" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to order" })).toHaveAttribute("href", `/orders/${order.id}`);
+    expect(screen.getByText("Shenzhen Precision Manufacturing")).toBeInTheDocument();
+    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
+    expect(screen.getByLabelText("Issue type")).toHaveDisplayValue("Production or delivery update");
+    expect(screen.getByLabelText("Message")).toBeRequired();
+
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "Can you check whether this will still ship on time?" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
+
+    expect(screen.getByRole("heading", { name: "Help request sent" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Return to order" })).toHaveAttribute("href", `/orders/${order.id}`);
   });
 });
 

@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1040" viewBox="0 0 1400 1040">
+  <rect width="1400" height="1040" fill="#f8f7f4"/>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.16"/>
+  </filter>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.08"/>
+  </filter>
+  <style>
+    .label{font:600 24px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#334155;}
+    .value{font:500 26px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#020617;}
+    .small{font:500 15px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#64748b;}
+    .tiny{font:700 12px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#7a7f87; letter-spacing:2px;}
+    .option{font:500 24px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#020617;}
+    .heading{font:700 34px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#171717;}
+    .body{font:500 18px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#5f6670;}
+  </style>
+  <text class="tiny" x="70" y="72">FIGMA AI CONTEXT</text>
+<text class="heading" x="70" y="118">Request Quote dropdown redesign brief</text>
+<text class="body" x="70" y="156">Use this board as context with the JPG screenshots. Design a reusable custom dropdown component for a premium B2B manufacturing RFQ workflow.</text>
+<rect x="70" y="200" width="590" height="610" rx="16" fill="#fff" stroke="#e4e8ee" filter="url(#soft)"/>
+<text class="label" x="104" y="248">What to improve</text>
+<text class="body" x="118" y="296">• Native browser menu styling</text>
+<text class="body" x="118" y="348">• Harsh black open-menu border</text>
+<text class="body" x="118" y="400">• Default blue selected row</text>
+<text class="body" x="118" y="452">• No search or scroll affordance for long lists</text>
+<text class="body" x="118" y="504">• Weak manufacturing context in option rows</text>
+<rect x="720" y="200" width="610" height="610" rx="16" fill="#fff" stroke="#e4e8ee" filter="url(#soft)"/>
+<text class="label" x="754" y="248">Design direction</text>
+<text class="body" x="768" y="296">• Light neutral operations-console styling</text>
+<text class="body" x="768" y="348">• 6-8px radius, quiet border, soft shadow</text>
+<text class="body" x="768" y="400">• Clear focus, hover, selected, disabled, error states</text>
+<text class="body" x="768" y="452">• Compact typography with optional secondary descriptions</text>
+<text class="body" x="768" y="504">• Long menus should scroll and may include search</text>
+<text class="label" x="70" y="888">Dropdowns included</text>
+<text class="small" x="70" y="932">Material: 7 options</text>
+<text class="small" x="490" y="932">Surface Finish: 16 options</text>
+<text class="small" x="910" y="932">General Tolerances: 2 options</text>
+<text class="small" x="70" y="968">Manufacturing process: 6 options</text>
+<text class="small" x="490" y="968">Quality documentation: 9 options</text>
+</svg>

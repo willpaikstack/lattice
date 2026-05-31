@@ -132,11 +132,11 @@ function reviewedFilesLabel(request: LatticeRequest) {
 }
 
 export function BuyerQuoteDetail({
+  checkoutHref,
   request,
-  purchaseAction,
 }: {
+  checkoutHref?: string;
   request: LatticeRequest;
-  purchaseAction?: () => void | Promise<void>;
 }) {
   const canPurchase = request.status === "QUOTED";
   const status = quoteStatusCopy[request.status];
@@ -191,7 +191,7 @@ export function BuyerQuoteDetail({
           </div>
 
           <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="grid grid-cols-[2fr_2.5fr_1.5fr_1fr_0.8fr] gap-6 border-b border-[#eeeeee] bg-[#fafafa] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-lg:hidden">
+            <div className="hidden grid-cols-[minmax(220px,1.25fr)_minmax(260px,1.65fr)_minmax(172px,0.9fr)_minmax(112px,0.65fr)_minmax(76px,0.45fr)] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#80858d] min-[1900px]:grid">
               <span>Name</span>
               <span>Configuration</span>
               <span className="text-center">Production speed / quantity</span>
@@ -206,15 +206,15 @@ export function BuyerQuoteDetail({
                 const file = request.files[index] ?? request.files[0];
 
                 return (
-                  <article className="grid gap-5 px-6 py-5 lg:grid-cols-[2fr_2.5fr_1.5fr_1fr_0.8fr] lg:items-start" key={item.id}>
-                    <div className="flex min-w-0 gap-4">
+                  <article className="grid gap-5 px-6 py-5 min-[1900px]:grid-cols-[minmax(220px,1.25fr)_minmax(260px,1.65fr)_minmax(172px,0.9fr)_minmax(112px,0.65fr)_minmax(76px,0.45fr)] min-[1900px]:items-start" key={item.id}>
+                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:gap-4">
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-[#e7e7e7] bg-[#f7f8fa] text-[#a2a8b0]">
                         <ImageIcon aria-hidden="true" className="h-5 w-5" strokeWidth={1.6} />
                       </div>
                       <div className="min-w-0">
                         <h2 className="text-[14px] font-semibold leading-5 text-[#202020]">{item.partName}</h2>
-                        <p className="mt-1 truncate text-[12px] font-medium text-[#2f73c8]">{file?.name ?? "File pending"}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[#7b8088]">
+                        <p className="mt-1 max-w-full truncate text-[12px] font-medium text-[#2f73c8]">{file?.name ?? "File pending"}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#7b8088]">
                           <Link className="transition hover:text-[#171717]" href="#files">
                             View files
                           </Link>
@@ -227,35 +227,37 @@ export function BuyerQuoteDetail({
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Configuration</p>
-                      <p className="mt-1 text-[13px] leading-5 text-[#30343a] lg:mt-0">{configurationText(request, item)}</p>
-                      <button className="mt-2 rounded-full bg-[#f6f6f6] px-2.5 py-1 text-[11px] font-semibold text-[#2f73c8] transition hover:bg-[#eeeeee]" type="button">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Configuration</p>
+                      <p className="mt-1 max-w-full break-words text-[13px] leading-5 text-[#30343a] min-[1900px]:mt-0">{configurationText(request, item)}</p>
+                      <button className="mt-2 max-w-full rounded-full bg-[#f6f6f6] px-2.5 py-1 text-left text-[11px] font-semibold leading-5 text-[#2f73c8] transition hover:bg-[#eeeeee]" type="button">
                         No configuration
                       </button>
                     </div>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Production speed / quantity</p>
-                      <div className="mt-1 flex flex-col gap-2 lg:mt-0 lg:items-center">
-                        <select className="h-9 w-full rounded-md border border-[#dedede] bg-white px-2 text-[12px] font-medium text-[#30343a] outline-none lg:w-[132px]" defaultValue={productionSpeed(request)}>
-                          <option>{productionSpeed(request)}</option>
-                        </select>
-                        <input className="h-9 w-full rounded-md border border-[#dedede] bg-white px-3 text-center text-[13px] font-medium text-[#30343a] outline-none lg:w-[72px]" readOnly type="number" value={item.quantity} />
+                    <div className="grid gap-4 rounded-md border border-[#eeeeee] bg-[#fafafa] p-4 sm:grid-cols-[minmax(160px,1fr)_minmax(120px,0.7fr)_auto] sm:items-start min-[1900px]:contents">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Production speed / quantity</p>
+                        <div className="mt-1 flex flex-col gap-2 min-[1900px]:mt-0 min-[1900px]:items-center">
+                          <select className="h-9 w-full min-w-0 rounded-md border border-[#dedede] bg-white px-2 text-[12px] font-medium text-[#30343a] outline-none min-[1900px]:w-[152px]" defaultValue={productionSpeed(request)}>
+                            <option>{productionSpeed(request)}</option>
+                          </select>
+                          <input className="h-9 w-full rounded-md border border-[#dedede] bg-white px-3 text-center text-[13px] font-medium text-[#30343a] outline-none min-[1900px]:w-[72px]" readOnly type="number" value={item.quantity} />
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="lg:text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Price</p>
-                      <p className="mt-1 text-[14px] font-semibold text-[#202020] lg:mt-0">{formatPrice(total)}</p>
-                      <p className="mt-1 text-[11px] text-[#7b8088]">{unit === null ? "Unit price pending" : `${formatPrice(unit)} ea`}</p>
-                    </div>
+                      <div className="min-w-0 sm:text-right min-[1900px]:text-right">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Price</p>
+                        <p className="mt-1 text-[14px] font-semibold leading-5 text-[#202020] min-[1900px]:mt-0">{formatPrice(total)}</p>
+                        <p className="mt-1 text-[11px] leading-5 text-[#7b8088]">{unit === null ? "Unit price pending" : `${formatPrice(unit)} ea`}</p>
+                      </div>
 
-                    <div className="lg:text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Actions</p>
-                      <button className="mt-1 text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717] lg:mt-0" type="button">
-                        Remove
-                      </button>
+                      <div className="min-w-0 sm:text-right min-[1900px]:text-right">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Actions</p>
+                        <button className="mt-1 text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717] min-[1900px]:mt-0" type="button">
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -306,7 +308,7 @@ export function BuyerQuoteDetail({
             <div className="border-b border-[#eeeeee] px-6 py-5">
               <h2 className="text-[16px] font-semibold text-[#202020]">Summary</h2>
             </div>
-            <div className="space-y-4 px-6 py-5">
+            <div className="cursor-pointer space-y-4 px-6 py-5">
               <dl className="space-y-3 text-[13px]">
                 <div className="flex justify-between gap-4">
                   <dt className="text-[#6f737a]">Subtotal</dt>
@@ -332,16 +334,20 @@ export function BuyerQuoteDetail({
                 <Link className="flex min-h-11 w-full items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" href="/orders">
                   View order
                 </Link>
-              ) : (
-                <form action={purchaseAction}>
-                  <button
-                    className="min-h-11 w-full rounded-md bg-[#0f9d68] px-4 text-[14px] font-semibold text-white transition hover:bg-[#0b8558] disabled:cursor-not-allowed disabled:bg-[#d5d8dd]"
-                    disabled={!canPurchase || !purchaseAction}
-                    type="submit"
-                  >
-                    {canPurchase ? "Accept quote" : "Awaiting quote"}
+              ) : canPurchase && checkoutHref ? (
+                <form action={checkoutHref} method="get">
+                  <button className="min-h-11 w-full rounded-md bg-[#0f9d68] px-4 text-[14px] font-semibold text-white transition hover:bg-[#0b8558]" type="submit">
+                    Accept quote
                   </button>
                 </form>
+              ) : (
+                <button
+                  className="min-h-11 w-full rounded-md bg-[#d5d8dd] px-4 text-[14px] font-semibold text-white disabled:cursor-not-allowed"
+                  disabled
+                  type="button"
+                >
+                  {canPurchase ? "Accept quote" : "Awaiting quote"}
+                </button>
               )}
               <Link className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href="/quotes">
                 Back to quotes

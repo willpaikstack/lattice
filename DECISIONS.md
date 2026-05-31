@@ -101,7 +101,7 @@ Implications:
 - Customer details, material, tolerance, finish, quantity, and documentation fields should appear after file selection/drop.
 - Empty-state copy should guide buyers to upload a CAD/drawing file first.
 - Post-upload UI should show a part mockup, pre-configured manufacturability parameters, and an optional technical drawing upload.
-- Future multi-file support should preserve this progressive disclosure pattern.
+- Multi-file support should preserve this progressive disclosure pattern by adding another configurable CAD-backed line item after each additional part upload.
 
 ## 2026-05-27 - Treat Customer Dashboard Inbox As Notification Center
 

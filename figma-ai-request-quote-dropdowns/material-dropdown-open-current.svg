@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="716" viewBox="0 0 1280 716">
+  <rect width="1280" height="716" fill="#f8f7f4"/>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#0f172a" flood-opacity="0.16"/>
+  </filter>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.08"/>
+  </filter>
+  <style>
+    .label{font:600 24px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#334155;}
+    .value{font:500 26px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#020617;}
+    .small{font:500 15px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#64748b;}
+    .tiny{font:700 12px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#7a7f87; letter-spacing:2px;}
+    .option{font:500 24px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#020617;}
+    .heading{font:700 34px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#171717;}
+    .body{font:500 18px Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; fill:#5f6670;}
+  </style>
+  <text class="tiny" x="80" y="62">CURRENT NATIVE DROPDOWN STATE</text>
+<text class="heading" x="80" y="104">Material open menu</text>
+
+    <text class="label" x="80" y="132">Material</text>
+    <rect x="80" y="158" width="1120" height="82" rx="14" fill="#fff" stroke="#1d73ff" stroke-width="3"/>
+    <rect x="70" y="148" width="1140" height="102" rx="22" fill="none" stroke="#bfdbfe" stroke-width="9" opacity="0.9"/>
+    <text class="value" x="118" y="210">SS 304</text>
+    <path d="M1156 194l12 12 12-12" fill="none" stroke="#020617" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+<g filter="url(#shadow)">
+<rect x="80" y="240" width="1120" height="364" fill="#fff" stroke="#171717" stroke-width="2"/>
+<text class="option" x="118" y="274">6061-T6 Aluminum</text>
+<text class="option" x="118" y="326">PVC</text>
+<text class="option" x="118" y="378">IN 625</text>
+<text class="option" x="118" y="430">SS 303</text>
+<rect x="82" y="449" width="1116" height="52" fill="#aed2f8"/>
+<text class="option" x="118" y="482">SS 304</text>
+<text class="option" x="118" y="534">SS 316</text>
+<text class="option" x="118" y="586">SS 300 series</text>
+</g>
+<text class="body" x="80" y="644">Design target: replace harsh native menu border and default blue highlight with a custom, polished floating dropdown.</text>
+</svg>

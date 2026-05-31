@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { BuyerQuoteDetail } from "@/components/buyer-quote-detail";
 import { getRequestById } from "@/lib/request-repository";
 
-import { purchaseQuoteAction } from "./actions";
-
 export const dynamic = "force-dynamic";
 
 type BuyerQuoteDetailPageProps = {
@@ -19,5 +17,5 @@ export default async function BuyerQuoteDetailPage({ params }: BuyerQuoteDetailP
     notFound();
   }
 
-  return <BuyerQuoteDetail request={request} purchaseAction={purchaseQuoteAction.bind(null, request.id)} />;
+  return <BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />;
 }

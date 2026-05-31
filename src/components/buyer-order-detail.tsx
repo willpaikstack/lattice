@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { ArrowLeft, CalendarDays, Download, FileText, HelpCircle, ImageIcon, PackageCheck, ReceiptText, RotateCcw, Truck, User } from "lucide-react";
+import type { ReactNode } from "react";
 
-import type { LatticeRequest, SupplierDocumentCategory, SupplierOrderStatus } from "@/lib/request-model";
-
-import { CadFilePreview } from "./cad-file-preview";
+import type { LatticeRequest, RequestLineItem, SupplierDocumentCategory, SupplierOrderStatus } from "@/lib/request-model";
 
 const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
@@ -13,31 +13,61 @@ const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   SHIPPED: "Shipped",
 };
 
-const documentCategoryLabels: Record<SupplierDocumentCategory, string> = {
-  INSPECTION_REPORT: "Inspection report",
-  MATERIAL_CERT: "Material cert",
-  CERTIFICATE_OF_CONFORMANCE: "Certificate of conformance",
-  PHOTO: "Photo",
-  PACKING_SLIP: "Packing slip",
-  OTHER: "Other",
+const supplierStatusTone: Record<SupplierOrderStatus, string> = {
+  AWAITING_ACKNOWLEDGMENT: "border-[#cfe0ff] bg-[#eff5ff] text-[#315f9b]",
+  IN_PRODUCTION: "border-[#d5d9ff] bg-[#f1f2ff] text-[#4d55a8]",
+  QC_IN_PROGRESS: "border-[#f1d8a5] bg-[#fff7e8] text-[#8a5b08]",
+  DOCUMENTS_UPLOADED: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
+  READY_TO_SHIP: "border-[#b8e5f2] bg-[#effbff] text-[#236477]",
+  SHIPPED: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
 };
 
-function formatDate(value: string) {
+const documentCategoryLabels: Record<SupplierDocumentCategory, string> = {
+  CERTIFICATE_OF_CONFORMANCE: "Certificate of conformance",
+  INSPECTION_REPORT: "Inspection report",
+  MATERIAL_CERT: "Material cert",
+  OTHER: "Other",
+  PACKING_SLIP: "Packing slip",
+  PHOTO: "Photo",
+};
+
+function localDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return dateOnlyMatch ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3])) : new Date(value);
+}
+
+function formatDate(value: string | null) {
+  const date = localDate(value);
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
   return new Intl.DateTimeFormat("en", {
-    month: "short",
     day: "numeric",
+    month: "short",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function formatDateTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
   return new Intl.DateTimeFormat("en", {
-    month: "short",
     day: "numeric",
-    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(value));
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
 
 function formatFileSize(sizeBytes: number) {
@@ -54,169 +84,324 @@ function formatFileSize(sizeBytes: number) {
 
 function formatPrice(cents: number | null) {
   if (cents === null) {
-    return "Price not recorded";
+    return "Pending";
   }
 
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    minimumFractionDigits: 2,
+    style: "currency",
+  }).format(cents / 100);
+}
+
+function orderReference(order: LatticeRequest) {
+  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function quoteReference(order: LatticeRequest) {
+  return order.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function lineItemTotalCents(order: LatticeRequest, item: RequestLineItem) {
+  const quotedLine = order.customerQuotes.at(-1)?.lineItems.find((line) => line.description === item.partName || line.id === item.id);
+
+  if (quotedLine) {
+    return Math.round(quotedLine.unitPrice * quotedLine.quantity * 100);
+  }
+
+  if (order.lineItems.length === 1) {
+    return order.customerQuotes.at(-1)?.totalCents ?? order.quote.estimatedPriceCents;
+  }
+
+  return null;
+}
+
+function deliveryDate(order: LatticeRequest) {
+  const date = new Date(order.updatedAt);
+  date.setDate(date.getDate() + (order.quote.leadTimeDays ?? 18) + 5);
+  return formatDate(date.toISOString());
+}
+
+function moneyBreakdown(order: LatticeRequest) {
+  const subtotalCents = order.customerQuotes.at(-1)?.totalCents ?? order.quote.estimatedPriceCents;
+  const shippingCents = subtotalCents === null ? null : 3500;
+  const taxCents = subtotalCents === null ? null : Math.round(subtotalCents * 0.08875);
+  const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
+
+  return { shippingCents, subtotalCents, taxCents, totalCents };
+}
+
+function Section({
+  children,
+  title,
+}: {
+  children: ReactNode;
+  title: string;
+}) {
+  return (
+    <section className="overflow-hidden rounded-md border border-[#e7e7e7] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      <div className="border-b border-[#eeeeee] px-6 py-5">
+        <h2 className="text-[16px] font-semibold text-[#202020]">{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function DefinitionRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="text-[#6f737a]">{label}</dt>
+      <dd className="text-right font-semibold text-[#202020]">{value}</dd>
+    </div>
+  );
 }
 
 export function BuyerOrderDetail({ order }: { order: LatticeRequest }) {
-  const primaryLine = order.lineItems[0];
   const selectedSupplier = order.supplierQuotes.find((quote) => quote.isSelected) ?? null;
+  const status = supplierStatusLabels[order.supplierOrder.status];
+  const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
+  const latestQuote = order.customerQuotes.at(-1);
+  const trackingNumber = order.supplierOrder.trackingNumber || "Pending shipment";
+  const supplierName = order.supplierOrder.shopName || selectedSupplier?.shopName || "Supplier pending";
+  const supplierContact = order.supplierOrder.contactName || selectedSupplier?.contactName || "Not recorded";
 
   return (
-    <div className="space-y-6">
-      <Link className="inline-flex text-sm font-semibold text-slate-500 transition hover:text-slate-950" href="/orders">
-        Back to orders
-      </Link>
-
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Buyer order detail</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">{order.title}</h1>
-            <p className="mt-3 text-base leading-7 text-slate-600">
-              Track supplier fulfillment, shipment readiness, quality documents, and the original RFQ package behind this purchased order.
-            </p>
+    <div className="mx-auto w-full max-w-[1480px] px-2 pb-10">
+      <div className="mb-7">
+        <Link className="inline-flex items-center gap-2 text-[13px] font-medium text-[#6f737a] transition hover:text-[#171717]" href="/orders">
+          <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={1.8} />
+          Back to orders
+        </Link>
+        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="flex flex-wrap items-center gap-3">
+              <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#7a7f87]">{orderReference(order)}</p>
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${supplierStatusTone[order.supplierOrder.status]}`}>{status}</span>
+              <span className="text-[13px] text-[#7b8088]">Ordered: {formatDate(order.updatedAt)}</span>
+            </div>
+            <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-normal text-[#171717]">{order.title}</h1>
           </div>
-          <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-600 lg:min-w-80">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Current order state</p>
-            <p className="mt-3 text-2xl font-semibold text-slate-950">{supplierStatusLabels[order.supplierOrder.status]}</p>
-            <dl className="mt-4 space-y-2">
-              <div className="flex justify-between gap-4">
-                <dt>Order value</dt>
-                <dd className="font-medium text-slate-950">{formatPrice(order.quote.estimatedPriceCents)}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt>Lead time</dt>
-                <dd className="font-medium text-slate-950">{order.quote.leadTimeDays ? `${order.quote.leadTimeDays} days` : "Pending"}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt>Due date</dt>
-                <dd className="font-medium text-slate-950">{order.dueDate || "TBD"}</dd>
-              </div>
-            </dl>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={`/orders/${order.id}/help`}>
+              <HelpCircle aria-hidden="true" className="h-4 w-4" />
+              Help with order
+            </Link>
           </div>
         </div>
-      </section>
-
-      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Fulfillment</p>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Supplier</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{order.supplierOrder.shopName || selectedSupplier?.shopName || "Pending assignment"}</dd>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Contact</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{order.supplierOrder.contactName || selectedSupplier?.contactName || "Not recorded"}</dd>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Tracking</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{order.supplierOrder.trackingNumber || "Pending shipment"}</dd>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Quality docs</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{order.supplierOrder.documents.length}</dd>
-            </div>
-          </dl>
-          <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-            {order.supplierOrder.notes || order.operatorReview.supplierPackageNotes || "Supplier progress notes will appear here as the order moves through production."}
-          </p>
-        </section>
-
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Order package</p>
-          <dl className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Buyer</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{order.buyerCompany}</dd>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Process</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{order.process}</dd>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Primary part</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{primaryLine?.partName ?? "No line item"}</dd>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Purchased</dt>
-              <dd className="mt-2 font-semibold text-slate-950">{formatDate(order.updatedAt)}</dd>
-            </div>
-          </dl>
-          <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-            {order.quote.summary || "Quote summary will appear here when pricing details are recorded."}
-          </p>
-        </section>
       </div>
 
-      <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-5">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Line items</p>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {order.lineItems.map((item) => (
-            <article className="grid gap-3 p-5 md:grid-cols-[1fr_0.35fr_0.7fr_0.7fr_0.8fr] md:items-center" key={item.id}>
-              <div>
-                <p className="font-semibold text-slate-950">{item.partName}</p>
-                {item.notes ? <p className="mt-1 text-sm text-slate-500">{item.notes}</p> : null}
-                {item.qualityDocumentation?.length ? <p className="mt-1 text-xs text-slate-500">Required docs: {item.qualityDocumentation.join(", ")}</p> : null}
+      <div className="grid gap-6 xl:grid-cols-12">
+        <main className="space-y-5 xl:col-span-8">
+          <section className="rounded-md border border-[#e7e7e7] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="grid gap-4 md:grid-cols-4">
+              {[
+                { icon: PackageCheck, label: "Order status", value: order.supplierOrder.status === "IN_PRODUCTION" ? "Supplier work underway" : status },
+                { icon: CalendarDays, label: "Estimated delivery", value: deliveryDate(order) },
+                { icon: Truck, label: "Tracking", value: order.supplierOrder.trackingNumber ? "Tracking assigned" : "Pending shipment" },
+                { icon: ReceiptText, label: "Reference quote", value: quoteReference(order) },
+              ].map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4" key={item.label}>
+                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">
+                      <Icon aria-hidden="true" className="h-4 w-4" />
+                      {item.label}
+                    </div>
+                    <p className="mt-3 text-[14px] font-semibold text-[#202020]">{item.value}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <Section title="Shipment">
+            <div className="grid gap-5 p-6 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Ship to</p>
+                <p className="mt-3 text-[14px] font-semibold text-[#202020]">{order.requesterName}</p>
+                <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">{order.buyerCompany}<br />123 Main Street<br />Brooklyn, NY 11201</p>
               </div>
-              <p className="text-sm text-slate-600"><span className="font-medium text-slate-950">Qty:</span> {item.quantity}</p>
-              <p className="text-sm text-slate-600"><span className="font-medium text-slate-950">Material:</span> {item.material}</p>
-              <p className="text-sm text-slate-600"><span className="font-medium text-slate-950">Tolerance:</span> {item.generalTolerance || "Not specified"}</p>
-              <p className="text-sm text-slate-600"><span className="font-medium text-slate-950">Finish:</span> {item.surfaceFinish || "Not specified"}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+              <dl className="space-y-3 text-[13px]">
+                <DefinitionRow label="Shipping method" value="Lattice managed landed delivery" />
+                <DefinitionRow label="Import terms" value="DDP - Lattice coordinates import" />
+                <DefinitionRow label="Carrier" value={order.supplierOrder.status === "SHIPPED" ? "UPS International Priority" : "Pending booking"} />
+                <DefinitionRow label="Tracking number" value={trackingNumber} />
+                <DefinitionRow label="Supplier" value={supplierName} />
+              </dl>
+            </div>
+          </Section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">CAD files</p>
-          </div>
-          <div className="grid gap-4 p-5 md:grid-cols-2">
-            {order.files.map((file) => (
-              <CadFilePreview file={file} key={file.id} />
-            ))}
-          </div>
-        </section>
+          <Section title="Parts and specifications">
+            <div className="grid grid-cols-[1.35fr_1.3fr_0.45fr_0.65fr] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-lg:hidden">
+              <span>Name</span>
+              <span>Specifications</span>
+              <span className="text-center">Qty</span>
+              <span className="text-right">Price</span>
+            </div>
+            <div className="divide-y divide-[#eeeeee]">
+              {order.lineItems.map((item, index) => {
+                const file = order.files[index] ?? order.files[0];
+                const lineTotal = lineItemTotalCents(order, item);
 
-        <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Quality documents</p>
-          <div className="mt-5 space-y-3">
-            {order.supplierOrder.documents.length ? order.supplierOrder.documents.map((document) => (
-              <div className="flex items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4" key={document.id}>
-                <div>
-                  <p className="font-semibold text-slate-950">{document.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">{documentCategoryLabels[document.category]} - {formatDateTime(document.uploadedAt)}</p>
+                return (
+                  <article className="grid gap-5 px-6 py-5 lg:grid-cols-[1.35fr_1.3fr_0.45fr_0.65fr] lg:items-start" key={item.id}>
+                    <div className="flex min-w-0 gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-[#e7e7e7] bg-[#f7f8fa] text-[#a2a8b0]">
+                        <ImageIcon aria-hidden="true" className="h-5 w-5" strokeWidth={1.6} />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-[14px] font-semibold leading-5 text-[#202020]">{item.partName}</h2>
+                        <p className="mt-1 truncate text-[12px] font-medium text-[#2f73c8]">{file ? "CAD file reviewed" : "File pending"}</p>
+                        {item.qualityDocumentation?.length ? <p className="mt-2 text-[12px] leading-5 text-[#6f737a]">Required docs: {item.qualityDocumentation.join(", ")}</p> : null}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Specifications</p>
+                      <p className="mt-1 text-[13px] leading-5 text-[#30343a] lg:mt-0">
+                        {order.process} / {item.material} / {item.generalTolerance || "Tolerance not specified"} / {item.surfaceFinish || "Finish not specified"}
+                      </p>
+                      {item.notes ? <p className="mt-2 text-[12px] leading-5 text-[#6f737a]">{item.notes}</p> : null}
+                    </div>
+                    <div className="lg:text-center">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Quantity</p>
+                      <p className="mt-1 text-[14px] font-semibold text-[#202020] lg:mt-0">{item.quantity}</p>
+                    </div>
+                    <div className="lg:text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">Price</p>
+                      <p className="mt-1 text-[14px] font-semibold text-[#202020] lg:mt-0">{formatPrice(lineTotal)}</p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </Section>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Section title="Order files">
+              <div className="space-y-3 p-5">
+                {order.files.map((file) => (
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={file.id}>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-[#7b8088]">
+                        <FileText aria-hidden="true" className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-[#202020]">{file.name}</p>
+                        <p className="text-[11px] uppercase tracking-[0.1em] text-[#8a8f98]">{file.type || "CAD file"}</p>
+                      </div>
+                    </div>
+                    <Download aria-hidden="true" className="h-4 w-4 shrink-0 text-[#8a8f98]" />
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Quality documents and photos">
+              <div className="space-y-3 p-5">
+                {order.supplierOrder.documents.length ? (
+                  order.supplierOrder.documents.map((document) => (
+                    <div className="flex items-center justify-between gap-4 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={document.id}>
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-semibold text-[#202020]">{document.name}</p>
+                        <p className="mt-1 text-[11px] text-[#7b8088]">{documentCategoryLabels[document.category]} - {formatDateTime(document.uploadedAt)}</p>
+                      </div>
+                      <p className="text-[12px] font-semibold text-[#6f737a]">{formatFileSize(document.sizeBytes)}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4 text-[13px] leading-6 text-[#6f737a]">Quality documents will appear here after supplier upload.</p>
+                )}
+              </div>
+            </Section>
+          </div>
+
+          <Section title="Order activity">
+            <ol className="space-y-3 p-5">
+              {order.supplierOrder.updates.length ? (
+                order.supplierOrder.updates.map((update) => (
+                  <li className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4" key={update.id}>
+                    <p className="text-[13px] font-semibold text-[#202020]">{supplierStatusLabels[update.status]}</p>
+                    {update.note ? <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">{update.note}</p> : null}
+                    <p className="mt-2 text-[11px] text-[#8a8f98]">{formatDateTime(update.createdAt)}{update.trackingNumber ? ` - Tracking ${update.trackingNumber}` : ""}</p>
+                  </li>
+                ))
+              ) : (
+                <li className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4 text-[13px] leading-6 text-[#6f737a]">
+                  Material ordered and machining scheduled.
+                </li>
+              )}
+            </ol>
+          </Section>
+        </main>
+
+        <aside className="space-y-5 xl:col-span-4">
+          <section className="rounded-md border border-[#e7e7e7] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-6">
+            <div className="border-b border-[#eeeeee] px-6 py-5">
+              <h2 className="text-[16px] font-semibold text-[#202020]">Order summary</h2>
+              <p className="mt-1 text-[12px] text-[#7b8088]">{quoteReference(order)} / PO-1047</p>
+            </div>
+            <div className="space-y-4 px-6 py-5">
+              <dl className="space-y-3 text-[13px]">
+                <DefinitionRow label="Subtotal" value={formatPrice(subtotalCents)} />
+                <DefinitionRow label="Managed shipping" value={formatPrice(shippingCents)} />
+                <DefinitionRow label="Estimated tax" value={formatPrice(taxCents)} />
+                <DefinitionRow label="Duties / tariffs" value="Included" />
+              </dl>
+              <div className="border-t border-[#eeeeee] pt-4">
+                <div className="flex justify-between gap-4">
+                  <p className="text-[14px] font-semibold text-[#202020]">Total</p>
+                  <p className="text-[22px] font-semibold text-[#171717]">{formatPrice(totalCents)}</p>
                 </div>
-                <p className="text-sm font-medium text-slate-600">{formatFileSize(document.sizeBytes)}</p>
               </div>
-            )) : (
-              <p className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">Quality documents will appear here after supplier upload.</p>
-            )}
-          </div>
-        </section>
-      </div>
+              <div className="grid gap-2">
+                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={`/requests/new?reorder=${order.id}`}>
+                  <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                  Reorder parts
+                </Link>
+                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={`/orders/${order.id}/help`}>
+                  <HelpCircle aria-hidden="true" className="h-4 w-4" />
+                  Help with order
+                </Link>
+              </div>
+            </div>
 
-      <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Order timeline</p>
-        <ol className="mt-5 space-y-4">
-          {order.supplierOrder.updates.length ? order.supplierOrder.updates.map((update) => (
-            <li className="rounded-2xl bg-slate-50 p-4" key={update.id}>
-              <p className="font-semibold text-slate-950">{supplierStatusLabels[update.status]}</p>
-              {update.note ? <p className="mt-1 text-sm leading-6 text-slate-600">{update.note}</p> : null}
-              <p className="mt-2 text-xs text-slate-500">{formatDateTime(update.createdAt)}{update.trackingNumber ? ` - Tracking ${update.trackingNumber}` : ""}</p>
-            </li>
-          )) : (
-            <li className="rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">No supplier timeline updates have been posted yet.</li>
-          )}
-        </ol>
-      </section>
+            <div className="border-t border-[#eeeeee] px-6 py-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Billing and payment</p>
+              <dl className="mt-4 space-y-3 text-[13px]">
+                <DefinitionRow label="Payment method" value="Purchase order" />
+                <DefinitionRow label="PO number" value="PO-1047" />
+                <DefinitionRow label="Ordered by" value={order.requesterName} />
+                <DefinitionRow label="Billing address" value={<span>{order.buyerCompany}<br />Brooklyn, NY 11201</span>} />
+              </dl>
+            </div>
+
+            <div className="border-t border-[#eeeeee] px-6 py-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Supplier contact</p>
+              <div className="mt-4 flex gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f1f2ff] text-[#4d55a8]">
+                  <User aria-hidden="true" className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[13px] font-semibold text-[#202020]">{supplierContact}</p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Selected manufacturing partner</p>
+                  <p className="mt-2 text-[12px] leading-5 text-[#6f737a]">{order.supplierOrder.notes || latestQuote?.notes || "Production updates will appear here as the supplier posts progress."}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-[#eeeeee] px-6 py-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Lattice account manager</p>
+              <div className="mt-4 rounded-md bg-[#fafafa] p-4 text-[13px] leading-5 text-[#5f6670]">
+                <p className="font-semibold text-[#202020]">Erik Mast</p>
+                <p className="mt-1">Order help, quality documents, shipping coordination, and supplier follow-up.</p>
+                <p className="mt-2 text-[#2f73c8]">erik.mast@latticeos.com</p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }

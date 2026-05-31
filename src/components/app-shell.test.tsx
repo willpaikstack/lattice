@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppShell } from "./app-shell";
@@ -14,6 +15,37 @@ vi.mock("next/navigation", () => ({
     replace: mockReplace,
   }),
 }));
+
+vi.mock("motion/react", async () => {
+  const React = await import("react");
+
+  type MotionDivProps = HTMLAttributes<HTMLDivElement> & {
+    animate?: { opacity?: number } | boolean;
+    children?: ReactNode;
+    initial?: unknown;
+    onAnimationComplete?: () => void;
+    transition?: unknown;
+  };
+
+  function MotionDiv({ animate, children, initial, onAnimationComplete, transition, ...props }: MotionDivProps) {
+    void initial;
+    void transition;
+
+    React.useEffect(() => {
+      if (typeof animate === "object" && animate?.opacity === 0) {
+        onAnimationComplete?.();
+      }
+    }, [animate, onAnimationComplete]);
+
+    return <div {...props}>{children}</div>;
+  }
+
+  return {
+    motion: {
+      div: MotionDiv,
+    },
+  };
+});
 
 function expectAllLinksNamed(label: string, href: string) {
   const links = screen.getAllByRole("link", { name: label });
@@ -150,6 +182,22 @@ describe("AppShell", () => {
     for (const link of screen.getAllByRole("link", { name: "Overview" })) {
       expect(link).not.toHaveAttribute("aria-current");
     }
+  });
+
+  it("allows active parent nav links to return from detail pages", async () => {
+    mockUsePathname.mockReturnValue("/quotes/demo_submitted");
+
+    render(
+      <AppShell>
+        <div>quote detail</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Quotes" })[0]);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/quotes");
+    });
   });
 
   it("opens account actions from the sidebar profile menu", () => {
