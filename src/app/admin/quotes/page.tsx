@@ -1,7 +1,7 @@
-import Link from "next/link";
-
 import { AdminQuoteManagement } from "@/components/admin-quote-management";
 import { listAdminRequests } from "@/lib/request-repository";
+
+import { saveCustomerQuoteAction, updateAdminQuoteStatusAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -19,18 +19,10 @@ export default async function AdminQuotesPage() {
               Manage active customer RFQs and the overseas fabrication shops quoting each request.
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/admin/quotes/builder" style={{ color: "#ffffff" }}>
-              Build Customer Quote
-            </Link>
-            <Link className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-center text-sm font-semibold text-[#262626]" href="/operator/requests">
-              RFQ Queue
-            </Link>
-          </div>
         </div>
       </section>
 
-      <AdminQuoteManagement requests={requests} />
+      <AdminQuoteManagement requests={requests} saveQuoteAction={saveCustomerQuoteAction} updateStatusAction={updateAdminQuoteStatusAction} />
     </div>
   );
 }

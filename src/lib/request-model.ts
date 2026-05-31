@@ -94,6 +94,39 @@ export type SupplierQuote = {
   isSelected: boolean;
 };
 
+export type CustomerQuoteLineItemSnapshot = {
+  id: string;
+  description: string;
+  process: string;
+  material: string;
+  finish: string;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type CustomerQuoteVersion = {
+  id: string;
+  versionNumber: number;
+  quoteNumber: string;
+  quoteDate: string;
+  validUntil: string;
+  customerCompany: string;
+  customerContact: string;
+  projectName: string;
+  preparedBy: string;
+  leadTime: string;
+  shipping: string;
+  tax: string;
+  notes: string;
+  assumptions: string;
+  clarifications: string;
+  filesReviewed: string;
+  lineItems: CustomerQuoteLineItemSnapshot[];
+  totalCents: number;
+  markdown: string;
+  issuedAt: string;
+};
+
 export type StatusEvent = {
   id: string;
   from: RequestStatus | null;
@@ -122,6 +155,7 @@ export type LatticeRequest = {
   operatorReview: OperatorReview;
   supplierOrder: SupplierOrder;
   supplierQuotes: SupplierQuote[];
+  customerQuotes: CustomerQuoteVersion[];
   quote: QuoteSummary;
   statusEvents: StatusEvent[];
   createdAt: string;
@@ -203,6 +237,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       updates: [],
     },
     supplierQuotes: [],
+    customerQuotes: [],
     quote: {
       estimatedPriceCents: null,
       leadTimeDays: null,

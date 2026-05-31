@@ -33,7 +33,7 @@ function apsCredentials() {
   const clientSecret = process.env.APS_CLIENT_SECRET ?? process.env.AUTODESK_CLIENT_SECRET;
   const bucketKey = process.env.APS_BUCKET_KEY ?? process.env.AUTODESK_BUCKET_KEY;
 
-  if (!clientId || !clientSecret || !bucketKey) {
+  if (!clientId || !clientSecret || !bucketKey || clientId === "replace-me" || clientSecret === "replace-me" || bucketKey === "replace-me") {
     return null;
   }
 

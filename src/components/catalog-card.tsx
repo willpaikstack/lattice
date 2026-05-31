@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 
+import type { CustomerMaterialSubGroup } from "../lib/customer-material-catalog";
 import type { MaterialImageSource, MaterialVariant } from "../lib/catalog-data";
 
 type CatalogCardVariant = "standard" | "bubble-material";
@@ -15,6 +16,7 @@ type CatalogCardProps = {
   standards?: string[];
   defaultOpen?: boolean;
   variant?: CatalogCardVariant;
+  materialGroups?: CustomerMaterialSubGroup[];
   subCards?: MaterialVariant[];
 };
 
@@ -26,6 +28,7 @@ export function CatalogCard({
   standards = [],
   defaultOpen = false,
   variant = "standard",
+  materialGroups = [],
   subCards = [],
 }: CatalogCardProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
@@ -69,6 +72,7 @@ export function CatalogCard({
             ) : commonGrades.length ? (
               <MaterialTypeList materialName={title} standards={standards} types={commonGrades} />
             ) : null}
+            {materialGroups.length ? <MaterialGroupList groups={materialGroups} materialName={title} representativeVariants={subCards} /> : null}
           </div>
         ) : null}
       </article>
@@ -128,6 +132,93 @@ export function CatalogCard({
   );
 }
 
+function MaterialGroupList({
+  groups,
+  materialName,
+  representativeVariants,
+}: {
+  groups: CustomerMaterialSubGroup[];
+  materialName: string;
+  representativeVariants: MaterialVariant[];
+}) {
+  const representativeVariant = representativeVariants[0];
+  const representativeNames = representativeVariants.map((variant) => variant.name);
+  const seenGradeNames = new Set<string>();
+  const visibleGroups = groups
+    .map((group) => ({
+      ...group,
+      grades: group.grades.filter((grade) => {
+        if (representativeNames.some((name) => isSameMaterialGrade(grade, name)) || seenGradeNames.has(grade)) {
+          return false;
+        }
+
+        seenGradeNames.add(grade);
+        return true;
+      }),
+    }))
+    .filter((group) => group.grades.length > 0);
+
+  return (
+    <div className="mt-6 space-y-4" aria-label={`${materialName} grouped material grades`}>
+      {visibleGroups.map((group) => (
+        <section className="space-y-5" key={`${materialName}-${group.name}`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-[#eeeeee] pb-2">
+            <h3 className="text-[16px] font-bold leading-6 text-[#222222]">{group.name}</h3>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#9b9b9b]">{group.grades.length} grades</p>
+          </div>
+          <div className="space-y-5">
+            {group.grades.map((grade, index) => (
+              <MaterialSubCard key={`${materialName}-${group.name}-${grade}`} variant={gradeToMaterialVariant(grade, materialName, group.name, representativeVariant, index)} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function isSameMaterialGrade(candidate: string, existing: string) {
+  const normalizedCandidate = candidate.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const normalizedExisting = existing.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  return normalizedCandidate.includes(normalizedExisting) || normalizedExisting.includes(normalizedCandidate);
+}
+
+function gradeToMaterialVariant(
+  grade: string,
+  materialName: string,
+  groupName: string,
+  representativeVariant: MaterialVariant | undefined,
+  index: number,
+): MaterialVariant {
+  const isPlastic = /plastic|polymer/i.test(materialName);
+  const isAluminum = /aluminum/i.test(materialName);
+  const isCopper = /copper|brass/i.test(materialName);
+  const isTitanium = /titanium/i.test(materialName);
+  const isNickel = /inconel|incoloy|nickel/i.test(materialName);
+  const isSteel = /steel|stainless|tool/i.test(materialName);
+  const machinability: MaterialVariant["machinability"] = isPlastic || isAluminum || isCopper ? "Easy" : isTitanium || isNickel ? "Hard" : isSteel ? "Medium" : "Medium";
+  const priceTier = isPlastic || isAluminum ? "$$" : isNickel || isTitanium ? "$$$$" : isCopper ? "$$" : "$$$";
+  const imageTone: MaterialVariant["imageTone"] = representativeVariant?.imageTone ?? (index % 3 === 0 ? "dark-fixture" : index % 3 === 1 ? "round-flange" : "bright-fitting");
+
+  return {
+    name: grade,
+    uns: "",
+    priceTier,
+    machinability,
+    metrics: {
+      leadTime: 0,
+      tolerance: 0,
+      supplierCount: 0,
+      quoteCount: 0,
+    },
+    commonSpec: groupName,
+    industry: materialName,
+    image: representativeVariant?.image,
+    imageTone,
+  };
+}
+
 function MaterialTypeList({
   materialName,
   standards,
@@ -161,17 +252,19 @@ function MaterialSubCard({ variant }: { variant: MaterialVariant }) {
         <div className="pt-1">
           <div className="flex items-baseline gap-5">
             <h3 className="text-[21px] font-bold leading-7 text-[#1f1f1f]">{variant.name}</h3>
-            <span className="text-[16px] leading-6 text-[#8b8b8b]">{variant.uns}</span>
+            {variant.uns ? <span className="text-[16px] leading-6 text-[#8b8b8b]">{variant.uns}</span> : null}
           </div>
           <p className="mt-1 text-[14px] leading-5 text-[#8a8a8a]">
             <span>{variant.priceTier}</span>
             <span className="ml-5">{variant.machinability}</span>
           </p>
-          <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] leading-5 text-[#8a8a8a]">
-            <Metric icon="⌁" label="Lead time score" value={variant.metrics.leadTime} />
-            <Metric icon="⚒" label="Quote count" value={variant.metrics.quoteCount} />
-            <Metric icon="▭" label="Supplier count" value={variant.metrics.supplierCount} />
-          </dl>
+          {variant.metrics.leadTime || variant.metrics.quoteCount || variant.metrics.supplierCount ? (
+            <dl className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] leading-5 text-[#8a8a8a]">
+              <Metric icon="⌁" label="Lead time score" value={variant.metrics.leadTime} />
+              <Metric icon="⚒" label="Quote count" value={variant.metrics.quoteCount} />
+              <Metric icon="▭" label="Supplier count" value={variant.metrics.supplierCount} />
+            </dl>
+          ) : null}
           <p className="mt-2 text-[14px] leading-5 text-[#777777]">Common Specs: {variant.commonSpec}</p>
         </div>
 

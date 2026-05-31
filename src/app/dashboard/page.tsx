@@ -1,46 +1,12 @@
 import Link from "next/link";
+import { customerNotifications } from "@/lib/customer-notifications";
 import { currentUser } from "@/lib/current-user";
 
 const metrics = [
-  { label: "Active RFQs", value: "34", detail: "43 unread quotes", icon: "document" },
-  { label: "Orders", value: "1,253", detail: "10 status changes", icon: "receipt" },
-  { label: "Shipped", value: "+912", detail: "4 in the past 3 days", icon: "box" },
-  { label: "Alerts", value: "4", detail: "2 unread", icon: "alert", tone: "alert" },
-];
-
-const inboxNotifications = [
-  {
-    title: "Order PO-1042 moved to final inspection",
-    detail: "CNC bracket set is awaiting dimensional report sign-off before packing.",
-    meta: "Order status",
-    time: "12 min ago",
-    href: "/orders",
-    unread: true,
-  },
-  {
-    title: "RFQ RFQ-1187 is ready for review",
-    detail: "Supplier quotes are in for the 6061-T6 housing revision B package.",
-    meta: "RFQ status",
-    time: "48 min ago",
-    href: "/quotes",
-    unread: true,
-  },
-  {
-    title: "Quality documents uploaded",
-    detail: "Material certs and inspection photos were added to order PO-1036.",
-    meta: "Documents",
-    time: "Today",
-    href: "/orders",
-    unread: false,
-  },
-  {
-    title: "Drawing clarification requested",
-    detail: "Operator needs confirmation on thread callout for the manifold fixture.",
-    meta: "Action needed",
-    time: "Yesterday",
-    href: "/quotes",
-    unread: false,
-  },
+  { label: "Active RFQs", value: "34", detail: "43 unread quotes", icon: "document", href: "/quotes" },
+  { label: "Orders", value: "1,253", detail: "10 status changes", icon: "receipt", href: "/orders" },
+  { label: "Shipped", value: "+912", detail: "4 in the past 3 days", icon: "box", href: "/shipped" },
+  { label: "Alerts", value: "4", detail: "2 unread", icon: "alert", href: "/notifications", tone: "alert" },
 ];
 
 const transactions = [
@@ -137,40 +103,39 @@ export default function Home() {
           const isAlert = metric.tone === "alert";
 
           return (
-            <article
-              className={isAlert ? "rounded-[18px] border border-[#f4b8ad] bg-[#f0b1a7] p-4" : "rounded-[18px] border border-[#e8e8e8] bg-white p-4"}
+            <Link
+              aria-label={`View ${metric.label}`}
+              className={
+                isAlert
+                  ? "block rounded-[18px] border border-[#f4b8ad] bg-[#f0b1a7] p-4 transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+                  : "block rounded-[18px] border border-[#e8e8e8] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#d8d8d8] hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+              }
+              href={metric.href}
               key={metric.label}
             >
               <div className="flex items-start justify-between gap-4">
                 <p className="text-[15px] font-medium text-[#272727]">{metric.label}</p>
-                <button aria-label={`${metric.label} details`} className="flex h-5 w-5 items-center justify-center" type="button">
+                <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center">
                   <MetricIcon name={metric.icon} />
-                </button>
+                </span>
               </div>
-              <div className={isAlert ? "mt-4 rounded-[14px] bg-white px-4 py-3" : "mt-3"}>
+              <div className={isAlert ? "mt-4 rounded-[14px] bg-[#f0b1a7] px-4 py-3" : "mt-3"}>
                 <p className="text-[30px] font-semibold leading-none tracking-[-0.04em] text-[#202020]">{metric.value}</p>
                 <p className="mt-2 text-[13px] text-[#676767]">{metric.detail}</p>
               </div>
-            </article>
+            </Link>
           );
         })}
       </section>
 
       <section className="rounded-[18px] border border-[#e6e6e6] bg-white p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-[#202020]">Inbox</h2>
-            <p className="mt-1 text-[13px] text-[#8a8a8a]">Customer updates across RFQs, orders, and quality documentation</p>
-          </div>
-          <button aria-label="Star inbox" className="flex h-[30px] w-[30px] items-center justify-center rounded-md hover:bg-slate-50" type="button">
-            <svg aria-hidden="true" className="h-5 w-5 text-[#1f2937]" fill="none" viewBox="0 0 24 24">
-              <path d="m12 3.8 2.5 5.1 5.6.8-4 3.9.9 5.5-5-2.6-5 2.6.9-5.5-4-3.9 5.6-.8Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
-            </svg>
-          </button>
+        <div>
+          <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-[#202020]">Inbox</h2>
+          <p className="mt-1 text-[13px] text-[#8a8a8a]">Customer updates across RFQs, orders, and quality documentation</p>
         </div>
 
         <div className="mt-5 divide-y divide-[#eeeeee]">
-          {inboxNotifications.map((notification) => (
+          {customerNotifications.map((notification) => (
             <Link
               className="grid gap-3 py-4 transition hover:bg-[#fafafa] sm:grid-cols-[auto_1fr_auto] sm:items-start sm:px-2"
               href={notification.href}

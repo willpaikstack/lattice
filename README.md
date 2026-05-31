@@ -1,6 +1,8 @@
 # Lattice OS
 
-Owned-code manufacturing RFQ and procurement workflow platform.
+Owned-code manufacturing RFQ, procurement, and supplier-network workflow platform.
+
+Lattice OS is being built as a machine-shop-focused network platform, similar in spirit to Xometry, Fictiv, Hubs, or Protolabs. Domestic shops can use it to route overflow or out-of-capability work to vetted overseas manufacturing partners, especially when they would otherwise no-quote because of capacity, machine, material, or labor constraints.
 
 ## Current vertical slice
 
@@ -8,7 +10,7 @@ Owned-code manufacturing RFQ and procurement workflow platform.
 - Buyer adds one line item.
 - Buyer adds one file reference.
 - Buyer submits the request.
-- Request appears in the internal operator queue.
+- Request appears in the admin quote submissions workflow.
 
 This slice now persists submitted requests through the Next.js API layer into PostgreSQL via Prisma. Browser `localStorage` was removed from the active request handoff path.
 
@@ -39,7 +41,7 @@ Open:
 - Waiting List: <http://localhost:3000/waiting-list>
 - Command Center: <http://localhost:3000/dashboard>
 - New Request: <http://localhost:3000/requests/new>
-- Operator Queue: <http://localhost:3000/operator/requests>
+- Quote Submissions: <http://localhost:3000/admin/quotes>
 
 ## Verification
 

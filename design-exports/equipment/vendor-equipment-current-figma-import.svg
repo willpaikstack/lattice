@@ -1,0 +1,146 @@
+<svg width="1463" height="1354" viewBox="0 0 1463 1354" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1463" height="1354" fill="#F7F7F6"/>
+  <rect width="240" height="1354" fill="#FFFFFF"/>
+  <rect x="12" y="20" width="48" height="48" rx="8" fill="#303138"/>
+  <text x="36" y="50" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="19" font-weight="700" fill="#FFFFFF">◇</text>
+  <rect x="12" y="116" width="134" height="31" rx="4" fill="#8C8C8C"/>
+  <text x="79" y="136" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" fill="#111111">Request Quote</text>
+
+  <text x="12" y="174" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="5" fill="#111111">WORKSPACE</text>
+  <text x="60" y="211" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" fill="#111827">Home</text>
+  <text x="60" y="256" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" fill="#111827">Request Quote</text>
+  <text x="60" y="300" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" fill="#111827">Quotes</text>
+  <text x="60" y="345" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" fill="#111827">Orders</text>
+  <line x1="12" y1="380" x2="228" y2="380" stroke="#EEEEEE"/>
+  <text x="12" y="412" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="5" fill="#111111">YOUR RESOURCES</text>
+  <text x="60" y="450" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" fill="#111827">Materials</text>
+  <text x="60" y="494" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600" fill="#111827">Capabilities</text>
+  <text x="60" y="539" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700" fill="#111827">Equipment</text>
+  <rect x="12" y="1215" width="216" height="56" rx="4" fill="#FFFFFF" stroke="#E6E6E6"/>
+  <text x="64" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#111111">Admin</text>
+  <text x="64" y="1258" font-family="Inter, Arial, sans-serif" font-size="12" fill="#7C7F85">Open internal controls.</text>
+  <circle cx="30" cy="1317" r="18" fill="#2F3037"/>
+  <text x="30" y="1323" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF">WP</text>
+  <text x="60" y="1313" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#111111">William Paik</text>
+  <text x="60" y="1331" font-family="Inter, Arial, sans-serif" font-size="12" fill="#7C7F85">william.paik@amogy...</text>
+
+  <g transform="translate(288 22)" font-family="Inter, Arial, sans-serif">
+    <text x="0" y="12" font-size="12" font-weight="700" letter-spacing="6" fill="#8C8C8C">VENDOR RESOURCES</text>
+    <text x="0" y="82" font-size="64" font-weight="700" fill="#202020">Vendor Equipment</text>
+    <text x="0" y="129" font-size="15" fill="#696F78">Browse the machines, inspection tools, and fabrication equipment behind Lattice vendor capacity. Use the section</text>
+    <text x="0" y="157" font-size="15" fill="#696F78">filters to narrow by process, tolerance, work envelope, and production role before routing an RFQ.</text>
+
+    <rect x="827" y="34" width="300" height="134" rx="6" fill="#FFFFFF" stroke="#E6E6E6"/>
+    <text x="844" y="57" font-size="13" font-weight="700" fill="#30343A">Catalog grouping</text>
+    <text x="844" y="93" font-size="13" fill="#6F737A">Equipment is grouped by unique</text>
+    <text x="844" y="118" font-size="13" fill="#6F737A">make/model so buyers can compare actual</text>
+    <text x="844" y="143" font-size="13" fill="#6F737A">capacity instead of broad capability labels.</text>
+  </g>
+
+  <g transform="translate(288 222)" font-family="Inter, Arial, sans-serif">
+    <rect width="367" height="99" rx="6" fill="#FFFFFF" stroke="#E6E6E6"/>
+    <text x="16" y="30" font-size="13" font-weight="500" fill="#6F737A">Production machines</text>
+    <text x="16" y="78" font-size="34" font-weight="700" fill="#202020">200+</text>
+    <rect x="382" width="367" height="99" rx="6" fill="#FFFFFF" stroke="#E6E6E6"/>
+    <text x="398" y="30" font-size="13" font-weight="500" fill="#6F737A">Sheet metal equipment</text>
+    <text x="398" y="78" font-size="34" font-weight="700" fill="#202020">27</text>
+    <rect x="764" width="367" height="99" rx="6" fill="#FFFFFF" stroke="#E6E6E6"/>
+    <text x="780" y="30" font-size="13" font-weight="500" fill="#6F737A">ZEISS CMMs</text>
+    <text x="780" y="78" font-size="34" font-weight="700" fill="#202020">8</text>
+  </g>
+
+  <g transform="translate(288 360)" font-family="Inter, Arial, sans-serif">
+    <text x="0" y="25" font-size="28" font-weight="700" fill="#202020">CNC Milling</text>
+    <text x="0" y="58" font-size="14" fill="#6F737A">5-axis, 4-axis, and vertical machining centers for tight-tolerance prismatic parts.</text>
+    <text x="901" y="58" font-size="14" fill="#7A7F87">36 of 36 unique make/model cards</text>
+
+    <rect y="83" width="1127" height="162" rx="6" fill="#FFFFFF" stroke="#E6E6E6"/>
+    <text x="16" y="118" font-size="12" font-weight="700" letter-spacing="4" fill="#8C8C8C">SEARCH</text>
+    <rect x="16" y="132" width="862" height="45" rx="5" fill="#FFFFFF" stroke="#D9DCE1"/>
+    <text x="30" y="160" font-size="15" fill="#9AA0A8">Search cnc milling</text>
+    <text x="891" y="118" font-size="12" font-weight="700" letter-spacing="4" fill="#8C8C8C">SORT</text>
+    <rect x="890" y="132" width="219" height="45" rx="5" fill="#FFFFFF" stroke="#D9DCE1"/>
+    <text x="906" y="160" font-size="15" fill="#202020">Make / model</text>
+
+    <rect x="16" y="193" width="45" height="37" rx="6" fill="#2F3338"/>
+    <text x="38" y="216" text-anchor="middle" font-size="14" fill="#FFFFFF">All</text>
+    <rect x="69" y="193" width="72" height="37" rx="6" fill="#F8F9FA" stroke="#DFE3E8"/>
+    <text x="105" y="216" text-anchor="middle" font-size="14" fill="#4B525B">5-axis</text>
+    <rect x="149" y="193" width="72" height="37" rx="6" fill="#F8F9FA" stroke="#DFE3E8"/>
+    <text x="185" y="216" text-anchor="middle" font-size="14" fill="#4B525B">4-axis</text>
+    <rect x="229" y="193" width="72" height="37" rx="6" fill="#F8F9FA" stroke="#DFE3E8"/>
+    <text x="265" y="216" text-anchor="middle" font-size="14" fill="#4B525B">3-axis</text>
+    <rect x="309" y="193" width="126" height="37" rx="6" fill="#F8F9FA" stroke="#DFE3E8"/>
+    <text x="372" y="216" text-anchor="middle" font-size="14" fill="#4B525B">+/-0.005 mm</text>
+    <rect x="443" y="193" width="140" height="37" rx="6" fill="#F8F9FA" stroke="#DFE3E8"/>
+    <text x="513" y="216" text-anchor="middle" font-size="14" fill="#4B525B">Large envelope</text>
+  </g>
+
+  <g transform="translate(288 618)" font-family="Inter, Arial, sans-serif">
+    <g>
+      <rect width="1127" height="209" rx="6" fill="#FFFFFF" stroke="#E5E5E5"/>
+      <text x="28" y="38" font-size="14" fill="#30343A">›</text>
+      <text x="64" y="33" font-size="12" font-weight="700" letter-spacing="5" fill="#8C8C8C">CNC MILLING</text>
+      <rect x="170" y="17" width="48" height="26" rx="6" fill="#F2F4F6"/>
+      <text x="194" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="#343942">1 set</text>
+      <text x="64" y="68" font-size="18" font-weight="700" fill="#202020">Beijing Jingdiao JDGR200T</text>
+      <text x="64" y="94" font-size="13" font-weight="600" fill="#555B63">5-axis CNC milling machine</text>
+      <text x="64" y="124" font-size="14" fill="#6F737A">High-speed small-envelope 5-axis Jingdiao machine.</text>
+      <rect x="64" y="143" width="97" height="48" rx="5" fill="#FBFBFC" stroke="#ECEFF3"/>
+      <text x="74" y="162" font-size="11" font-weight="700" letter-spacing="2" fill="#9A9DA3">TOLERANCE</text>
+      <text x="74" y="181" font-size="12" font-weight="700" fill="#343942">+/-0.005 mm</text>
+      <rect x="170" y="143" width="143" height="48" rx="5" fill="#FBFBFC" stroke="#ECEFF3"/>
+      <text x="180" y="162" font-size="11" font-weight="700" letter-spacing="2" fill="#9A9DA3">ENVELOPE</text>
+      <text x="180" y="181" font-size="12" font-weight="700" fill="#343942">500 x 280 x 300 mm</text>
+      <rect x="322" y="143" width="64" height="48" rx="5" fill="#FBFBFC" stroke="#ECEFF3"/>
+      <text x="332" y="162" font-size="11" font-weight="700" letter-spacing="2" fill="#9A9DA3">RPM</text>
+      <text x="332" y="181" font-size="12" font-weight="700" fill="#343942">32,000</text>
+    </g>
+
+    <g transform="translate(0 222)">
+      <rect width="1127" height="209" rx="6" fill="#FFFFFF" stroke="#E5E5E5"/>
+      <text x="28" y="38" font-size="14" fill="#30343A">›</text>
+      <text x="64" y="33" font-size="12" font-weight="700" letter-spacing="5" fill="#8C8C8C">CNC MILLING</text>
+      <rect x="170" y="17" width="54" height="26" rx="6" fill="#F2F4F6"/>
+      <text x="197" y="34" text-anchor="middle" font-size="12" font-weight="700" fill="#343942">4 sets</text>
+      <text x="64" y="68" font-size="18" font-weight="700" fill="#202020">Beijing Jingdiao JDGR400T</text>
+      <text x="64" y="94" font-size="13" font-weight="600" fill="#555B63">5-axis CNC milling machine</text>
+      <text x="64" y="124" font-size="14" fill="#6F737A">Jingdiao 5-axis milling capacity for small to mid-size precision parts.</text>
+      <rect x="64" y="143" width="97" height="48" rx="5" fill="#FBFBFC" stroke="#ECEFF3"/>
+      <text x="74" y="162" font-size="11" font-weight="700" letter-spacing="2" fill="#9A9DA3">TOLERANCE</text>
+      <text x="74" y="181" font-size="12" font-weight="700" fill="#343942">+/-0.005 mm</text>
+      <rect x="170" y="143" width="143" height="48" rx="5" fill="#FBFBFC" stroke="#ECEFF3"/>
+      <text x="180" y="162" font-size="11" font-weight="700" letter-spacing="2" fill="#9A9DA3">ENVELOPE</text>
+      <text x="180" y="181" font-size="12" font-weight="700" fill="#343942">450 x 680 x 400 mm</text>
+      <rect x="322" y="143" width="64" height="48" rx="5" fill="#FBFBFC" stroke="#ECEFF3"/>
+      <text x="332" y="162" font-size="11" font-weight="700" letter-spacing="2" fill="#9A9DA3">RPM</text>
+      <text x="332" y="181" font-size="12" font-weight="700" fill="#343942">20,000</text>
+    </g>
+  </g>
+
+  <g font-family="Inter, Arial, sans-serif">
+    <rect x="64" y="34" width="194" height="56" rx="8" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="82" y="57" font-size="12" font-weight="700" fill="#9A3412">COMMENT 1</text>
+    <text x="82" y="76" font-size="12" fill="#7C2D12">Sidebar feels utilitarian; refine active state.</text>
+    <line x1="258" y1="62" x2="288" y2="62" stroke="#FDBA74"/>
+
+    <rect x="1090" y="18" width="306" height="68" rx="8" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="1110" y="42" font-size="12" font-weight="700" fill="#9A3412">COMMENT 2</text>
+    <text x="1110" y="61" font-size="12" fill="#7C2D12">Header is clear but could feel more premium.</text>
+
+    <rect x="1046" y="326" width="350" height="76" rx="8" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="1066" y="350" font-size="12" font-weight="700" fill="#9A3412">COMMENT 3</text>
+    <text x="1066" y="369" font-size="12" fill="#7C2D12">Add category navigation so users can jump</text>
+    <text x="1066" y="386" font-size="12" fill="#7C2D12">between equipment sections.</text>
+
+    <rect x="965" y="530" width="431" height="76" rx="8" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="985" y="554" font-size="12" font-weight="700" fill="#9A3412">COMMENT 4</text>
+    <text x="985" y="573" font-size="12" fill="#7C2D12">Filters are functional but need better hierarchy,</text>
+    <text x="985" y="590" font-size="12" fill="#7C2D12">density, and polished control styling.</text>
+
+    <rect x="965" y="724" width="431" height="76" rx="8" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="985" y="748" font-size="12" font-weight="700" fill="#9A3412">COMMENT 5</text>
+    <text x="985" y="767" font-size="12" fill="#7C2D12">Machine rows should compare faster across</text>
+    <text x="985" y="784" font-size="12" fill="#7C2D12">quantity, process, envelope, tolerance, and RPM.</text>
+  </g>
+</svg>

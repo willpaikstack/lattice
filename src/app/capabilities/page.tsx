@@ -24,7 +24,7 @@ export default function CapabilitiesPage() {
             All production workflows are supported by documented inspection processes, material traceability, and specification-driven execution to meet ASTM, ASME, and industry-specific standards.
           </p>
         </div>
-        <Link className="mt-6 inline-flex rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700" href="/requests/new">
+        <Link className="mt-6 inline-flex rounded-2xl bg-[#171717] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#2a2a2a]" href="/requests/new">
           Start an RFQ
         </Link>
       </section>

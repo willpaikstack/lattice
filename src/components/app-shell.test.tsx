@@ -4,9 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "./app-shell";
 
 const mockUsePathname = vi.fn(() => "/dashboard");
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => mockUsePathname(),
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+  }),
 }));
 
 function expectAllLinksNamed(label: string, href: string) {
@@ -20,6 +26,8 @@ function expectAllLinksNamed(label: string, href: string) {
 describe("AppShell", () => {
   beforeEach(() => {
     mockUsePathname.mockReturnValue("/dashboard");
+    mockPush.mockReset();
+    mockReplace.mockReset();
   });
 
   it("leaves the public landing page outside the app shell", () => {
@@ -78,12 +86,30 @@ describe("AppShell", () => {
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
     expectAllLinksNamed("Admin", "/admin");
+    expect(screen.getByText("Your Resources")).toBeInTheDocument();
     expect(screen.getByText("William Paik")).toBeInTheDocument();
     expect(screen.getByText("william.paik@amogy.co")).toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
+  });
+
+  it("keeps request quote as a primary CTA instead of a workspace nav item", () => {
+    mockUsePathname.mockReturnValue("/requests/new");
+
+    render(
+      <AppShell>
+        <div>request form</div>
+      </AppShell>,
+    );
+
+    const requestQuoteLinks = screen.getAllByRole("link", { name: "Request Quote" });
+
+    expect(requestQuoteLinks).toHaveLength(1);
+    expect(requestQuoteLinks[0]).toHaveAttribute("href", "/requests/new");
+    expect(requestQuoteLinks[0]).toHaveAttribute("aria-current", "page");
+    expect(requestQuoteLinks[0]).toHaveClass("border-stone-200/60", "bg-white", "font-medium", "text-stone-900", "shadow-sm");
   });
 
   it("uses admin-only navigation on the admin dashboard", () => {
@@ -99,8 +125,8 @@ describe("AppShell", () => {
     expectAllLinksNamed("Customers", "/admin/customers");
     expectAllLinksNamed("Quote Submissions", "/admin/quotes");
     expectAllLinksNamed("Placed Orders", "/admin/orders");
-    expectAllLinksNamed("RFQ Queue", "/operator/requests");
     expectAllLinksNamed("Customer App", "/dashboard");
+    expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();
@@ -137,5 +163,18 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("link", { name: "Account Settings" })).toHaveAttribute("href", "/account/settings");
     expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+  });
+
+  it("returns to the landing page when signing out", () => {
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
+
+    expect(mockReplace).toHaveBeenCalledWith("/");
   });
 });

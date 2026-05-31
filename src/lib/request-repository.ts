@@ -1,6 +1,6 @@
 import { getDemoRequests } from "./demo-requests";
 import { getPrismaClient } from "./prisma";
-import type { DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
+import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
 import { applyOperatorStatusUpdate, applySupplierOrderUpdate } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
@@ -12,6 +12,9 @@ async function prisma() {
       findMany: (args: unknown) => Promise<StoredRequest[]>;
       findUnique: (args: unknown) => Promise<StoredRequest | null>;
       update: (args: unknown) => Promise<StoredRequest>;
+    };
+    customerQuoteVersion: {
+      count: (args: unknown) => Promise<number>;
     };
   };
 }
@@ -141,6 +144,91 @@ export async function updateOperatorRequestStatus(id: string, input: OperatorSta
               create: {
                 from: current.status,
                 to: updated.status,
+                actor: "operator",
+              },
+            },
+          }),
+    },
+    include: storedRequestInclude,
+  });
+
+  return mapStoredRequest(stored);
+}
+
+export async function saveCustomerQuoteForRequest(
+  id: string,
+  input: {
+    quoteNumber: string;
+    quoteDate: string;
+    validUntil: string;
+    customerCompany: string;
+    customerContact: string;
+    projectName: string;
+    preparedBy: string;
+    leadTime: string;
+    shipping: string;
+    tax: string;
+    notes: string;
+    assumptions: string;
+    clarifications: string;
+    filesReviewed: string;
+    lineItems: CustomerQuoteLineItemSnapshot[];
+    estimatedPriceCents: number;
+    leadTimeDays: number | null;
+    markdown: string;
+    quoteSummary: string;
+  },
+) {
+  const current = await getRequestById(id);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.status === "DRAFT" || current.status === "PURCHASED") {
+    throw new Error("Only active RFQs can receive customer quotes");
+  }
+
+  const client = await prisma();
+  const nextStatus = "QUOTED" as const;
+  const versionNumber = (await client.customerQuoteVersion.count({ where: { requestId: id } })) + 1;
+  const stored = await client.request.update({
+    where: { id },
+    data: {
+      status: nextStatus,
+      operatorCompleteness: "COMPLETE",
+      estimatedPriceCents: input.estimatedPriceCents,
+      leadTimeDays: input.leadTimeDays,
+      quoteSummary: input.quoteSummary.trim(),
+      customerQuotes: {
+        create: {
+          versionNumber,
+          quoteNumber: input.quoteNumber.trim(),
+          quoteDate: input.quoteDate ? new Date(`${input.quoteDate}T00:00:00.000Z`) : null,
+          validUntil: input.validUntil ? new Date(`${input.validUntil}T00:00:00.000Z`) : null,
+          customerCompany: input.customerCompany.trim(),
+          customerContact: input.customerContact.trim(),
+          projectName: input.projectName.trim(),
+          preparedBy: input.preparedBy.trim() || "Lattice",
+          leadTime: input.leadTime.trim(),
+          shipping: input.shipping.trim(),
+          tax: input.tax.trim(),
+          notes: input.notes.trim(),
+          assumptions: input.assumptions.trim(),
+          clarifications: input.clarifications.trim(),
+          filesReviewed: input.filesReviewed.trim(),
+          lineItems: input.lineItems,
+          totalCents: input.estimatedPriceCents,
+          markdown: input.markdown,
+        },
+      },
+      ...(current.status === nextStatus
+        ? {}
+        : {
+            statusEvents: {
+              create: {
+                from: current.status,
+                to: nextStatus,
                 actor: "operator",
               },
             },

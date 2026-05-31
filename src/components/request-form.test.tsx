@@ -6,6 +6,10 @@ import { RequestForm } from "./request-form";
 describe("RequestForm", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:technical-drawing-preview"),
+      revokeObjectURL: vi.fn(),
+    });
   });
 
   afterEach(() => {
@@ -17,13 +21,16 @@ describe("RequestForm", () => {
 
     expect(screen.getByText("Drag & drop CAD files here, or browse")).toBeInTheDocument();
     expect(screen.getByText(/STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Customer PO#")).toBeInTheDocument();
-    expect(screen.getByLabelText("Company Name")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Customer PO#")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Company Name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Attach a CAD file to unlock customer details and manufacturing configuration.")).not.toBeInTheDocument();
     expect(screen.queryByText("Quote ID:")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Material")).not.toBeInTheDocument();
     expect(screen.queryByText("Quality documentation")).not.toBeInTheDocument();
     expect(screen.queryByText("HEADER")).not.toBeInTheDocument();
     expect(screen.queryByText("yes(No quote line items)")).not.toBeInTheDocument();
+    expect(screen.queryByText("3D preview")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Select a CAD file to generate an interactive model preview/)).not.toBeInTheDocument();
   });
 
   it("reveals quote configuration fields after a CAD file is selected", async () => {
@@ -48,15 +55,17 @@ describe("RequestForm", () => {
     });
 
     await screen.findByText("Quote ID:");
-    expect(screen.getByAltText("Mockup preview of the uploaded machined part")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bracket" })).toBeInTheDocument();
+    expect(screen.getByText("CAD file preview")).toBeInTheDocument();
+    expect(screen.getByText("Autodesk preview setup needed")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Inspections & Certificates" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Technical drawing/)).toBeInTheDocument();
     expect(screen.getByLabelText("Customer PO#")).toBeInTheDocument();
     expect(screen.getByLabelText("Company Name")).toBeInTheDocument();
     expect(screen.getByLabelText(/Project Name/)).toBeInTheDocument();
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("SS 304");
-    expect(screen.getByLabelText("General tolerance")).toHaveDisplayValue("ISO 2768 Medium (m)");
-    expect(screen.getByLabelText("Surface finish")).toHaveDisplayValue("As machined (Ra 3.2 um / Ra 126 uin)");
+    expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("ISO 2768 Medium (m)");
+    expect(screen.getByLabelText("Surface Finish")).toHaveDisplayValue("As machined (Ra 3.2 um / Ra 126 uin)");
     expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue("Standard Inspection");
     expect(screen.getByLabelText(/File reference/)).toHaveDisplayValue("bracket.step");
     expect(screen.getByLabelText(/Part Markings/)).not.toBeChecked();
@@ -66,7 +75,18 @@ describe("RequestForm", () => {
     fireEvent.change(screen.getByLabelText(/Technical drawing/), {
       target: { files: [drawing] },
     });
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Technical Drawing Specifications" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Preview of bracket-drawing.pdf")).toBeInTheDocument();
+    expect(screen.getByLabelText("General Tolerance")).toHaveDisplayValue("ISO 2768 Medium (m)");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Engineering Fits" }));
+    expect(screen.getByText("For example: holes and shafts such as H7, k6")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByText("bracket-drawing.pdf")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Review drawing specs" })).toBeInTheDocument();
   });
 
   it("starts a CAD preview translation when a file is selected", async () => {

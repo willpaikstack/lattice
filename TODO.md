@@ -16,19 +16,26 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - buyer submits RFQ
   - operator reviews RFQ
   - operator marks missing info or ready for supplier RFQ
+  - operator saves a durable customer quote version
   - buyer and operator views stay in sync
-- Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events when the notification/event model is introduced.
+- Run `npm run db:push` on a machine with local PostgreSQL available so the new `CustomerQuoteVersion` table is applied.
+- Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events. `/notifications` now derives quote-ready and missing-info rows from request state with static fallback data.
 - Configure Autodesk Platform Services for live CAD previews:
   - create APS app credentials
   - set `APS_CLIENT_ID`, `APS_CLIENT_SECRET`, and globally unique `APS_BUCKET_KEY`
   - smoke test upload translation and Autodesk Viewer rendering from `/requests/new`
+  - keep tuning the initial viewer camera/framing across native CAD files
   - persist original file object IDs and translated model URNs with uploaded file records
-- Replace the temporary `/requests/new` mock part image with real generated thumbnails or APS-derived previews when the CAD preview pipeline is fully configured.
-- Continue clarifying buyer `/quotes` and operator `/operator/requests` role separation as quote issuance becomes database-backed.
-- Connect the `/admin` quote request overview to durable quote versions and supplier quote records when those workflows move beyond demo/static request data.
-- Extend `/admin/quotes/builder` so generated customer quotes can be loaded from an RFQ, saved as durable quote versions, and exported as PDF when the quote lifecycle is ready.
+- Add real generated thumbnails or APS-derived preview images anywhere static CAD thumbnails are still useful outside the interactive upload preview.
+- Continue clarifying buyer `/quotes` and admin `/admin/quotes` role separation now that quote issuance is database-backed and admin-owned.
+- Connect the `/admin` quote request overview more deeply to durable quote versions and supplier quote records.
+- Connect `/admin/vendors` to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
+- Decide whether to keep or retire `/operator/requests/[requestId]` after more RFQ detail review lives in the `/admin/quotes` command drawer.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
 - Reuse material/capability catalog data in RFQ form dropdowns where it helps buyers submit cleaner requests.
+- Build admin/operator source-trace views for material and equipment repositories so each standardized customer-facing claim can be audited back to vendor, document, and extraction notes.
+- Continue deduplicating vendor-provided material/equipment entries across Zintilon, Saky Steel, ZYTC, Best Prototypes, and future vendor documents.
+- Add the original source files for previously entered Zintilon processing and sheet metal capability data into `docs/vendor-sources/` when available; the registry currently records placeholders for those older sources.
 - Add or update tests whenever request status, persistence, queue filtering, or role-specific views change.
 
 ## Cross-Computer Handoff Checklist
@@ -60,12 +67,12 @@ npm run build
 - `/login`
 - `/waiting-list`
 - `/requests/new`
-- `/operator/requests`
 - `/quotes`
 - `/orders`
 - `/orders/[requestId]`
 - `/supplier/orders`
 - `/admin`
 - `/admin/customers`
+- `/admin/vendors`
 - `/materials`
 - `/capabilities`

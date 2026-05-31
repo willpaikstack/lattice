@@ -1,9 +1,6 @@
 "use client";
 
-import { DragEvent, FormEvent, useCallback, useMemo, useState } from "react";
-import Image from "next/image";
-import Link from "next/link";
-
+import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { CadUploadPreview, type CadUploadPreviewState } from "@/components/cad-upload-preview";
 import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
@@ -85,14 +82,132 @@ function suggestedNameFromFile(fileName: string) {
     .replace(/\b\w/g, (match) => match.toUpperCase());
 }
 
+function drawingCanPreview(file: File | null) {
+  if (!file) {
+    return false;
+  }
+
+  return file.type === "application/pdf" || file.type.startsWith("image/");
+}
+
+function TechnicalDrawingReviewModal({
+  drawingName,
+  drawingPreviewUrl,
+  drawingType,
+  form,
+  onClose,
+  onRemove,
+  update,
+  updateFlag,
+}: {
+  drawingName: string;
+  drawingPreviewUrl: string | null;
+  drawingType: string;
+  form: FormState;
+  onClose: () => void;
+  onRemove: () => void;
+  update: (field: keyof FormState, value: string) => void;
+  updateFlag: (field: keyof Pick<FormState, "partMarkings" | "tightLinearTolerance" | "threads" | "engineeringFits" | "sharpInternalCorners">, value: boolean) => void;
+}) {
+  const canRenderPreview = Boolean(drawingPreviewUrl) && (drawingType === "application/pdf" || drawingType.startsWith("image/"));
+
+  return (
+    <div aria-modal="true" className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/35 px-4 py-6" role="dialog">
+      <div className="grid w-full max-w-[1320px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="min-h-[620px] bg-slate-100 p-4">
+          <div className="flex h-full min-h-[590px] items-center justify-center overflow-hidden rounded-md border border-slate-300 bg-white">
+            {canRenderPreview && drawingPreviewUrl ? (
+              drawingType === "application/pdf" ? (
+                <object aria-label={`Preview of ${drawingName}`} className="h-[76vh] min-h-[590px] w-full" data={drawingPreviewUrl} type="application/pdf">
+                  <p className="p-6 text-sm text-slate-600">{drawingName}</p>
+                </object>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img alt={`Preview of ${drawingName}`} className="max-h-[76vh] w-full object-contain" src={drawingPreviewUrl} />
+              )
+            ) : (
+              <div className="max-w-md px-6 text-center">
+                <p className="text-lg font-semibold text-slate-950">{drawingName}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">This drawing type is attached, but the browser cannot preview it inline.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <aside className="flex min-h-[620px] flex-col border-l border-slate-200 bg-white">
+          <div className="border-b border-slate-200 p-6">
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Technical Drawing Specifications</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Avoid delays and get an accurate price by selecting specifications shown on your technical drawing.</p>
+            <p className="mt-3 break-all text-xs font-medium text-slate-400">{drawingName}</p>
+          </div>
+
+          <div className="flex-1 space-y-6 overflow-y-auto p-6">
+            <Field label="General Tolerance">
+              <select className={inputClass} value={form.generalTolerance} onChange={(event) => update("generalTolerance", event.target.value)}>
+                {generalToleranceOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <label className="grid gap-2 text-sm font-semibold text-slate-800">
+              <span>Linear tolerances tighter than the general tolerance</span>
+              <span className="flex items-center gap-2 font-normal text-slate-700">
+                <input checked={form.tightLinearTolerance} onChange={(event) => updateFlag("tightLinearTolerance", event.target.checked)} type="checkbox" />
+                <span>Yes</span>
+              </span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-slate-800">
+              <span>Engineering Fits</span>
+              <span className="text-sm font-normal text-slate-500">For example: holes and shafts such as H7, k6</span>
+              <span className="flex items-center gap-2 font-normal text-slate-700">
+                <input aria-label="Engineering Fits" checked={form.engineeringFits} onChange={(event) => updateFlag("engineeringFits", event.target.checked)} type="checkbox" />
+                <span>Yes</span>
+              </span>
+            </label>
+
+            <label className="grid gap-2 text-sm font-semibold text-slate-800">
+              <span>Threads</span>
+              <span className="flex items-center gap-2 font-normal text-slate-700">
+                <input aria-label="Threads" checked={form.threads} onChange={(event) => updateFlag("threads", event.target.checked)} type="checkbox" />
+                <span>Yes</span>
+              </span>
+            </label>
+          </div>
+
+          <div className="flex justify-end gap-3 border-t border-slate-200 p-5">
+            <button className="rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" onClick={onRemove} type="button">
+              Remove Drawing
+            </button>
+            <button className="rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" onClick={onClose} type="button">
+              Done
+            </button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 export function RequestForm() {
   const [form, setForm] = useState<FormState>(() => makeInitialState());
   const [error, setError] = useState<string | null>(null);
   const [createdRequest, setCreatedRequest] = useState<LatticeRequest | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedDrawingFile, setSelectedDrawingFile] = useState<File | null>(null);
+  const [isDrawingReviewOpen, setIsDrawingReviewOpen] = useState(false);
   const [cadPreview, setCadPreview] = useState<CadUploadPreviewState>({ status: "empty" });
   const hasCadFile = Boolean(form.fileName.trim());
+  const drawingPreviewUrl = useMemo(() => {
+    if (!selectedDrawingFile || !drawingCanPreview(selectedDrawingFile) || typeof URL === "undefined" || !URL.createObjectURL) {
+      return null;
+    }
+
+    return URL.createObjectURL(selectedDrawingFile);
+  }, [selectedDrawingFile]);
 
   const isReady = useMemo(
     () =>
@@ -118,6 +233,14 @@ export function RequestForm() {
   const updateCadPreview = useCallback((state: CadUploadPreviewState) => {
     setCadPreview(state);
   }, []);
+
+  useEffect(() => {
+    if (!drawingPreviewUrl || typeof URL === "undefined" || !URL.revokeObjectURL) {
+      return;
+    }
+
+    return () => URL.revokeObjectURL(drawingPreviewUrl);
+  }, [drawingPreviewUrl]);
 
   async function handleCadFileSelected(file: File | null) {
     setSelectedFile(file);
@@ -181,21 +304,18 @@ export function RequestForm() {
   function handleTechnicalDrawingSelected(file: File | null) {
     setSelectedDrawingFile(file);
     update("technicalDrawingName", file?.name ?? "");
+    setIsDrawingReviewOpen(Boolean(file));
+  }
+
+  function removeTechnicalDrawing() {
+    setSelectedDrawingFile(null);
+    update("technicalDrawingName", "");
+    setIsDrawingReviewOpen(false);
   }
 
   function handleCadDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     void handleCadFileSelected(event.dataTransfer.files[0] ?? null);
-  }
-
-  function toggleQualityDocumentation(value: string) {
-    setForm((current) => {
-      const selected = current.qualityDocumentation.includes(value)
-        ? current.qualityDocumentation.filter((item) => item !== value)
-        : [...current.qualityDocumentation, value];
-
-      return { ...current, qualityDocumentation: selected };
-    });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -277,21 +397,33 @@ export function RequestForm() {
   return (
     <div className="space-y-6">
       <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-blue-600">Request Quote</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8c8c8c]">Request Quote</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Create a manufacturable RFQ package.</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-          Start with the CAD file. Once a file is attached, Lattice opens the customer and manufacturing details needed to route the RFQ.
+          Send the part file, target quantity, material, and timing so Lattice can turn it into a clean RFQ package for review.
         </p>
       </section>
 
       <div>
         <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-3 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
+          {isDrawingReviewOpen && form.technicalDrawingName ? (
+            <TechnicalDrawingReviewModal
+              drawingName={form.technicalDrawingName}
+              drawingPreviewUrl={drawingPreviewUrl}
+              drawingType={selectedDrawingFile?.type ?? ""}
+              form={form}
+              onClose={() => setIsDrawingReviewOpen(false)}
+              onRemove={removeTechnicalDrawing}
+              update={update}
+              updateFlag={updateFlag}
+            />
+          ) : null}
+
+          <div className="border-b border-slate-100 pb-6">
             <div>
               <h2 className="text-2xl font-semibold text-slate-950">Upload CAD file</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Attach the model or drawing first. The quote configuration appears after the upload step, matching the Bubble reference flow.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Upload the part file first so Lattice can build the RFQ around the actual geometry, material, and production requirements.</p>
             </div>
-            <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Draft until submitted</span>
           </div>
 
           {!hasCadFile ? (
@@ -316,52 +448,67 @@ export function RequestForm() {
             </section>
           ) : null}
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5">
-            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Customer Details</h3>
-            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-              <Field label="Customer PO#">
-                <input className={inputClass} placeholder="PO-1047" value={form.customerPo} onChange={(event) => update("customerPo", event.target.value)} />
-              </Field>
-              <Field label="Company Name">
-                <input className={inputClass} value={form.buyerCompany} onChange={(event) => update("buyerCompany", event.target.value)} />
-              </Field>
-              <Field label="Project Name" hint="Use a name an operator can recognize quickly.">
-                <input className={inputClass} placeholder="CNC bracket package" value={form.projectName} onChange={(event) => update("projectName", event.target.value)} />
-              </Field>
-              <Field label="Requester name">
-                <input className={inputClass} value={form.requesterName} onChange={(event) => update("requesterName", event.target.value)} />
-              </Field>
-            </div>
-          </section>
+          {hasCadFile ? (
+            <section className="rounded-lg border border-slate-200 bg-white p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">Customer Details</h3>
+              <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                <Field label="Customer PO#">
+                  <input className={inputClass} placeholder="PO-1047" value={form.customerPo} onChange={(event) => update("customerPo", event.target.value)} />
+                </Field>
+                <Field label="Company Name">
+                  <input className={inputClass} value={form.buyerCompany} onChange={(event) => update("buyerCompany", event.target.value)} />
+                </Field>
+                <Field label="Project Name" hint="Use a name an operator can recognize quickly.">
+                  <input className={inputClass} placeholder="CNC bracket package" value={form.projectName} onChange={(event) => update("projectName", event.target.value)} />
+                </Field>
+                <Field label="Requester name">
+                  <input className={inputClass} value={form.requesterName} onChange={(event) => update("requesterName", event.target.value)} />
+                </Field>
+              </div>
+            </section>
+          ) : null}
 
           {hasCadFile ? (
             <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
               <div className="grid lg:grid-cols-[0.95fr_1fr]">
                 <div className="border-b border-slate-200 p-8 lg:border-b-0 lg:border-r">
                   <div className="mx-auto max-w-[520px]">
-                    <div className="relative overflow-hidden rounded-lg bg-slate-100">
-                      <Image
-                        alt="Mockup preview of the uploaded machined part"
-                        className="aspect-[4/3] w-full object-cover"
-                        height={640}
-                        priority
-                        src="/part-preview/machined-bracket-mockup.svg"
-                        width={960}
-                      />
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">CAD file preview</p>
+                          <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{form.partName || form.fileName}</h3>
+                        </div>
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">{form.fileName.split(".").pop()?.toUpperCase() ?? "CAD"}</span>
+                      </div>
+                      <CadUploadPreview onStatus={updateCadPreview} state={cadPreview} />
                     </div>
 
-                    <label className="mt-5 block cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-4 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-                      <span className="sr-only">Technical drawing</span>
-                      <span>{form.technicalDrawingName || "Upload a technical drawing (Required for some part specifications)"}</span>
-                    <input
-                      className="sr-only"
-                      type="file"
-                      accept=".pdf,.dxf,.dwg,.png,.jpg,.jpeg"
-                      onChange={(event) => handleTechnicalDrawingSelected(event.target.files?.[0] ?? null)}
-                    />
-                  </label>
-
-                  <CadUploadPreview onStatus={updateCadPreview} state={cadPreview} />
+                    <div className="mt-5 rounded-lg border border-slate-200 bg-white p-4 text-center text-sm font-medium text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Technical drawing</p>
+                      <p className="mt-2 break-all">{form.technicalDrawingName || "Upload a technical drawing (Required for some part specifications)"}</p>
+                      <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        <label className="inline-flex cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+                          <span>{form.technicalDrawingName ? "Replace drawing" : "Choose drawing"}</span>
+                          <input
+                            aria-label="Technical drawing"
+                            className="sr-only"
+                            type="file"
+                            accept=".pdf,.dxf,.dwg,.png,.jpg,.jpeg"
+                            onChange={(event) => handleTechnicalDrawingSelected(event.target.files?.[0] ?? null)}
+                          />
+                        </label>
+                        {form.technicalDrawingName ? (
+                          <button
+                            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            onClick={() => setIsDrawingReviewOpen(true)}
+                            type="button"
+                          >
+                            Review drawing specs
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
 
                   <div className="mt-8">
                       <h3 className="text-2xl font-semibold tracking-tight text-slate-950">Inspections & Certificates</h3>
@@ -503,17 +650,14 @@ export function RequestForm() {
 
           {error ? <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p> : null}
 
-          <div className="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:items-center">
+          <div className="border-t border-slate-100 pt-6">
             <button
-              className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
               disabled={!isReady}
               type="submit"
             >
               Request Quote
             </button>
-            <Link className="text-sm font-semibold text-blue-700 hover:text-blue-800" href="/operator/requests">
-              View operator queue →
-            </Link>
           </div>
         </form>
 

@@ -20,6 +20,11 @@ export const storedRequestInclude = {
       createdAt: "asc",
     },
   },
+  customerQuotes: {
+    orderBy: {
+      versionNumber: "asc",
+    },
+  },
   statusEvents: {
     orderBy: {
       createdAt: "asc",
@@ -90,6 +95,28 @@ export type StoredRequest = {
     quotedAt: Date | null;
     isSelected: boolean;
   }>;
+  customerQuotes?: Array<{
+    id: string;
+    versionNumber: number;
+    quoteNumber: string;
+    quoteDate: Date | null;
+    validUntil: Date | null;
+    customerCompany: string;
+    customerContact: string;
+    projectName: string;
+    preparedBy: string;
+    leadTime: string;
+    shipping: string;
+    tax: string;
+    notes: string;
+    assumptions: string;
+    clarifications: string;
+    filesReviewed: string;
+    lineItems: unknown;
+    totalCents: number;
+    markdown: string;
+    issuedAt: Date;
+  }>;
   statusEvents: Array<{
     id: string;
     from: LatticeRequest["status"] | null;
@@ -114,6 +141,30 @@ function normalizeActor(actor: string): LatticeRequest["statusEvents"][number]["
     return actor;
   }
   return "system";
+}
+
+function formatOptionalDate(date: Date | null) {
+  return date ? date.toISOString().slice(0, 10) : "";
+}
+
+function mapCustomerQuoteLineItems(lineItems: unknown): LatticeRequest["customerQuotes"][number]["lineItems"] {
+  if (!Array.isArray(lineItems)) {
+    return [];
+  }
+
+  return lineItems.map((item, index) => {
+    const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+
+    return {
+      id: typeof record.id === "string" ? record.id : `line-${index + 1}`,
+      description: typeof record.description === "string" ? record.description : "",
+      process: typeof record.process === "string" ? record.process : "",
+      material: typeof record.material === "string" ? record.material : "",
+      finish: typeof record.finish === "string" ? record.finish : "",
+      quantity: typeof record.quantity === "number" ? record.quantity : 0,
+      unitPrice: typeof record.unitPrice === "number" ? record.unitPrice : 0,
+    };
+  });
 }
 
 export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
@@ -234,6 +285,28 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       notes: quote.notes,
       quotedAt: quote.quotedAt?.toISOString() ?? null,
       isSelected: quote.isSelected,
+    })),
+    customerQuotes: (stored.customerQuotes ?? []).map((quote) => ({
+      id: quote.id,
+      versionNumber: quote.versionNumber,
+      quoteNumber: quote.quoteNumber,
+      quoteDate: formatOptionalDate(quote.quoteDate),
+      validUntil: formatOptionalDate(quote.validUntil),
+      customerCompany: quote.customerCompany,
+      customerContact: quote.customerContact,
+      projectName: quote.projectName,
+      preparedBy: quote.preparedBy,
+      leadTime: quote.leadTime,
+      shipping: quote.shipping,
+      tax: quote.tax,
+      notes: quote.notes,
+      assumptions: quote.assumptions,
+      clarifications: quote.clarifications,
+      filesReviewed: quote.filesReviewed,
+      lineItems: mapCustomerQuoteLineItems(quote.lineItems),
+      totalCents: quote.totalCents,
+      markdown: quote.markdown,
+      issuedAt: quote.issuedAt.toISOString(),
     })),
     quote: {
       estimatedPriceCents: stored.estimatedPriceCents,

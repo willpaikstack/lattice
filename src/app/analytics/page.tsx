@@ -14,10 +14,10 @@ export default function AnalyticsPage() {
       <section className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
         <h2 className="text-2xl font-semibold text-slate-950">No analytics widgets yet.</h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-          Start by creating RFQs and moving them through the operator queue; then this page can report active RFQs, cycle time, supplier response rate, and quote conversion.
+          Start by creating RFQs and moving them through quote submissions; then this page can report active RFQs, cycle time, supplier response rate, and quote conversion.
         </p>
-        <Link className="mt-6 inline-flex rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700" href="/operator/requests">
-          Open RFQ Queue
+        <Link className="mt-6 inline-flex rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700" href="/admin/quotes">
+          Open Quote Submissions
         </Link>
       </section>
     </div>

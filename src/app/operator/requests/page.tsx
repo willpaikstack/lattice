@@ -1,10 +1,7 @@
-import { OperatorQueue } from "@/components/operator-queue";
-import { listOperatorRequests } from "@/lib/request-repository";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function OperatorRequestsPage() {
-  const requests = await listOperatorRequests();
-
-  return <OperatorQueue requests={requests} />;
+export default function OperatorRequestsPage() {
+  redirect("/admin/quotes");
 }

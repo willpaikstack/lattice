@@ -150,14 +150,9 @@ export function AdminActivityDashboard({ summary }: { summary: AdminActivitySumm
               Critical quote-request signals for intake, missing information, supplier outreach, and buyer decision follow-up.
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link className="rounded-md bg-[#4f3424] px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-[#3a281d]" href="/admin/quotes">
-              Manage Quotes
-            </Link>
-            <Link className="rounded-md border border-[#d8955f] bg-[#fffaf6] px-4 py-2 text-center text-sm font-semibold text-[#4f3424] transition hover:bg-[#fff1e4]" href="/operator/requests">
-              RFQ Queue
-            </Link>
-          </div>
+          <Link className="rounded-md bg-[#4f3424] px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-[#3a281d]" href="/admin/quotes">
+            Manage Quotes
+          </Link>
         </div>
       </section>
 
@@ -170,11 +165,6 @@ export function AdminActivityDashboard({ summary }: { summary: AdminActivitySumm
 
       <article className="rounded-md border border-[#efc29a] bg-white">
         <SectionHeader
-          action={
-            <Link className="rounded-md border border-[#d8955f] bg-[#fffaf6] px-3 py-2 text-sm font-semibold text-[#4f3424] transition hover:bg-[#fff1e4]" href="/admin/quotes/builder">
-              Build Quote
-            </Link>
-          }
           detail="Highest priority quote requests, ordered by operational risk."
           title="Critical quote queue"
         />

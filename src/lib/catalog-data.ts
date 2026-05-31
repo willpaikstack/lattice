@@ -1,3 +1,5 @@
+import { vendorSourceDocuments, type VendorSourceDocumentId } from "./vendor-source-documents";
+
 export type CatalogEntry = {
   slug: string;
   name: string;
@@ -6,6 +8,7 @@ export type CatalogEntry = {
   commonGrades: string[];
   standards: string[];
   variants?: MaterialVariant[];
+  sourceDocumentIds?: VendorSourceDocumentId[];
 };
 
 export type MaterialVariant = {
@@ -21,8 +24,9 @@ export type MaterialVariant = {
   };
   commonSpec: string;
   industry: string;
-  image: MaterialImageSource;
+  image?: MaterialImageSource;
   imageTone: "dark-fixture" | "round-flange" | "bright-fitting";
+  sourceDocumentIds?: VendorSourceDocumentId[];
 };
 
 export type MaterialImageSource = {
@@ -103,6 +107,7 @@ export const stainlessSteelVariants: MaterialVariant[] = [
     industry: "Oil & Gas",
     image: materialImages.stainlessBars,
     imageTone: "dark-fixture",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id],
   },
   {
     name: "SS 316",
@@ -119,6 +124,7 @@ export const stainlessSteelVariants: MaterialVariant[] = [
     industry: "Oil & Gas",
     image: materialImages.stainlessBars,
     imageTone: "round-flange",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id],
   },
   {
     name: "SS 303",
@@ -135,6 +141,7 @@ export const stainlessSteelVariants: MaterialVariant[] = [
     industry: "Oil & Gas",
     image: materialImages.stainlessBars,
     imageTone: "bright-fitting",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id],
   },
 ];
 
@@ -149,6 +156,7 @@ export const aluminumVariants: MaterialVariant[] = [
     industry: "General CNC",
     image: materialImages.aluminumMachinedParts,
     imageTone: "bright-fitting",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     name: "Aluminum 7075-T6",
@@ -160,6 +168,7 @@ export const aluminumVariants: MaterialVariant[] = [
     industry: "Aerospace",
     image: materialImages.aluminumMachinedParts,
     imageTone: "dark-fixture",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     name: "Aluminum 2024-T3",
@@ -171,6 +180,7 @@ export const aluminumVariants: MaterialVariant[] = [
     industry: "Aircraft",
     image: materialImages.aluminumMachinedParts,
     imageTone: "round-flange",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     name: "Aluminum 5052-H32",
@@ -182,6 +192,7 @@ export const aluminumVariants: MaterialVariant[] = [
     industry: "Sheet Metal",
     image: materialImages.aluminumMachinedParts,
     imageTone: "bright-fitting",
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
 ];
 
@@ -448,6 +459,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["6061", "7075", "2024", "5052"],
     standards: ["ASTM", "AMS", "Project-specific requirements"],
     variants: aluminumVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     slug: "stainless-steel",
@@ -459,6 +471,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["303", "304", "316", "17-4 PH"],
     standards: ["ASTM", "ASME", "Mill certification"],
     variants: stainlessSteelVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id, vendorSourceDocuments.sakyCatalog.id],
   },
   {
     slug: "mild-steel",
@@ -470,6 +483,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["A36", "1018", "1020"],
     standards: ["ASTM", "Structural specification", "Material traceability"],
     variants: mildSteelVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id],
   },
   {
     slug: "brass",
@@ -481,6 +495,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["C360", "C260", "C464"],
     standards: ["ASTM", "Mill certification", "Distributor traceability"],
     variants: brassVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     slug: "copper",
@@ -492,6 +507,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["C110", "C101", "C122"],
     standards: ["ASTM", "Material integrity", "Traceability documentation"],
     variants: copperVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     slug: "alloy-steel",
@@ -503,6 +519,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["4140", "4340", "8620"],
     standards: ["ASTM", "Application-specific standards", "Full certification"],
     variants: alloySteelVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id],
   },
   {
     slug: "tool-steel",
@@ -514,6 +531,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["A2", "D2", "O1", "H13"],
     standards: ["ASTM", "Traceable documentation", "Production/prototyping availability"],
     variants: toolSteelVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id],
   },
   {
     slug: "titanium",
@@ -525,6 +543,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["Grade 2", "Grade 5 / Ti-6Al-4V"],
     standards: ["ASTM", "AMS", "Full traceability"],
     variants: titaniumVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id],
   },
   {
     slug: "inconel-incoloy",
@@ -536,6 +555,7 @@ export const materials: CatalogEntry[] = [
     commonGrades: ["Inconel 625", "Inconel 718", "Incoloy 800"],
     standards: ["ASTM", "ASME", "Certified mill documentation"],
     variants: nickelAlloyVariants,
+    sourceDocumentIds: [vendorSourceDocuments.zintilonMaterials20250613.id, vendorSourceDocuments.zytcCatalogue.id, vendorSourceDocuments.sakyCatalog.id],
   },
 ];
 

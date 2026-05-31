@@ -1,5 +1,5 @@
 import { CatalogCard } from "../../components/catalog-card";
-import { materials } from "../../lib/catalog-data";
+import { customerMaterialCatalog } from "../../lib/customer-material-catalog";
 
 export default function MaterialsPage() {
   return (
@@ -21,12 +21,13 @@ export default function MaterialsPage() {
       </section>
 
       <section className="ml-8 mt-[165px] max-w-[961px] space-y-5" aria-label="Material categories">
-        {materials.map((material) => (
+        {customerMaterialCatalog.map((material) => (
           <CatalogCard
             commonGrades={material.commonGrades}
             defaultOpen={material.slug === "stainless-steel"}
             details={material.details}
             key={material.slug}
+            materialGroups={material.materialGroups}
             standards={material.standards}
             subCards={material.variants}
             summary={material.summary}

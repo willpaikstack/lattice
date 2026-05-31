@@ -49,19 +49,12 @@ export function CadUploadPreview({
   }, [onStatus, state]);
 
   if (state.status === "empty") {
-    return (
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-left">
-        <p className="text-sm font-semibold text-slate-950">3D preview</p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          Select a CAD file to generate an interactive model preview before submitting the RFQ.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   if (state.status === "ready") {
     return (
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-5 text-left">
+      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5 text-left">
         <div className="mb-4 flex flex-col gap-1">
           <p className="text-sm font-semibold text-slate-950">3D preview ready</p>
           <p className="text-xs text-slate-500">{state.fileName}</p>
@@ -89,11 +82,12 @@ export function CadUploadPreview({
         : "Preparing 3D preview";
 
   return (
-    <div className={`mt-6 rounded-xl border p-5 text-left ${tone}`}>
+    <div className={`mt-4 rounded-xl border p-5 text-left ${tone}`}>
       <div className="flex items-start gap-4">
-        <div className="relative h-16 w-20 shrink-0 rounded-lg border border-current/15 bg-white/70">
-          <div className="absolute left-5 top-6 h-7 w-9 skew-y-[-18deg] border border-current/30 bg-current/10" />
-          <div className="absolute left-8 top-3 h-7 w-9 skew-y-[24deg] border border-current/30 bg-current/5" />
+        <div className="relative h-24 w-28 shrink-0 rounded-lg border border-current/15 bg-white/70">
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(15,23,42,0.08)_1px,transparent_1px),linear-gradient(0deg,rgba(15,23,42,0.08)_1px,transparent_1px)] bg-[size:14px_14px]" />
+          <div className="absolute left-6 top-11 h-8 w-12 skew-y-[-18deg] border border-current/30 bg-current/10" />
+          <div className="absolute left-11 top-6 h-8 w-12 skew-y-[24deg] border border-current/30 bg-current/5" />
         </div>
         <div>
           <p className="text-sm font-semibold">{title}</p>

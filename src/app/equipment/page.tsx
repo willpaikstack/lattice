@@ -1,82 +1,20 @@
-import Link from "next/link";
-
 import { EquipmentCatalog } from "./equipment-catalog";
-import {
-  equipmentSources,
-  equipmentSummary,
-  recommendedEquipmentSections,
-} from "@/lib/vendor-equipment";
 
 export default function EquipmentPage() {
   return (
-    <div className="mx-auto max-w-[1180px] space-y-8 pb-12">
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
-        <div className="max-w-[880px]">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#8c8c8c]">Vendor resources</p>
-          <h1 className="mt-3 text-[48px] font-semibold leading-[1.05] text-[#202020] md:text-[64px]">Vendor Equipment</h1>
-          <p className="mt-4 max-w-[820px] text-[15px] leading-7 text-[#696f78]">
-            Browse the machines, inspection tools, and fabrication equipment behind Lattice vendor capacity. Use the section filters to narrow by process, tolerance, work envelope, and production role before routing an RFQ.
-          </p>
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-10 max-w-3xl">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+          <span className="text-xs font-bold uppercase tracking-[0.2em] text-stone-500">Your Resources</span>
         </div>
-        <div className="rounded-md border border-[#e6e6e6] bg-white p-4">
-          <p className="text-[13px] font-semibold text-[#30343a]">Catalog grouping</p>
-          <p className="mt-2 text-[13px] leading-6 text-[#6f737a]">
-            Equipment is grouped by unique make/model so buyers can compare actual capacity instead of broad capability labels.
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Equipment summary">
-        {equipmentSummary.map((metric) => (
-          <article className="rounded-md border border-[#e6e6e6] bg-white p-4" key={metric.label}>
-            <p className="text-[13px] font-medium text-[#6f737a]">{metric.label}</p>
-            <p className="mt-3 text-[34px] font-semibold leading-none tracking-[-0.045em] text-[#202020]">{metric.value}</p>
-          </article>
-        ))}
-      </section>
-
-      <section className="rounded-md border border-[#e6e6e6] bg-[#fbfbfb] p-5">
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-end">
-          <div>
-            <h2 className="text-[22px] font-semibold text-[#202020]">How to use this list</h2>
-            <p className="mt-2 text-[14px] leading-6 text-[#6f737a]">
-              Start with the process section, then filter for the specific manufacturing constraint that matters: 5-axis access, large envelope, live tooling, CMM inspection, laser cutting, forming, or finishing. Open a row when you need source links, detailed specs, and fabricator notes.
-            </p>
-          </div>
-          <div className="text-[13px] leading-6 text-[#6f737a]">
-            <p className="font-semibold text-[#30343a]">Source documents</p>
-            <p>{equipmentSources.zintilonProcessing.documentDate}: {equipmentSources.zintilonProcessing.document}</p>
-            <p>{equipmentSources.zintilonSheetMetal.documentDate}: {equipmentSources.zintilonSheetMetal.document}</p>
-            <p>{equipmentSources.zintilonQc.documentDate}: {equipmentSources.zintilonQc.document}</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
-        <h2 className="text-[22px] font-semibold text-[#202020]">Coverage notes</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {recommendedEquipmentSections.map((section) => (
-            <article className="rounded-md border border-[#eeeeee] bg-[#fbfbfb] p-4" key={section.name}>
-              <h3 className="text-[16px] font-semibold text-[#202020]">{section.name}</h3>
-              <p className="mt-2 text-[14px] leading-6 text-[#6f737a]">{section.reason}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+        <h1 className="mb-4 text-4xl font-semibold tracking-tight text-stone-900">Vendor Equipment</h1>
+        <p className="max-w-2xl text-[15px] leading-relaxed text-stone-600">
+          Browse the machines, inspection tools, and fabrication equipment behind Lattice vendor capacity. Use the section filters to narrow by process, tolerance, work envelope, and production role before routing an RFQ.
+        </p>
+      </div>
 
       <EquipmentCatalog />
-
-      <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-[-0.03em] text-[#202020]">Need a process match?</h2>
-            <p className="mt-1 text-[14px] leading-6 text-[#6f737a]">Route an RFQ with material, tolerance, finish, and inspection requirements so Lattice can map it to the right vendor equipment.</p>
-          </div>
-          <Link className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#858585] px-5 text-[14px] font-semibold text-white transition hover:bg-[#737373]" href="/requests/new">
-            Start an RFQ
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }

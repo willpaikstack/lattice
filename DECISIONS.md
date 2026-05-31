@@ -2,6 +2,94 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-05-30 - Position Lattice As A Machine-Shop Supplier Network
+
+Decision: position Lattice OS as a machine-shop-focused supplier-network platform, similar in spirit to Xometry, Fictiv, Hubs, or Protolabs, backed by William's China machine-shop contacts.
+
+Reason: the core value is helping domestic companies and machine shops accept work they might otherwise no-quote because they are at capacity, lack specific machines, lack available materials, lack labor, or want to advertise capabilities fulfilled through the Lattice supplier network without taking on additional CAPEX.
+
+Implications:
+
+- Customer-facing catalog pages such as `/equipment`, `/materials`, and `/capabilities` should prove real network capacity and limits, not just market broad capability labels.
+- Equipment and material data sourced from supplier contacts should keep provenance and documentation available for operator/admin trust.
+- RFQ workflows should increasingly help users decide whether the Lattice network can support a job that would otherwise be turned away.
+- UI language should make the supplier-network and overflow/no-quote recovery use case clear without turning operational app pages into marketing landing pages.
+
+## 2026-05-29 - Centralize RFQ Review And Quote Issuance In Quote Submissions
+
+Decision: make `/admin/quotes` the primary admin command center for RFQ review, status updates, supplier quote context, and customer quote issuance.
+
+Reason: admins need one place to understand an RFQ, update its internal state, compare supplier quote basis, and issue or revise the buyer-facing quote. Sending users between quote submissions, operator request details, and a separate builder creates unnecessary workflow fragmentation.
+
+Implications:
+
+- Quote submission rows should open an admin-owned RFQ command drawer rather than linking admins out to the operator detail route.
+- The drawer should keep review controls, buyer intake, line items, uploaded files, status history, supplier quote basis, and customer quote builder together.
+- Saving review decisions or customer quote versions should return admins to `/admin/quotes` and revalidate buyer quote/detail surfaces.
+- `/operator/requests/[requestId]` can remain as a focused legacy review route until it is no longer useful.
+
+## 2026-05-29 - Persist Customer Quote Versions On RFQs
+
+Decision: save customer-facing quotes as durable `CustomerQuoteVersion` records linked to the original RFQ request.
+
+Reason: quote issuance needs to be auditable and reusable across buyer quote detail, admin follow-up, purchase conversion, and future PDF/email delivery. A generated Markdown file alone is not enough source of truth.
+
+Implications:
+
+- Each saved quote records its quote number, version number, validity dates, customer fields, line-item pricing snapshot, Markdown output, total value, and issued timestamp.
+- Saving a quote moves the RFQ to `QUOTED`, stores the current quote summary/price/lead time on the request, and appends the normal status event when the status changes.
+- Buyer quote detail pages should prefer the latest saved customer quote version when showing the quote reference, total, notes, line-item pricing, and customer-ready Markdown.
+- The quote assembly UI should ultimately live inside the quote submissions workflow per the standalone-builder retirement decision.
+
+## 2026-05-29 - Retire The Separate RFQ Queue Page
+
+Decision: remove RFQ Queue as a separate admin navigation/page surface and redirect `/operator/requests` to `/admin/quotes`.
+
+Reason: Quote Submissions already serves as the admin RFQ intake and supplier quote management queue. Keeping a separate RFQ Queue creates duplicate operational surfaces for the same work.
+
+Implications:
+
+- Admin navigation should point operators to Quote Submissions for RFQ intake and quote work.
+- Existing operator request detail routes may continue to support focused review screens until quote submission detail pages absorb that workflow.
+- Future queue/filter work should land in `/admin/quotes` rather than reviving a separate `/operator/requests` list page.
+
+## 2026-05-29 - Retire The Standalone Quote Builder Page
+
+Decision: remove the dedicated `/admin/quotes/builder` admin page and keep quote assembly anchored in the quote submissions workflow.
+
+Reason: customer quotes should be put together from the quote submission context where RFQ details, supplier quote status, pricing, and buyer follow-up already live. A separate builder page creates an unnecessary second place to manage the same quote lifecycle.
+
+Implications:
+
+- `/admin/quotes` should become the single admin surface for quote submission management and future customer quote issuance.
+- Operator request detail pages should route admins back to quote submissions for quote work instead of linking to a standalone builder.
+- Quote generation helpers may remain as implementation utilities, but the user-facing workflow should not expose a separate Quote Builder nav item or page.
+
+## 2026-05-29 - Preserve Vendor Source Traceability For Catalog Data
+
+Decision: keep received vendor documents in `docs/vendor-sources/`, register them in `src/lib/vendor-source-documents.ts`, and link material/equipment records back to stable source document IDs for admin/operator traceability.
+
+Reason: customer-facing material and equipment output should be standardized, but internal users need to audit which vendor supplied each claim and which document it came from.
+
+Implications:
+
+- Customer-facing views should avoid exposing noisy vendor provenance unless it helps the workflow.
+- Admin/operator views and repositories should preserve vendor, document title/date, received date, local source path, and extraction notes.
+- When missing values are filled from external lookup rather than a vendor document, the repository record should note that external-source dependency.
+- New vendor documents should be copied into `docs/vendor-sources/` and added to the source document registry before derived data is expanded.
+
+## 2026-05-29 - Separate Overseas Vendor Management From Customers
+
+Decision: add `/admin/vendors` as a dedicated overseas vendor database surface instead of burying shop information inside customer profiles, quote submissions, or equipment catalogs.
+
+Reason: Lattice operators need one place to scan overseas partner contacts, capabilities, quality notes, RFQ response history, selected orders, lead times, payment terms, and shipping lanes while routing RFQs and managing supplier follow-up.
+
+Implications:
+
+- Keep the page table-first and property-driven, using Notion Databases as the UX reference for views, filters, scannable rows, and side-panel details.
+- Derive current demo metrics from request supplier quotes and selected supplier orders until durable vendor records exist.
+- Later supplier/vendor persistence should feed this page rather than replacing it with a competing admin surface.
+
 ## 2026-05-27 - Keep Buyer RFQ Intake Upload-First
 
 Decision: keep `/requests/new` as an upload-first RFQ flow where the detailed quote configuration stays locked until a CAD file is attached.

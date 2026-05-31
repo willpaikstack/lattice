@@ -1,10 +1,23 @@
+import { vendorSourceDocuments, type VendorSourceDocumentId } from "./vendor-source-documents";
+
 export type EquipmentSource = {
+  sourceDocumentId: VendorSourceDocumentId;
   vendor: string;
   document: string;
   documentDate: string;
+  repositoryPath: string;
 };
 
-export type EquipmentSection = "CNC Milling" | "CNC Lathe" | "QC & Inspection" | "Manual Machines" | "Sheet Metal" | "Finishing";
+export type EquipmentSection =
+  | "CNC Milling"
+  | "CNC Lathe"
+  | "QC & Inspection"
+  | "Manual Machines"
+  | "Sheet Metal"
+  | "Finishing"
+  | "EDM"
+  | "Die Casting"
+  | "Additive Manufacturing";
 
 export type EquipmentDataSheet = {
   label: string;
@@ -34,19 +47,32 @@ export type VendorEquipment = {
 
 export const equipmentSources = {
   zintilonProcessing: {
-    vendor: "Zintilon",
-    document: "Zintilon CNC Milling Machine and Lathe Machine Statistics Table",
-    documentDate: "2025-08-12",
+    sourceDocumentId: vendorSourceDocuments.zintilonProcessing.id,
+    vendor: vendorSourceDocuments.zintilonProcessing.vendor,
+    document: vendorSourceDocuments.zintilonProcessing.title,
+    documentDate: vendorSourceDocuments.zintilonProcessing.documentDate,
+    repositoryPath: vendorSourceDocuments.zintilonProcessing.repositoryPath,
   },
   zintilonQc: {
-    vendor: "Zintilon",
-    document: "Zintilon QC Equipment List & 2025 Calibration Plan",
-    documentDate: "2025-06-12",
+    sourceDocumentId: vendorSourceDocuments.zintilonQc20260123.id,
+    vendor: vendorSourceDocuments.zintilonQc20260123.vendor,
+    document: vendorSourceDocuments.zintilonQc20260123.title,
+    documentDate: vendorSourceDocuments.zintilonQc20260123.documentDate,
+    repositoryPath: vendorSourceDocuments.zintilonQc20260123.repositoryPath,
   },
   zintilonSheetMetal: {
-    vendor: "Zintilon",
-    document: "Zintilon Sheet Metal Processing Capability",
-    documentDate: "2024-11-15",
+    sourceDocumentId: vendorSourceDocuments.zintilonSheetMetal.id,
+    vendor: vendorSourceDocuments.zintilonSheetMetal.vendor,
+    document: vendorSourceDocuments.zintilonSheetMetal.title,
+    documentDate: vendorSourceDocuments.zintilonSheetMetal.documentDate,
+    repositoryPath: vendorSourceDocuments.zintilonSheetMetal.repositoryPath,
+  },
+  bestPrototypesEquipment: {
+    sourceDocumentId: vendorSourceDocuments.bestPrototypesEquipment.id,
+    vendor: vendorSourceDocuments.bestPrototypesEquipment.vendor,
+    document: vendorSourceDocuments.bestPrototypesEquipment.title,
+    documentDate: vendorSourceDocuments.bestPrototypesEquipment.documentDate,
+    repositoryPath: vendorSourceDocuments.bestPrototypesEquipment.repositoryPath,
   },
 } satisfies Record<string, EquipmentSource>;
 
@@ -57,6 +83,9 @@ export const equipmentSections: EquipmentSection[] = [
   "Manual Machines",
   "Sheet Metal",
   "Finishing",
+  "EDM",
+  "Die Casting",
+  "Additive Manufacturing",
 ];
 
 export const recommendedEquipmentSections = [
@@ -71,9 +100,8 @@ export const recommendedEquipmentSections = [
 ];
 
 export const equipmentSummary = [
-  { label: "Production machines", value: "155" },
+  { label: "Production machines", value: "200+" },
   { label: "Sheet metal equipment", value: "27" },
-  { label: "Unique equipment cards", value: "56" },
   { label: "ZEISS CMMs", value: "8" },
 ];
 
@@ -85,6 +113,8 @@ const inspectionImage = "/equipment/zeiss-cmm-inspection.jpg";
 const finishingImage = "/equipment/welding-and-finishing.jpg";
 const secondaryImage = "/equipment/sheet-metal-secondary-forming.jpg";
 const weldingImage = "/equipment/sheet-metal-laser-welding-process.jpg";
+
+const bestPrototypesSource = equipmentSources.bestPrototypesEquipment;
 
 const hermleTechnicalData = {
   c22: {
@@ -200,6 +230,25 @@ function finishingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imag
     imageSourceUrl: input.imageSourceUrl ?? "https://thermal-mech.com/product/panasonic-yc-350wx5/",
     machineUrl: input.machineUrl ?? "https://industry.panasonic.eu/welding",
     source: input.source ?? equipmentSources.zintilonProcessing,
+    ...input,
+  };
+}
+
+function bestPrototypesCard(
+  section: EquipmentSection,
+  input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & {
+    imagePath?: string;
+    imageSourceUrl?: string;
+    machineUrl?: string;
+  },
+) {
+  return {
+    vendor: "Best Prototypes",
+    section,
+    imagePath: input.imagePath ?? millingImage,
+    imageSourceUrl: input.imageSourceUrl ?? "https://best-prototypes.com/",
+    machineUrl: input.machineUrl ?? "https://best-prototypes.com/",
+    source: bestPrototypesSource,
     ...input,
   };
 }
@@ -1398,5 +1447,150 @@ export const vendorEquipment: VendorEquipment[] = [
       { label: "Use case", value: "Polishing, cleanup, and finishing support" },
     ],
     fabricatorNotes: ["Important for cosmetic sheet metal work and post-weld surface prep."],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-gf700u",
+    name: "5-axis machining center",
+    makeModel: "GF700U",
+    quantity: "3 sets",
+    imagePath: millingImage,
+    summary: "Best Prototypes 5-axis milling capacity for precision prototype and production machining.",
+    details: [
+      { label: "Brand / origin", value: "GF, Switzerland" },
+      { label: "Envelope", value: "700 x 630 x 500 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.01 mm" },
+    ],
+    fabricatorNotes: ["Source PDF lists 200 operators/people for the machine-tool equipment section; this is kept as vendor-provided context, not a machine-specific headcount."],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-efmi-high-speed-five-axis",
+    name: "High-speed 5-axis machining center",
+    makeModel: "EFMI high-speed 5-axis machining center",
+    quantity: "19 sets",
+    imagePath: millingImage,
+    summary: "High-count 5-axis machining capacity from Best Prototypes for complex milled components.",
+    details: [
+      { label: "Brand / origin", value: "EFMI, China" },
+      { label: "Envelope", value: "700 x 1000 x 550 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.01 mm" },
+      { label: "Repeatability", value: "0.004 mm" },
+    ],
+    fabricatorNotes: ["Useful as a high-capacity 5-axis routing option; confirm machine availability before quoting large programs."],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-jingdiao-five-axis",
+    name: "5-axis Jingdiao machining centers",
+    makeModel: "SmartCNC500-DRTD / JDGR400-A13S / JDCT800T",
+    quantity: "11 sets",
+    imagePath: millingImage,
+    imageSourceUrl: "https://en.jingdiao.com/",
+    machineUrl: "https://en.jingdiao.com/",
+    summary: "Aggregated Beijing Jingdiao 5-axis machining centers listed by Best Prototypes.",
+    details: [
+      { label: "Models", value: "SmartCNC500-DRTD, JDGR400-A13S, JDCT800T" },
+      { label: "Envelope range", value: "450 x 680 x 400 mm to 800 x 800 x 350 mm" },
+      { label: "Max RPM", value: "24,000 to 28,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+    fabricatorNotes: ["Aggregated to avoid duplicate cards while preserving the source model families."],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-three-axis-vmc-fleet",
+    name: "3-axis vertical machining center fleet",
+    makeModel: "FANUC Robodrill / Chenggong / Siemens / Mitsubishi VMCs",
+    quantity: "40+ sets",
+    imagePath: millingImage,
+    summary: "Broad 3-axis VMC capacity covering small and mid-size machined parts.",
+    details: [
+      { label: "Representative envelopes", value: "600 x 500 x 350 mm through 1100 x 600 x 600 mm" },
+      { label: "Max RPM range", value: "10,000 to 24,000" },
+      { label: "Machining accuracy", value: "+/-0.01 to +/-0.02 mm where listed" },
+      { label: "Positioning / repeatability", value: "0.005 to +/-0.003 mm where listed" },
+    ],
+    fabricatorNotes: ["Grouped because the source lists many similar VMC rows across brands and model numbers."],
+  }),
+  bestPrototypesCard("CNC Lathe", {
+    slug: "best-prototypes-meike-cnc-lathe",
+    name: "CNC lathe and turn-mill machines",
+    makeModel: "Meike CNC lathe / turning-milling composite",
+    quantity: "10 sets",
+    imagePath: latheImage,
+    summary: "Best Prototypes turning and turn-mill capacity for round components.",
+    details: [
+      { label: "Machine families", value: "Meike CNC Lathe and Meike Turning-Milling Composite" },
+      { label: "Listed accuracy", value: "0.01 mm" },
+    ],
+    fabricatorNotes: ["Source does not provide turning envelope; verify chuck size, bar capacity, and live-tooling details before quote routing."],
+  }),
+  bestPrototypesCard("EDM", {
+    slug: "best-prototypes-middle-wire-edm",
+    name: "Middle wire EDM",
+    makeModel: "Middle Wire EDM",
+    quantity: "5 sets",
+    imagePath: secondaryImage,
+    summary: "Wire EDM support for precision profiles and hard-material cutting.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }],
+    fabricatorNotes: ["Use for thin slots, sharp internal profiles, and materials or geometry better suited to EDM than milling."],
+  }),
+  bestPrototypesCard("QC & Inspection", {
+    slug: "best-prototypes-cmm-fleet",
+    name: "CMM inspection fleet",
+    makeModel: "ZEISS / HEXAGON / Leader 3D measuring machines",
+    quantity: "4 sets",
+    imagePath: inspectionImage,
+    imageSourceUrl: "https://www.zeiss.com/metrology/us/systems/cmms.html",
+    machineUrl: "https://www.zeiss.com/metrology/us/systems/cmms.html",
+    summary: "CMM inspection capacity listed by Best Prototypes for dimensional verification.",
+    details: [
+      { label: "Machines", value: "ZEISS 800 x 600 x 1000, HEXAGON 700 x 600 x 1000, Leader 600 x 800 x 600" },
+      { label: "Precision", value: "0.001 mm" },
+    ],
+    fabricatorNotes: ["Customer-facing inspection claims should still be tied to the RFQ inspection plan and certificate package."],
+  }),
+  bestPrototypesCard("Die Casting", {
+    slug: "best-prototypes-die-casting",
+    name: "Die casting equipment",
+    makeModel: "Aluminum, zinc, and magnesium die casting fleet",
+    quantity: "23 sets",
+    imagePath: secondaryImage,
+    summary: "Die casting capacity across aluminum, zinc, and magnesium alloy parts.",
+    details: [
+      { label: "Aluminum alloy die casting", value: "15 sets, 180T-1650T, few grams to 15 kg" },
+      { label: "Zinc alloy die casting", value: "6 sets, 18T-200T" },
+      { label: "Magnesium alloy die casting", value: "2 sets, 350T-400T" },
+      { label: "Melting furnace", value: "1T and 1.5T center smelting furnace, 2 sets" },
+    ],
+    fabricatorNotes: ["New equipment section created from Best Prototypes source; tooling assumptions should be captured separately during RFQ intake."],
+  }),
+  bestPrototypesCard("Additive Manufacturing", {
+    slug: "best-prototypes-sla-printing",
+    name: "SLA 3D printing equipment",
+    makeModel: "SLA450 / SLA600 / SLA800 / SLA1400 / SLA9400 fleet",
+    quantity: "108 sets",
+    imagePath: secondaryImage,
+    summary: "Large SLA fleet for prototype resin parts across several build envelopes.",
+    details: [
+      { label: "Build envelopes", value: "Up to 1370 x 670 x 498 mm listed" },
+      { label: "Largest listed platform", value: "SLA1400, 1400 x 700 x 500 mm equipment spec" },
+      { label: "Highest-count model", value: "SLA9400, 78 sets" },
+    ],
+    fabricatorNotes: ["Good fit for fast visual prototypes; material and tolerance requirements must be confirmed before presenting as production-equivalent."],
+  }),
+  bestPrototypesCard("Additive Manufacturing", {
+    slug: "best-prototypes-slm-hp-nylon-printing",
+    name: "SLM and HP nylon 3D printing equipment",
+    makeModel: "SLM AlSi10Mg / SLM 316L / HP nylon printers",
+    quantity: "13 sets",
+    imagePath: secondaryImage,
+    summary: "Metal and nylon additive capacity listed by Best Prototypes.",
+    details: [
+      { label: "SLM materials", value: "AlSi10Mg and Stainless steel 316L" },
+      { label: "SLM max product size", value: "250 x 250 x 300 mm" },
+      { label: "HP nylon materials", value: "Black nylon, white nylon, color nylon" },
+      { label: "HP max product size", value: "Up to 380 x 280 x 380 mm listed" },
+    ],
+    fabricatorNotes: ["Treat material properties, finish, and post-processing as external-source data until verified against current vendor process sheets."],
   }),
 ];

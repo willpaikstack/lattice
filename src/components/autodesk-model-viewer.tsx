@@ -3,9 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 
 type AutodeskViewerInstance = {
+  addEventListener: (eventName: string, callback: () => void) => void;
+  fitToView: () => void;
   start: () => number;
   finish: () => void;
   loadDocumentNode: (document: AutodeskDocument, viewable: unknown) => Promise<unknown>;
+  navigation?: {
+    getPosition?: () => AutodeskVector3;
+    getTarget?: () => AutodeskVector3;
+    setPosition?: (position: AutodeskVector3) => void;
+  };
+  removeEventListener: (eventName: string, callback: () => void) => void;
+  resize: () => void;
+  setLightPreset?: (preset: number) => void;
+  setTheme?: (theme: string) => void;
+  waitForLoadDone?: (include: { geometry: boolean; onlyModels: unknown[] }) => Promise<void>;
 };
 
 type AutodeskDocument = {
@@ -14,8 +26,19 @@ type AutodeskDocument = {
   };
 };
 
+type AutodeskVector3 = {
+  x: number;
+  y: number;
+  z: number;
+  add?: (vector: AutodeskVector3) => AutodeskVector3;
+  clone?: () => AutodeskVector3;
+  multiplyScalar?: (scalar: number) => AutodeskVector3;
+  sub?: (vector: AutodeskVector3) => AutodeskVector3;
+};
+
 type AutodeskNamespace = {
   Viewing: {
+    GEOMETRY_LOADED_EVENT: string;
     Initializer: (
       options: {
         env: string;
@@ -26,7 +49,7 @@ type AutodeskNamespace = {
     ) => void;
     GuiViewer3D: new (element: HTMLElement) => AutodeskViewerInstance;
     Document: {
-      load: (urn: string, onSuccess: (document: AutodeskDocument) => void, onError: () => void) => void;
+      load: (urn: string, onSuccess: (document: AutodeskDocument) => void, onError: (errorCode?: number, errorMessage?: string) => void) => void;
     };
   };
 };
@@ -37,11 +60,56 @@ declare global {
   }
 }
 
-function loadExternalAsset(element: HTMLScriptElement | HTMLLinkElement) {
+const viewerVersion = "7.108.0";
+const viewerAssetBaseUrl = `https://developer.api.autodesk.com/modelderivative/v2/viewers/${viewerVersion}`;
+
+function ensureViewerStylesheet() {
+  if (document.querySelector(`link[data-autodesk-viewer-version="${viewerVersion}"]`)) {
+    return;
+  }
+
+  const stylesheet = document.createElement("link");
+  stylesheet.dataset.autodeskViewerVersion = viewerVersion;
+  stylesheet.rel = "stylesheet";
+  stylesheet.href = `${viewerAssetBaseUrl}/style.min.css`;
+  document.head.appendChild(stylesheet);
+}
+
+function loadViewerScript() {
   return new Promise<void>((resolve, reject) => {
-    element.addEventListener("load", () => resolve(), { once: true });
-    element.addEventListener("error", () => reject(new Error("Unable to load Autodesk Viewer assets")), { once: true });
-    document.head.appendChild(element);
+    if (window.Autodesk) {
+      resolve();
+      return;
+    }
+
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[data-autodesk-viewer-version="${viewerVersion}"]`);
+    const script = existingScript ?? document.createElement("script");
+    const timeout = window.setTimeout(() => reject(new Error("Autodesk Viewer took too long to load.")), 20000);
+    const finish = () => {
+      window.clearTimeout(timeout);
+      if (window.Autodesk) {
+        resolve();
+      } else {
+        reject(new Error("Autodesk Viewer loaded, but did not initialize."));
+      }
+    };
+
+    script.addEventListener("load", finish, { once: true });
+    script.addEventListener(
+      "error",
+      () => {
+        window.clearTimeout(timeout);
+        reject(new Error("Unable to load Autodesk Viewer assets."));
+      },
+      { once: true },
+    );
+
+    if (!existingScript) {
+      script.dataset.autodeskViewerVersion = viewerVersion;
+      script.src = `${viewerAssetBaseUrl}/viewer3D.min.js`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
   });
 }
 
@@ -50,28 +118,102 @@ async function loadViewerAssets() {
     return;
   }
 
-  const stylesheet = document.createElement("link");
-  stylesheet.rel = "stylesheet";
-  stylesheet.href = "https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css";
+  ensureViewerStylesheet();
+  await loadViewerScript();
+}
 
-  const script = document.createElement("script");
-  script.src = "https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.min.js";
-  script.async = true;
+function waitForNextFrame() {
+  return new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+  });
+}
 
-  await loadExternalAsset(stylesheet);
-  await loadExternalAsset(script);
+async function waitForGeometry(viewer: AutodeskViewerInstance, model: unknown) {
+  if (viewer.waitForLoadDone) {
+    await viewer.waitForLoadDone({ geometry: true, onlyModels: [model] });
+    return;
+  }
+
+  const geometryLoadedEvent = window.Autodesk?.Viewing.GEOMETRY_LOADED_EVENT;
+  if (!geometryLoadedEvent) {
+    await waitForNextFrame();
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    const fallback = window.setTimeout(resolve, 2500);
+    const onGeometryLoaded = () => {
+      window.clearTimeout(fallback);
+      viewer.removeEventListener(geometryLoadedEvent, onGeometryLoaded);
+      resolve();
+    };
+    viewer.addEventListener(geometryLoadedEvent, onGeometryLoaded);
+  });
+}
+
+function addInitialCameraPadding(viewer: AutodeskViewerInstance) {
+  const position = viewer.navigation?.getPosition?.();
+  const target = viewer.navigation?.getTarget?.();
+
+  if (!position || !target || !viewer.navigation?.setPosition) {
+    return;
+  }
+
+  const { add, clone, multiplyScalar, sub } = position;
+  if (clone && sub && multiplyScalar && add) {
+    const moved = sub.call(clone.call(position), target);
+    const padded = multiplyScalar.call(moved, 1.35);
+    viewer.navigation.setPosition(add.call(padded, target));
+    return;
+  }
+
+  viewer.navigation.setPosition({
+    x: target.x + (position.x - target.x) * 1.35,
+    y: target.y + (position.y - target.y) * 1.35,
+    z: target.z + (position.z - target.z) * 1.35,
+  });
+}
+
+async function fitInitialView(viewer: AutodeskViewerInstance, model: unknown) {
+  await waitForGeometry(viewer, model);
+  await waitForNextFrame();
+  viewer.resize();
+  viewer.fitToView();
+  addInitialCameraPadding(viewer);
+  await waitForNextFrame();
+  viewer.fitToView();
+  addInitialCameraPadding(viewer);
 }
 
 export function AutodeskModelViewer({ urn }: { urn: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<AutodeskViewerInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  async function exploreModel() {
+    if (!containerRef.current) {
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen();
+    } else {
+      await containerRef.current.requestFullscreen();
+    }
+
+    await waitForNextFrame();
+    viewerRef.current?.resize();
+    viewerRef.current?.fitToView();
+  }
 
   useEffect(() => {
     let isMounted = true;
 
     async function initializeViewer() {
       try {
+        setError(null);
+        setIsLoading(true);
         await loadViewerAssets();
 
         if (!window.Autodesk || !containerRef.current || !isMounted) {
@@ -85,6 +227,9 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
             getAccessToken: async (callback) => {
               const response = await fetch("/api/cad-previews/token");
               const payload = await response.json();
+              if (!response.ok) {
+                throw new Error(payload.error ?? "Unable to get an Autodesk Viewer token.");
+              }
               callback(payload.access_token, payload.expires_in);
             },
           },
@@ -95,15 +240,37 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
 
             const viewer = new window.Autodesk.Viewing.GuiViewer3D(containerRef.current);
             viewerRef.current = viewer;
-            viewer.start();
+            const startCode = viewer.start();
+
+            if (startCode > 0) {
+              setError(`Autodesk Viewer failed to start (${startCode}).`);
+              setIsLoading(false);
+              return;
+            }
+
+            viewer.setTheme?.("light-theme");
+            viewer.setLightPreset?.(0);
 
             window.Autodesk.Viewing.Document.load(
               `urn:${urn}`,
               (document) => {
-                void viewer.loadDocumentNode(document, document.getRoot().getDefaultGeometry());
+                void viewer.loadDocumentNode(document, document.getRoot().getDefaultGeometry()).then(async (model) => {
+                  if (!isMounted) {
+                    return;
+                  }
+                  await fitInitialView(viewer, model);
+                  if (!isMounted) {
+                    return;
+                  }
+                  setIsLoading(false);
+                }).catch((caught) => {
+                  setError(caught instanceof Error ? caught.message : "The translated CAD model could not be loaded.");
+                  setIsLoading(false);
+                });
               },
-              () => {
-                setError("The translated CAD model could not be loaded.");
+              (errorCode, errorMessage) => {
+                setError(errorMessage || `The translated CAD model could not be loaded (${errorCode ?? "unknown error"}).`);
+                setIsLoading(false);
               },
             );
           },
@@ -125,5 +292,23 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
     return <p className="rounded-lg bg-red-50 p-4 text-sm font-medium text-red-700">{error}</p>;
   }
 
-  return <div className="h-80 overflow-hidden rounded-xl border border-slate-200 bg-slate-950" ref={containerRef} />;
+  return (
+    <div className="lattice-cad-viewer relative h-80 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" ref={containerRef}>
+      {!isLoading ? (
+        <button
+          aria-label="Explore model in full screen"
+          className="absolute right-3 top-3 z-10 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+          onClick={() => void exploreModel()}
+          type="button"
+        >
+          Explore Model
+        </button>
+      ) : null}
+      {isLoading ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50 text-sm font-semibold text-slate-600">
+          Loading interactive CAD preview...
+        </div>
+      ) : null}
+    </div>
+  );
 }

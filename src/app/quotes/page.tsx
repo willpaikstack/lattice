@@ -1,7 +1,7 @@
-import Link from "next/link";
-
 import { BuyerQuotes } from "@/components/buyer-quotes";
 import { listBuyerQuotes } from "@/lib/request-repository";
+
+import { AlertCircle, CheckCircle2, Inbox } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +11,30 @@ export default async function QuotesPage() {
   const quotedCount = quotes.filter((quote) => quote.status === "QUOTED").length;
   const needsInfoCount = quotes.filter((quote) => quote.status === "NEEDS_INFO").length;
 
+  const metrics = [
+    {
+      detail: "Not yet purchased",
+      icon: Inbox,
+      label: "Active RFQs",
+      value: activeQuoteCount,
+    },
+    {
+      detail: "Priced quotes",
+      icon: CheckCircle2,
+      label: "Ready to accept",
+      value: quotedCount,
+    },
+    {
+      detail: "Buyer action required",
+      icon: AlertCircle,
+      label: "Needs info",
+      value: needsInfoCount,
+    },
+  ];
+
   return (
-    <div className="mx-auto max-w-[1180px] space-y-5">
-      <section className="border-b border-[#e6e6e6] pb-5">
+    <div className="mx-auto max-w-[1180px] space-y-6">
+      <section className="border-b border-[#e6e6e6] pb-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a7f87]">Marketplace workspace</p>
@@ -22,33 +43,26 @@ export default async function QuotesPage() {
               Track RFQ packages, pricing, lead times, supplier review, and buyer actions in one scannable queue.
             </p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold transition hover:bg-[#2b2b2b]"
-              href="/requests/new"
-              style={{ color: "#ffffff" }}
-            >
-              Request Quote
-            </Link>
-            <Link className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#dcdcdc] bg-white px-4 text-[14px] font-semibold text-[#3f444b] transition hover:bg-[#f8f8f8]" href="/operator/requests">
-              Open Operator Queue
-            </Link>
-          </div>
         </div>
       </section>
 
       <section aria-label="Quote summary" className="grid gap-3 md:grid-cols-3">
-        {[
-          { label: "Active RFQs", value: activeQuoteCount, detail: "Not yet purchased" },
-          { label: "Ready to accept", value: quotedCount, detail: "Priced quotes" },
-          { label: "Needs info", value: needsInfoCount, detail: "Buyer action required" },
-        ].map((metric) => (
-          <article className="rounded-md border border-[#e8e8e8] bg-white p-4" key={metric.label}>
-            <p className="text-[13px] font-medium text-[#686d75]">{metric.label}</p>
-            <p className="mt-3 text-[28px] font-semibold leading-none text-[#202020]">{metric.value}</p>
-            <p className="mt-2 text-[12px] text-[#8a8f98]">{metric.detail}</p>
-          </article>
-        ))}
+        {metrics.map((metric) => {
+          const Icon = metric.icon;
+
+          return (
+            <article className="relative rounded-lg border border-[#e7e7e7] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]" key={metric.label}>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-[13px] font-medium text-[#686d75]">{metric.label}</p>
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#ececec] bg-[#fafafa] text-[#8b919a]">
+                  <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
+                </span>
+              </div>
+              <p className="mt-4 text-[30px] font-semibold leading-none text-[#202020]">{metric.value}</p>
+              <p className="mt-2 text-[12px] text-[#8a8f98]">{metric.detail}</p>
+            </article>
+          );
+        })}
       </section>
 
       <BuyerQuotes requests={quotes} />

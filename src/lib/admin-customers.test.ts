@@ -31,7 +31,7 @@ describe("admin customer summaries", () => {
       ...quoted,
       id: "req_purchased",
       status: "PURCHASED",
-      updatedAt: "2026-05-24T10:00:00.000Z",
+      updatedAt: "2099-05-26T10:00:00.000Z",
       supplierOrder: {
         ...quoted.supplierOrder,
         shopName: "Shenzhen Precision Manufacturing",
@@ -75,7 +75,7 @@ describe("admin customer summaries", () => {
       activeQuoteRequests: 2,
       placedOrders: 1,
       blockedRequests: 1,
-      quotedValueCents: 375000,
+      quotedValueCents: 250000,
       orderValueCents: 125000,
       latestRequest: {
         id: "req_purchased",

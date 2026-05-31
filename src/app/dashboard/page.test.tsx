@@ -8,12 +8,13 @@ describe("Home dashboard", () => {
     render(<Home />);
 
     expect(screen.getByRole("heading", { name: "Hi William Paik" })).toBeInTheDocument();
-    expect(screen.getByText("Active RFQs")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View Active RFQs/ })).toHaveAttribute("href", "/quotes");
     expect(screen.getByText("43 unread quotes")).toBeInTheDocument();
-    expect(screen.getByText("Shipped")).toBeInTheDocument();
-    expect(screen.getByText("Alerts")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View Orders/ })).toHaveAttribute("href", "/orders");
+    expect(screen.getByRole("link", { name: /View Shipped/ })).toHaveAttribute("href", "/shipped");
+    expect(screen.getByRole("link", { name: /View Alerts/ })).toHaveAttribute("href", "/notifications");
     expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Star inbox" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Star inbox" })).not.toBeInTheDocument();
     expect(screen.getByText("Customer updates across RFQs, orders, and quality documentation")).toBeInTheDocument();
     expect(screen.getByText("Order PO-1042 moved to final inspection")).toBeInTheDocument();
     expect(screen.getByText("RFQ RFQ-1187 is ready for review")).toBeInTheDocument();

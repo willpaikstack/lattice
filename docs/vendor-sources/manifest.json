@@ -1,0 +1,47 @@
+[
+  {
+    "id": "saky-catalog",
+    "vendor": "Saky Steel",
+    "title": "SAKY STEEL Alloy Bar/Sheet/Strip/Pipe/Flange/Wire Catalog",
+    "documentDate": "unknown",
+    "receivedDate": "2026-05-29",
+    "path": "docs/vendor-sources/saky-catalog.pdf",
+    "originalFileName": "saky-catalog.pdf"
+  },
+  {
+    "id": "zytc-catalogue",
+    "vendor": "Tianjin ZYTC Alloy Technology Co., Ltd",
+    "title": "Your Alloy Expert Catalog",
+    "documentDate": "unknown",
+    "receivedDate": "2026-05-29",
+    "path": "docs/vendor-sources/zytc-catalogue.pdf",
+    "originalFileName": "catalogue.pdf"
+  },
+  {
+    "id": "best-prototypes-equipment-list",
+    "vendor": "Best Prototypes",
+    "title": "Machine Tool Equipment, Inspection Equipment, Die Casting, and 3D Printing Equipment",
+    "documentDate": "unknown",
+    "receivedDate": "2026-05-29",
+    "path": "docs/vendor-sources/best-prototypes-equipment-list.pdf",
+    "originalFileName": "best_prototypes_equipment_list.pdf"
+  },
+  {
+    "id": "zintilon-general-materials-list-20250613",
+    "vendor": "Zintilon",
+    "title": "ZTL's General Materials List (Ongoing update 250613)",
+    "documentDate": "2025-06-13",
+    "receivedDate": "2026-05-29",
+    "path": "docs/vendor-sources/zintilon-general-materials-list-20250613.xlsx",
+    "originalFileName": "Zintilons_General_Materials_List_(Ongoing_update250613).xlsx"
+  },
+  {
+    "id": "zintilon-qc-equipment-list-20260123",
+    "vendor": "Zintilon",
+    "title": "Zintilon QC Equipment List & 2026 Calibration Plan",
+    "documentDate": "2026-01-23",
+    "receivedDate": "2026-05-29",
+    "path": "docs/vendor-sources/zintilon-qc-equipment-list-20260123.pdf",
+    "originalFileName": "Zintilon_QC_Equipment_List_-_E_20260123.pdf"
+  }
+]

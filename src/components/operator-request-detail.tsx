@@ -50,8 +50,8 @@ export function OperatorRequestDetail({
 
   return (
     <div className="space-y-6">
-      <Link className="inline-flex text-sm font-semibold text-slate-500 transition hover:text-slate-950" href="/operator/requests">
-        ← Back to RFQ queue
+      <Link className="inline-flex text-sm font-semibold text-slate-500 transition hover:text-slate-950" href="/admin/quotes">
+        ← Back to quote submissions
       </Link>
 
       <section className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
@@ -169,13 +169,21 @@ export function OperatorRequestDetail({
                 placeholder="Short buyer-facing pricing and delivery summary."
               />
             </label>
-            <button
-              className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-              disabled={!updateAction}
-              type="submit"
-            >
-              Save review decision
-            </button>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={!updateAction}
+                type="submit"
+              >
+                Save review decision
+              </button>
+              <Link
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                href="/admin/quotes"
+              >
+                Manage quote submission
+              </Link>
+            </div>
           </form>
         </section>
 

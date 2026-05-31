@@ -40,20 +40,20 @@ enum SupplierDocumentCategory {
 }
 
 model Company {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   name                String
-  website             String   @default("")
-  industry            String   @default("")
-  primaryContactName  String   @default("")
-  primaryContactEmail String   @default("")
-  billingEmail        String   @default("")
-  customerTier        String   @default("Standard")
-  accountStatus       String   @default("Active")
-  notes               String   @default("")
+  website             String    @default("")
+  industry            String    @default("")
+  primaryContactName  String    @default("")
+  primaryContactEmail String    @default("")
+  billingEmail        String    @default("")
+  customerTier        String    @default("Standard")
+  accountStatus       String    @default("Active")
+  notes               String    @default("")
   users               User[]
   requests            Request[]
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }
 
 model User {
@@ -67,34 +67,65 @@ model User {
 }
 
 model Request {
-  id                   String                 @id @default(cuid())
-  title                String
-  process              String
-  dueDate              DateTime?
-  status               RequestStatus          @default(DRAFT)
-  buyerCompanyId       String?
-  buyerCompany         Company?               @relation(fields: [buyerCompanyId], references: [id])
-  requesterName        String
-  operatorCompleteness OperatorCompleteness    @default(READY_FOR_REVIEW)
-  assignedOwner        String?
-  internalNotes        String                 @default("")
-  supplierPackageNotes String                 @default("")
-  supplierOrderStatus   SupplierOrderStatus    @default(AWAITING_ACKNOWLEDGMENT)
-  supplierShopName      String                 @default("China supplier team")
-  supplierContactName   String                 @default("")
-  supplierNotes         String                 @default("")
-  supplierTrackingNumber String                @default("")
-  estimatedPriceCents  Int?
-  leadTimeDays         Int?
-  quoteSummary         String                 @default("")
-  lineItems            RequestLineItem[]
-  files                UploadedFile[]
-  supplierDocuments    SupplierDocument[]
-  supplierUpdates      SupplierUpdate[]
-  supplierQuotes       SupplierQuote[]
-  statusEvents         StatusEvent[]
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
+  id                     String                 @id @default(cuid())
+  title                  String
+  process                String
+  dueDate                DateTime?
+  status                 RequestStatus          @default(DRAFT)
+  buyerCompanyId         String?
+  buyerCompany           Company?               @relation(fields: [buyerCompanyId], references: [id])
+  requesterName          String
+  operatorCompleteness   OperatorCompleteness   @default(READY_FOR_REVIEW)
+  assignedOwner          String?
+  internalNotes          String                 @default("")
+  supplierPackageNotes   String                 @default("")
+  supplierOrderStatus    SupplierOrderStatus    @default(AWAITING_ACKNOWLEDGMENT)
+  supplierShopName       String                 @default("China supplier team")
+  supplierContactName    String                 @default("")
+  supplierNotes          String                 @default("")
+  supplierTrackingNumber String                 @default("")
+  estimatedPriceCents    Int?
+  leadTimeDays           Int?
+  quoteSummary           String                 @default("")
+  lineItems              RequestLineItem[]
+  files                  UploadedFile[]
+  supplierDocuments      SupplierDocument[]
+  supplierUpdates        SupplierUpdate[]
+  supplierQuotes         SupplierQuote[]
+  customerQuotes         CustomerQuoteVersion[]
+  statusEvents           StatusEvent[]
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+}
+
+model CustomerQuoteVersion {
+  id              String    @id @default(cuid())
+  requestId       String
+  request         Request   @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  versionNumber   Int
+  quoteNumber     String
+  quoteDate       DateTime?
+  validUntil      DateTime?
+  preparedBy      String    @default("Lattice")
+  customerCompany String
+  customerContact String
+  projectName     String
+  leadTime        String    @default("")
+  shipping        String    @default("")
+  tax             String    @default("")
+  notes           String    @default("")
+  assumptions     String    @default("")
+  clarifications  String    @default("")
+  filesReviewed   String    @default("")
+  lineItems       Json
+  totalCents      Int
+  markdown        String
+  issuedAt        DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([requestId, versionNumber])
+  @@index([requestId, issuedAt])
 }
 
 enum SupplierQuoteStatus {
@@ -136,14 +167,14 @@ model RequestLineItem {
 }
 
 model UploadedFile {
-  id        String   @id @default(cuid())
-  requestId String
-  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  name      String
-  sizeBytes Int
-  type      String
+  id         String   @id @default(cuid())
+  requestId  String
+  request    Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name       String
+  sizeBytes  Int
+  type       String
   storageKey String?
-  createdAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 }
 
 model SupplierDocument {

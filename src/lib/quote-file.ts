@@ -1,3 +1,5 @@
+import type { CustomerQuoteVersion, LatticeRequest } from "./request-model";
+
 export type CustomerQuoteLineItem = {
   id: string;
   description: string;
@@ -63,6 +65,66 @@ export function customerQuoteFileName(quote: CustomerQuoteInput) {
   const customer = quoteFileNamePart(quote.customerCompany) || "customer";
 
   return `${quoteNumber}-${customer}.md`;
+}
+
+function addDaysIsoFrom(dateValue: string, days: number) {
+  const date = new Date(dateValue);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function buildCustomerQuoteInputFromRequest(request: LatticeRequest): CustomerQuoteInput {
+  const quoteDate = new Date().toISOString().slice(0, 10);
+
+  return {
+    assumptions: [
+      "Customer-supplied CAD and drawings are complete and represent the latest revision.",
+      "Pricing is based on the uploaded RFQ package and listed manufacturing requirements.",
+      "Standard dimensional inspection is included unless additional documentation is listed.",
+    ].join("\n"),
+    clarifications: request.operatorReview.internalNotes,
+    customerCompany: request.buyerCompany,
+    customerContact: request.requesterName,
+    filesReviewed: request.files.map((file) => file.name).join("\n"),
+    leadTime: request.quote.leadTimeDays ? `${request.quote.leadTimeDays} business days` : "",
+    lineItems: request.lineItems.map((item) => ({
+      description: item.partName,
+      finish: item.surfaceFinish ?? "",
+      id: item.id,
+      material: item.material,
+      process: request.process,
+      quantity: item.quantity,
+      unitPrice: 0,
+    })),
+    notes: request.quote.summary || "Pricing includes manufacturing coordination, production, and standard inspection for the listed line items.",
+    preparedBy: "Lattice",
+    projectName: request.title,
+    quoteDate,
+    quoteNumber: `LQ-${request.id.slice(-8).toUpperCase()}`,
+    shipping: "Billed at actual",
+    tax: "Not included",
+    validUntil: addDaysIsoFrom(quoteDate, 14),
+  };
+}
+
+export function buildCustomerQuoteInputFromVersion(quote: CustomerQuoteVersion): CustomerQuoteInput {
+  return {
+    assumptions: quote.assumptions,
+    clarifications: quote.clarifications,
+    customerCompany: quote.customerCompany,
+    customerContact: quote.customerContact,
+    filesReviewed: quote.filesReviewed,
+    leadTime: quote.leadTime,
+    lineItems: quote.lineItems,
+    notes: quote.notes,
+    preparedBy: quote.preparedBy,
+    projectName: quote.projectName,
+    quoteDate: quote.quoteDate,
+    quoteNumber: quote.quoteNumber,
+    shipping: quote.shipping,
+    tax: quote.tax,
+    validUntil: quote.validUntil,
+  };
 }
 
 export function buildCustomerQuoteMarkdown(quote: CustomerQuoteInput) {

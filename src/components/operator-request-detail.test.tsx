@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "../lib/request-model";
 
+import { AdminQuoteManagement } from "./admin-quote-management";
 import { BuyerOrders } from "./buyer-orders";
 import { BuyerOrderDetail } from "./buyer-order-detail";
 import { BuyerQuoteDetail } from "./buyer-quote-detail";
@@ -60,7 +61,9 @@ describe("OperatorQueue", () => {
 
 describe("OperatorRequestDetail", () => {
   it("renders buyer intake, files, line items, and the review checklist", () => {
-    render(<OperatorRequestDetail request={makeSubmittedRequest()} />);
+    const request = makeSubmittedRequest();
+
+    render(<OperatorRequestDetail request={request} />);
 
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
     expect(screen.getByText("Amogy Manufacturing")).toBeInTheDocument();
@@ -69,13 +72,49 @@ describe("OperatorRequestDetail", () => {
     expect(screen.getByText(/6061-T6 Aluminum/)).toBeInTheDocument();
     expect(screen.getByText(/ISO 2768 Medium/)).toBeInTheDocument();
     expect(screen.getByText(/Quality docs: Standard Inspection/)).toBeInTheDocument();
-    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
+    expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
     expect(screen.getByText("Confirm every CAD/drawing file is readable and matched to a line item.")).toBeInTheDocument();
     expect(screen.getByText("Save review decision")).toBeDisabled();
     expect(screen.getByLabelText("Assigned owner")).toBeInTheDocument();
     expect(screen.getByLabelText("Estimated quote price")).toBeInTheDocument();
     expect(screen.getByLabelText("Lead time days")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Manage quote submission" })).toHaveAttribute("href", "/admin/quotes");
     expect(screen.getByText(/No supplier package notes yet/)).toBeInTheDocument();
+  });
+});
+
+describe("AdminQuoteManagement", () => {
+  it("opens an RFQ command drawer with review controls and intake context", () => {
+    const request = makeSubmittedRequest();
+
+    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open RFQ" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("RFQ command center")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+    expect(screen.getByText("Review controls")).toBeInTheDocument();
+    expect(screen.getByLabelText("Status")).toHaveDisplayValue("Submitted");
+    expect(screen.getByLabelText("Assigned owner")).toBeInTheDocument();
+    expect(screen.getByLabelText("Customer quote summary")).toBeInTheDocument();
+    expect(screen.getByText("Buyer intake")).toBeInTheDocument();
+    expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Save review decision" })).toBeEnabled();
+  });
+
+  it("opens quote issuance inside the admin command drawer", () => {
+    const request = makeSubmittedRequest();
+
+    render(<AdminQuoteManagement requests={[request]} saveQuoteAction={() => undefined} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Issue quote" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Customer quote")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote number")).toHaveDisplayValue(/LQ-/);
+    expect(screen.getByLabelText("Customer company")).toHaveDisplayValue("Amogy Manufacturing");
+    expect(screen.getByRole("button", { name: "Save to RFQ" })).toBeInTheDocument();
   });
 });
 
@@ -86,27 +125,69 @@ describe("BuyerQuotes", () => {
     render(<BuyerQuotes requests={[request]} />);
 
     expect(screen.getByRole("link", { name: "Open quote detail for Hydrogen skid bracket RFQ" })).toHaveAttribute("href", `/quotes/${request.id}`);
-    expect(screen.getByText("Submitted")).toBeInTheDocument();
+    expect(screen.getByText("Awaiting review")).toBeInTheDocument();
     expect(screen.getByText(/Your RFQ was received/)).toBeInTheDocument();
     expect(screen.getByText(/Mounting bracket/)).toBeInTheDocument();
-    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
-    expect(screen.getByText("STEP")).toBeInTheDocument();
+    expect(screen.getByText(/6061-T6 Aluminum/)).toBeInTheDocument();
   });
 });
 
 describe("BuyerQuoteDetail", () => {
   it("renders priced quote details and enables purchase conversion", () => {
-    render(<BuyerQuoteDetail request={makeQuotedRequest()} purchaseAction={() => undefined} />);
+    const quotedRequest = makeQuotedRequest();
+    const requestWithCustomerQuote = {
+      ...quotedRequest,
+      customerQuotes: [
+        {
+          id: "customer_quote_1",
+          versionNumber: 1,
+          quoteNumber: "LQ-1001",
+          quoteDate: "2026-06-02",
+          validUntil: "2026-06-16",
+          customerCompany: quotedRequest.buyerCompany,
+          customerContact: quotedRequest.requesterName,
+          projectName: quotedRequest.title,
+          preparedBy: "Lattice",
+          leadTime: "15 business days",
+          shipping: "Billed at actual",
+          tax: "Not included",
+          notes: "Saved customer quote notes.",
+          assumptions: "CAD is latest revision.",
+          clarifications: "",
+          filesReviewed: "mounting-bracket.step",
+          lineItems: [
+            {
+              id: "line_1",
+              description: "Mounting bracket",
+              process: "CNC milling",
+              material: "6061-T6 Aluminum",
+              finish: "As machined",
+              quantity: 24,
+              unitPrice: 76.0416666667,
+            },
+          ],
+          totalCents: 182500,
+          markdown: "# Quote LQ-1001",
+          issuedAt: "2026-06-02T12:00:00.000Z",
+        },
+      ],
+    };
 
-    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    expect(screen.getByText("$1,825.00")).toBeInTheDocument();
-    expect(screen.getByText("15 days")).toBeInTheDocument();
-    expect(screen.getByText("Quoted at $1,825 with a 15 day lead time.")).toBeInTheDocument();
+    render(<BuyerQuoteDetail request={requestWithCustomerQuote} purchaseAction={() => undefined} />);
+
+    expect(screen.getByRole("heading", { name: "LQ-1001" })).toBeInTheDocument();
+    expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
+    expect(screen.getAllByText("Ready to accept").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
+    expect(screen.getByText("15 days (Standard)")).toBeInTheDocument();
+    expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
+    expect(screen.getByText("Summary")).toBeInTheDocument();
+    expect(screen.getByText("Accept quote")).toBeInTheDocument();
     expect(screen.getByText("Quote activity")).toBeInTheDocument();
-    expect(screen.getByText("Supplier quote basis")).toBeInTheDocument();
+    expect(screen.getByText("Quote basis")).toBeInTheDocument();
     expect(screen.getByText(/Standard Inspection/)).toBeInTheDocument();
-    expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Convert to Order" })).toBeEnabled();
+    expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
   });
 });
 

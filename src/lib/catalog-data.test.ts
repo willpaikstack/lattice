@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { capabilities, materials } from "./catalog-data";
+import { vendorSourceDocuments } from "./vendor-source-documents";
 
 describe("catalog data", () => {
   it("includes the canonical Bubble material categories", () => {
@@ -18,6 +19,8 @@ describe("catalog data", () => {
   });
 
   it("keeps material records useful for RFQ guidance", () => {
+    const sourceIds = new Set(Object.values(vendorSourceDocuments).map((source) => source.id));
+
     for (const material of materials) {
       expect(material.slug).toMatch(/^[a-z0-9-]+$/);
       expect(material.summary.length).toBeGreaterThan(40);
@@ -25,6 +28,11 @@ describe("catalog data", () => {
       expect(material.commonGrades.length).toBeGreaterThan(0);
       expect(material.standards.length).toBeGreaterThan(0);
       expect(material.variants?.length).toBeGreaterThan(0);
+      expect(material.sourceDocumentIds?.length).toBeGreaterThan(0);
+
+      for (const sourceDocumentId of material.sourceDocumentIds ?? []) {
+        expect(sourceIds.has(sourceDocumentId)).toBe(true);
+      }
     }
   });
 
