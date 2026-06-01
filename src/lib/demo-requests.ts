@@ -69,6 +69,34 @@ function submittedRequest(id: string, title: string, buyerCompany: string, dueDa
   };
 }
 
+function incompleteRequest(id: string, title: string, buyerCompany: string, dueDate: string) {
+  const request = buildDraftRequest({
+    buyerCompany,
+    requesterName: "William Paik",
+    title,
+    process: "CNC milling",
+    dueDate,
+    lineItems: [
+      {
+        partName: "Mounting bracket",
+        quantity: 12,
+        material: "6061-T6 Aluminum",
+        generalTolerance: "ISO 2768 Medium (m)",
+        surfaceFinish: "As machined",
+        qualityDocumentation: ["Standard Inspection"],
+        notes: "CAD uploaded. Need to confirm quantity and finish before submitting.",
+      },
+    ],
+    files: [{ name: "motor-plate.step", sizeBytes: 1840, type: "model/step" }],
+  });
+
+  return {
+    ...request,
+    id,
+    updatedAt: `${dueDate}T10:30:00.000Z`,
+  };
+}
+
 export function getDemoRequests(): LatticeRequest[] {
   const needsInfo = applyOperatorStatusUpdate(
     submittedRequest("demo_needs_info", "Hydrogen skid bracket RFQ", "Amogy Manufacturing", "2026-05-20"),
@@ -118,6 +146,7 @@ export function getDemoRequests(): LatticeRequest[] {
   };
 
   return [
+    incompleteRequest("demo_incomplete", "Motor plate draft", "Amogy Manufacturing", "2026-06-21"),
     needsInfo,
     supplierReady,
     quotedWithSupplierQuotes,

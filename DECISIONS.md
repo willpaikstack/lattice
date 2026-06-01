@@ -2,6 +2,31 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-01 - Public Entry Uses The Figma AI Technical Visual System
+
+Decision: keep `/` and `/login` on the Figma AI-designed dark technical public-entry visual system, while the authenticated product remains a light B2B operations console.
+
+Reason: the public entry pages should feel private, polished, and manufacturing-specific before the user enters the operational workspace. This gives the first impression more craft without turning the internal RFQ, quote, and order screens into marketing pages.
+
+Implications:
+
+- `/` and `/login` may use the dark grid/technical drawing background, centered public header, and invite-only access language.
+- The primary public choices remain constrained to logging in or requesting access.
+- Authenticated workspace pages should continue using the light operational app shell and dense, scannable UI patterns.
+
+## 2026-05-31 - Collapse Buyer Quote Statuses To Three Labels
+
+Decision: buyer-facing quote surfaces should only show `Configuring Quote`, `Quote Received`, and `Quote Closed` as quote statuses.
+
+Reason: customers need a simple quote-state model even though the internal RFQ workflow has more granular operational states such as submitted, needs information, supplier review, quoted, and purchased.
+
+Implications:
+
+- Map draft, submitted, needs-info, and supplier-review RFQs to `Configuring Quote`.
+- Map quoted RFQs to `Quote Received`.
+- Map purchased or otherwise inactive quote records to `Quote Closed`.
+- Keep granular internal statuses available for admin/operator workflows, notifications, and routing logic, but avoid exposing them as customer quote statuses.
+
 ## 2026-05-30 - Position Lattice As A Machine-Shop Supplier Network
 
 Decision: position Lattice OS as a machine-shop-focused supplier-network platform, similar in spirit to Xometry, Fictiv, Hubs, or Protolabs, backed by William's China machine-shop contacts.
@@ -178,7 +203,7 @@ Implications:
 
 ## 2026-05-26 - Public Entry Is Invite-Only
 
-Decision: make `/` the public Lattice landing page and keep it invite-only with only two visible entry points: Log in and Join waiting list.
+Decision: make `/` the public Lattice landing page and keep it invite-only with only two visible entry points: Log in and Request access.
 
 Reason: the platform should feel private and controlled while the product is early, rather than presenting a broad marketing site or open signup path.
 

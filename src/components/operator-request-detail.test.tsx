@@ -127,7 +127,7 @@ describe("BuyerQuotes", () => {
     render(<BuyerQuotes requests={[request]} />);
 
     expect(screen.getByRole("link", { name: "Open quote detail for Hydrogen skid bracket RFQ" })).toHaveAttribute("href", `/quotes/${request.id}`);
-    expect(screen.getByText("Awaiting review")).toBeInTheDocument();
+    expect(screen.getByText("Configuring Quote")).toBeInTheDocument();
     expect(screen.getByText(/Your RFQ was received/)).toBeInTheDocument();
     expect(screen.getByText(/Mounting bracket/)).toBeInTheDocument();
     expect(screen.getByText(/6061-T6 Aluminum/)).toBeInTheDocument();
@@ -179,7 +179,7 @@ describe("BuyerQuoteDetail", () => {
 
     expect(screen.getByRole("heading", { name: "LQ-1001" })).toBeInTheDocument();
     expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
-    expect(screen.getAllByText("Ready to accept").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Quote Received").length).toBeGreaterThan(0);
     expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
     expect(screen.getByText("15 days (Standard)")).toBeInTheDocument();
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();

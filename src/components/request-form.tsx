@@ -12,6 +12,7 @@ import {
   CadUploadPreview,
   type CadUploadPreviewState,
 } from "@/components/cad-upload-preview";
+import { CustomSelect } from "@/components/custom-select";
 import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
   generalToleranceOptions,
@@ -64,12 +65,14 @@ export type RequestFormInitialState = LegacyInitialState;
 
 type RequestFormProps = {
   initialState?: RequestFormInitialState;
+  localDraftId?: string;
   prefillNotice?: string;
 };
 
 const cadFileTypes = "STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT";
 const cadAccept = ".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt";
 const drawingAccept = ".pdf,.dxf,.dwg,.png,.jpg,.jpeg";
+const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
 type LineItemField = keyof Omit<
   LineItemState,
@@ -196,6 +199,42 @@ function lineItemFromInitialState(
   };
 }
 
+type StoredIncompleteRfq = {
+  id: string;
+  initialState: RequestFormInitialState;
+  request: LatticeRequest;
+  updatedAt: string;
+};
+
+function readIncompleteRfqs() {
+  if (typeof window === "undefined" || !window.localStorage?.getItem) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(incompleteRfqStorageKey) ?? "[]");
+    return Array.isArray(parsed) ? (parsed as StoredIncompleteRfq[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeIncompleteRfqs(drafts: StoredIncompleteRfq[]) {
+  if (typeof window === "undefined" || !window.localStorage?.setItem) {
+    return;
+  }
+
+  window.localStorage.setItem(incompleteRfqStorageKey, JSON.stringify(drafts));
+}
+
+function removeIncompleteRfq(id: string) {
+  writeIncompleteRfqs(readIncompleteRfqs().filter((draft) => draft.id !== id));
+}
+
+function makeLocalDraftId() {
+  return `local_draft_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function TechnicalDrawingReviewModal({
   lineItem,
   drawingPreviewUrl,
@@ -278,25 +317,15 @@ function TechnicalDrawingReviewModal({
           </div>
 
           <div className="flex-1 space-y-6 overflow-y-auto p-6">
-            <Field label="General Tolerance">
-              <select
-                className={inputClass}
-                value={lineItem.generalTolerance}
-                onChange={(event) =>
-                  updateLineItem(
-                    lineItem.id,
-                    "generalTolerance",
-                    event.target.value,
-                  )
-                }
-              >
-                {generalToleranceOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <CustomSelect
+              label="General Tolerance"
+              value={lineItem.generalTolerance}
+              onChange={(value) =>
+                updateLineItem(lineItem.id, "generalTolerance", value)
+              }
+              options={generalToleranceOptions}
+              required
+            />
 
             <label className="grid gap-2 text-sm font-semibold text-slate-800">
               <span>Linear tolerances tighter than the general tolerance</span>
@@ -524,26 +553,22 @@ function LineItemConfigurationCard({
               <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
                 Inspections & Certificates
               </h3>
-              <label className="mt-3 grid gap-2 text-sm font-medium text-slate-700">
-                <span>Quality documentation</span>
-                <select
-                  className={inputClass}
+              <div className="mt-3">
+                <CustomSelect
+                  label="Quality documentation"
                   value={
                     lineItem.qualityDocumentation[0] ?? "standard_inspection"
                   }
-                  onChange={(event) =>
+                  onChange={(value) =>
                     updateLineItem(lineItem.id, "qualityDocumentation", [
-                      event.target.value,
+                      value,
                     ])
                   }
-                >
-                  {qualityDocumentationOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  options={qualityDocumentationOptions}
+                  required
+                  showSearch
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -580,29 +605,16 @@ function LineItemConfigurationCard({
               <h3 className="break-all text-3xl font-semibold tracking-tight text-slate-950">
                 {lineItem.fileName}
               </h3>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
-                Quote ID:
-              </p>
               <div className="mt-6 grid gap-5">
-                <Field label="Material">
-                  <select
-                    className={inputClass}
-                    value={lineItem.material}
-                    onChange={(event) =>
-                      updateLineItem(
-                        lineItem.id,
-                        "material",
-                        event.target.value,
-                      )
-                    }
-                  >
-                    {rfqMaterialOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <CustomSelect
+                  label="Material"
+                  value={lineItem.material}
+                  onChange={(value) =>
+                    updateLineItem(lineItem.id, "material", value)
+                  }
+                  options={rfqMaterialOptions}
+                  required
+                />
                 <Field label="Quantity">
                   <input
                     className={inputClass}
@@ -626,25 +638,16 @@ function LineItemConfigurationCard({
                 Finish
               </h3>
               <div className="mt-6 grid gap-5">
-                <Field label="Surface Finish">
-                  <select
-                    className={inputClass}
-                    value={lineItem.surfaceFinish}
-                    onChange={(event) =>
-                      updateLineItem(
-                        lineItem.id,
-                        "surfaceFinish",
-                        event.target.value,
-                      )
-                    }
-                  >
-                    {surfaceFinishOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <CustomSelect
+                  label="Surface Finish"
+                  value={lineItem.surfaceFinish}
+                  onChange={(value) =>
+                    updateLineItem(lineItem.id, "surfaceFinish", value)
+                  }
+                  options={surfaceFinishOptions}
+                  required
+                  showSearch
+                />
                 <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                   <input
                     checked={lineItem.partMarkings}
@@ -670,25 +673,15 @@ function LineItemConfigurationCard({
                 Tolerances
               </h3>
               <div className="mt-6 grid gap-5">
-                <Field label="General Tolerances">
-                  <select
-                    className={inputClass}
-                    value={lineItem.generalTolerance}
-                    onChange={(event) =>
-                      updateLineItem(
-                        lineItem.id,
-                        "generalTolerance",
-                        event.target.value,
-                      )
-                    }
-                  >
-                    {generalToleranceOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <CustomSelect
+                  label="General Tolerances"
+                  value={lineItem.generalTolerance}
+                  onChange={(value) =>
+                    updateLineItem(lineItem.id, "generalTolerance", value)
+                  }
+                  options={generalToleranceOptions}
+                  required
+                />
                 {[
                   [
                     "tightLinearTolerance",
@@ -785,18 +778,27 @@ function LineItemConfigurationCard({
 
 export function RequestForm({
   initialState,
+  localDraftId,
   prefillNotice,
 }: RequestFormProps = {}) {
+  const localDraftInitialState =
+    !initialState && localDraftId
+      ? readIncompleteRfqs().find((draft) => draft.id === localDraftId)?.initialState
+      : undefined;
+  const resolvedInitialState = initialState ?? localDraftInitialState;
   const [projectForm, setProjectForm] = useState<ProjectFormState>(() => ({
     ...makeProjectInitialState(),
-    ...initialState,
+    ...resolvedInitialState,
   }));
   const [lineItems, setLineItems] = useState<LineItemState[]>(() => [
-    lineItemFromInitialState(initialState),
+    lineItemFromInitialState(resolvedInitialState),
   ]);
   const [error, setError] = useState<string | null>(null);
   const [createdRequest, setCreatedRequest] = useState<LatticeRequest | null>(
     null,
+  );
+  const [activeLocalDraftId, setActiveLocalDraftId] = useState<string | null>(
+    localDraftId ?? null,
   );
   const [drawingReviewLineItemId, setDrawingReviewLineItemId] = useState<
     string | null
@@ -863,6 +865,134 @@ export function RequestForm({
     );
   }
 
+  function ensureLocalDraftId() {
+    if (activeLocalDraftId) {
+      return activeLocalDraftId;
+    }
+
+    const draftId = makeLocalDraftId();
+    setActiveLocalDraftId(draftId);
+    return draftId;
+  }
+
+  useEffect(() => {
+    if (!hasCadFile || createdRequest) {
+      return;
+    }
+
+    const primaryLineItem = configuredLineItems[0];
+    if (!primaryLineItem) {
+      return;
+    }
+
+    const draftId = activeLocalDraftId;
+    if (!draftId) {
+      return;
+    }
+
+    const timestamp = new Date().toISOString();
+    const initialStateForResume: RequestFormInitialState = {
+      buyerCompany: projectForm.buyerCompany,
+      customerPo: projectForm.customerPo,
+      dueDate: projectForm.dueDate,
+      fileName: primaryLineItem.fileName,
+      generalTolerance: primaryLineItem.generalTolerance,
+      material: primaryLineItem.material,
+      notes: primaryLineItem.notes,
+      partName: primaryLineItem.partName,
+      process: projectForm.process,
+      projectName: projectForm.projectName,
+      qualityDocumentation: primaryLineItem.qualityDocumentation,
+      quantity: primaryLineItem.quantity,
+      requesterName: projectForm.requesterName,
+      surfaceFinish: primaryLineItem.surfaceFinish,
+      technicalDrawingName: primaryLineItem.technicalDrawingName,
+    };
+    const requestTitle =
+      projectForm.projectName.trim() ||
+      primaryLineItem.partName.trim() ||
+      primaryLineItem.fileName.trim() ||
+      "Incomplete RFQ";
+    const request: LatticeRequest = {
+      id: draftId,
+      buyerCompany: projectForm.buyerCompany,
+      requesterName: projectForm.requesterName,
+      title: requestTitle,
+      process: optionLabel(processOptions, projectForm.process),
+      dueDate: projectForm.dueDate,
+      status: "DRAFT",
+      lineItems: configuredLineItems.map((lineItem) => ({
+        id: lineItem.id,
+        partName: lineItem.partName || lineItem.fileName,
+        quantity: Number(lineItem.quantity) || 1,
+        material: optionLabel(rfqMaterialOptions, lineItem.material),
+        generalTolerance: optionLabel(generalToleranceOptions, lineItem.generalTolerance),
+        surfaceFinish: optionLabel(surfaceFinishOptions, lineItem.surfaceFinish),
+        qualityDocumentation: lineItem.qualityDocumentation.map((value) => optionLabel(qualityDocumentationOptions, value)),
+        notes: lineItem.notes,
+      })),
+      files: configuredLineItems.flatMap((lineItem) => [
+        {
+          id: `${lineItem.id}-file`,
+          name: lineItem.fileName,
+          sizeBytes: lineItem.selectedFile?.size ?? 0,
+          type: lineItem.selectedFile?.type || "reference/name-only",
+        },
+        ...(lineItem.technicalDrawingName
+          ? [
+              {
+                id: `${lineItem.id}-drawing`,
+                name: lineItem.technicalDrawingName,
+                sizeBytes: lineItem.selectedDrawingFile?.size ?? 0,
+                type: lineItem.selectedDrawingFile?.type || "reference/name-only",
+              },
+            ]
+          : []),
+      ]),
+      operatorReview: {
+        completeness: "READY_FOR_REVIEW",
+        assignedOwner: null,
+        internalNotes: "",
+        supplierPackageNotes: "",
+      },
+      supplierOrder: {
+        status: "AWAITING_ACKNOWLEDGMENT",
+        shopName: "China supplier team",
+        contactName: "",
+        notes: "",
+        trackingNumber: "",
+        documents: [],
+        updates: [],
+      },
+      supplierQuotes: [],
+      customerQuotes: [],
+      quote: {
+        estimatedPriceCents: null,
+        leadTimeDays: null,
+        summary: "",
+      },
+      statusEvents: [
+        {
+          id: `${draftId}-event-draft`,
+          from: null,
+          to: "DRAFT",
+          actor: "buyer",
+          at: timestamp,
+        },
+      ],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    const nextDraft: StoredIncompleteRfq = {
+      id: draftId,
+      initialState: initialStateForResume,
+      request,
+      updatedAt: timestamp,
+    };
+    const otherDrafts = readIncompleteRfqs().filter((draft) => draft.id !== draftId);
+    writeIncompleteRfqs([nextDraft, ...otherDrafts].slice(0, 12));
+  }, [activeLocalDraftId, configuredLineItems, createdRequest, hasCadFile, projectForm]);
+
   const updateCadPreview = useCallback(
     (id: string, state: CadUploadPreviewState) => {
       setLineItems((current) =>
@@ -887,6 +1017,10 @@ export function RequestForm({
   }, [drawingPreviewUrl]);
 
   function applyCadFileToLineItem(id: string, file: File | null) {
+    if (file) {
+      ensureLocalDraftId();
+    }
+
     setLineItems((current) =>
       current.map((lineItem) => {
         if (lineItem.id !== id) {
@@ -974,6 +1108,7 @@ export function RequestForm({
       return;
     }
 
+    ensureLocalDraftId();
     const id = `line-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const fileName = file.name;
     const suggestedName = suggestedNameFromFile(fileName);
@@ -1105,6 +1240,10 @@ export function RequestForm({
       }
 
       setCreatedRequest(payload.request);
+      if (activeLocalDraftId) {
+        removeIncompleteRfq(activeLocalDraftId);
+      }
+      setActiveLocalDraftId(null);
       setProjectForm(makeProjectInitialState());
       setLineItems([makeLineItemInitialState("line-1")]);
       setDrawingReviewLineItemId(null);
@@ -1245,21 +1384,13 @@ export function RequestForm({
                     }
                   />
                 </Field>
-                <Field label="Manufacturing process">
-                  <select
-                    className={inputClass}
-                    value={projectForm.process}
-                    onChange={(event) =>
-                      updateProject("process", event.target.value)
-                    }
-                  >
-                    {processOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
+                <CustomSelect
+                  label="Manufacturing process"
+                  value={projectForm.process}
+                  onChange={(value) => updateProject("process", value)}
+                  options={processOptions}
+                  required
+                />
                 <Field label="Needed by">
                   <input
                     className={inputClass}

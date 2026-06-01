@@ -32,11 +32,12 @@ The current working vertical slice:
 6. Submitted requests appear in admin quote submissions, where admins open an RFQ command drawer with review controls, buyer intake, files, line items, supplier quote basis, and status history.
 7. Admin quote issuance lives inside the `/admin/quotes` RFQ command drawer and can save durable customer quote versions linked to an RFQ, including quote number, line-item pricing, Markdown output, validity dates, and total value.
 8. Buyer quote rows at `/quotes` open a consistent quote detail template at `/quotes/[requestId]` with pricing, saved customer quote versions, lead time, line-item requirements, files, supplier quote basis, activity, and purchase conversion.
+9. Buyer-facing quote status labels are intentionally collapsed to three states: `Configuring Quote`, `Quote Received`, and `Quote Closed`; more granular RFQ lifecycle states remain internal.
 
 Important routes:
 
-- `/` - public invite-only landing page with Log in and waiting list entry points.
-- `/login` - public invite-only login page that hands demo users into the workspace.
+- `/` - public invite-only landing page with Log in and Request access entry points.
+- `/login` - public invite-only login page that uses the same public visual system and hands demo users into the workspace.
 - `/waiting-list` - public waiting list request page that writes local waitlist entries for admin review, blocks exact duplicate emails with an on-page notice, emails same-domain requesters with the existing waitlist contact, and triggers a thank-you email for new entries.
 - `/dashboard` - command center/dashboard.
 - `/requests/new` - buyer RFQ/request creation; supports `?reorder=[requestId]` to prefill a new RFQ draft from a prior purchased order.
@@ -81,7 +82,7 @@ Important: this repo uses a newer Next.js with breaking changes. Before writing 
 
 ## Product Direction
 
-The UI should move toward a light B2B operations console:
+The authenticated product UI should move toward a light B2B operations console:
 
 - persistent left sidebar
 - clear RFQ/order/dashboard navigation
@@ -94,7 +95,7 @@ The UI should move toward a light B2B operations console:
 
 Avoid making the app feel like a generic startup landing page. Lattice is an operational tool for RFQs, procurement, manufacturing partners, quotes, and orders.
 
-The public website entry point is intentionally minimal and invite-only. The landing page should keep the visible choices constrained to logging in or joining the waiting list.
+The public website entry point is intentionally minimal and invite-only. `/` and `/login` currently use the Figma AI-designed dark technical drawing/grid visual system, but the visible choices should stay constrained to logging in or requesting access.
 
 The Bubble reference worth preserving:
 

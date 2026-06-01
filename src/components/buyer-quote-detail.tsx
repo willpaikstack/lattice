@@ -6,42 +6,42 @@ import type { LatticeRequest, RequestLineItem, RequestStatus } from "@/lib/reque
 const quoteStatusCopy: Record<RequestStatus, { label: string; tone: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
     buyerAction: "Submit the request before quote tracking begins.",
-    label: "Draft",
+    label: "Configuring Quote",
     requestCopy: "This RFQ has not been submitted yet.",
     requestTitle: "Submit this RFQ package",
     tone: "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]",
   },
   SUBMITTED: {
     buyerAction: "Lattice is checking the RFQ package before supplier outreach.",
-    label: "Awaiting review",
+    label: "Configuring Quote",
     requestCopy: "Lattice is reviewing the uploaded files, material, quantity, and timing before routing this RFQ.",
     requestTitle: "Lattice review in progress",
     tone: "border-[#cfe0ff] bg-[#eff5ff] text-[#315f9b]",
   },
   NEEDS_INFO: {
     buyerAction: "Additional buyer detail is needed before suppliers can quote accurately.",
-    label: "Needs info",
+    label: "Configuring Quote",
     requestCopy: "This information is required for us to determine accurate pricing and any import considerations.",
     requestTitle: "Are these parts for prototype or commercial use?",
     tone: "border-[#f1d8a5] bg-[#fff7e8] text-[#8a5b08]",
   },
   READY_FOR_SUPPLIER_RFQ: {
     buyerAction: "The package is complete and supplier pricing is being collected.",
-    label: "Awaiting supplier",
+    label: "Configuring Quote",
     requestCopy: "The supplier package is complete. Lattice is collecting pricing and capacity confirmation.",
     requestTitle: "Supplier pricing in progress",
     tone: "border-[#d5d9ff] bg-[#f1f2ff] text-[#4d55a8]",
   },
   QUOTED: {
     buyerAction: "Review the price, lead time, assumptions, and accept the quote when approved.",
-    label: "Ready to accept",
+    label: "Quote Received",
     requestCopy: "Pricing is ready. Review the line items, production timing, assumptions, and total before accepting.",
     requestTitle: "Review quote and proceed to purchase",
     tone: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
   },
   PURCHASED: {
     buyerAction: "This quote has been accepted and converted into an order.",
-    label: "Purchased",
+    label: "Quote Closed",
     requestCopy: "This quote has already been accepted. Continue to orders to track production.",
     requestTitle: "Order created",
     tone: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
@@ -65,8 +65,8 @@ function formatDate(value: string | null) {
   }
 
   return new Intl.DateTimeFormat("en", {
-    month: "2-digit",
     day: "2-digit",
+    month: "2-digit",
     year: "numeric",
   }).format(date);
 }
@@ -206,7 +206,7 @@ export function BuyerQuoteDetail({
                 const file = request.files[index] ?? request.files[0];
 
                 return (
-                  <article className="grid gap-5 px-6 py-5 min-[1900px]:grid-cols-[minmax(220px,1.25fr)_minmax(260px,1.65fr)_minmax(172px,0.9fr)_minmax(112px,0.65fr)_minmax(76px,0.45fr)] min-[1900px]:items-start" key={item.id}>
+                  <article className="grid gap-5 px-6 py-5 md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] md:gap-x-6 min-[1900px]:grid-cols-[minmax(220px,1.25fr)_minmax(260px,1.65fr)_minmax(172px,0.9fr)_minmax(112px,0.65fr)_minmax(76px,0.45fr)] min-[1900px]:items-start" key={item.id}>
                     <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:gap-4">
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-[#e7e7e7] bg-[#f7f8fa] text-[#a2a8b0]">
                         <ImageIcon aria-hidden="true" className="h-5 w-5" strokeWidth={1.6} />
@@ -227,7 +227,7 @@ export function BuyerQuoteDetail({
                       </div>
                     </div>
 
-                    <div className="min-w-0">
+                    <div className="min-w-0 md:col-start-1 min-[1900px]:col-start-auto">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Configuration</p>
                       <p className="mt-1 max-w-full break-words text-[13px] leading-5 text-[#30343a] min-[1900px]:mt-0">{configurationText(request, item)}</p>
                       <button className="mt-2 max-w-full rounded-full bg-[#f6f6f6] px-2.5 py-1 text-left text-[11px] font-semibold leading-5 text-[#2f73c8] transition hover:bg-[#eeeeee]" type="button">
@@ -235,24 +235,24 @@ export function BuyerQuoteDetail({
                       </button>
                     </div>
 
-                    <div className="grid gap-4 rounded-md border border-[#eeeeee] bg-[#fafafa] p-4 sm:grid-cols-[minmax(160px,1fr)_minmax(120px,0.7fr)_auto] sm:items-start min-[1900px]:contents">
+                    <div className="grid gap-4 border-t border-[#eeeeee] pt-4 sm:grid-cols-[minmax(160px,1fr)_minmax(120px,0.7fr)_auto] sm:items-start md:col-start-2 md:row-span-2 md:row-start-1 md:grid-cols-1 md:self-stretch md:border-l md:border-t-0 md:pl-6 md:pt-0 min-[1500px]:grid-cols-[minmax(160px,1fr)_minmax(120px,0.7fr)_auto] min-[1900px]:contents">
                       <div className="min-w-0">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Production speed / quantity</p>
                         <div className="mt-1 flex flex-col gap-2 min-[1900px]:mt-0 min-[1900px]:items-center">
-                          <select className="h-9 w-full min-w-0 rounded-md border border-[#dedede] bg-white px-2 text-[12px] font-medium text-[#30343a] outline-none min-[1900px]:w-[152px]" defaultValue={productionSpeed(request)}>
+                          <select className="h-9 w-full min-w-0 rounded-md border border-[#dedede] bg-white px-2 text-[12px] font-medium text-[#30343a] outline-none min-[1500px]:w-full min-[1900px]:w-[152px]" defaultValue={productionSpeed(request)}>
                             <option>{productionSpeed(request)}</option>
                           </select>
                           <input className="h-9 w-full rounded-md border border-[#dedede] bg-white px-3 text-center text-[13px] font-medium text-[#30343a] outline-none min-[1900px]:w-[72px]" readOnly type="number" value={item.quantity} />
                         </div>
                       </div>
 
-                      <div className="min-w-0 sm:text-right min-[1900px]:text-right">
+                      <div className="min-w-0 sm:text-right md:text-left min-[1500px]:text-right min-[1900px]:text-right">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Price</p>
                         <p className="mt-1 text-[14px] font-semibold leading-5 text-[#202020] min-[1900px]:mt-0">{formatPrice(total)}</p>
                         <p className="mt-1 text-[11px] leading-5 text-[#7b8088]">{unit === null ? "Unit price pending" : `${formatPrice(unit)} ea`}</p>
                       </div>
 
-                      <div className="min-w-0 sm:text-right min-[1900px]:text-right">
+                      <div className="min-w-0 sm:text-right md:text-left min-[1500px]:text-right min-[1900px]:text-right">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Actions</p>
                         <button className="mt-1 text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717] min-[1900px]:mt-0" type="button">
                           Remove
@@ -346,7 +346,7 @@ export function BuyerQuoteDetail({
                   disabled
                   type="button"
                 >
-                  {canPurchase ? "Accept quote" : "Awaiting quote"}
+                  {canPurchase ? "Accept quote" : "Configuring Quote"}
                 </button>
               )}
               <Link className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href="/quotes">
@@ -357,7 +357,11 @@ export function BuyerQuoteDetail({
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Shipping address</p>
               <p className="mt-3 text-[13px] font-semibold text-[#202020]">{request.buyerCompany}</p>
-              <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">123 Main Street<br />Brooklyn, NY 11201</p>
+              <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">
+                123 Main Street
+                <br />
+                Brooklyn, NY 11201
+              </p>
               <button className="mt-3 text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]" type="button">
                 Change
               </button>
@@ -393,7 +397,9 @@ export function BuyerQuoteDetail({
               {request.statusEvents.map((event) => (
                 <div className="rounded-md bg-[#fafafa] p-3" key={event.id}>
                   <p className="text-[13px] font-semibold text-[#202020]">{quoteStatusCopy[event.to].label}</p>
-                  <p className="mt-1 text-[12px] text-[#7b8088]">{formatDate(event.at)} by {event.actor}</p>
+                  <p className="mt-1 text-[12px] text-[#7b8088]">
+                    {formatDate(event.at)} by {event.actor}
+                  </p>
                 </div>
               ))}
             </div>

@@ -2,6 +2,10 @@
 
 These assets capture the current dropdown/select context for the Lattice OS `/requests/new` RFQ flow. Use them as Figma AI input when asking for a custom dropdown redesign.
 
+## Prompt
+
+- `figma-ai-dropdown-redesign-prompt.md` - editable Figma AI prompt to use with these context files.
+
 ## Included JPG/SVG Pairs
 
 - `request-quote-current-viewport.jpg` - live page screenshot from `/requests/new?reorder=demo_purchased` showing the RFQ form with dropdowns closed.

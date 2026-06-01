@@ -12,7 +12,7 @@ describe("Login page", () => {
     expect(screen.getByLabelText("Email")).toHaveAttribute("type", "email");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
     expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("type", "submit");
-    expect(screen.getByRole("link", { name: "Join the waiting list" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Request an invite" })).toHaveAttribute(
       "href",
       "/waiting-list",
     );

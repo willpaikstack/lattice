@@ -1,34 +1,34 @@
 import { BuyerQuotes } from "@/components/buyer-quotes";
 import { listBuyerQuotes } from "@/lib/request-repository";
 
-import { AlertCircle, CheckCircle2, Inbox } from "lucide-react";
+import { CheckCircle2, FilePenLine, Inbox } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotesPage() {
   const quotes = await listBuyerQuotes();
-  const activeQuoteCount = quotes.filter((quote) => quote.status !== "PURCHASED").length;
-  const quotedCount = quotes.filter((quote) => quote.status === "QUOTED").length;
-  const needsInfoCount = quotes.filter((quote) => quote.status === "NEEDS_INFO").length;
+  const configuringQuoteCount = quotes.filter((quote) => quote.status !== "QUOTED" && quote.status !== "PURCHASED").length;
+  const quoteReceivedCount = quotes.filter((quote) => quote.status === "QUOTED").length;
+  const quoteClosedCount = quotes.filter((quote) => quote.status === "PURCHASED").length;
 
   const metrics = [
     {
-      detail: "Not yet purchased",
+      detail: "RFQs being prepared, reviewed, or priced",
+      icon: FilePenLine,
+      label: "Configuring Quote",
+      value: configuringQuoteCount,
+    },
+    {
+      detail: "Priced quotes ready for review",
       icon: Inbox,
-      label: "Active RFQs",
-      value: activeQuoteCount,
+      label: "Quote Received",
+      value: quoteReceivedCount,
     },
     {
-      detail: "Priced quotes",
+      detail: "Converted, expired, or no longer active",
       icon: CheckCircle2,
-      label: "Ready to accept",
-      value: quotedCount,
-    },
-    {
-      detail: "Buyer action required",
-      icon: AlertCircle,
-      label: "Needs info",
-      value: needsInfoCount,
+      label: "Quote Closed",
+      value: quoteClosedCount,
     },
   ];
 

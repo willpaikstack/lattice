@@ -1,0 +1,19 @@
+- main:
+  - link "Lattice":
+    - /url: /
+    - generic: Lattice
+  - paragraph: Invite-only access
+  - heading "Log in" [level=1]
+  - paragraph: Access the private RFQ and procurement workspace for active Lattice teams.
+  - form "Log in form":
+    - text: Email
+    - textbox "Email":
+      - /placeholder: you@company.com
+    - text: Password
+    - textbox "Password"
+    - button "Continue"
+    - paragraph:
+      - text: Need access?
+      - link "Join the waiting list":
+        - /url: /waiting-list
+- alert

@@ -101,7 +101,7 @@ export async function listBuyerQuotes() {
       const storedRequests = await client.request.findMany({
         where: {
           status: {
-            in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "PURCHASED"],
+            in: ["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "PURCHASED"],
           },
         },
         include: storedRequestInclude,
@@ -112,7 +112,7 @@ export async function listBuyerQuotes() {
 
       return storedRequests.map(mapStoredRequest);
     },
-    () => sortRequestsNewestFirst(getDemoRequests().filter((request) => request.status !== "DRAFT")),
+    () => sortRequestsNewestFirst(getDemoRequests()),
   );
 }
 

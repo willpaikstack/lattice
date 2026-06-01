@@ -92,18 +92,50 @@ function reorderInitialState(order: LatticeRequest): RequestFormInitialState {
   };
 }
 
+function draftInitialState(draft: LatticeRequest): RequestFormInitialState {
+  const primaryLineItem = draft.lineItems[0];
+  const primaryFile = draft.files[0];
+  const drawingFile = draft.files.find((file) => file !== primaryFile && /pdf|drawing|dxf|dwg|png|jpg|jpeg/i.test(`${file.name} ${file.type}`));
+
+  return {
+    buyerCompany: draft.buyerCompany,
+    customerPo: "",
+    dueDate: draft.dueDate || dueDateFromToday(14),
+    fileName: primaryFile?.name ?? "",
+    generalTolerance: optionValueFromLabel(generalToleranceOptions, primaryLineItem?.generalTolerance, "iso_2768_medium_m"),
+    material: optionValueFromLabel(rfqMaterialOptions, primaryLineItem?.material, "ss_304"),
+    notes: primaryLineItem?.notes ?? "",
+    partName: primaryLineItem?.partName ?? draft.title,
+    process: optionValueFromLabel(processOptions, draft.process, "cnc_milling"),
+    projectName: draft.title,
+    qualityDocumentation: primaryLineItem?.qualityDocumentation?.length
+      ? primaryLineItem.qualityDocumentation.map((label) => optionValueFromLabel(qualityDocumentationOptions, label, "standard_inspection"))
+      : ["standard_inspection"],
+    quantity: String(primaryLineItem?.quantity ?? 1),
+    requesterName: draft.requesterName,
+    surfaceFinish: optionValueFromLabel(surfaceFinishOptions, primaryLineItem?.surfaceFinish, "as_machined_ra_3_2"),
+    technicalDrawingName: drawingFile?.name ?? "",
+  };
+}
+
 export default async function NewRequestPage({ searchParams }: NewRequestPageProps) {
   const params = searchParams ? await searchParams : {};
   const reorderId = firstParam(params.reorder);
+  const draftId = firstParam(params.draft);
   const reorderSource = reorderId ? await getRequestById(reorderId) : null;
-  const initialState = reorderSource ? reorderInitialState(reorderSource) : undefined;
+  const draftSource = draftId ? await getRequestById(draftId) : null;
+  const editableDraft = draftSource?.status === "DRAFT" ? draftSource : null;
+  const initialState = reorderSource ? reorderInitialState(reorderSource) : editableDraft ? draftInitialState(editableDraft) : undefined;
 
   return (
     <RequestForm
       initialState={initialState}
+      localDraftId={draftId}
       prefillNotice={
         reorderSource
           ? `Reorder draft prepared from ${orderReference(reorderSource)}. Review the copied part, files, material, tolerance, finish, quantity, and timing before submitting.`
+          : editableDraft
+            ? "Incomplete RFQ reopened. Finish the missing details, then click Request Quote when it is ready for Lattice review."
           : undefined
       }
     />

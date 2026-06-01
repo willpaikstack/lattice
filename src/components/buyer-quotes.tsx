@@ -6,35 +6,37 @@ import { useMemo, useState } from "react";
 
 import type { LatticeRequest } from "@/lib/request-model";
 
+const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
+
 const buyerStatusCopy: Record<LatticeRequest["status"], { description: string; nextAction: string; pillTone: string }> = {
   DRAFT: {
-    description: "Not submitted yet.",
-    nextAction: "Submit RFQ",
+    description: "CAD uploaded, but the RFQ has not been submitted yet.",
+    nextAction: "Configuring Quote",
     pillTone: "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]",
   },
   SUBMITTED: {
     description: "Your RFQ was received and is waiting for internal review.",
-    nextAction: "Awaiting review",
+    nextAction: "Configuring Quote",
     pillTone: "border-[#cfe0ff] bg-[#eff5ff] text-[#315f9b]",
   },
   NEEDS_INFO: {
     description: "The operator team needs more buyer detail before supplier outreach.",
-    nextAction: "Upload drawing",
+    nextAction: "Configuring Quote",
     pillTone: "border-[#f1d8a5] bg-[#fff7e8] text-[#8a5b08]",
   },
   READY_FOR_SUPPLIER_RFQ: {
     description: "Supplier is calculating costs.",
-    nextAction: "Awaiting supplier",
+    nextAction: "Configuring Quote",
     pillTone: "border-[#d5d9ff] bg-[#f1f2ff] text-[#4d55a8]",
   },
   QUOTED: {
     description: "Pricing is ready for buyer review and purchase decision.",
-    nextAction: "Review & Checkout",
+    nextAction: "Quote Received",
     pillTone: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
   },
   PURCHASED: {
     description: "This quote has been converted into an order.",
-    nextAction: "Track order",
+    nextAction: "Quote Closed",
     pillTone: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
   },
 };
@@ -76,13 +78,49 @@ function quoteReference(request: LatticeRequest) {
   return `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
+function quoteRowHref(request: LatticeRequest) {
+  if (request.status === "DRAFT") {
+    return `/requests/new?draft=${request.id}`;
+  }
+
+  return `/quotes/${request.id}`;
+}
+
+function readLocalIncompleteRequests() {
+  if (typeof window === "undefined" || !window.localStorage?.getItem) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(incompleteRfqStorageKey) ?? "[]");
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((draft) => draft?.request)
+      .filter((request): request is LatticeRequest => Boolean(request?.id && request?.status === "DRAFT"));
+  } catch {
+    return [];
+  }
+}
+
 export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
   const [query, setQuery] = useState("");
+  const [localIncompleteRequests] = useState<LatticeRequest[]>(readLocalIncompleteRequests);
+
+  const visibleRequests = useMemo(() => {
+    const localIds = new Set(localIncompleteRequests.map((request) => request.id));
+
+    return [...localIncompleteRequests, ...requests.filter((request) => !localIds.has(request.id))].sort(
+      (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+    );
+  }, [localIncompleteRequests, requests]);
 
   const filteredRequests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return requests.filter((request) => {
+    return visibleRequests.filter((request) => {
       const primaryLine = request.lineItems[0];
       const searchable = [
         request.title,
@@ -98,9 +136,9 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
       return !normalizedQuery || searchable.includes(normalizedQuery);
     });
-  }, [query, requests]);
+  }, [query, visibleRequests]);
 
-  if (requests.length === 0) {
+  if (visibleRequests.length === 0) {
     return (
       <section className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center">
         <h2 className="text-[22px] font-semibold text-[#202020]">No submitted RFQs yet.</h2>
@@ -148,9 +186,9 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
           return (
             <Link
-              aria-label={`Open quote detail for ${request.title}`}
+              aria-label={request.status === "DRAFT" ? `Edit incomplete quote for ${request.title}` : `Open quote detail for ${request.title}`}
               className="grid gap-5 px-4 py-4 transition hover:bg-[#fbfbfb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#171717] xl:grid-cols-[2fr_0.95fr_0.8fr_1.15fr_24px] xl:items-center"
-              href={`/quotes/${request.id}`}
+              href={quoteRowHref(request)}
               key={request.id}
             >
               <div className="flex min-w-0 gap-4">
@@ -203,9 +241,9 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
       <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86]">
         <span>
-          Showing {filteredRequests.length} of {requests.length} quotes
+          Showing {filteredRequests.length} of {visibleRequests.length} quotes
         </span>
-        <span>Rows open quote details</span>
+        <span>Configuring Quote rows with uploaded CAD remain editable</span>
       </div>
     </section>
   );

@@ -4,6 +4,13 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Tomorrow handoff after pulling latest:
+  - run `npm install` if dependencies changed
+  - start local services with `docker compose up -d postgres minio`
+  - run `npm run prisma:generate` and `npm run db:push`
+  - run `npm test`, `npm run lint`, and preferably `npm run build`
+  - open `/`, `/login`, `/requests/new`, `/quotes`, `/quotes/demo_quoted`, `/orders`, and `/orders/demo_purchased`
+  - visually check the public Figma AI pages, request-form dropdowns, quote table/detail, quote checkout, and order detail/help/reorder flows
 - Move `/waiting-list` entries, duplicate detection, and local waitlist email outbox records into the chosen durable CRM/database/email workflow.
 - Connect `/login` to the chosen authentication provider when auth is selected; it currently hands demo users into `/dashboard`.
 - Verify the current app end-to-end after pulling on any new computer:

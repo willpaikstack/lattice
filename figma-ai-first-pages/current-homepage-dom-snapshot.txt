@@ -1,0 +1,10 @@
+- main:
+  - generic: Lattice
+  - paragraph: Invite-only manufacturing procurement
+  - heading "Lattice" [level=1]
+  - paragraph: A private RFQ and procurement workspace for teams moving from drawings to quotes, supplier follow-up, and production orders.
+  - link "Log in":
+    - /url: /login
+  - link "Join waiting list":
+    - /url: /waiting-list
+- alert

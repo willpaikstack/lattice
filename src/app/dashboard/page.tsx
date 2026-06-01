@@ -1,21 +1,79 @@
 import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Box,
+  CheckCircle2,
+  FileText,
+  ReceiptText,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { customerNotifications } from "@/lib/customer-notifications";
 import { currentUser } from "@/lib/current-user";
 
 const metrics = [
-  { label: "Active RFQs", value: "34", detail: "43 unread quotes", icon: "document", href: "/quotes" },
-  { label: "Orders", value: "1,253", detail: "10 status changes", icon: "receipt", href: "/orders" },
-  { label: "Shipped", value: "+912", detail: "4 in the past 3 days", icon: "box", href: "/shipped" },
-  { label: "Alerts", value: "4", detail: "2 unread", icon: "alert", href: "/notifications", tone: "alert" },
+  {
+    label: "Active RFQs",
+    value: "34",
+    detail: "43 unread quotes",
+    icon: FileText,
+    href: "/quotes",
+  },
+  {
+    label: "Orders",
+    value: "1,253",
+    detail: "10 status changes",
+    icon: ReceiptText,
+    href: "/orders",
+  },
+  {
+    label: "Shipped",
+    value: "+912",
+    detail: "4 in the past 3 days",
+    icon: Box,
+    href: "/shipped",
+  },
+  {
+    label: "Alerts",
+    value: "4",
+    detail: "2 unread",
+    icon: AlertTriangle,
+    href: "/notifications",
+    tone: "alert",
+  },
 ];
 
 const transactions = [
-  { name: "Frank Bennett", email: "frank.bennett@gmail.com", amount: "$641.00" },
-  { name: "Jennifer Li", email: "jennifer.li@gmail.com", amount: "$370.00" },
-  { name: "Amir Sharma", email: "amir.sharma@gmail.com", amount: "$1,200.00" },
-  { name: "Simon Abiola", email: "simon.abiola@gmail.com", amount: "$400.00" },
-  { name: "Linda Williams", email: "linda.williams@gmail.com", amount: "$800.00" },
-  { name: "Jasmine Jones", email: "jasmine.jones@gmail.com", amount: "$50.00" },
+  {
+    name: "Frank Bennett",
+    email: "frank.bennett@gmail.com",
+    amount: "$641.00",
+    status: "Completed",
+  },
+  {
+    name: "Jennifer Li",
+    email: "jennifer.li@gmail.com",
+    amount: "$370.00",
+    status: "Completed",
+  },
+  {
+    name: "Amir Sharma",
+    email: "amir.sharma@gmail.com",
+    amount: "$1,200.00",
+    status: "Completed",
+  },
+  {
+    name: "Simon Abiola",
+    email: "simon.abiola@gmail.com",
+    amount: "$400.00",
+    status: "Completed",
+  },
+  {
+    name: "Linda Williams",
+    email: "linda.williams@gmail.com",
+    amount: "$800.00",
+    status: "Completed",
+  },
 ];
 
 const orders = [
@@ -23,61 +81,12 @@ const orders = [
   { name: "Simon Abiola", email: "simon.abiola@gmail.com", time: "6:03 pm" },
   { name: "Gregory John", email: "gregory.john@gmail.com", time: "6:03 pm" },
   { name: "Jennifer Li", email: "jennifer.li@gmail.com", time: "6:02 pm" },
-  { name: "Linda Williams", email: "linda.williams@gmail.com", time: "6:02 pm" },
-  { name: "Frank Bennett", email: "frank.bennett@gmail.com", time: "6:02 pm" },
-  { name: "Amir Sharma", email: "amir.sharma@gmail.com", time: "6:01 pm" },
-  { name: "Jasmine Jones", email: "jasmine.jones@gmail.com", time: "6:01 pm" },
+  {
+    name: "Linda Williams",
+    email: "linda.williams@gmail.com",
+    time: "6:02 pm",
+  },
 ];
-
-function MetricIcon({ name }: { name: string }) {
-  const common = {
-    className: "h-5 w-5 stroke-[1.8] text-[#1f2937]",
-    fill: "none",
-    stroke: "currentColor",
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    viewBox: "0 0 24 24",
-  };
-
-  if (name === "box") {
-    return (
-      <svg aria-hidden="true" {...common}>
-        <path d="m3.5 7.5 8.5-4.7 8.5 4.7v9L12 21.2 3.5 16.5Z" />
-        <path d="M3.5 7.5 12 12.2l8.5-4.7" />
-        <path d="M12 12.2v9" />
-      </svg>
-    );
-  }
-
-  if (name === "alert") {
-    return (
-      <svg aria-hidden="true" {...common}>
-        <path d="M12 4.5 21 20H3Z" />
-        <path d="M12 9v4.5" />
-        <path d="M12 17h.01" />
-      </svg>
-    );
-  }
-
-  if (name === "receipt") {
-    return (
-      <svg aria-hidden="true" {...common}>
-        <path d="M6 3.8h12v16.4l-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2Z" />
-        <path d="M9 8h6" />
-        <path d="M9 12h6" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" {...common}>
-      <path d="M7 3.8h7l3 3V20H7Z" />
-      <path d="M14 3.8V7h3" />
-      <path d="M9.5 11h5" />
-      <path d="M9.5 15h5" />
-    </svg>
-  );
-}
 
 function Avatar({ name }: { name: string }) {
   const initials = name
@@ -87,139 +96,268 @@ function Avatar({ name }: { name: string }) {
     .slice(0, 2);
 
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-100 text-xs font-semibold text-slate-600">
+    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-stone-50 text-xs font-semibold text-stone-600">
       {initials}
+    </div>
+  );
+}
+
+function MetricCard({
+  detail,
+  href,
+  icon: Icon,
+  label,
+  tone,
+  value,
+}: {
+  detail: string;
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  tone?: string;
+  value: string;
+}) {
+  const isAlert = tone === "alert";
+
+  return (
+    <Link
+      aria-label={`View ${label}`}
+      className={`group block rounded-2xl border p-5 transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950 ${
+        isAlert
+          ? "border-amber-200 bg-amber-50/80"
+          : "border-stone-200 bg-white"
+      }`}
+      href={href}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-sm font-medium text-stone-700">{label}</p>
+        <Icon
+          aria-hidden="true"
+          className={
+            isAlert ? "h-4 w-4 text-amber-700" : "h-4 w-4 text-stone-500"
+          }
+          strokeWidth={1.8}
+        />
+      </div>
+      <p className="mt-4 text-3xl font-semibold leading-none tracking-tight text-stone-950">
+        {value}
+      </p>
+      <p
+        className={
+          isAlert
+            ? "mt-2 text-sm text-amber-800"
+            : "mt-2 text-sm text-stone-500"
+        }
+      >
+        {detail}
+      </p>
+    </Link>
+  );
+}
+
+function SectionHeader({
+  action,
+  detail,
+  title,
+}: {
+  action?: React.ReactNode;
+  detail: string;
+  title: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <h2 className="text-xl font-semibold tracking-tight text-stone-950">
+          {title}
+        </h2>
+        <p className="mt-1 text-sm leading-5 text-stone-500">{detail}</p>
+      </div>
+      {action}
     </div>
   );
 }
 
 export default function Home() {
   return (
-    <div className="mx-auto max-w-[960px] space-y-5">
-      <h1 className="text-[32px] font-semibold leading-tight tracking-[-0.03em] text-[#171717]">Hi {currentUser.name}</h1>
+    <div className="mx-auto max-w-[1400px] space-y-6">
+      <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+            Home
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold leading-tight tracking-tight text-stone-950">
+            Hi {currentUser.name}
+          </h1>
+        </div>
+        <Link
+          className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
+          href="/requests/new"
+        >
+          Request Quote
+          <ArrowUpRight
+            aria-hidden="true"
+            className="h-4 w-4"
+            strokeWidth={2}
+          />
+        </Link>
+      </header>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => {
-          const isAlert = metric.tone === "alert";
-
-          return (
-            <Link
-              aria-label={`View ${metric.label}`}
-              className={
-                isAlert
-                  ? "block rounded-[18px] border border-[#f4b8ad] bg-[#f0b1a7] p-4 transition hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
-                  : "block rounded-[18px] border border-[#e8e8e8] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[#d8d8d8] hover:shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
-              }
-              href={metric.href}
-              key={metric.label}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-[15px] font-medium text-[#272727]">{metric.label}</p>
-                <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center">
-                  <MetricIcon name={metric.icon} />
-                </span>
-              </div>
-              <div className={isAlert ? "mt-4 rounded-[14px] bg-[#f0b1a7] px-4 py-3" : "mt-3"}>
-                <p className="text-[30px] font-semibold leading-none tracking-[-0.04em] text-[#202020]">{metric.value}</p>
-                <p className="mt-2 text-[13px] text-[#676767]">{metric.detail}</p>
-              </div>
-            </Link>
-          );
-        })}
+        {metrics.map((metric) => (
+          <MetricCard key={metric.label} {...metric} />
+        ))}
       </section>
 
-      <section className="rounded-[18px] border border-[#e6e6e6] bg-white p-6">
-        <div>
-          <h2 className="text-[20px] font-semibold tracking-[-0.03em] text-[#202020]">Inbox</h2>
-          <p className="mt-1 text-[13px] text-[#8a8a8a]">Customer updates across RFQs, orders, and quality documentation</p>
-        </div>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.92fr)]">
+        <div className="space-y-6">
+          <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30">
+            <SectionHeader
+              detail="Customer updates across RFQs, orders, and quality documentation"
+              title="Inbox"
+            />
 
-        <div className="mt-5 divide-y divide-[#eeeeee]">
-          {customerNotifications.map((notification) => (
-            <Link
-              className="grid gap-3 py-4 transition hover:bg-[#fafafa] sm:grid-cols-[auto_1fr_auto] sm:items-start sm:px-2"
-              href={notification.href}
-              key={notification.title}
-            >
-              <span
-                aria-label={notification.unread ? "Unread notification" : "Read notification"}
-                className={notification.unread ? "mt-1 h-2.5 w-2.5 rounded-full bg-[#171717]" : "mt-1 h-2.5 w-2.5 rounded-full bg-[#d8d8d8]"}
-              />
-              <span className="min-w-0">
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#737373]">{notification.meta}</span>
-                  <span className="text-[12px] text-[#a2a2a2]">{notification.time}</span>
-                </span>
-                <span className="mt-1 block text-[15px] font-semibold text-[#202020]">{notification.title}</span>
-                <span className="mt-1 block text-[13px] leading-5 text-[#707070]">{notification.detail}</span>
-              </span>
-              <span className="hidden text-[18px] leading-none text-[#9a9a9a] sm:block" aria-hidden="true">
-                ↗
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[1.03fr_0.97fr]">
-        <article className="rounded-[18px] border border-[#e6e6e6] bg-white p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-[22px] font-semibold tracking-[-0.04em] text-[#202020]">Transactions</h2>
-              <p className="mt-1 text-[14px] text-[#a2a2a2]">Here are your latest quotes with status changes</p>
-            </div>
-            <Link className="inline-flex h-10 items-center gap-2 rounded-[11px] bg-[#171717] px-4 text-sm font-semibold" href="/quotes" style={{ color: "#ffffff" }}>
-              View All
-              <span aria-hidden="true">↗</span>
-            </Link>
-          </div>
-
-          <div className="mt-7">
-            <div className="grid grid-cols-[1fr_auto] border-b border-[#eeeeee] pb-3 text-[14px] font-medium text-[#4b4b4b]">
-              <span>User</span>
-              <span>Amount</span>
-            </div>
-            <div className="divide-y divide-[#eeeeee]">
-              {transactions.map((item) => (
-                <div className="grid grid-cols-[1fr_auto] items-center gap-6 py-3.5" key={item.email}>
-                  <div>
-                    <p className="text-[14px] font-medium text-[#222222]">{item.name}</p>
-                    <p className="mt-1 text-[12px] text-[#b8b8b8]">{item.email}</p>
-                  </div>
-                  <p className="text-[14px] font-medium text-[#222222]">{item.amount}</p>
-                </div>
+            <div className="mt-5 divide-y divide-stone-100">
+              {customerNotifications.map((notification) => (
+                <Link
+                  className="grid gap-3 rounded-xl py-4 transition hover:bg-stone-50 sm:grid-cols-[auto_1fr_auto] sm:items-start sm:px-3"
+                  href={notification.href}
+                  key={notification.title}
+                >
+                  <span
+                    aria-label={
+                      notification.unread
+                        ? "Unread notification"
+                        : "Read notification"
+                    }
+                    className={
+                      notification.unread
+                        ? "mt-1.5 h-2 w-2 rounded-full bg-stone-950"
+                        : "mt-1.5 h-2 w-2 rounded-full bg-stone-300"
+                    }
+                  />
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">
+                        {notification.meta}
+                      </span>
+                      <span className="text-xs text-stone-400">
+                        {notification.time}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-sm font-semibold text-stone-950">
+                      {notification.title}
+                    </span>
+                    <span className="mt-1 block text-sm leading-5 text-stone-600">
+                      {notification.detail}
+                    </span>
+                  </span>
+                  <ArrowUpRight
+                    aria-hidden="true"
+                    className="hidden h-4 w-4 text-stone-300 sm:block"
+                    strokeWidth={1.8}
+                  />
+                </Link>
               ))}
             </div>
-          </div>
-        </article>
+          </article>
 
-        <article className="rounded-[18px] border border-[#e6e6e6] bg-white p-6">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-[-0.04em] text-[#202020]">Orders</h2>
-            <p className="mt-1 text-[14px] text-[#a2a2a2]">Here are the latest signed up users</p>
-          </div>
-
-          <div className="mt-7">
-            <div className="grid grid-cols-[1fr_auto] border-b border-[#eeeeee] pb-3 text-[14px] font-medium text-[#4b4b4b]">
-              <span>User</span>
-              <span>Time</span>
+          <article className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-200/30">
+            <div className="border-b border-stone-200 px-6 py-5">
+              <SectionHeader
+                action={
+                  <Link
+                    className="inline-flex h-10 items-center gap-2 rounded-xl bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800"
+                    href="/quotes"
+                  >
+                    View All
+                    <ArrowUpRight
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      strokeWidth={2}
+                    />
+                  </Link>
+                }
+                detail="Here are your latest quotes with status changes"
+                title="Transactions"
+              />
             </div>
-            <div className="divide-y divide-[#eeeeee]">
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left">
+                <thead className="bg-stone-50 text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">
+                  <tr>
+                    <th className="px-6 py-3">User</th>
+                    <th className="px-6 py-3">Amount</th>
+                    <th className="px-6 py-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 bg-white">
+                  {transactions.map((item) => (
+                    <tr
+                      className="transition hover:bg-stone-50"
+                      key={item.email}
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-stone-950">
+                          {item.name}
+                        </p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {item.email}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-semibold text-stone-950">
+                        {item.amount}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                          <CheckCircle2
+                            aria-hidden="true"
+                            className="h-3.5 w-3.5"
+                            strokeWidth={2}
+                          />
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+        <aside className="xl:sticky xl:top-8 xl:self-start">
+          <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30">
+            <SectionHeader
+              detail="Recent order and quote contacts"
+              title="Orders"
+            />
+
+            <div className="mt-6 divide-y divide-stone-100">
               {orders.map((item) => (
-                <div className="grid grid-cols-[1fr_auto] items-center gap-5 py-3" key={`${item.email}-${item.time}`}>
+                <div
+                  className="grid grid-cols-[1fr_auto] items-center gap-5 py-3.5"
+                  key={`${item.email}-${item.time}`}
+                >
                   <div className="flex min-w-0 items-center gap-3">
                     <Avatar name={item.name} />
                     <div className="min-w-0">
-                      <p className="truncate text-[14px] font-medium text-[#222222]">{item.name}</p>
-                      <p className="mt-1 truncate text-[12px] text-[#b8b8b8]">{item.email}</p>
+                      <p className="truncate text-sm font-medium text-stone-950">
+                        {item.name}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-stone-500">
+                        {item.email}
+                      </p>
                     </div>
                   </div>
-                  <p className="text-[14px] font-medium text-[#222222]">{item.time}</p>
+                  <p className="text-sm font-medium text-stone-500">
+                    {item.time}
+                  </p>
                 </div>
               ))}
             </div>
-          </div>
-        </article>
+          </article>
+        </aside>
       </section>
     </div>
   );

@@ -9,6 +9,9 @@ describe("BuyerQuotes", () => {
   it("filters quotes by search text", () => {
     render(<BuyerQuotes requests={getDemoRequests()} />);
 
+    expect(screen.getByText("Motor plate draft")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Edit incomplete quote for Motor plate draft" })).toHaveAttribute("href", "/requests/new?draft=demo_incomplete");
+    expect(screen.getAllByText("Configuring Quote").length).toBeGreaterThan(0);
     expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
     expect(screen.getByText("Pump housing prototype")).toBeInTheDocument();
     expect(screen.queryByLabelText("Quote status filters")).not.toBeInTheDocument();

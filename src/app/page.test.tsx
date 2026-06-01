@@ -10,7 +10,7 @@ describe("Landing page", () => {
     expect(screen.getByRole("heading", { name: "Lattice" })).toBeInTheDocument();
     expect(screen.getByText("Invite-only manufacturing procurement")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
-    expect(screen.getByRole("link", { name: "Join waiting list" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Request access" })).toHaveAttribute(
       "href",
       "/waiting-list",
     );

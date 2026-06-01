@@ -54,7 +54,7 @@ describe("RequestForm", () => {
       target: { files: [file] },
     });
 
-    await screen.findByText("Quote ID:");
+    await screen.findByText("Line item 1");
     expect(screen.getByRole("heading", { name: "Bracket" })).toBeInTheDocument();
     expect(screen.getByText("CAD file preview")).toBeInTheDocument();
     expect(screen.getByText("Autodesk preview setup needed")).toBeInTheDocument();
