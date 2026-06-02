@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { buildCustomerQuoteMarkdown, customerQuoteFileName, formatUsd, quoteSubtotal, type CustomerQuoteInput } from "./quote-file";
+import { buildCustomerQuoteMarkdown, customerQuoteFileName, customerQuotePdfFileName, formatUsd, quoteSubtotal, type CustomerQuoteInput } from "./quote-file";
+import { buildCustomerQuotePdf } from "./quote-pdf";
 
 const quote: CustomerQuoteInput = {
   assumptions: "General tolerances are +/- 0.005 in unless otherwise specified.\nStandard inspection is included.",
@@ -46,5 +47,18 @@ describe("quote file helpers", () => {
 
   it("creates a stable markdown filename", () => {
     expect(customerQuoteFileName(quote)).toBe("lq-2026-0142-apex-robotics.md");
+  });
+
+  it("creates a stable PDF filename and PDF document", () => {
+    expect(customerQuotePdfFileName(quote)).toBe("lq-2026-0142-apex-robotics.pdf");
+
+    const pdf = buildCustomerQuotePdf(quote, { statusLabel: "Quoted" });
+    const pdfText = new TextDecoder().decode(pdf);
+
+    expect(pdfText.startsWith("%PDF-1.4")).toBe(true);
+    expect(pdfText).toContain("Quote LQ-2026-0142");
+    expect(pdfText).toContain("Apex Robotics");
+    expect(pdfText).toContain("Sensor bracket");
+    expect(pdfText).toContain("$4,300.00");
   });
 });

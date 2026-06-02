@@ -48,7 +48,7 @@ describe("CustomerQuoteBuilder", () => {
     expect(screen.getByLabelText("Customer contact")).toHaveDisplayValue("William Paik");
     expect(screen.getByLabelText("Project / RFQ")).toHaveDisplayValue("Hydrogen skid bracket RFQ");
     expect(screen.getByLabelText("Part / description")).toHaveDisplayValue("Mounting bracket");
-    expect(screen.getByLabelText("Quantity")).toHaveDisplayValue(24);
+    expect(screen.getByLabelText("Quantity")).toHaveDisplayValue("24");
     expect(screen.getByLabelText("Files reviewed")).toHaveDisplayValue("mounting-bracket.step");
     expect(screen.getByText(`Linked RFQ: ${request.id}`)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save to RFQ" })).toBeInTheDocument();

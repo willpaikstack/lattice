@@ -59,7 +59,9 @@ type LegacyInitialState = Partial<
       LineItemState,
       "id" | "selectedFile" | "selectedDrawingFile" | "cadPreview"
     >
->;
+> & {
+  cadPreview?: CadUploadPreviewState;
+};
 
 export type RequestFormInitialState = LegacyInitialState;
 
@@ -166,11 +168,34 @@ function initialCadPreview(
     return { status: "empty" };
   }
 
+  const persistedPreview = initialState.cadPreview;
+  if (persistedPreview?.status === "processing") {
+    return persistedPreview.fileName === initialState.fileName
+      ? persistedPreview
+      : {
+          status: "reference_only",
+          fileName: initialState.fileName,
+          message:
+            "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.",
+        };
+  }
+
+  if (persistedPreview?.status === "ready") {
+    return persistedPreview.fileName === initialState.fileName
+      ? persistedPreview
+      : {
+          status: "reference_only",
+          fileName: initialState.fileName,
+          message:
+            "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.",
+        };
+  }
+
   return {
-    status: "configuration_required",
+    status: "reference_only",
     fileName: initialState.fileName,
     message:
-      "Reused from a previous order. Upload a replacement CAD file if the geometry has changed.",
+      "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.",
   };
 }
 
@@ -197,6 +222,16 @@ function lineItemFromInitialState(
     sharpInternalCorners: initialState?.sharpInternalCorners ?? false,
     cadPreview: initialCadPreview(initialState),
   };
+}
+
+function persistedCadPreview(
+  preview: CadUploadPreviewState,
+): RequestFormInitialState["cadPreview"] {
+  if (preview.status === "processing" || preview.status === "ready") {
+    return preview;
+  }
+
+  return undefined;
 }
 
 type StoredIncompleteRfq = {
@@ -504,6 +539,9 @@ function LineItemConfigurationCard({
                 </span>
               </div>
               <CadUploadPreview
+                onReplacementFileSelected={(file) =>
+                  onCadFileSelected(lineItem.id, file)
+                }
                 onStatus={(state) => onCadStatus(lineItem.id, state)}
                 state={lineItem.cadPreview}
               />
@@ -614,6 +652,7 @@ function LineItemConfigurationCard({
                   }
                   options={rfqMaterialOptions}
                   required
+                  showSearch
                 />
                 <Field label="Quantity">
                   <input
@@ -907,6 +946,7 @@ export function RequestForm({
       requesterName: projectForm.requesterName,
       surfaceFinish: primaryLineItem.surfaceFinish,
       technicalDrawingName: primaryLineItem.technicalDrawingName,
+      cadPreview: persistedCadPreview(primaryLineItem.cadPreview),
     };
     const requestTitle =
       projectForm.projectName.trim() ||
@@ -1290,6 +1330,27 @@ export function RequestForm({
             />
           ) : null}
 
+          <section className="rounded-lg border border-slate-200 bg-white p-5">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">
+              Quote Setup
+            </h3>
+            <div className="mt-5 max-w-2xl">
+              <Field
+                label="Quote name"
+                hint="Use a name that will be easy to recognize in quotes, orders, and admin review."
+              >
+                <input
+                  className={inputClass}
+                  placeholder="Aluminum plate reorder"
+                  value={projectForm.projectName}
+                  onChange={(event) =>
+                    updateProject("projectName", event.target.value)
+                  }
+                />
+              </Field>
+            </div>
+          </section>
+
           <div className="border-b border-slate-100 pb-6">
             <div>
               <h2 className="text-2xl font-semibold text-slate-950">
@@ -1362,19 +1423,6 @@ export function RequestForm({
                     }
                   />
                 </Field>
-                <Field
-                  label="Project Name"
-                  hint="Use a name an operator can recognize quickly."
-                >
-                  <input
-                    className={inputClass}
-                    placeholder="CNC bracket package"
-                    value={projectForm.projectName}
-                    onChange={(event) =>
-                      updateProject("projectName", event.target.value)
-                    }
-                  />
-                </Field>
                 <Field label="Requester name">
                   <input
                     className={inputClass}
@@ -1411,15 +1459,17 @@ export function RequestForm({
             </p>
           ) : null}
 
-          <div className="border-t border-slate-100 pt-6">
-            <button
-              className="rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
-              disabled={!isReady}
-              type="submit"
-            >
-              Request Quote
-            </button>
-          </div>
+          {hasCadFile ? (
+            <div className="border-t border-slate-100 pt-6">
+              <button
+                className="rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
+                disabled={!isReady}
+                type="submit"
+              >
+                Request Quote
+              </button>
+            </div>
+          ) : null}
         </form>
 
         {createdRequest ? (

@@ -7,15 +7,18 @@ import { AutodeskModelViewer } from "@/components/autodesk-model-viewer";
 export type CadUploadPreviewState =
   | { status: "empty" }
   | { status: "uploading"; fileName: string }
+  | { status: "reference_only"; fileName: string; message: string }
   | { status: "configuration_required"; fileName: string; message: string }
   | { status: "processing"; fileName: string; urn: string; progress: string }
   | { status: "ready"; fileName: string; urn: string }
   | { status: "failed"; fileName: string; message: string };
 
 export function CadUploadPreview({
+  onReplacementFileSelected,
   state,
   onStatus,
 }: {
+  onReplacementFileSelected?: (file: File | null) => void;
   state: CadUploadPreviewState;
   onStatus: (state: CadUploadPreviewState) => void;
 }) {
@@ -67,6 +70,8 @@ export function CadUploadPreview({
   const message =
     state.status === "uploading"
       ? "Uploading to the CAD preview service."
+      : state.status === "reference_only"
+        ? state.message
       : state.status === "configuration_required"
         ? state.message
         : state.status === "processing"
@@ -75,7 +80,9 @@ export function CadUploadPreview({
 
   const tone = state.status === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-blue-100 bg-blue-50 text-blue-900";
   const title =
-    state.status === "configuration_required"
+    state.status === "reference_only"
+      ? "CAD file reference only"
+      : state.status === "configuration_required"
       ? "Autodesk preview setup needed"
       : state.status === "failed"
         ? "3D preview unavailable"
@@ -93,6 +100,20 @@ export function CadUploadPreview({
           <p className="text-sm font-semibold">{title}</p>
           <p className="mt-1 text-xs opacity-75">{state.fileName}</p>
           <p className="mt-2 text-sm leading-6 opacity-85">{message}</p>
+          {state.status === "reference_only" && onReplacementFileSelected ? (
+            <label className="mt-4 inline-flex cursor-pointer rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-50">
+              <span>Upload replacement CAD</span>
+              <input
+                accept=".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt"
+                aria-label={`Upload replacement CAD for ${state.fileName}`}
+                className="sr-only"
+                type="file"
+                onChange={(event) =>
+                  onReplacementFileSelected(event.target.files?.[0] ?? null)
+                }
+              />
+            </label>
+          ) : null}
         </div>
       </div>
     </div>

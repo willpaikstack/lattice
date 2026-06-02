@@ -3,47 +3,48 @@ import { ArrowLeft, Download, FileText, ImageIcon, Mail, Phone, User } from "luc
 
 import type { LatticeRequest, RequestLineItem, RequestStatus } from "@/lib/request-model";
 
-const quoteStatusCopy: Record<RequestStatus, { label: string; tone: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
+const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
     buyerAction: "Submit the request before quote tracking begins.",
-    label: "Configuring Quote",
+    label: "Draft",
     requestCopy: "This RFQ has not been submitted yet.",
     requestTitle: "Submit this RFQ package",
     tone: "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]",
   },
   SUBMITTED: {
     buyerAction: "Lattice is checking the RFQ package before supplier outreach.",
-    label: "Configuring Quote",
     requestCopy: "Lattice is reviewing the uploaded files, material, quantity, and timing before routing this RFQ.",
     requestTitle: "Lattice review in progress",
-    tone: "border-[#cfe0ff] bg-[#eff5ff] text-[#315f9b]",
   },
   NEEDS_INFO: {
     buyerAction: "Additional buyer detail is needed before suppliers can quote accurately.",
-    label: "Configuring Quote",
     requestCopy: "This information is required for us to determine accurate pricing and any import considerations.",
     requestTitle: "Are these parts for prototype or commercial use?",
-    tone: "border-[#f1d8a5] bg-[#fff7e8] text-[#8a5b08]",
   },
   READY_FOR_SUPPLIER_RFQ: {
     buyerAction: "The package is complete and supplier pricing is being collected.",
-    label: "Configuring Quote",
     requestCopy: "The supplier package is complete. Lattice is collecting pricing and capacity confirmation.",
     requestTitle: "Supplier pricing in progress",
-    tone: "border-[#d5d9ff] bg-[#f1f2ff] text-[#4d55a8]",
   },
   QUOTED: {
     buyerAction: "Review the price, lead time, assumptions, and accept the quote when approved.",
-    label: "Quote Received",
+    label: "Quoted",
     requestCopy: "Pricing is ready. Review the line items, production timing, assumptions, and total before accepting.",
     requestTitle: "Review quote and proceed to purchase",
     tone: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
   },
   PURCHASED: {
     buyerAction: "This quote has been accepted and converted into an order.",
-    label: "Quote Closed",
+    label: "Ordered",
     requestCopy: "This quote has already been accepted. Continue to orders to track production.",
     requestTitle: "Order created",
+    tone: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
+  },
+  CLOSED: {
+    buyerAction: "This quote is no longer active.",
+    label: "Closed",
+    requestCopy: "This quote was closed by the customer or Lattice and is no longer available for purchase.",
+    requestTitle: "Quote closed",
     tone: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
   },
 };
@@ -139,6 +140,7 @@ export function BuyerQuoteDetail({
   request: LatticeRequest;
 }) {
   const canPurchase = request.status === "QUOTED";
+  const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
   const status = quoteStatusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const selectedSupplierQuote = request.supplierQuotes.find((quote) => quote.isSelected || quote.status === "SELECTED");
@@ -157,7 +159,9 @@ export function BuyerQuoteDetail({
         <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[28px] font-semibold leading-tight tracking-normal text-[#171717]">{quoteId}</h1>
-            <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.tone}`}>{status.label}</span>
+            {status.label && status.tone ? (
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.tone}`}>{status.label}</span>
+            ) : null}
             <span className="text-[13px] text-[#7b8088]">Last modified: {formatDate(request.updatedAt)}</span>
           </div>
           <p className="text-[13px] text-[#7b8088]">{request.title}</p>
@@ -346,12 +350,19 @@ export function BuyerQuoteDetail({
                   disabled
                   type="button"
                 >
-                  {canPurchase ? "Accept quote" : "Configuring Quote"}
+                  {canPurchase ? "Accept quote" : status.buyerAction}
                 </button>
               )}
-              <Link className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href="/quotes">
-                Back to quotes
-              </Link>
+              {canDownloadQuote ? (
+                <Link
+                  className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
+                  download
+                  href={`/quotes/${request.id}/quote.pdf`}
+                >
+                  <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                  Download quote PDF
+                </Link>
+              ) : null}
             </div>
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
@@ -396,7 +407,7 @@ export function BuyerQuoteDetail({
             <div className="mt-4 space-y-3">
               {request.statusEvents.map((event) => (
                 <div className="rounded-md bg-[#fafafa] p-3" key={event.id}>
-                  <p className="text-[13px] font-semibold text-[#202020]">{quoteStatusCopy[event.to].label}</p>
+                  <p className="text-[13px] font-semibold text-[#202020]">{quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle}</p>
                   <p className="mt-1 text-[12px] text-[#7b8088]">
                     {formatDate(event.at)} by {event.actor}
                   </p>

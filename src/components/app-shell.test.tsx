@@ -90,6 +90,20 @@ describe("AppShell", () => {
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
+  it("leaves the public forgot password page outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/forgot-password");
+
+    render(
+      <AppShell>
+        <div>forgot password content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("forgot password content")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
+  });
+
   it("leaves the public waiting list page outside the app shell", () => {
     mockUsePathname.mockReturnValue("/waiting-list");
 
@@ -120,7 +134,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Admin", "/admin");
     expect(screen.getByText("Your Resources")).toBeInTheDocument();
     expect(screen.getByText("William Paik")).toBeInTheDocument();
-    expect(screen.getByText("william.paik@amogy.co")).toBeInTheDocument();
+    expect(screen.getByText("will@latticeos.co")).toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();

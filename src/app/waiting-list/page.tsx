@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PublicHeader, TechnicalBackground } from "@/components/public-entry";
 import { joinWaitingListAction } from "./actions";
 
 type WaitingListPageProps = {
@@ -34,7 +35,32 @@ function statusMessage(status?: string) {
 }
 
 export default async function WaitingListPage({ searchParams }: WaitingListPageProps) {
-  const message = statusMessage((await searchParams)?.status);
+  const status = (await searchParams)?.status;
+  const message = statusMessage(status);
+  const isConfirmed = status === "joined";
+
+  if (isConfirmed) {
+    return (
+      <main className="min-h-screen bg-stone-50 font-sans text-stone-900 selection:bg-stone-200">
+        <PublicHeader />
+        <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 px-6 py-20 pt-40 lg:px-8">
+          <div className="relative z-10 mx-auto w-full max-w-2xl text-center">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/20 backdrop-blur-sm sm:p-10">
+              <h1 className="text-4xl font-semibold leading-tight tracking-normal text-white sm:text-5xl">Request received</h1>
+              <p className="mx-auto mt-5 max-w-xl text-lg leading-8 text-stone-300">
+                We have your request and will follow up with the next step for your team.
+              </p>
+
+              <Link className="mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-white px-6 text-[15px] font-semibold text-stone-900 shadow-lg transition hover:bg-stone-100 sm:w-auto sm:min-w-[220px]" href="/">
+                Back to home
+              </Link>
+            </div>
+          </div>
+          <TechnicalBackground />
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#111315] text-white">
@@ -62,7 +88,7 @@ export default async function WaitingListPage({ searchParams }: WaitingListPageP
             <div className="max-w-2xl">
               <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#cfd6dc]">Waiting list request</p>
               <h1 className="mt-5 text-4xl font-semibold leading-tight tracking-normal text-white sm:text-5xl">
-                Request access to Lattice
+                {isConfirmed ? "Request received" : "Request access to Lattice"}
               </h1>
               <p className="mt-5 max-w-xl text-lg leading-8 text-[#d9dee3]">
                 Tell us who you are and what kind of manufacturing procurement work you want to bring into the workspace.
@@ -70,86 +96,86 @@ export default async function WaitingListPage({ searchParams }: WaitingListPageP
             </div>
 
             <form
-              aria-label="Waiting list request form"
-              action={joinWaitingListAction}
-              className="rounded-md border border-white/15 bg-[#171b1f]/90 p-6 shadow-2xl shadow-black/25 backdrop-blur"
-            >
-              {message ? (
-                <div className="mb-5 rounded-md border border-white/15 bg-white/10 p-4">
-                  <p className="text-[15px] font-semibold text-white">{message.title}</p>
-                  <p className="mt-1 text-[13px] leading-5 text-[#d9dee3]">{message.body}</p>
+                aria-label="Waiting list request form"
+                action={joinWaitingListAction}
+                className="rounded-md border border-white/15 bg-[#171b1f]/90 p-6 shadow-2xl shadow-black/25 backdrop-blur"
+              >
+                {message ? (
+                  <div className="mb-5 rounded-md border border-white/15 bg-white/10 p-4">
+                    <p className="text-[15px] font-semibold text-white">{message.title}</p>
+                    <p className="mt-1 text-[13px] leading-5 text-[#d9dee3]">{message.body}</p>
+                  </div>
+                ) : null}
+
+                <div>
+                  <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="name">
+                    Name
+                  </label>
+                  <input
+                    autoComplete="name"
+                    className="mt-2 h-12 w-full rounded-md border border-white/15 bg-white/95 px-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
+                    id="name"
+                    name="name"
+                    placeholder="Your name"
+                    required
+                    type="text"
+                  />
                 </div>
-              ) : null}
 
-              <div>
-                <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="name">
-                  Name
-                </label>
-                <input
-                  autoComplete="name"
-                  className="mt-2 h-12 w-full rounded-md border border-white/15 bg-white/95 px-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
-                  id="name"
-                  name="name"
-                  placeholder="Your name"
-                  required
-                  type="text"
-                />
-              </div>
+                <div className="mt-5">
+                  <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="email">
+                    Work email
+                  </label>
+                  <input
+                    autoComplete="email"
+                    className="mt-2 h-12 w-full rounded-md border border-white/15 bg-white/95 px-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
+                    id="email"
+                    name="email"
+                    placeholder="you@company.com"
+                    required
+                    type="email"
+                  />
+                </div>
 
-              <div className="mt-5">
-                <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="email">
-                  Work email
-                </label>
-                <input
-                  autoComplete="email"
-                  className="mt-2 h-12 w-full rounded-md border border-white/15 bg-white/95 px-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
-                  id="email"
-                  name="email"
-                  placeholder="you@company.com"
-                  required
-                  type="email"
-                />
-              </div>
+                <div className="mt-5">
+                  <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="company">
+                    Company
+                  </label>
+                  <input
+                    autoComplete="organization"
+                    className="mt-2 h-12 w-full rounded-md border border-white/15 bg-white/95 px-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
+                    id="company"
+                    name="company"
+                    placeholder="Company name"
+                    required
+                    type="text"
+                  />
+                </div>
 
-              <div className="mt-5">
-                <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="company">
-                  Company
-                </label>
-                <input
-                  autoComplete="organization"
-                  className="mt-2 h-12 w-full rounded-md border border-white/15 bg-white/95 px-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
-                  id="company"
-                  name="company"
-                  placeholder="Company name"
-                  required
-                  type="text"
-                />
-              </div>
+                <div className="mt-5">
+                  <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="procurement-needs">
+                    Procurement needs
+                  </label>
+                  <textarea
+                    className="mt-2 min-h-28 w-full resize-y rounded-md border border-white/15 bg-white/95 px-3 py-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
+                    id="procurement-needs"
+                    name="procurementNeeds"
+                    placeholder="RFQs, production orders, supplier follow-up, materials, or parts you source."
+                    required
+                  />
+                </div>
 
-              <div className="mt-5">
-                <label className="text-[13px] font-semibold text-[#d9dee3]" htmlFor="procurement-needs">
-                  Procurement needs
-                </label>
-                <textarea
-                  className="mt-2 min-h-28 w-full resize-y rounded-md border border-white/15 bg-white/95 px-3 py-3 text-[15px] text-[#111315] outline-none transition placeholder:text-[#7d8389] focus:border-white focus:ring-2 focus:ring-white/25"
-                  id="procurement-needs"
-                  name="procurementNeeds"
-                  placeholder="RFQs, production orders, supplier follow-up, materials, or parts you source."
-                  required
-                />
-              </div>
+                <button className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-md bg-white px-5 text-[15px] font-semibold text-[#111315] transition hover:bg-[#e8ecef]" type="submit">
+                  Submit request
+                </button>
 
-              <button className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-md bg-white px-5 text-[15px] font-semibold text-[#111315] transition hover:bg-[#e8ecef]" type="submit">
-                Submit request
-              </button>
-
-              <p className="mt-5 text-center text-[13px] leading-5 text-[#b9c0c7]">
-                Already have access?{" "}
-                <Link className="font-semibold text-white underline decoration-white/30 underline-offset-4 hover:decoration-white" href="/login">
-                  Log in
-                </Link>
-              </p>
-            </form>
+                <p className="mt-5 text-center text-[13px] leading-5 text-[#b9c0c7]">
+                  Already have access?{" "}
+                  <Link className="font-semibold text-white underline decoration-white/30 underline-offset-4 hover:decoration-white" href="/login">
+                    Log in
+                  </Link>
+                </p>
+              </form>
           </div>
         </div>
       </section>

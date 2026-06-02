@@ -51,6 +51,18 @@ npm run lint
 npm run build
 ```
 
+## CAD preview setup
+
+Live CAD translation previews require Autodesk Platform Services credentials in `.env.local` or the deployed environment:
+
+- `APS_CLIENT_ID`
+- `APS_CLIENT_SECRET`
+- `APS_BUCKET_KEY`
+
+See `docs/autodesk-aps-cad-preview.md` for setup, bucket naming, and secret-rotation guidance.
+
+After setting the variables and restarting the server, visit `/api/cad-previews/configuration` to verify that the server can authenticate with Autodesk without exposing any secrets.
+
 ## Shared agent context
 
 This repo carries lightweight project memory so AI agents on different computers can pick up the same context:

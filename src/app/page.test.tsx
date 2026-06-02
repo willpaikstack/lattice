@@ -7,8 +7,7 @@ describe("Landing page", () => {
   it("presents the invite-only entry points", () => {
     render(<LandingPage />);
 
-    expect(screen.getByRole("heading", { name: "Lattice" })).toBeInTheDocument();
-    expect(screen.getByText("Invite-only manufacturing procurement")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lattice OS" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
     expect(screen.getByRole("link", { name: "Request access" })).toHaveAttribute(
       "href",

@@ -1,4 +1,5 @@
 import { materials, type CatalogEntry } from "./catalog-data";
+import { cncMaterialLibrary, type CncMaterialFamily } from "./cnc-material-library";
 import { vendorMaterialOfferings, type MaterialOfferingCategory } from "./vendor-materials";
 
 export type CustomerMaterialSubGroup = {
@@ -16,6 +17,15 @@ function unique(values: string[]) {
 
 function gradesFor(category: MaterialOfferingCategory) {
   return unique(vendorMaterialOfferings.filter((offering) => offering.category === category).flatMap((offering) => offering.grades));
+}
+
+function marketplaceGradesFor(...families: CncMaterialFamily[]) {
+  const familySet = new Set(families);
+  return unique(cncMaterialLibrary.filter((material) => familySet.has(material.family)).map((material) => material.label));
+}
+
+function combinedGrades(category: MaterialOfferingCategory, ...families: CncMaterialFamily[]) {
+  return unique([...gradesFor(category), ...marketplaceGradesFor(...families)]);
 }
 
 function groupGrades(grades: string[], groups: { name: string; matches: (grade: string) => boolean }[]) {
@@ -43,19 +53,19 @@ function existing(slug: string) {
   return material;
 }
 
-const aluminumGrades = gradesFor("Aluminum");
-const steelGrades = gradesFor("Carbon / Alloy Steel");
-const stainlessGrades = gradesFor("Stainless Steel");
-const nickelGrades = gradesFor("Nickel / Cobalt Alloy");
-const precisionGrades = gradesFor("Controlled Expansion / Precision Alloy");
-const titaniumGrades = gradesFor("Titanium");
-const copperFamilyGrades = gradesFor("Copper / Brass / Bronze");
-const magnesiumZincGrades = gradesFor("Magnesium / Zinc");
-const plasticGrades = gradesFor("Plastics / Polymers");
+const aluminumGrades = combinedGrades("Aluminum", "Aluminum");
+const steelGrades = combinedGrades("Carbon / Alloy Steel", "Steel", "Tool steel");
+const stainlessGrades = combinedGrades("Stainless Steel", "Stainless steel");
+const nickelGrades = combinedGrades("Nickel / Cobalt Alloy", "Nickel / precision alloy");
+const precisionGrades = combinedGrades("Controlled Expansion / Precision Alloy", "Nickel / precision alloy");
+const titaniumGrades = combinedGrades("Titanium", "Titanium");
+const copperFamilyGrades = combinedGrades("Copper / Brass / Bronze", "Copper / brass / bronze");
+const magnesiumZincGrades = combinedGrades("Magnesium / Zinc", "Magnesium / zinc", "Cast iron");
+const plasticGrades = combinedGrades("Plastics / Polymers", "Plastic / polymer", "Composite");
 
-const mildSteelNames = /(1010|1018|1018S|1020|1045|20#|45#|Q235|S355|S355J2|S355JR|SS400|FE510|44W|AISI 1010|S15C|SPCC|SPHC|SGCC|SECC|SPTE|C22|1\.033)/i;
-const alloySteelNames = /(4130|4140|4340|42CD4|40Cr|16Mn|18Cr|EN19|300M|4330|52100|6150|9310|E9310|E4340|Toolox|17-4PH H900|1\.0737)/i;
-const toolSteelNames = /(A2 Steel|SKD11|ST TOOL M2|X160CrMoV12|Z160CVD12|1\.2085|1\.2510|100MnCrW4|1\.0718|12L14|1215|Steel 12L14)/i;
+const mildSteelNames = /(1010|1018|1018S|1020|1045|20#|45#|Q235|S355|S355J2|S355JR|SS400|FE510|44W|A36|A514|AISI 1010|S15C|SPCC|SPHC|SGCC|SECC|SPTE|C22|1\.033)/i;
+const alloySteelNames = /(4130|4140|4140PH|4340|42CD4|40Cr|16Mn|18Cr|EN19|300M|4330|52100|6150|9310|E9310|E4340|Toolox|17-4PH H900|1\.0737|1\.7131|1\.7139|1\.7227|1\.6580|1\.6582)/i;
+const toolSteelNames = /(A2 Steel|O1 Tool|SKD11|ST TOOL M2|X160CrMoV12|Z160CVD12|1\.2085|1\.2510|100MnCrW4|1\.0718|12L14|1215|Steel 12L14)/i;
 
 export const customerMaterialCatalog: CustomerMaterialCatalogEntry[] = [
   {

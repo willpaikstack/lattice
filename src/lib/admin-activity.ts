@@ -48,6 +48,7 @@ const initialStatusCounts: Record<RequestStatus, number> = {
   READY_FOR_SUPPLIER_RFQ: 0,
   QUOTED: 0,
   PURCHASED: 0,
+  CLOSED: 0,
 };
 
 const quoteRequestStatuses = new Set<RequestStatus>(["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"]);

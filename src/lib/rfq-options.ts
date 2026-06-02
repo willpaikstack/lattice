@@ -1,3 +1,5 @@
+import { cncMaterialLibrary } from "./cnc-material-library";
+
 export type BubbleTranslationTarget = "prisma-enum" | "lookup" | "seed-record" | "future-table" | "do-not-migrate";
 
 export type RfqOption = {
@@ -43,13 +45,19 @@ export const machiningDifficultyOptions: RfqOption[] = [
 export const materialCategoryOptions: RfqOption[] = [
   option("aluminum", "Aluminum"),
   option("stainless_steel", "Stainless steel"),
+  option("steel", "Steel"),
   option("mild_steel", "Mild steel"),
   option("brass", "Brass"),
+  option("bronze", "Bronze"),
   option("copper", "Copper"),
   option("alloy_steel", "Alloy steel"),
   option("tool_steel", "Tool steel"),
   option("titanium", "Titanium"),
   option("inconel_incoloy", "Inconel/Incoloy"),
+  option("cast_iron", "Cast iron"),
+  option("magnesium_zinc", "Magnesium / zinc"),
+  option("plastics_polymers", "Plastics / polymers"),
+  option("composites", "Composites"),
 ];
 
 export const materialCostOptions: RfqOption[] = [
@@ -59,15 +67,12 @@ export const materialCostOptions: RfqOption[] = [
   option("tier_4", "$$$$", "____", { rank: 4 }),
 ];
 
-export const rfqMaterialOptions: RfqOption[] = [
-  option("al_6061_t6", "6061-T6 Aluminum"),
-  option("pvc", "PVC"),
-  option("in_625", "IN 625"),
-  option("ss_303", "SS 303"),
-  option("ss_304", "SS 304"),
-  option("ss_316", "SS 316"),
-  option("ss_300", "SS 300 series", "ss_300"),
-];
+export const rfqMaterialOptions: RfqOption[] = cncMaterialLibrary.map((entry) =>
+  option(entry.value, entry.label, entry.value, {
+    family: entry.family,
+    sources: entry.sources.join(", "),
+  }),
+);
 
 export const companySeedOptions: RfqOption[] = [option("amogy", "Amogy Inc.")];
 
@@ -87,7 +92,9 @@ export const requestStatusOptions: RfqOption[] = [
   option("DRAFT", "Draft", "draft"),
   option("SUBMITTED", "Requested", "requested"),
   option("READY_FOR_SUPPLIER_RFQ", "Under Review", "in_review"),
+  option("QUOTED", "Quoted", "quoted"),
   option("PURCHASED", "Purchased", "purchased"),
+  option("CLOSED", "Closed", "closed"),
 ];
 
 export const surfaceFinishOptions: RfqOption[] = [

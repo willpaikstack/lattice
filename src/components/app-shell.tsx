@@ -63,6 +63,19 @@ const adminNavSections: NavSection[] = [
 ];
 
 const adminRoutePrefixes = ["/admin", "/analytics", "/projects", "/operator"];
+const publicRoutes = new Set(["/", "/login", "/forgot-password", "/waiting-list"]);
+const iconByName: Record<IconName, LucideIcon> = {
+  admin: Settings,
+  analytics: Layers,
+  back: ArrowLeft,
+  factory: Factory,
+  home: LayoutDashboard,
+  logout: LogOut,
+  money: Inbox,
+  project: ClipboardList,
+  queue: FileSearch,
+  user: User,
+};
 
 function isAdminRoute(pathname: string) {
   return adminRoutePrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -77,18 +90,6 @@ function isNavItemActive(pathname: string, href: string) {
 }
 
 function SidebarIcon({ name }: { name: IconName }) {
-  const iconByName: Record<IconName, LucideIcon> = {
-    admin: Settings,
-    analytics: Layers,
-    back: ArrowLeft,
-    factory: Factory,
-    home: LayoutDashboard,
-    logout: LogOut,
-    money: Inbox,
-    project: ClipboardList,
-    queue: FileSearch,
-    user: User,
-  };
   const Icon = iconByName[name];
 
   return <Icon aria-hidden="true" size={16} strokeWidth={2} />;
@@ -173,12 +174,11 @@ function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" 
 
 function ProfileMenu() {
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
   const initials = initialsForName(currentUser.name);
 
   function handleSignOut() {
     setIsOpen(false);
-    router.replace("/");
+    window.location.href = "/api/logout";
   }
 
   return (
@@ -254,7 +254,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [pageTransitionPhase, setPageTransitionPhase] = useState<PageTransitionPhase>("idle");
-  const isPublicRoute = pathname === "/" || pathname === "/login" || pathname === "/waiting-list";
+  const isPublicRoute = publicRoutes.has(pathname);
   const inAdminExperience = isAdminRoute(pathname);
   const activeNavPathname = pendingHref ?? pathname;
   const isRequestQuoteRoute = activeNavPathname === "/requests/new" || activeNavPathname.startsWith("/requests/new/");

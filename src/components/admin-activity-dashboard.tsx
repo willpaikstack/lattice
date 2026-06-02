@@ -14,6 +14,7 @@ const statusLabels: Record<RequestStatus, string> = {
   READY_FOR_SUPPLIER_RFQ: "Supplier ready",
   QUOTED: "Quoted",
   PURCHASED: "Purchased",
+  CLOSED: "Closed",
 };
 
 const actionToneClasses: Record<AdminActionTone, string> = {

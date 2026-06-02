@@ -10,14 +10,19 @@ export default async function AdminQuotesPage() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-md border border-[#e6e6e6] bg-[#f8fafc] p-5">
+      <section className="rounded-md border border-[#e6d2bf] bg-[#fffaf6] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#64748b]">Admin</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a4d2d]">Admin quote operations</p>
             <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-tight text-[#171717]">Quote submissions</h1>
             <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#5f6673]">
-              Manage active customer RFQs and the overseas fabrication shops quoting each request.
+              Review customer RFQ packets, track supplier quote basis, and assemble the customer-facing quote with pricing, lead time, shipping, tax, files, and DFM notes.
             </p>
+          </div>
+          <div className="grid gap-2 text-[12px] font-semibold text-[#6f4529] sm:grid-cols-3 xl:min-w-[520px]">
+            <span className="rounded-md border border-[#ead7c5] bg-white px-3 py-2">1. Intake</span>
+            <span className="rounded-md border border-[#ead7c5] bg-white px-3 py-2">2. Supplier basis</span>
+            <span className="rounded-md border border-[#ead7c5] bg-white px-3 py-2">3. Issue quote</span>
           </div>
         </div>
       </section>

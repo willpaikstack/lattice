@@ -1,4 +1,4 @@
-export type RequestStatus = "DRAFT" | "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED" | "PURCHASED";
+export type RequestStatus = "DRAFT" | "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED" | "PURCHASED" | "CLOSED";
 
 export type OperatorCompleteness = "READY_FOR_REVIEW" | "MISSING_INFO" | "COMPLETE";
 
@@ -298,7 +298,7 @@ export type QuoteSummary = {
 };
 
 export type OperatorStatusUpdateInput = {
-  status: Extract<RequestStatus, "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED">;
+  status: Extract<RequestStatus, "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED" | "CLOSED">;
   assignedOwner?: string | null;
   internalNotes?: string;
   supplierPackageNotes?: string;
@@ -326,7 +326,7 @@ function completenessForStatus(status: OperatorStatusUpdateInput["status"]): Ope
     return "MISSING_INFO";
   }
 
-  if (status === "READY_FOR_SUPPLIER_RFQ" || status === "QUOTED") {
+  if (status === "READY_FOR_SUPPLIER_RFQ" || status === "QUOTED" || status === "CLOSED") {
     return "COMPLETE";
   }
 
@@ -337,7 +337,7 @@ export function applyOperatorStatusUpdate(
   request: LatticeRequest,
   input: OperatorStatusUpdateInput,
 ): LatticeRequest {
-  if (request.status === "DRAFT" || request.status === "PURCHASED") {
+  if (request.status === "DRAFT" || request.status === "PURCHASED" || request.status === "CLOSED") {
     throw new Error("This request cannot be updated from the operator review screen");
   }
 

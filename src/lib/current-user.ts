@@ -5,7 +5,7 @@ export type CurrentUser = {
 
 export const currentUser: CurrentUser = {
   name: "William Paik",
-  email: "william.paik@amogy.co",
+  email: "will@latticeos.co",
 };
 
 export function initialsForName(name: string) {

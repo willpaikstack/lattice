@@ -28,6 +28,22 @@ export type CadPreviewStatusResult =
       provider: "autodesk-platform-services";
     };
 
+export type CadPreviewConfigurationStatus =
+  | {
+      status: "missing_credentials";
+      provider: "autodesk-platform-services";
+      hasClientId: boolean;
+      hasClientSecret: boolean;
+      hasBucketKey: boolean;
+      message: string;
+    }
+  | {
+      status: "configured";
+      provider: "autodesk-platform-services";
+      bucketKey: string;
+      message: string;
+    };
+
 function apsCredentials() {
   const clientId = process.env.APS_CLIENT_ID ?? process.env.AUTODESK_CLIENT_ID;
   const clientSecret = process.env.APS_CLIENT_SECRET ?? process.env.AUTODESK_CLIENT_SECRET;
@@ -41,6 +57,22 @@ function apsCredentials() {
     clientId,
     clientSecret,
     bucketKey: bucketKey.toLowerCase(),
+  };
+}
+
+function envValueConfigured(value: string | undefined) {
+  return Boolean(value?.trim()) && value !== "replace-me";
+}
+
+function apsCredentialPresence() {
+  const clientId = process.env.APS_CLIENT_ID ?? process.env.AUTODESK_CLIENT_ID;
+  const clientSecret = process.env.APS_CLIENT_SECRET ?? process.env.AUTODESK_CLIENT_SECRET;
+  const bucketKey = process.env.APS_BUCKET_KEY ?? process.env.AUTODESK_BUCKET_KEY;
+
+  return {
+    hasClientId: envValueConfigured(clientId),
+    hasClientSecret: envValueConfigured(clientSecret),
+    hasBucketKey: envValueConfigured(bucketKey),
   };
 }
 
@@ -207,6 +239,29 @@ export async function startCadPreviewTranslation(file: File): Promise<CadPreview
     urn,
     objectId: uploaded.objectId,
     provider: "autodesk-platform-services",
+  };
+}
+
+export async function checkCadPreviewConfiguration(): Promise<CadPreviewConfigurationStatus> {
+  const presence = apsCredentialPresence();
+  const credentials = apsCredentials();
+
+  if (!credentials) {
+    return {
+      status: "missing_credentials",
+      provider: "autodesk-platform-services",
+      ...presence,
+      message: "APS credentials are not fully configured on the server.",
+    };
+  }
+
+  await getApsToken(["data:read"]);
+
+  return {
+    status: "configured",
+    provider: "autodesk-platform-services",
+    bucketKey: credentials.bucketKey,
+    message: "APS credentials are configured and Autodesk authentication succeeded.",
   };
 }
 

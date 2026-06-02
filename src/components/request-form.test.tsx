@@ -27,10 +27,12 @@ describe("RequestForm", () => {
     expect(screen.queryByText("Quote ID:")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Material")).not.toBeInTheDocument();
     expect(screen.queryByText("Quality documentation")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Request Quote" })).not.toBeInTheDocument();
     expect(screen.queryByText("HEADER")).not.toBeInTheDocument();
     expect(screen.queryByText("yes(No quote line items)")).not.toBeInTheDocument();
     expect(screen.queryByText("3D preview")).not.toBeInTheDocument();
     expect(screen.queryByText(/Select a CAD file to generate an interactive model preview/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Quote name")).toBeInTheDocument();
   });
 
   it("reveals quote configuration fields after a CAD file is selected", async () => {
@@ -62,8 +64,16 @@ describe("RequestForm", () => {
     expect(screen.getByLabelText(/Technical drawing/)).toBeInTheDocument();
     expect(screen.getByLabelText("Customer PO#")).toBeInTheDocument();
     expect(screen.getByLabelText("Company Name")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Project Name/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote name")).toBeInTheDocument();
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("SS 304");
+    fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
+    fireEvent.change(screen.getByPlaceholderText("Search options..."), {
+      target: { value: "Ultem 2300" },
+    });
+    const ultemOptions = screen.getAllByRole("option", { name: /ULTEM 2300/ });
+    expect(ultemOptions.length).toBeGreaterThan(0);
+    fireEvent.click(ultemOptions.at(-1)!);
+    expect(screen.getByLabelText("Material")).toHaveDisplayValue("ULTEM 2300");
     expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("ISO 2768 Medium (m)");
     expect(screen.getByLabelText("Surface Finish")).toHaveDisplayValue("As machined (Ra 3.2 um / Ra 126 uin)");
     expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue("Standard Inspection");
@@ -115,13 +125,36 @@ describe("RequestForm", () => {
     expect(screen.getByText("Reorder draft prepared from PO-DEMO_PUR.")).toBeInTheDocument();
     expect(screen.getByLabelText("Upload another CAD file")).toBeInTheDocument();
     expect(screen.getByLabelText("Company Name")).toHaveDisplayValue("Apex Fluidics");
-    expect(screen.getByLabelText(/Project Name/)).toHaveDisplayValue("Valve manifold order reorder");
+    expect(screen.getByLabelText("Quote name")).toHaveDisplayValue("Valve manifold order reorder");
     expect(screen.getByLabelText("Part / line item name")).toHaveDisplayValue("Mounting bracket");
     expect(screen.getByLabelText("File reference")).toHaveDisplayValue("mounting-bracket.step");
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("6061-T6 Aluminum");
     expect(screen.getByLabelText("Quantity")).toHaveDisplayValue("24");
     expect(screen.getByLabelText("Manufacturing notes")).toHaveDisplayValue("Reorder from PO-DEMO_PUR / LQ-DEMO_PUR.");
-    expect(screen.getByText("Reused from a previous order. Upload a replacement CAD file if the geometry has changed.")).toBeInTheDocument();
+    expect(screen.getByText("This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Upload replacement CAD for mounting-bracket.step")).toBeInTheDocument();
+  });
+
+  it("restores an Autodesk CAD preview from a saved draft", () => {
+    render(
+      <RequestForm
+        initialState={{
+          dueDate: "2026-06-16",
+          fileName: "mounting-bracket.step",
+          partName: "Mounting bracket",
+          projectName: "Valve manifold order reorder",
+          cadPreview: {
+            status: "ready",
+            fileName: "mounting-bracket.step",
+            urn: "saved-viewer-urn",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("3D preview ready")).toBeInTheDocument();
+    expect(screen.getByText("Loading interactive CAD preview...")).toBeInTheDocument();
+    expect(screen.queryByText("CAD file reference only")).not.toBeInTheDocument();
   });
 
   it("starts a CAD preview translation when a file is selected", async () => {

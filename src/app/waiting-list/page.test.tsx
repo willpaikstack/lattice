@@ -30,4 +30,13 @@ describe("Waiting list page", () => {
     expect(screen.getByText("Your company is already represented.")).toBeInTheDocument();
     expect(screen.getByText(/current waitlist contact for your company/)).toBeInTheDocument();
   });
+
+  it("shows a confirmation page after a successful request", async () => {
+    render(await WaitingListPage({ searchParams: Promise.resolve({ status: "joined" }) }));
+
+    expect(screen.getByRole("heading", { name: "Request received" })).toBeInTheDocument();
+    expect(screen.queryByRole("form", { name: "Waiting list request form" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: "Log in" })).not.toBeInTheDocument();
+  });
 });

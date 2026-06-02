@@ -1,5 +1,6 @@
 "use client";
 
+import { Clipboard, Download, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -161,8 +162,12 @@ export function CustomerQuoteBuilder({
   return (
     <div className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
       <div className="space-y-5">
-        <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
-          {requestId ? <p className="mb-4 rounded-md bg-[#eef6ff] px-3 py-2 text-sm font-semibold text-[#245b89]">Linked RFQ: {requestId}</p> : null}
+        <section className="rounded-md border border-[#ead7c5] bg-white p-5">
+          {requestId ? <p className="mb-4 rounded-md bg-[#fff6ee] px-3 py-2 text-sm font-semibold text-[#6f4529]">Linked RFQ: {requestId}</p> : null}
+          <div className="mb-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7a4d2d]">Quote identity</p>
+            <h2 className="mt-1 text-[20px] font-semibold tracking-tight text-[#202020]">Customer-facing quote header</h2>
+          </div>
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Quote number" onChange={(value) => updateQuote("quoteNumber", value)} value={quote.quoteNumber} />
             <Field label="Quote date" onChange={(value) => updateQuote("quoteDate", value)} type="date" value={quote.quoteDate} />
@@ -176,13 +181,15 @@ export function CustomerQuoteBuilder({
           </div>
         </section>
 
-        <section className="rounded-md border border-[#e6e6e6] bg-white">
+        <section className="rounded-md border border-[#ead7c5] bg-white">
           <div className="flex flex-col gap-3 border-b border-[#eeeeee] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-[19px] font-semibold tracking-tight text-[#202020]">Line items</h2>
-              <p className="mt-1 text-[14px] text-[#707782]">Enter the essentials needed for the customer-facing quote.</p>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7a4d2d]">Part production</p>
+              <h2 className="mt-1 text-[19px] font-semibold tracking-tight text-[#202020]">Line items</h2>
+              <p className="mt-1 text-[14px] text-[#707782]">Price each quoted part with process, material, finish, quantity, and unit price.</p>
             </div>
-            <button className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-sm font-semibold text-[#262626] transition hover:bg-[#f8fafc]" onClick={addLineItem} type="button">
+            <button className="inline-flex items-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-sm font-semibold text-[#262626] transition hover:bg-[#f8fafc]" onClick={addLineItem} type="button">
+              <Plus aria-hidden="true" size={16} />
               Add line
             </button>
           </div>
@@ -191,7 +198,8 @@ export function CustomerQuoteBuilder({
               <article className="p-5" key={item.id}>
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-[#202020]">Item {index + 1}</p>
-                  <button className="rounded-md px-2 py-1 text-sm font-semibold text-[#737b86] transition hover:bg-[#f8fafc] hover:text-[#202020]" disabled={quote.lineItems.length === 1} onClick={() => removeLineItem(item.id)} type="button">
+                  <button className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-[#737b86] transition hover:bg-[#f8fafc] hover:text-[#202020]" disabled={quote.lineItems.length === 1} onClick={() => removeLineItem(item.id)} type="button">
+                    <Trash2 aria-hidden="true" size={15} />
                     Remove
                   </button>
                 </div>
@@ -208,7 +216,11 @@ export function CustomerQuoteBuilder({
           </div>
         </section>
 
-        <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
+        <section className="rounded-md border border-[#ead7c5] bg-white p-5">
+          <div className="mb-4">
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7a4d2d]">Logistics and terms</p>
+            <h2 className="mt-1 text-[19px] font-semibold tracking-tight text-[#202020]">Production speed, shipping, tax, and notes</h2>
+          </div>
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Lead time" onChange={(value) => updateQuote("leadTime", value)} value={quote.leadTime} />
             <Field label="Shipping" onChange={(value) => updateQuote("shipping", value)} value={quote.shipping} />
@@ -224,8 +236,8 @@ export function CustomerQuoteBuilder({
       </div>
 
       <aside className="space-y-5 xl:sticky xl:top-5 xl:self-start">
-        <section className="rounded-md border border-[#e6e6e6] bg-[#f8fafc] p-5">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86]">Customer file</p>
+        <section className="rounded-md border border-[#ead7c5] bg-[#fffaf6] p-5">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7a4d2d]">Customer quote file</p>
           <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{formatUsd(subtotal)}</h2>
           <p className="mt-1 text-sm text-[#707782]">{fileName}</p>
           <form action={saveAction} className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -235,21 +247,24 @@ export function CustomerQuoteBuilder({
             <input name="quoteMarkdown" type="hidden" value={quoteMarkdown} />
             <input name="quotePayload" type="hidden" value={quotePayload} />
             {requestId ? <input name="requestId" type="hidden" value={requestId} /> : null}
-            <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#303030]" onClick={downloadQuoteFile} type="button">
+            <button className="inline-flex items-center justify-center gap-2 rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#303030]" onClick={downloadQuoteFile} type="button">
+              <Download aria-hidden="true" size={16} />
               Download quote
             </button>
-            <button className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626] transition hover:bg-[#f8fafc]" onClick={() => navigator.clipboard.writeText(quoteMarkdown)} type="button">
+            <button className="inline-flex items-center justify-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626] transition hover:bg-[#f8fafc]" onClick={() => navigator.clipboard.writeText(quoteMarkdown)} type="button">
+              <Clipboard aria-hidden="true" size={16} />
               Copy text
             </button>
             {saveAction ? (
-              <button className="rounded-md bg-[#245b89] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1f4d74]" type="submit">
+              <button className="inline-flex items-center justify-center gap-2 rounded-md bg-[#4f3424] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#3a281d]" type="submit">
+                <Save aria-hidden="true" size={16} />
                 Save to RFQ
               </button>
             ) : null}
           </form>
         </section>
 
-        <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
+        <section className="overflow-hidden rounded-md border border-[#ead7c5] bg-white">
           <div className="border-b border-[#eeeeee] px-5 py-4">
             <h2 className="text-[19px] font-semibold tracking-tight text-[#202020]">Preview</h2>
             <p className="mt-1 text-[14px] text-[#707782]">This is the Markdown file the customer receives.</p>

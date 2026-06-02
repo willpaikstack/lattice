@@ -13,6 +13,7 @@ enum RequestStatus {
   READY_FOR_SUPPLIER_RFQ
   QUOTED
   PURCHASED
+  CLOSED
 }
 
 enum OperatorCompleteness {
@@ -64,6 +65,15 @@ model User {
   company   Company? @relation(fields: [companyId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model WaitingListEntry {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  company          String
+  procurementNeeds String
+  joinedAt         DateTime @default(now())
 }
 
 model Request {

@@ -2,6 +2,73 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-02 - Use A Dedicated CNC Material Library For RFQ Selection
+
+Decision: drive the buyer RFQ material dropdown from a researched CNC material library covering Fictiv, Hubs/Protolabs Network, and Xometry offerings, while preserving legacy option values for saved drafts and reorders.
+
+Reason: buyers need to select the same breadth of CNC materials they expect from modern manufacturing networks, and the previous Bubble-era dropdown was too narrow for real RFQ intake.
+
+Implications:
+
+- `src/lib/cnc-material-library.ts` is the source for customer-selectable CNC material options.
+- `rfqMaterialOptions` derives from the CNC library and keeps source metadata for future auditing and filtering.
+- The `/requests/new` material control should remain searchable because the option set is now large.
+- Internal vendor-source material repositories remain separate from marketplace research so supplier traceability is not confused with public competitor catalog coverage.
+
+## 2026-06-02 - Add Local Single-Account Credential Gate
+
+Decision: protect Lattice OS workspace routes with a local credential login using a signed HTTP-only session cookie and Next.js `proxy.ts` route checks.
+
+Reason: the previous login form accepted any input and routed directly to `/dashboard`. The app needs a real access screen even before a full multi-user identity provider is selected.
+
+Implications:
+
+- `/login` validates the configured local account before creating a session.
+- Unauthenticated access to workspace, admin, operator, supplier, quote, order, materials, equipment, and account routes redirects to `/login`.
+- The current account is `will@latticeos.co`; the password hash is stored in local auth code rather than the plaintext password.
+- This is an interim gate, not the final production identity model. Future work should move users, password changes, roles, audit trails, and recovery/MFA into durable auth infrastructure.
+
+## 2026-06-02 - Purchased Quotes Move To Orders
+
+Decision: keep purchased work out of the buyer `/quotes` list and route purchased quote detail URLs to the corresponding `/orders/[requestId]` page.
+
+Reason: once a quote is accepted, the buyer's primary job is order tracking rather than quote review. Mixing purchased orders into the quote list makes the customer and admin quote views look inconsistent and blurs the lifecycle boundary.
+
+Implications:
+
+- The buyer Quotes page should separate active quote work into in-progress requests and quoted requests.
+- `PURCHASED` records should appear in Orders, not in the buyer quote tracker.
+- Admin quote submissions can continue focusing on active RFQ/quote work and exclude purchased orders.
+- Quote history may remain accessible from order detail in the future, but the primary navigation home for purchased work is Orders.
+
+## 2026-06-02 - Customer Quote Statuses Are Draft, Quoted, Ordered, Closed
+
+Decision: customer-facing quote status vocabulary is limited to `Draft`, `Quoted`, `Ordered`, and `Closed`.
+
+Reason: buyers need a simple commercial quote lifecycle, while admins still need more granular internal RFQ workflow states such as submitted, needs-info, and supplier-ready.
+
+Implications:
+
+- `Draft` means the customer has not clicked Request Quote yet.
+- `Quoted` means price and lead time have been issued and the customer decision is pending.
+- `Ordered` means the quote converted into an order and production/order tracking owns the workflow.
+- `Closed` means the quote was rejected, declined, or closed by the customer/admin because of cost, lead time, or capability fit.
+- Internal RFQ states may still drive admin queues, but should not be shown as quote statuses on customer quote surfaces.
+
+## 2026-06-02 - Launch On Vercel And Neon First
+
+Decision: use Vercel for the first public production deployment and Neon Postgres for the production database, while keeping storage/email/auth provider work separate and incremental.
+
+Reason: this gets the Next.js app publicly reachable with low operational overhead and low early cost. AWS remains a later option if Lattice needs deeper infrastructure control, enterprise cloud consolidation, or heavier file-storage workflows.
+
+Implications:
+
+- Keep the Vercel project connected to GitHub so pushes can trigger deployments.
+- Keep production database state in Neon and use Prisma to manage the schema.
+- Use `.vercelignore` so local `.env` files are not uploaded by CLI deployments.
+- Add Cloudflare R2/S3-compatible storage, Resend, custom domain, and real auth as the next launch-hardening steps.
+- Revisit AWS only if scale, compliance, procurement, or infrastructure-control needs justify the added operational complexity.
+
 ## 2026-06-01 - Public Entry Uses The Figma AI Technical Visual System
 
 Decision: keep `/` and `/login` on the Figma AI-designed dark technical public-entry visual system, while the authenticated product remains a light B2B operations console.
@@ -14,18 +81,18 @@ Implications:
 - The primary public choices remain constrained to logging in or requesting access.
 - Authenticated workspace pages should continue using the light operational app shell and dense, scannable UI patterns.
 
-## 2026-05-31 - Collapse Buyer Quote Statuses To Three Labels
+## 2026-05-31 - Collapse Buyer Quote Statuses To Customer-Simple Labels
 
-Decision: buyer-facing quote surfaces should only show `Configuring Quote`, `Quote Received`, and `Quote Closed` as quote statuses.
+Decision: buyer-facing quote surfaces should use simplified customer labels rather than exposing the full internal RFQ lifecycle.
 
 Reason: customers need a simple quote-state model even though the internal RFQ workflow has more granular operational states such as submitted, needs information, supplier review, quoted, and purchased.
 
 Implications:
 
-- Map draft, submitted, needs-info, and supplier-review RFQs to `Configuring Quote`.
-- Map quoted RFQs to `Quote Received`.
-- Map purchased or otherwise inactive quote records to `Quote Closed`.
-- Keep granular internal statuses available for admin/operator workflows, notifications, and routing logic, but avoid exposing them as customer quote statuses.
+- Use the 2026-06-02 four-status taxonomy: `Draft`, `Quoted`, `Ordered`, and `Closed`.
+- Keep submitted, needs-info, and supplier-review as internal RFQ workflow states, not quote statuses.
+- Per the 2026-06-02 purchased-quotes decision, purchased records leave buyer quote surfaces and live in Orders.
+- Keep granular internal statuses available for admin/operator workflows, notifications, and routing logic, but avoid exposing them as customer quote statuses on quote pages.
 
 ## 2026-05-30 - Position Lattice As A Machine-Shop Supplier Network
 

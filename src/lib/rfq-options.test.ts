@@ -41,6 +41,6 @@ describe("Bubble option set translations", () => {
       "Fused Deposition Modeling (FDM)",
     ]);
 
-    expect(requestStatusOptions.map((option) => option.value)).toEqual(["DRAFT", "SUBMITTED", "READY_FOR_SUPPLIER_RFQ", "PURCHASED"]);
+    expect(requestStatusOptions.map((option) => option.value)).toEqual(["DRAFT", "SUBMITTED", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "PURCHASED", "CLOSED"]);
   });
 });

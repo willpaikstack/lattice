@@ -1,7 +1,8 @@
 import { getDemoRequests } from "./demo-requests";
+import { getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
-import { applyOperatorStatusUpdate, applySupplierOrderUpdate } from "./request-model";
+import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
 
@@ -19,7 +20,7 @@ async function prisma() {
   };
 }
 
-async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => T) {
+async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => T | Promise<T>) {
   try {
     return await operation();
   } catch (error) {
@@ -31,13 +32,22 @@ async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => 
 }
 
 export async function createSubmittedRequest(input: DraftRequestInput) {
-  const client = await prisma();
-  const stored = await client.request.create({
-    data: buildSubmittedRequestCreateInput(input),
-    include: storedRequestInclude,
-  });
+  try {
+    const client = await prisma();
+    const stored = await client.request.create({
+      data: buildSubmittedRequestCreateInput(input),
+      include: storedRequestInclude,
+    });
 
-  return mapStoredRequest(stored);
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma is unavailable; saving submitted request locally.", error);
+      return saveLocalRequest(submitDraftRequest(buildDraftRequest(input)));
+    }
+
+    throw error;
+  }
 }
 
 export async function listOperatorRequests() {
@@ -47,7 +57,7 @@ export async function listOperatorRequests() {
       const storedRequests = await client.request.findMany({
         where: {
           status: {
-            in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"],
+            in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"],
           },
         },
         include: storedRequestInclude,
@@ -58,7 +68,7 @@ export async function listOperatorRequests() {
 
       return getOperatorQueueRequests(storedRequests.map(mapStoredRequest));
     },
-    () => getOperatorQueueRequests(getDemoRequests()),
+    async () => getOperatorQueueRequests(sortRequestsNewestFirst([...(await listLocalRequests()), ...getDemoRequests()])),
   );
 }
 
@@ -75,7 +85,7 @@ export async function listAdminRequests() {
 
       return storedRequests.map(mapStoredRequest);
     },
-    () => sortRequestsNewestFirst(getDemoRequests()),
+    async () => sortRequestsNewestFirst([...(await listLocalRequests()), ...getDemoRequests()]),
   );
 }
 
@@ -90,7 +100,7 @@ export async function getRequestById(id: string) {
 
       return stored ? mapStoredRequest(stored) : null;
     },
-    () => getDemoRequests().find((request) => request.id === id) ?? null,
+    async () => (await getLocalRequestById(id)) ?? getDemoRequests().find((request) => request.id === id) ?? null,
   );
 }
 
@@ -101,7 +111,7 @@ export async function listBuyerQuotes() {
       const storedRequests = await client.request.findMany({
         where: {
           status: {
-            in: ["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "PURCHASED"],
+            in: ["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"],
           },
         },
         include: storedRequestInclude,
@@ -112,7 +122,10 @@ export async function listBuyerQuotes() {
 
       return storedRequests.map(mapStoredRequest);
     },
-    () => sortRequestsNewestFirst(getDemoRequests()),
+    async () =>
+      sortRequestsNewestFirst(
+        [...(await listLocalRequests()), ...getDemoRequests()].filter((request) => request.status !== "PURCHASED"),
+      ),
   );
 }
 
@@ -185,7 +198,7 @@ export async function saveCustomerQuoteForRequest(
     throw new Error("Request not found");
   }
 
-  if (current.status === "DRAFT" || current.status === "PURCHASED") {
+  if (current.status === "DRAFT" || current.status === "PURCHASED" || current.status === "CLOSED") {
     throw new Error("Only active RFQs can receive customer quotes");
   }
 

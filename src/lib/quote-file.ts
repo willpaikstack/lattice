@@ -67,6 +67,13 @@ export function customerQuoteFileName(quote: CustomerQuoteInput) {
   return `${quoteNumber}-${customer}.md`;
 }
 
+export function customerQuotePdfFileName(quote: CustomerQuoteInput) {
+  const quoteNumber = quoteFileNamePart(quote.quoteNumber) || "quote";
+  const customer = quoteFileNamePart(quote.customerCompany) || "customer";
+
+  return `${quoteNumber}-${customer}.pdf`;
+}
+
 function addDaysIsoFrom(dateValue: string, days: number) {
   const date = new Date(dateValue);
   date.setDate(date.getDate() + days);

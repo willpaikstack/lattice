@@ -8,36 +8,42 @@ import type { LatticeRequest } from "@/lib/request-model";
 
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
-const buyerStatusCopy: Record<LatticeRequest["status"], { description: string; nextAction: string; pillTone: string }> = {
+const buyerStatusCopy: Record<LatticeRequest["status"], { description: string; nextAction: string; pillTone?: string; quoteStatus?: string }> = {
   DRAFT: {
     description: "CAD uploaded, but the RFQ has not been submitted yet.",
-    nextAction: "Configuring Quote",
+    nextAction: "Finish configuration before requesting a quote.",
     pillTone: "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]",
+    quoteStatus: "Draft",
   },
   SUBMITTED: {
     description: "Your RFQ was received and is waiting for internal review.",
-    nextAction: "Configuring Quote",
-    pillTone: "border-[#cfe0ff] bg-[#eff5ff] text-[#315f9b]",
+    nextAction: "Lattice is reviewing the RFQ package.",
   },
   NEEDS_INFO: {
     description: "The operator team needs more buyer detail before supplier outreach.",
-    nextAction: "Configuring Quote",
-    pillTone: "border-[#f1d8a5] bg-[#fff7e8] text-[#8a5b08]",
+    nextAction: "Additional buyer detail is needed.",
   },
   READY_FOR_SUPPLIER_RFQ: {
     description: "Supplier is calculating costs.",
-    nextAction: "Configuring Quote",
-    pillTone: "border-[#d5d9ff] bg-[#f1f2ff] text-[#4d55a8]",
+    nextAction: "Supplier pricing is in progress.",
   },
   QUOTED: {
     description: "Pricing is ready for buyer review and purchase decision.",
-    nextAction: "Quote Received",
+    nextAction: "Review price and lead time.",
     pillTone: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
+    quoteStatus: "Quoted",
   },
   PURCHASED: {
     description: "This quote has been converted into an order.",
-    nextAction: "Quote Closed",
+    nextAction: "Track production in Orders.",
     pillTone: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
+    quoteStatus: "Ordered",
+  },
+  CLOSED: {
+    description: "This quote was closed and is no longer active.",
+    nextAction: "No buyer action is needed.",
+    pillTone: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
+    quoteStatus: "Closed",
   },
 };
 
@@ -105,81 +111,39 @@ function readLocalIncompleteRequests() {
   }
 }
 
-export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
-  const [query, setQuery] = useState("");
-  const [localIncompleteRequests] = useState<LatticeRequest[]>(readLocalIncompleteRequests);
+function sortRequestsNewestCreatedFirst(requests: LatticeRequest[]) {
+  return [...requests].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  );
+}
 
-  const visibleRequests = useMemo(() => {
-    const localIds = new Set(localIncompleteRequests.map((request) => request.id));
-
-    return [...localIncompleteRequests, ...requests.filter((request) => !localIds.has(request.id))].sort(
-      (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
-    );
-  }, [localIncompleteRequests, requests]);
-
-  const filteredRequests = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return visibleRequests.filter((request) => {
-      const primaryLine = request.lineItems[0];
-      const searchable = [
-        request.title,
-        request.process,
-        request.buyerCompany,
-        quoteReference(request),
-        primaryLine?.partName,
-        primaryLine?.material,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return !normalizedQuery || searchable.includes(normalizedQuery);
-    });
-  }, [query, visibleRequests]);
-
-  if (visibleRequests.length === 0) {
-    return (
-      <section className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center">
-        <h2 className="text-[22px] font-semibold text-[#202020]">No submitted RFQs yet.</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">
-          Submit a request quote package first. It will appear here as a buyer-facing quote tracker while operator review continues internally.
-        </p>
-        <Link className="mt-6 inline-flex min-h-10 items-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" href="/requests/new">
-          Request Quote
-        </Link>
-      </section>
-    );
-  }
-
+function QuoteTable({
+  emptyMessage,
+  footerNote,
+  requests,
+  title,
+}: {
+  emptyMessage: string;
+  footerNote: string;
+  requests: LatticeRequest[];
+  title: string;
+}) {
   return (
     <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
-      <div className="border-b border-[#eeeeee] p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <label className="relative block xl:w-[360px]">
-            <span className="sr-only">Search quotes</span>
-            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8f98]" strokeWidth={1.8} />
-            <input
-              className="h-10 w-full rounded-md border border-[#dddddd] bg-[#fbfbfb] pl-9 pr-3 text-[14px] text-[#202020] outline-none transition placeholder:text-[#9a9fa8] focus:border-[#9b9b9b] focus:bg-white"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search RFQ, part, or material..."
-              type="search"
-              value={query}
-            />
-          </label>
-        </div>
+      <div className="border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3">
+        <h2 className="text-[15px] font-semibold text-[#202020]">{title}</h2>
       </div>
 
       <div className="grid grid-cols-[2fr_0.95fr_0.8fr_1.15fr_24px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
         <span>RFQ details</span>
         <span>Process &amp; Qty</span>
         <span>Quote</span>
-        <span>Status &amp; Next Step</span>
+        <span>Quote Status &amp; Next Step</span>
         <span />
       </div>
 
       <div className="divide-y divide-[#eeeeee]">
-        {filteredRequests.map((request) => {
+        {requests.map((request) => {
           const status = buyerStatusCopy[request.status];
           const primaryLine = request.lineItems[0];
           const material = primaryLine?.material ?? "Material pending";
@@ -197,7 +161,7 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
                 </div>
                 <div className="min-w-0">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{quoteReference(request)}</span>
-                  <h2 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">{request.title}</h2>
+                  <h3 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">{request.title}</h3>
                   <p className="mt-1 truncate text-[13px] text-[#69707a]">
                     {primaryLine?.partName ?? "No line item"} - {material}
                   </p>
@@ -219,8 +183,11 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
               </div>
 
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Status &amp; Next Step</p>
-                <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.pillTone}`}>{status.nextAction}</span>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Quote Status &amp; Next Step</p>
+                {status.quoteStatus && status.pillTone ? (
+                  <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.pillTone}`}>{status.quoteStatus}</span>
+                ) : null}
+                <p className="mt-2 text-[12px] font-semibold leading-5 text-[#30343a]">{status.nextAction}</p>
                 <p className="mt-2 line-clamp-2 text-[12px] leading-5 text-[#747a83]">
                   {status.description} - {formatUpdatedAt(request.updatedAt)}
                 </p>
@@ -231,20 +198,103 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
           );
         })}
 
-        {filteredRequests.length === 0 ? (
+        {requests.length === 0 ? (
           <div className="p-8 text-center">
-            <h2 className="text-[18px] font-semibold text-[#202020]">No quotes match this search.</h2>
-            <p className="mt-2 text-[14px] text-[#6f737a]">Clear the search to return to the full quote list.</p>
+            <p className="text-[14px] text-[#6f737a]">{emptyMessage}</p>
           </div>
         ) : null}
       </div>
 
       <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86]">
         <span>
-          Showing {filteredRequests.length} of {visibleRequests.length} quotes
+          Showing {requests.length} {requests.length === 1 ? "quote" : "quotes"}
         </span>
-        <span>Configuring Quote rows with uploaded CAD remain editable</span>
+        <span>{footerNote}</span>
       </div>
     </section>
+  );
+}
+
+export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
+  const [query, setQuery] = useState("");
+  const [localIncompleteRequests] = useState<LatticeRequest[]>(readLocalIncompleteRequests);
+
+  const visibleRequests = useMemo(() => {
+    const localIds = new Set(localIncompleteRequests.map((request) => request.id));
+
+    return sortRequestsNewestCreatedFirst(
+      [...localIncompleteRequests, ...requests.filter((request) => request.status !== "PURCHASED" && !localIds.has(request.id))],
+    );
+  }, [localIncompleteRequests, requests]);
+
+  const searchedRequests = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return visibleRequests.filter((request) => {
+      const primaryLine = request.lineItems[0];
+      const searchable = [
+        request.title,
+        request.process,
+        request.buyerCompany,
+        quoteReference(request),
+        primaryLine?.partName,
+        primaryLine?.material,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return !normalizedQuery || searchable.includes(normalizedQuery);
+    });
+  }, [query, visibleRequests]);
+
+  const inProgressRequests = useMemo(() => searchedRequests.filter((request) => request.status !== "QUOTED" && request.status !== "CLOSED"), [searchedRequests]);
+  const quotedRequests = useMemo(() => searchedRequests.filter((request) => request.status === "QUOTED" || request.status === "CLOSED"), [searchedRequests]);
+
+  if (visibleRequests.length === 0) {
+    return (
+      <section className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center">
+        <h2 className="text-[22px] font-semibold text-[#202020]">No submitted RFQs yet.</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">
+          Submit a request quote package first. It will appear here as a buyer-facing quote tracker while operator review continues internally.
+        </p>
+        <Link className="mt-6 inline-flex min-h-10 items-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" href="/requests/new">
+          Request Quote
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <label className="relative block xl:w-[360px]">
+            <span className="sr-only">Search quotes</span>
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8f98]" strokeWidth={1.8} />
+            <input
+              className="h-10 w-full rounded-md border border-[#dddddd] bg-[#fbfbfb] pl-9 pr-3 text-[14px] text-[#202020] outline-none transition placeholder:text-[#9a9fa8] focus:border-[#9b9b9b] focus:bg-white"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search RFQ, part, or material..."
+              type="search"
+              value={query}
+            />
+          </label>
+        </div>
+      </section>
+
+      <QuoteTable
+        emptyMessage="No in-progress quote requests match this view."
+        footerNote="Draft rows remain editable until the buyer requests a quote"
+        requests={inProgressRequests}
+        title="Quotes in progress"
+      />
+      <QuoteTable
+        emptyMessage="No quoted requests match this view."
+        footerNote="Quoted rows open the buyer quote detail"
+        requests={quotedRequests}
+        title="Quoted requests"
+      />
+    </div>
   );
 }

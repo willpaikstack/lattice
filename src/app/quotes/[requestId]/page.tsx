@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BuyerQuoteDetail } from "@/components/buyer-quote-detail";
 import { getRequestById } from "@/lib/request-repository";
@@ -15,6 +15,10 @@ export default async function BuyerQuoteDetailPage({ params }: BuyerQuoteDetailP
 
   if (!request || request.status === "DRAFT") {
     notFound();
+  }
+
+  if (request.status === "PURCHASED") {
+    redirect(`/orders/${request.id}`);
   }
 
   return <BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />;

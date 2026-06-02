@@ -5,6 +5,7 @@ const OPERATOR_VISIBLE_STATUSES = new Set<LatticeRequest["status"]>([
   "NEEDS_INFO",
   "READY_FOR_SUPPLIER_RFQ",
   "QUOTED",
+  "CLOSED",
 ]);
 
 export function sortRequestsNewestFirst(requests: LatticeRequest[]) {

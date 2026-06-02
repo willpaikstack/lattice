@@ -12,6 +12,7 @@ const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
   "NEEDS_INFO",
   "READY_FOR_SUPPLIER_RFQ",
   "QUOTED",
+  "CLOSED",
 ]);
 
 function getString(formData: FormData, key: string) {

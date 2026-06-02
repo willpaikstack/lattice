@@ -1,34 +1,27 @@
 import { BuyerQuotes } from "@/components/buyer-quotes";
 import { listBuyerQuotes } from "@/lib/request-repository";
 
-import { CheckCircle2, FilePenLine, Inbox } from "lucide-react";
+import { FilePenLine, Inbox } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotesPage() {
   const quotes = await listBuyerQuotes();
-  const configuringQuoteCount = quotes.filter((quote) => quote.status !== "QUOTED" && quote.status !== "PURCHASED").length;
+  const configuringQuoteCount = quotes.filter((quote) => quote.status !== "QUOTED").length;
   const quoteReceivedCount = quotes.filter((quote) => quote.status === "QUOTED").length;
-  const quoteClosedCount = quotes.filter((quote) => quote.status === "PURCHASED").length;
 
   const metrics = [
     {
-      detail: "RFQs being prepared, reviewed, or priced",
+      detail: "Drafts and RFQs still moving toward pricing",
       icon: FilePenLine,
-      label: "Configuring Quote",
+      label: "In Progress",
       value: configuringQuoteCount,
     },
     {
       detail: "Priced quotes ready for review",
       icon: Inbox,
-      label: "Quote Received",
+      label: "Quoted",
       value: quoteReceivedCount,
-    },
-    {
-      detail: "Converted, expired, or no longer active",
-      icon: CheckCircle2,
-      label: "Quote Closed",
-      value: quoteClosedCount,
     },
   ];
 
@@ -46,7 +39,7 @@ export default async function QuotesPage() {
         </div>
       </section>
 
-      <section aria-label="Quote summary" className="grid gap-3 md:grid-cols-3">
+      <section aria-label="Quote summary" className="grid gap-3 md:grid-cols-2">
         {metrics.map((metric) => {
           const Icon = metric.icon;
 
