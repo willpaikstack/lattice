@@ -1,24 +1,15 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
-  prisma?: unknown;
+  prisma?: PrismaClient;
 };
 
-type PrismaClientConstructor = new (options: {
-  adapter: PrismaPg;
-  log: string[];
-}) => unknown;
-
-const importPrismaClient = new Function("specifier", "return import(specifier)") as (
-  specifier: string,
-) => Promise<{ PrismaClient: PrismaClientConstructor }>;
-
-export async function getPrismaClient() {
+export async function getPrismaClient(): Promise<unknown> {
   if (globalForPrisma.prisma) {
     return globalForPrisma.prisma;
   }
 
-  const { PrismaClient } = await importPrismaClient("@prisma/client");
   const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
   });

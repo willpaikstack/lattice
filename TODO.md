@@ -4,15 +4,21 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Production launch hardening after the 2026-06-02 Vercel/Neon setup:
+  - configure real authentication and protect admin/operator/supplier routes; `/login` still hands demo users into `/dashboard`
+  - configure Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
+  - configure Resend and a verified sending domain for waiting-list emails
+  - decide whether to keep local email outbox files for development only or add durable email-event records in Postgres
+  - add Vercel preview env vars if preview deployments become part of the workflow
+  - decide whether to remove the first unaliased Vercel deployment created before `.vercelignore` was added
 - Tomorrow handoff after pulling latest:
   - run `npm install` if dependencies changed
   - start local services with `docker compose up -d postgres minio`
   - run `npm run prisma:generate` and `npm run db:push`
   - run `npm test`, `npm run lint`, and preferably `npm run build`
-  - open `/`, `/login`, `/requests/new`, `/quotes`, `/quotes/demo_quoted`, `/orders`, and `/orders/demo_purchased`
+  - open local `/`, `/login`, `/requests/new`, `/quotes`, `/quotes/demo_quoted`, `/orders`, and `/orders/demo_purchased`
+  - smoke test production `https://latticeos.co/` and `/admin/quotes`
   - visually check the public Figma AI pages, request-form dropdowns, quote table/detail, quote checkout, and order detail/help/reorder flows
-- Move `/waiting-list` entries, duplicate detection, and local waitlist email outbox records into the chosen durable CRM/database/email workflow.
-- Connect `/login` to the chosen authentication provider when auth is selected; it currently hands demo users into `/dashboard`.
 - Verify the current app end-to-end after pulling on any new computer:
   - install dependencies if needed
   - start local Postgres/MinIO with Docker Compose
@@ -25,7 +31,6 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator marks missing info or ready for supplier RFQ
   - operator saves a durable customer quote version
   - buyer and operator views stay in sync
-- Run `npm run db:push` on a machine with local PostgreSQL available so the new `CustomerQuoteVersion` table is applied.
 - Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events. `/notifications` now derives quote-ready and missing-info rows from request state with static fallback data.
 - Configure Autodesk Platform Services for live CAD previews:
   - create APS app credentials

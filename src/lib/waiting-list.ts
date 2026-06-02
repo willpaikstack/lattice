@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { getPrismaClient } from "./prisma";
+
 export type WaitingListEntryInput = {
   name: string;
   email: string;
@@ -42,6 +44,24 @@ export type WaitingListRequestConflict =
 
 const storePath = path.join(process.cwd(), ".data", "waiting-list.json");
 
+type StoredWaitingListEntry = {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  procurementNeeds: string;
+  joinedAt: Date | string;
+};
+
+async function prisma() {
+  return (await getPrismaClient()) as {
+    waitingListEntry: {
+      create: (args: unknown) => Promise<StoredWaitingListEntry>;
+      findMany: (args: unknown) => Promise<StoredWaitingListEntry[]>;
+    };
+  };
+}
+
 function clean(value: string) {
   return value.trim();
 }
@@ -67,6 +87,13 @@ function buildEntry(input: WaitingListEntryInput): WaitingListEntry {
   return entry;
 }
 
+function mapStoredEntry(entry: StoredWaitingListEntry): WaitingListEntry {
+  return {
+    ...entry,
+    joinedAt: entry.joinedAt instanceof Date ? entry.joinedAt.toISOString() : entry.joinedAt,
+  };
+}
+
 async function readEntriesFromDisk(): Promise<WaitingListEntry[]> {
   try {
     const raw = await readFile(storePath, "utf8");
@@ -87,17 +114,46 @@ async function writeEntriesToDisk(entries: WaitingListEntry[]) {
 }
 
 export async function listWaitingListEntries() {
-  const entries = await readEntriesFromDisk();
-  return entries.sort((left, right) => new Date(right.joinedAt).getTime() - new Date(left.joinedAt).getTime());
+  try {
+    const client = await prisma();
+    const entries = await client.waitingListEntry.findMany({
+      orderBy: {
+        joinedAt: "desc",
+      },
+    });
+
+    return entries.map(mapStoredEntry);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma is unavailable; using local waiting-list data.", error);
+      const entries = await readEntriesFromDisk();
+      return entries.sort((left, right) => new Date(right.joinedAt).getTime() - new Date(left.joinedAt).getTime());
+    }
+
+    throw error;
+  }
 }
 
 export async function createWaitingListEntry(input: WaitingListEntryInput) {
   const entry = buildEntry(input);
 
-  const entries = await readEntriesFromDisk();
-  await writeEntriesToDisk([entry, ...entries.filter((candidate) => candidate.email !== entry.email)]);
+  try {
+    const client = await prisma();
+    const storedEntry = await client.waitingListEntry.create({
+      data: entry,
+    });
 
-  return entry;
+    return mapStoredEntry(storedEntry);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma is unavailable; saving waiting-list entry locally.", error);
+      const entries = await readEntriesFromDisk();
+      await writeEntriesToDisk([entry, ...entries.filter((candidate) => candidate.email !== entry.email)]);
+      return entry;
+    }
+
+    throw error;
+  }
 }
 
 export function findWaitingListRequestConflict(requestedEntry: WaitingListEntry, entries: WaitingListEntry[]): WaitingListRequestConflict {
@@ -127,7 +183,7 @@ export function findWaitingListRequestConflict(requestedEntry: WaitingListEntry,
 
 export async function requestWaitingListAccess(input: WaitingListEntryInput): Promise<WaitingListRequestResult> {
   const requestedEntry = buildEntry(input);
-  const entries = await readEntriesFromDisk();
+  const entries = await listWaitingListEntries();
   const conflict = findWaitingListRequestConflict(requestedEntry, entries);
 
   if (conflict?.status === "already-requested") {
@@ -145,10 +201,10 @@ export async function requestWaitingListAccess(input: WaitingListEntryInput): Pr
     };
   }
 
-  await writeEntriesToDisk([requestedEntry, ...entries]);
+  const entry = await createWaitingListEntry(input);
 
   return {
     status: "created",
-    entry: requestedEntry,
+    entry,
   };
 }

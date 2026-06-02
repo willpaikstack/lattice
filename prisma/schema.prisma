@@ -66,6 +66,15 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+model WaitingListEntry {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  company          String
+  procurementNeeds String
+  joinedAt         DateTime @default(now())
+}
+
 model Request {
   id                     String                 @id @default(cuid())
   title                  String

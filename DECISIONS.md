@@ -2,6 +2,20 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-02 - Launch On Vercel And Neon First
+
+Decision: use Vercel for the first public production deployment and Neon Postgres for the production database, while keeping storage/email/auth provider work separate and incremental.
+
+Reason: this gets the Next.js app publicly reachable with low operational overhead and low early cost. AWS remains a later option if Lattice needs deeper infrastructure control, enterprise cloud consolidation, or heavier file-storage workflows.
+
+Implications:
+
+- Keep the Vercel project connected to GitHub so pushes can trigger deployments.
+- Keep production database state in Neon and use Prisma to manage the schema.
+- Use `.vercelignore` so local `.env` files are not uploaded by CLI deployments.
+- Add Cloudflare R2/S3-compatible storage, Resend, custom domain, and real auth as the next launch-hardening steps.
+- Revisit AWS only if scale, compliance, procurement, or infrastructure-control needs justify the added operational complexity.
+
 ## 2026-06-01 - Public Entry Uses The Figma AI Technical Visual System
 
 Decision: keep `/` and `/login` on the Figma AI-designed dark technical public-entry visual system, while the authenticated product remains a light B2B operations console.

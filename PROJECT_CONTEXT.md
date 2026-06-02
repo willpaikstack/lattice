@@ -22,6 +22,19 @@ Core users:
 
 ## Current App State
 
+Production launch baseline as of 2026-06-02:
+
+- Vercel project: `willpaikstacks-projects/lattice`.
+- Production custom domain: `https://latticeos.co`.
+- Vercel fallback alias: `https://lattice-phi-plum.vercel.app`.
+- GitHub repo connected for automatic Vercel deployments: `willpaikstack/lattice`.
+- Neon project/database created for production Postgres: project `lattice`, database `neondb`, production branch in AWS US East 1.
+- Prisma schema has been pushed to the Neon production database.
+- Vercel production/development env vars include `DATABASE_URL` and `AUTH_SECRET`.
+- `.vercelignore` excludes local env files from CLI deployment uploads.
+- Public waiting-list requests persist to Neon via Prisma; email outbox fallback is non-fatal when Resend is not configured.
+- Resend, Cloudflare R2/S3 production storage, custom domain, and real authentication are still pending.
+
 The current working vertical slice:
 
 1. Buyer creates a request.
@@ -75,6 +88,8 @@ Important folders:
 - TypeScript.
 - Tailwind CSS 4.
 - Prisma 7 with PostgreSQL.
+- Production hosting on Vercel.
+- Production database on Neon Postgres.
 - Vitest and Testing Library.
 - Docker Compose for local Postgres and MinIO/S3-compatible storage placeholders.
 

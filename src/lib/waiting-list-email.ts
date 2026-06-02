@@ -84,6 +84,18 @@ async function writeOutbox(record: EmailOutboxRecord) {
   await writeFile(outboxPath, `${JSON.stringify([record, ...records], null, 2)}\n`, "utf8");
 }
 
+async function writeOutboxIfAvailable(record: EmailOutboxRecord) {
+  try {
+    await writeOutbox(record);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      throw error;
+    }
+
+    console.warn("Could not write waiting-list email outbox record.", error);
+  }
+}
+
 async function sendWithResend(email: WaitingListThankYouEmail) {
   const apiKey = process.env.RESEND_API_KEY;
 
@@ -128,7 +140,7 @@ async function sendWaitingListEmail(id: string, email: WaitingListThankYouEmail)
       return { delivered: true, delivery: "resend" as const };
     }
   } catch (error) {
-    await writeOutbox({
+    await writeOutboxIfAvailable({
       ...email,
       id,
       createdAt: new Date().toISOString(),
@@ -138,7 +150,7 @@ async function sendWaitingListEmail(id: string, email: WaitingListThankYouEmail)
     return { delivered: false, delivery: "resend-failed" as const };
   }
 
-  await writeOutbox({
+  await writeOutboxIfAvailable({
     ...email,
     id,
     createdAt: new Date().toISOString(),
