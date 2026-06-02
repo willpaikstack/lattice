@@ -349,8 +349,13 @@ export function BuyerQuoteDetail({
                   {canPurchase ? "Accept quote" : "Configuring Quote"}
                 </button>
               )}
-              <Link className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href="/quotes">
-                Back to quotes
+              <Link
+                className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
+                download
+                href={`/quotes/${request.id}/quote.pdf`}
+              >
+                <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                Download quote PDF
               </Link>
             </div>
 

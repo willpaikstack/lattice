@@ -185,6 +185,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Summary")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Download quote PDF" })).toHaveAttribute("href", `/quotes/${requestWithCustomerQuote.id}/quote.pdf`);
     expect(screen.getByText("Quote activity")).toBeInTheDocument();
     expect(screen.getByText("Quote basis")).toBeInTheDocument();
     expect(screen.getByText(/Standard Inspection/)).toBeInTheDocument();

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, FileText, Network, Package } from "lucide-react";
+import { ArrowRight, FileText, Network, Package } from "lucide-react";
 
 function PublicHeader() {
   return (
@@ -92,14 +92,14 @@ export default function LandingPage() {
       title: "CAD-backed RFQs",
     },
     {
-      copy: "Access a curated network of domestic and overseas manufacturing partners with verified capabilities.",
+      copy: "Access 200+ production machines across vetted partners, including CNC mills, CNC lathes, manual machines, and sheet metal equipment.",
       icon: Network,
       title: "Vetted supplier network",
     },
     {
-      copy: "Monitor RFQs, quotes, and production orders from submission through delivery in one system.",
+      copy: "Track raw material procurement, fabrication steps, and QC documentation through final-part delivery.",
       icon: Package,
-      title: "End-to-end tracking",
+      title: "Full part traceability",
     },
   ];
 
@@ -118,7 +118,7 @@ export default function LandingPage() {
               <h1 className="text-6xl font-semibold leading-tight tracking-normal text-white lg:text-7xl">Lattice</h1>
 
               <p className="mx-auto max-w-3xl text-xl leading-relaxed text-stone-300 lg:text-2xl">
-                A private RFQ and procurement workspace for teams moving from CAD files to quotes, supplier follow-up, and production orders.
+                Access overseas manufacturing capacity for higher throughput at lower risk.
               </p>
             </div>
 
@@ -157,9 +157,10 @@ export default function LandingPage() {
             <div className="pt-12">
               <div className="inline-flex flex-col items-start gap-4 rounded-xl border border-white/10 bg-white/5 px-8 py-6 backdrop-blur-sm sm:flex-row sm:items-center sm:gap-6">
                 {[
-                  ["1", "Upload CAD"],
-                  ["2", "Review quotes"],
-                  ["3", "Place orders"],
+                  ["1", "Upload manufacturing data package"],
+                  ["2", "Match your order with compatible equipment"],
+                  ["3", "Track fabrication progress"],
+                  ["4", "Coordinate final delivery"],
                 ].map(([step, label]) => (
                   <div className="flex items-center gap-3" key={label}>
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-sm font-semibold text-white">{step}</div>
@@ -167,12 +168,6 @@ export default function LandingPage() {
                     <div className="hidden h-px w-8 bg-white/20 sm:block" />
                   </div>
                 ))}
-                <div className="flex items-center gap-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                    <CheckCircle2 className="text-white" size={16} />
-                  </div>
-                  <span className="text-sm font-medium text-stone-300">Track delivery</span>
-                </div>
               </div>
             </div>
           </div>
