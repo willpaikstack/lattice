@@ -1,7 +1,10 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 
+import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildCustomerQuoteMarkdown, customerQuoteFileName, customerQuotePdfFileName, formatUsd, quoteSubtotal, type CustomerQuoteInput } from "./quote-file";
-import { buildCustomerQuotePdf } from "./quote-pdf";
+import { buildCustomerQuotePdf, buildRequestQuotePdf } from "./quote-pdf";
 
 const quote: CustomerQuoteInput = {
   assumptions: "General tolerances are +/- 0.005 in unless otherwise specified.\nStandard inspection is included.",
@@ -49,16 +52,59 @@ describe("quote file helpers", () => {
     expect(customerQuoteFileName(quote)).toBe("lq-2026-0142-apex-robotics.md");
   });
 
-  it("creates a stable PDF filename and PDF document", () => {
+  it("creates a stable PDF filename and PDF document", async () => {
     expect(customerQuotePdfFileName(quote)).toBe("lq-2026-0142-apex-robotics.pdf");
 
-    const pdf = buildCustomerQuotePdf(quote, { statusLabel: "Quoted" });
+    const pdf = await buildCustomerQuotePdf(quote, { statusLabel: "Quoted" });
     const pdfText = new TextDecoder().decode(pdf);
 
-    expect(pdfText.startsWith("%PDF-1.4")).toBe(true);
-    expect(pdfText).toContain("Quote LQ-2026-0142");
-    expect(pdfText).toContain("Apex Robotics");
-    expect(pdfText).toContain("Sensor bracket");
-    expect(pdfText).toContain("$4,300.00");
+    expect(pdfText.startsWith("%PDF-1.3")).toBe(true);
+    expect(pdfText).toContain("/Type /Page");
+    expect(pdfText).toContain("/Font");
+    expect(pdf.byteLength).toBeGreaterThan(2_000);
+  });
+
+  it("creates a customer-facing order-summary PDF from a quoted request", async () => {
+    const request = applyOperatorStatusUpdate(
+      submitDraftRequest(
+        buildDraftRequest({
+          buyerCompany: "Apex Robotics",
+          dueDate: "2026-06-10",
+          files: [
+            { name: "aluminum-plate.step", sizeBytes: 73_000, type: "application/octet-stream" },
+            { name: "aluminum-plate-drawing.pdf", sizeBytes: 104_000, type: "application/pdf" },
+          ],
+          lineItems: [
+            {
+              generalTolerance: "ISO 2768 Medium (m)",
+              material: "6061-T6 Aluminum",
+              partName: "Aluminum Plate",
+              qualityDocumentation: ["Standard Inspection"],
+              quantity: 4,
+              surfaceFinish: "As machined",
+            },
+          ],
+          process: "CNC Milling",
+          requesterName: "Maya Chen",
+          title: "Aluminum Plate",
+        }),
+      ),
+      {
+        estimatedPriceCents: 50279,
+        leadTimeDays: 15,
+        quoteSummary: "Pricing includes production and standard inspection.",
+        shippingCostCents: 32500,
+        shippingMethod: "International",
+        status: "QUOTED",
+      },
+    );
+
+    const pdf = await buildRequestQuotePdf(request);
+    const pdfText = new TextDecoder().decode(pdf);
+
+    expect(pdfText.startsWith("%PDF-1.3")).toBe(true);
+    expect(pdfText).toContain("/Type /Page");
+    expect(pdfText).toContain("/Font");
+    expect(pdf.byteLength).toBeGreaterThan(4_000);
   });
 });

@@ -272,12 +272,15 @@ describe("RequestForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Request Quote" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith("/api/requests", expect.objectContaining({ method: "POST" })));
-    const submitted = JSON.parse(String(fetchMock.mock.calls.at(-1)?.[1]?.body));
+    const submittedForm = fetchMock.mock.calls.at(-1)?.[1]?.body as FormData;
+    const submitted = JSON.parse(String(submittedForm.get("request")));
 
     expect(submitted.lineItems).toMatchObject([
       { partName: "Bracket", quantity: 1, material: "SS 304" },
       { partName: "Housing", quantity: 3, material: "SS 304" },
     ]);
     expect(submitted.files).toMatchObject([{ name: "bracket.step" }, { name: "housing.step" }]);
+    expect(submittedForm.get("file-0")).toBeInstanceOf(File);
+    expect(submittedForm.get("file-1")).toBeInstanceOf(File);
   });
 });

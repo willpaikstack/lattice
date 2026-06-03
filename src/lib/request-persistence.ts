@@ -51,6 +51,12 @@ export type StoredRequest = {
   supplierTrackingNumber?: string;
   estimatedPriceCents: number | null;
   leadTimeDays: number | null;
+  shippingCostCents: number | null;
+  shippingMethod: string;
+  shippingTerms: string;
+  estimatedDeliveryDate: Date | null;
+  quoteCreatedDate: Date | null;
+  quoteValidUntil: Date | null;
   quoteSummary: string;
   lineItems: Array<{
     id: string;
@@ -67,6 +73,7 @@ export type StoredRequest = {
     name: string;
     sizeBytes: number;
     type: string;
+    storageKey: string | null;
   }>;
   supplierDocuments?: Array<{
     id: string;
@@ -132,6 +139,10 @@ function toDueDate(dueDate: string) {
   return new Date(`${dueDate}T00:00:00.000Z`);
 }
 
+function toOptionalDate(date: string) {
+  return date ? new Date(`${date}T00:00:00.000Z`) : null;
+}
+
 function formatDueDate(dueDate: Date | null) {
   return dueDate ? dueDate.toISOString().slice(0, 10) : "";
 }
@@ -163,6 +174,7 @@ function mapCustomerQuoteLineItems(lineItems: unknown): LatticeRequest["customer
       finish: typeof record.finish === "string" ? record.finish : "",
       quantity: typeof record.quantity === "number" ? record.quantity : 0,
       unitPrice: typeof record.unitPrice === "number" ? record.unitPrice : 0,
+      leadTimeDays: typeof record.leadTimeDays === "number" ? record.leadTimeDays : null,
     };
   });
 }
@@ -187,6 +199,12 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     supplierTrackingNumber: submitted.supplierOrder.trackingNumber,
     estimatedPriceCents: submitted.quote.estimatedPriceCents,
     leadTimeDays: submitted.quote.leadTimeDays,
+    shippingCostCents: submitted.quote.shippingCostCents,
+    shippingMethod: submitted.quote.shippingMethod,
+    shippingTerms: submitted.quote.shippingTerms,
+    estimatedDeliveryDate: toOptionalDate(submitted.quote.estimatedDeliveryDate),
+    quoteCreatedDate: toOptionalDate(submitted.quote.quoteCreatedDate),
+    quoteValidUntil: toOptionalDate(submitted.quote.quoteValidUntil),
     quoteSummary: submitted.quote.summary,
     buyerCompany: {
       create: {
@@ -209,6 +227,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
         name: file.name,
         sizeBytes: file.sizeBytes,
         type: file.type,
+        storageKey: file.storageKey,
       })),
     },
     statusEvents: {
@@ -245,6 +264,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       name: file.name,
       sizeBytes: file.sizeBytes,
       type: file.type,
+      storageKey: file.storageKey ?? undefined,
     })),
     operatorReview: {
       completeness: stored.operatorCompleteness,
@@ -311,6 +331,12 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
     quote: {
       estimatedPriceCents: stored.estimatedPriceCents,
       leadTimeDays: stored.leadTimeDays,
+      shippingCostCents: stored.shippingCostCents,
+      shippingMethod: stored.shippingMethod ?? "",
+      shippingTerms: stored.shippingTerms ?? "",
+      estimatedDeliveryDate: formatOptionalDate(stored.estimatedDeliveryDate),
+      quoteCreatedDate: formatOptionalDate(stored.quoteCreatedDate),
+      quoteValidUntil: formatOptionalDate(stored.quoteValidUntil),
       summary: stored.quoteSummary,
     },
     statusEvents: stored.statusEvents.map((event) => ({

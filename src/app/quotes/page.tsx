@@ -20,7 +20,7 @@ export default async function QuotesPage() {
     {
       detail: "Priced quotes ready for review",
       icon: Inbox,
-      label: "Quoted",
+      label: "Quote Received",
       value: quoteReceivedCount,
     },
   ];

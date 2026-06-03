@@ -12,7 +12,7 @@ const statusLabels: Record<RequestStatus, string> = {
   SUBMITTED: "Submitted",
   NEEDS_INFO: "Needs info",
   READY_FOR_SUPPLIER_RFQ: "Supplier ready",
-  QUOTED: "Quoted",
+  QUOTED: "Quote received",
   PURCHASED: "Purchased",
   CLOSED: "Closed",
 };

@@ -96,6 +96,12 @@ model Request {
   supplierTrackingNumber String                 @default("")
   estimatedPriceCents    Int?
   leadTimeDays           Int?
+  shippingCostCents      Int?
+  shippingMethod         String                 @default("")
+  shippingTerms          String                 @default("")
+  estimatedDeliveryDate  DateTime?
+  quoteCreatedDate       DateTime?
+  quoteValidUntil        DateTime?
   quoteSummary           String                 @default("")
   lineItems              RequestLineItem[]
   files                  UploadedFile[]

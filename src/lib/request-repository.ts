@@ -1,5 +1,5 @@
 import { getDemoRequests } from "./demo-requests";
-import { getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
+import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
 import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
@@ -10,6 +10,7 @@ async function prisma() {
   return (await getPrismaClient()) as {
     request: {
       create: (args: unknown) => Promise<StoredRequest>;
+      delete: (args: unknown) => Promise<StoredRequest>;
       findMany: (args: unknown) => Promise<StoredRequest[]>;
       findUnique: (args: unknown) => Promise<StoredRequest | null>;
       update: (args: unknown) => Promise<StoredRequest>;
@@ -29,6 +30,10 @@ async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => 
     }
     return fallback();
   }
+}
+
+function optionalDate(value: string) {
+  return value ? new Date(`${value}T00:00:00.000Z`) : null;
 }
 
 export async function createSubmittedRequest(input: DraftRequestInput) {
@@ -129,6 +134,24 @@ export async function listBuyerQuotes() {
   );
 }
 
+export async function deleteBuyerQuote(id: string) {
+  try {
+    const client = await prisma();
+    await client.request.delete({
+      where: { id },
+    });
+
+    return true;
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma delete is unavailable; deleting local fallback request if present.", error);
+      return deleteLocalRequest(id);
+    }
+
+    throw error;
+  }
+}
+
 export async function updateOperatorRequestStatus(id: string, input: OperatorStatusUpdateInput) {
   const current = await getRequestById(id);
 
@@ -137,35 +160,61 @@ export async function updateOperatorRequestStatus(id: string, input: OperatorSta
   }
 
   const updated = applyOperatorStatusUpdate(current, input);
-  const client = await prisma();
+  let client: Awaited<ReturnType<typeof prisma>>;
 
-  const stored = await client.request.update({
-    where: { id },
-    data: {
-      status: updated.status,
-      operatorCompleteness: updated.operatorReview.completeness,
-      assignedOwner: updated.operatorReview.assignedOwner,
-      internalNotes: updated.operatorReview.internalNotes,
-      supplierPackageNotes: updated.operatorReview.supplierPackageNotes,
-      estimatedPriceCents: updated.quote.estimatedPriceCents,
-      leadTimeDays: updated.quote.leadTimeDays,
-      quoteSummary: updated.quote.summary,
-      ...(current.status === updated.status
-        ? {}
-        : {
-            statusEvents: {
-              create: {
-                from: current.status,
-                to: updated.status,
-                actor: "operator",
+  try {
+    client = await prisma();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma is unavailable; saving operator request update locally.", error);
+      return saveLocalRequest(updated);
+    }
+
+    throw error;
+  }
+
+  try {
+    const stored = await client.request.update({
+      where: { id },
+      data: {
+        status: updated.status,
+        operatorCompleteness: updated.operatorReview.completeness,
+        assignedOwner: updated.operatorReview.assignedOwner,
+        internalNotes: updated.operatorReview.internalNotes,
+        supplierPackageNotes: updated.operatorReview.supplierPackageNotes,
+        estimatedPriceCents: updated.quote.estimatedPriceCents,
+        leadTimeDays: updated.quote.leadTimeDays,
+        shippingCostCents: updated.quote.shippingCostCents,
+        shippingMethod: updated.quote.shippingMethod,
+        shippingTerms: updated.quote.shippingTerms,
+        estimatedDeliveryDate: optionalDate(updated.quote.estimatedDeliveryDate),
+        quoteCreatedDate: optionalDate(updated.quote.quoteCreatedDate),
+        quoteValidUntil: optionalDate(updated.quote.quoteValidUntil),
+        quoteSummary: updated.quote.summary,
+        ...(current.status === updated.status
+          ? {}
+          : {
+              statusEvents: {
+                create: {
+                  from: current.status,
+                  to: updated.status,
+                  actor: "operator",
+                },
               },
-            },
-          }),
-    },
-    include: storedRequestInclude,
-  });
+            }),
+      },
+      include: storedRequestInclude,
+    });
 
-  return mapStoredRequest(stored);
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma update is unavailable; saving operator request update locally.", error);
+      return saveLocalRequest(updated);
+    }
+
+    throw error;
+  }
 }
 
 export async function saveCustomerQuoteForRequest(
@@ -188,6 +237,10 @@ export async function saveCustomerQuoteForRequest(
     lineItems: CustomerQuoteLineItemSnapshot[];
     estimatedPriceCents: number;
     leadTimeDays: number | null;
+    shippingCostCents?: number | null;
+    shippingMethod?: string;
+    shippingTerms?: string;
+    estimatedDeliveryDate?: string;
     markdown: string;
     quoteSummary: string;
   },
@@ -202,55 +255,131 @@ export async function saveCustomerQuoteForRequest(
     throw new Error("Only active RFQs can receive customer quotes");
   }
 
-  const client = await prisma();
   const nextStatus = "QUOTED" as const;
-  const versionNumber = (await client.customerQuoteVersion.count({ where: { requestId: id } })) + 1;
-  const stored = await client.request.update({
-    where: { id },
-    data: {
-      status: nextStatus,
-      operatorCompleteness: "COMPLETE",
-      estimatedPriceCents: input.estimatedPriceCents,
-      leadTimeDays: input.leadTimeDays,
-      quoteSummary: input.quoteSummary.trim(),
-      customerQuotes: {
-        create: {
-          versionNumber,
-          quoteNumber: input.quoteNumber.trim(),
-          quoteDate: input.quoteDate ? new Date(`${input.quoteDate}T00:00:00.000Z`) : null,
-          validUntil: input.validUntil ? new Date(`${input.validUntil}T00:00:00.000Z`) : null,
-          customerCompany: input.customerCompany.trim(),
-          customerContact: input.customerContact.trim(),
-          projectName: input.projectName.trim(),
-          preparedBy: input.preparedBy.trim() || "Lattice",
-          leadTime: input.leadTime.trim(),
-          shipping: input.shipping.trim(),
-          tax: input.tax.trim(),
-          notes: input.notes.trim(),
-          assumptions: input.assumptions.trim(),
-          clarifications: input.clarifications.trim(),
-          filesReviewed: input.filesReviewed.trim(),
-          lineItems: input.lineItems,
-          totalCents: input.estimatedPriceCents,
-          markdown: input.markdown,
+
+  try {
+    const client = await prisma();
+    const versionNumber = (await client.customerQuoteVersion.count({ where: { requestId: id } })) + 1;
+    const stored = await client.request.update({
+      where: { id },
+      data: {
+        status: nextStatus,
+        operatorCompleteness: "COMPLETE",
+        estimatedPriceCents: input.estimatedPriceCents,
+        leadTimeDays: input.leadTimeDays,
+        shippingCostCents: input.shippingCostCents,
+        shippingMethod: input.shippingMethod,
+        shippingTerms: input.shippingTerms,
+        estimatedDeliveryDate: optionalDate(input.estimatedDeliveryDate ?? ""),
+        quoteCreatedDate: optionalDate(input.quoteDate),
+        quoteValidUntil: optionalDate(input.validUntil),
+        quoteSummary: input.quoteSummary.trim(),
+        customerQuotes: {
+          create: {
+            versionNumber,
+            quoteNumber: input.quoteNumber.trim(),
+            quoteDate: input.quoteDate ? new Date(`${input.quoteDate}T00:00:00.000Z`) : null,
+            validUntil: input.validUntil ? new Date(`${input.validUntil}T00:00:00.000Z`) : null,
+            customerCompany: input.customerCompany.trim(),
+            customerContact: input.customerContact.trim(),
+            projectName: input.projectName.trim(),
+            preparedBy: input.preparedBy.trim() || "Lattice",
+            leadTime: input.leadTime.trim(),
+            shipping: input.shipping.trim(),
+            tax: input.tax.trim(),
+            notes: input.notes.trim(),
+            assumptions: input.assumptions.trim(),
+            clarifications: input.clarifications.trim(),
+            filesReviewed: input.filesReviewed.trim(),
+            lineItems: input.lineItems,
+            totalCents: input.estimatedPriceCents,
+            markdown: input.markdown,
+          },
         },
+        ...(current.status === nextStatus
+          ? {}
+          : {
+              statusEvents: {
+                create: {
+                  from: current.status,
+                  to: nextStatus,
+                  actor: "operator",
+                },
+              },
+            }),
       },
-      ...(current.status === nextStatus
-        ? {}
-        : {
-            statusEvents: {
-              create: {
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma quote save is unavailable; saving customer quote locally.", error);
+      const timestamp = new Date().toISOString();
+      const updated = {
+        ...current,
+        status: nextStatus,
+        operatorReview: {
+          ...current.operatorReview,
+          completeness: "COMPLETE" as const,
+        },
+        quote: {
+          ...current.quote,
+          estimatedPriceCents: input.estimatedPriceCents,
+          leadTimeDays: input.leadTimeDays,
+          shippingCostCents: input.shippingCostCents ?? null,
+          shippingMethod: input.shippingMethod ?? "",
+          shippingTerms: input.shippingTerms ?? "",
+          estimatedDeliveryDate: input.estimatedDeliveryDate ?? "",
+          quoteCreatedDate: input.quoteDate,
+          quoteValidUntil: input.validUntil,
+          summary: input.quoteSummary.trim(),
+        },
+        customerQuotes: [
+          ...current.customerQuotes,
+          {
+            id: `customer_quote_${Date.now()}`,
+            versionNumber: current.customerQuotes.length + 1,
+            quoteNumber: input.quoteNumber.trim(),
+            quoteDate: input.quoteDate,
+            validUntil: input.validUntil,
+            customerCompany: input.customerCompany.trim(),
+            customerContact: input.customerContact.trim(),
+            projectName: input.projectName.trim(),
+            preparedBy: input.preparedBy.trim() || "Lattice",
+            leadTime: input.leadTime.trim(),
+            shipping: input.shipping.trim(),
+            tax: input.tax.trim(),
+            notes: input.notes.trim(),
+            assumptions: input.assumptions.trim(),
+            clarifications: input.clarifications.trim(),
+            filesReviewed: input.filesReviewed.trim(),
+            lineItems: input.lineItems,
+            totalCents: input.estimatedPriceCents,
+            markdown: input.markdown,
+            issuedAt: timestamp,
+          },
+        ],
+        statusEvents: current.status === nextStatus
+          ? current.statusEvents
+          : [
+              ...current.statusEvents,
+              {
+                id: `event_${Date.now()}`,
                 from: current.status,
                 to: nextStatus,
-                actor: "operator",
+                actor: "operator" as const,
+                at: timestamp,
               },
-            },
-          }),
-    },
-    include: storedRequestInclude,
-  });
+            ],
+        updatedAt: timestamp,
+      };
 
-  return mapStoredRequest(stored);
+      return saveLocalRequest(updated);
+    }
+
+    throw error;
+  }
 }
 
 export async function purchaseQuote(id: string) {

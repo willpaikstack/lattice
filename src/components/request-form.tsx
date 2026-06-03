@@ -1009,6 +1009,12 @@ export function RequestForm({
       quote: {
         estimatedPriceCents: null,
         leadTimeDays: null,
+        shippingCostCents: null,
+        shippingMethod: "",
+        shippingTerms: "",
+        estimatedDeliveryDate: "",
+        quoteCreatedDate: "",
+        quoteValidUntil: "",
         summary: "",
       },
       statusEvents: [
@@ -1264,14 +1270,23 @@ export function RequestForm({
           : []),
       ]),
     };
+    const uploadedFiles = configuredLineItems.flatMap((lineItem) => [
+      lineItem.selectedFile,
+      ...(lineItem.technicalDrawingName ? [lineItem.selectedDrawingFile] : []),
+    ]);
+    const formData = new FormData();
+
+    formData.append("request", JSON.stringify(input));
+    uploadedFiles.forEach((file, index) => {
+      if (file) {
+        formData.append(`file-${index}`, file);
+      }
+    });
 
     try {
       const response = await fetch("/api/requests", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(input),
+        body: formData,
       });
       const payload = await response.json();
 
@@ -1340,6 +1355,7 @@ export function RequestForm({
                 hint="Use a name that will be easy to recognize in quotes, orders, and admin review."
               >
                 <input
+                  aria-label="Quote name"
                   className={inputClass}
                   placeholder="Aluminum plate reorder"
                   value={projectForm.projectName}

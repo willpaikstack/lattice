@@ -25,6 +25,7 @@ const draftInput: DraftRequestInput = {
       name: "bracket-a.step",
       sizeBytes: 0,
       type: "reference/name-only",
+      storageKey: "rfq/2026-06-02/bracket-a.step",
     },
   ],
 };
@@ -49,6 +50,15 @@ describe("request persistence", () => {
           name: "Amogy Manufacturing",
         },
       },
+      estimatedPriceCents: null,
+      leadTimeDays: null,
+      shippingCostCents: null,
+      shippingMethod: "",
+      shippingTerms: "",
+      estimatedDeliveryDate: null,
+      quoteCreatedDate: null,
+      quoteValidUntil: null,
+      quoteSummary: "",
       lineItems: {
         create: [
           {
@@ -68,6 +78,7 @@ describe("request persistence", () => {
             name: "bracket-a.step",
             sizeBytes: 0,
             type: "reference/name-only",
+            storageKey: "rfq/2026-06-02/bracket-a.step",
           },
         ],
       },
@@ -101,6 +112,12 @@ describe("request persistence", () => {
       supplierTrackingNumber: "SF123",
       estimatedPriceCents: null,
       leadTimeDays: null,
+      shippingCostCents: 12500,
+      shippingMethod: "International",
+      shippingTerms: "DDP",
+      estimatedDeliveryDate: new Date("2026-06-23T00:00:00.000Z"),
+      quoteCreatedDate: new Date("2026-06-02T00:00:00.000Z"),
+      quoteValidUntil: new Date("2026-06-16T00:00:00.000Z"),
       quoteSummary: "",
       lineItems: [
         {
@@ -120,6 +137,7 @@ describe("request persistence", () => {
           name: "bracket-a.step",
           sizeBytes: 0,
           type: "reference/name-only",
+          storageKey: "rfq/2026-06-02/bracket-a.step",
         },
       ],
       supplierDocuments: [
@@ -252,6 +270,12 @@ describe("request persistence", () => {
       quote: {
         estimatedPriceCents: null,
         leadTimeDays: null,
+        shippingCostCents: 12500,
+        shippingMethod: "International",
+        shippingTerms: "DDP",
+        estimatedDeliveryDate: "2026-06-23",
+        quoteCreatedDate: "2026-06-02",
+        quoteValidUntil: "2026-06-16",
         summary: "",
       },
       supplierQuotes: [
@@ -300,6 +324,7 @@ describe("request persistence", () => {
           name: "bracket-a.step",
           sizeBytes: 0,
           type: "reference/name-only",
+          storageKey: "rfq/2026-06-02/bracket-a.step",
         },
       ],
       statusEvents: [

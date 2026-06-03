@@ -1,20 +1,14 @@
 import { notFound } from "next/navigation";
 
 import { buildCustomerQuoteInputFromRequest, buildCustomerQuoteInputFromVersion, customerQuotePdfFileName } from "@/lib/quote-file";
-import { buildCustomerQuotePdf } from "@/lib/quote-pdf";
+import { buildRequestQuotePdf } from "@/lib/quote-pdf";
 import type { RequestStatus } from "@/lib/request-model";
 import { getRequestById } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const downloadableQuoteStatuses = new Set<RequestStatus>(["QUOTED", "PURCHASED", "CLOSED"]);
-
-const quoteStatusLabel: Partial<Record<RequestStatus, string>> = {
-  CLOSED: "Closed",
-  DRAFT: "Draft",
-  PURCHASED: "Ordered",
-  QUOTED: "Quoted",
-};
 
 export async function GET(_request: Request, { params }: { params: Promise<{ requestId: string }> }) {
   const { requestId } = await params;
@@ -26,13 +20,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ req
 
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const quote = latestCustomerQuote ? buildCustomerQuoteInputFromVersion(latestCustomerQuote) : buildCustomerQuoteInputFromRequest(request);
-  const pdf = buildCustomerQuotePdf(quote, {
-    pricingPending: !latestCustomerQuote && request.quote.estimatedPriceCents === null,
-    statusLabel: quoteStatusLabel[request.status] ?? "Quoted",
-  });
+  const pdf = await buildRequestQuotePdf(request);
+  const body = new ArrayBuffer(pdf.byteLength);
+  new Uint8Array(body).set(pdf);
 
-  return new Response(pdf, {
+  return new Response(body, {
     headers: {
+      "Cache-Control": "no-store",
       "Content-Disposition": `attachment; filename="${customerQuotePdfFileName(quote)}"`,
       "Content-Type": "application/pdf",
     },

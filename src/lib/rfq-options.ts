@@ -92,7 +92,7 @@ export const requestStatusOptions: RfqOption[] = [
   option("DRAFT", "Draft", "draft"),
   option("SUBMITTED", "Requested", "requested"),
   option("READY_FOR_SUPPLIER_RFQ", "Under Review", "in_review"),
-  option("QUOTED", "Quoted", "quoted"),
+  option("QUOTED", "Quote received", "quoted"),
   option("PURCHASED", "Purchased", "purchased"),
   option("CLOSED", "Closed", "closed"),
 ];

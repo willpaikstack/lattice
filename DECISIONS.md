@@ -2,6 +2,45 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-03 - Keep Admin Templates In A Resources Library
+
+Decision: add `/admin/resources` as an internal resource library for operator-facing templates and reference files, starting with a copied quote PDF template served through a protected admin route.
+
+Reason: quote-format references should live near the admin quoting workflow instead of being scattered across downloads or chat history. Operators need a stable place to download templates while shaping and reviewing customer quote output.
+
+Implications:
+
+- Store internal resource assets under `resources/admin/` rather than exposing them as raw public files.
+- Serve downloadable resources through admin routes such as `/admin/resources/quote-template`.
+- Add future quote, RFQ, supplier, and order templates to this page when they become part of the operating workflow.
+
+## 2026-06-02 - Keep The First Admin RFQ Review Drawer Minimal
+
+Decision: simplify the `/admin/quotes` RFQ drawer around the operator's immediate quoting task: download uploaded files, review configured part details, and enter one unit price per configured part, lead time, shipping cost, shipping method, shipping terms, estimated delivery date, quote created date, quote valid-until date, and quote notes.
+
+Reason: the previous drawer exposed too much packet, readiness, supplier, and quote-builder detail before the basic quote-feedback loop was ergonomic. The first admin workflow should make it fast to inspect the submitted RFQ package and capture the critical commercial response.
+
+Implications:
+
+- The drawer should avoid broad worksheet/status/history panels until those fields are truly needed in the workflow.
+- Uploaded CAD/drawing files with local storage keys should show direct download actions.
+- Quote feedback saves create a durable customer quote version, mark the request as `QUOTED`, and persist per-part unit prices, aggregate part-production total, lead time, shipping cost, shipping method, shipping terms, quote dates, delivery date, and notes.
+- The fuller customer quote packet/version builder can be reintroduced deliberately later instead of being the default first review experience.
+
+## 2026-06-02 - Use Gitignored Local RFQ File Storage As A Temporary Bridge
+
+Decision: store submitted CAD and technical drawing file bytes in `.data/uploads/rfq/<date>/...` for the local app and persist the resulting `UploadedFile.storageKey` with each RFQ file record.
+
+Reason: operators need actual uploaded files during local RFQ testing before production object storage is configured. The app already had an optional `storageKey` column, so a local filesystem bridge gives immediate usefulness without committing to the final storage provider.
+
+Implications:
+
+- Local submitted RFQs now use multipart form data so CAD and drawing files can be saved with the request.
+- `.data/` remains gitignored and should not be treated as shared cross-computer or production storage.
+- `/api/local-files/[...storageKey]` can serve stored local files back for download during development.
+- Production still needs Cloudflare R2 or another S3-compatible object store for durable uploaded CAD/drawing files.
+- Autodesk APS preview uploads remain separate from RFQ file storage; APS stores preview-translated CAD assets, while local storage keeps the submitted RFQ package bytes.
+
 ## 2026-06-02 - Use A Dedicated CNC Material Library For RFQ Selection
 
 Decision: drive the buyer RFQ material dropdown from a researched CNC material library covering Fictiv, Hubs/Protolabs Network, and Xometry offerings, while preserving legacy option values for saved drafts and reorders.
@@ -41,16 +80,16 @@ Implications:
 - Admin quote submissions can continue focusing on active RFQ/quote work and exclude purchased orders.
 - Quote history may remain accessible from order detail in the future, but the primary navigation home for purchased work is Orders.
 
-## 2026-06-02 - Customer Quote Statuses Are Draft, Quoted, Ordered, Closed
+## 2026-06-02 - Customer Quote Statuses Are Draft, Quote Received, Ordered, Closed
 
-Decision: customer-facing quote status vocabulary is limited to `Draft`, `Quoted`, `Ordered`, and `Closed`.
+Decision: customer-facing quote status vocabulary is limited to `Draft`, `Quote received`, `Ordered`, and `Closed`.
 
 Reason: buyers need a simple commercial quote lifecycle, while admins still need more granular internal RFQ workflow states such as submitted, needs-info, and supplier-ready.
 
 Implications:
 
 - `Draft` means the customer has not clicked Request Quote yet.
-- `Quoted` means price and lead time have been issued and the customer decision is pending.
+- `Quote received` means price and lead time have been issued and the customer decision is pending.
 - `Ordered` means the quote converted into an order and production/order tracking owns the workflow.
 - `Closed` means the quote was rejected, declined, or closed by the customer/admin because of cost, lead time, or capability fit.
 - Internal RFQ states may still drive admin queues, but should not be shown as quote statuses on customer quote surfaces.
@@ -89,7 +128,7 @@ Reason: customers need a simple quote-state model even though the internal RFQ w
 
 Implications:
 
-- Use the 2026-06-02 four-status taxonomy: `Draft`, `Quoted`, `Ordered`, and `Closed`.
+- Use the 2026-06-02 four-status taxonomy: `Draft`, `Quote received`, `Ordered`, and `Closed`.
 - Keep submitted, needs-info, and supplier-review as internal RFQ workflow states, not quote statuses.
 - Per the 2026-06-02 purchased-quotes decision, purchased records leave buyer quote surfaces and live in Orders.
 - Keep granular internal statuses available for admin/operator workflows, notifications, and routing logic, but avoid exposing them as customer quote statuses on quote pages.

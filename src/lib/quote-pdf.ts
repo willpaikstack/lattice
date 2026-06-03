@@ -1,25 +1,74 @@
+import { createRequire } from "node:module";
+
 import { formatUsd, lineItemTotal, quoteSubtotal, type CustomerQuoteInput } from "./quote-file";
+import type { LatticeRequest, RequestLineItem, UploadedFile } from "./request-model";
 
 type QuotePdfOptions = {
   pricingPending?: boolean;
   statusLabel?: string;
 };
 
-const pageWidth = 612;
-const pageHeight = 792;
-const margin = 54;
-const contentWidth = pageWidth - margin * 2;
+const letterWidth = 612;
+const letterHeight = 792;
+const requireFromHere = createRequire(import.meta.url);
+const PDFDocument = requireFromHere("pdfkit") as typeof import("pdfkit");
+const regularFont = "/System/Library/Fonts/Supplemental/Verdana.ttf";
+const boldFont = "/System/Library/Fonts/Supplemental/Verdana Bold.ttf";
 
-function pdfText(value: string) {
-  return value
+function safeText(value: string | number | null | undefined) {
+  return String(value ?? "")
     .replace(/[^\x09\x0a\x0d\x20-\x7e]/g, "")
-    .replace(/\\/g, "\\\\")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)");
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function plainText(value: string) {
-  return value.replace(/\s+/g, " ").trim();
+function createPdf(options: PDFKit.PDFDocumentOptions) {
+  const doc = new PDFDocument(options);
+  const chunks: Buffer[] = [];
+  const done = new Promise<Uint8Array>((resolve, reject) => {
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("end", () => resolve(new Uint8Array(Buffer.concat(chunks))));
+    doc.on("error", reject);
+  });
+
+  return { doc, done };
+}
+
+function formatMaybePending(value: number, pending: boolean) {
+  return pending ? "Pending" : formatUsd(value);
+}
+
+function formatPriceCents(cents: number | null) {
+  return cents === null ? "Pending" : formatUsd(cents / 100);
+}
+
+function localDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return dateOnlyMatch ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3])) : new Date(value);
+}
+
+function formatDate(value: string | null) {
+  const date = localDate(value);
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+}
+
+function addDaysIso(value: string, days: number) {
+  const date = new Date(value);
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function listFromText(value: string) {
@@ -29,192 +78,310 @@ function listFromText(value: string) {
     .filter(Boolean);
 }
 
-function wrapText(value: string, maxWidth: number, fontSize: number) {
-  const words = plainText(value).split(" ").filter(Boolean);
-  const maxCharacters = Math.max(18, Math.floor(maxWidth / (fontSize * 0.52)));
-  const lines: string[] = [];
-  let current = "";
+function isDrawingFile(file: UploadedFile) {
+  return /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type);
+}
 
-  for (const word of words) {
-    const next = current ? `${current} ${word}` : word;
+function isCadFile(file: UploadedFile) {
+  return /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type);
+}
 
-    if (next.length <= maxCharacters) {
-      current = next;
-      continue;
-    }
+function bundledFilesByLineItem(request: LatticeRequest) {
+  const cadFiles = request.files.filter(isCadFile);
+  const drawingFiles = request.files.filter(isDrawingFile);
 
-    if (current) {
-      lines.push(current);
-    }
+  return request.lineItems.map((lineItem, index) => ({
+    cadFile: cadFiles[index] ?? null,
+    drawingFile: drawingFiles[index] ?? null,
+    lineItem,
+  }));
+}
 
-    current = word;
+function quoteReference(request: LatticeRequest) {
+  return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function customerLineForItem(request: LatticeRequest, item: RequestLineItem) {
+  return request.customerQuotes.at(-1)?.lineItems.find((line) => line.description === item.partName || line.id === item.id) ?? null;
+}
+
+function lineItemTotalCents(request: LatticeRequest, item: RequestLineItem) {
+  const customerLine = customerLineForItem(request, item);
+
+  if (customerLine) {
+    return Math.round(customerLine.unitPrice * customerLine.quantity * 100);
   }
 
-  if (current) {
-    lines.push(current);
+  if (request.lineItems.length === 1) {
+    return request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
   }
 
-  return lines.length ? lines : [""];
+  return null;
 }
 
-function formatMaybePending(value: number, pending: boolean) {
-  return pending ? "Pending" : formatUsd(value);
+function lineItemUnitCents(request: LatticeRequest, item: RequestLineItem) {
+  const total = lineItemTotalCents(request, item);
+
+  if (total === null || item.quantity <= 0) {
+    return null;
+  }
+
+  return Math.round(total / item.quantity);
 }
 
-function buildPageContent(lines: string[]) {
-  return lines.join("\n");
+function quoteSubtotalCents(request: LatticeRequest) {
+  const latestCustomerQuote = request.customerQuotes.at(-1);
+
+  if (latestCustomerQuote) {
+    return latestCustomerQuote.totalCents;
+  }
+
+  return request.quote.estimatedPriceCents;
 }
 
-function makePdf(objects: string[]) {
-  const encoder = new TextEncoder();
-  const header = "%PDF-1.4\n";
-  let body = "";
-  const offsets: number[] = [0];
-  let byteOffset = encoder.encode(header).length;
+function productionRegion(request: LatticeRequest) {
+  return request.quote.shippingMethod === "Domestic" ? "Domestic" : "Overseas";
+}
 
-  objects.forEach((object, index) => {
-    offsets[index + 1] = byteOffset;
-    const entry = `${index + 1} 0 obj\n${object}\nendobj\n`;
-    body += entry;
-    byteOffset += encoder.encode(entry).length;
-  });
+function configurationText(request: LatticeRequest, item: RequestLineItem) {
+  return [request.process, item.material, item.generalTolerance, item.surfaceFinish || "No finish (as machined)", ...(item.qualityDocumentation ?? [])].filter(Boolean).join(", ");
+}
 
-  const xrefOffset = byteOffset;
-  const xrefRows = offsets.map((offset, index) => (index === 0 ? "0000000000 65535 f " : `${String(offset).padStart(10, "0")} 00000 n `));
-  const trailer = `xref\n0 ${objects.length + 1}\n${xrefRows.join("\n")}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+function ensureSpace(doc: PDFKit.PDFDocument, neededHeight: number, topY = 42) {
+  if (doc.y + neededHeight > letterHeight - 46) {
+    doc.addPage();
+    doc.y = topY;
+  }
+}
 
-  return encoder.encode(`${header}${body}${trailer}`);
+function mutedLabel(doc: PDFKit.PDFDocument, value: string, x: number, y: number, width: number) {
+  doc.font(boldFont).fontSize(7.5).fillColor("#6b7280").text(safeText(value).toUpperCase(), x, y, { width });
+  doc.fillColor("#111111");
+}
+
+function summaryAmountRow(doc: PDFKit.PDFDocument, label: string, value: string, x: number, y: number, width: number, bold = false) {
+  doc.font(bold ? boldFont : regularFont).fontSize(bold ? 14 : 9).fillColor("#111111");
+  doc.text(safeText(label), x, y, { width: width * 0.58 });
+  doc.text(safeText(value), x + width * 0.58, y, { align: "right", width: width * 0.42 });
 }
 
 export function buildCustomerQuotePdf(quote: CustomerQuoteInput, options: QuotePdfOptions = {}) {
-  const content: string[] = [];
-  const pages: string[] = [];
-  let y = pageHeight - margin;
-
-  function pushPage() {
-    pages.push(buildPageContent(content.splice(0, content.length)));
-    y = pageHeight - margin;
-  }
-
-  function ensureSpace(requiredHeight: number) {
-    if (y - requiredHeight < margin) {
-      pushPage();
-    }
-  }
-
-  function text(value: string, x = margin, size = 10, font = "F1") {
-    ensureSpace(size + 4);
-    content.push(`BT /${font} ${size} Tf ${x} ${y} Td (${pdfText(value)}) Tj ET`);
-    y -= size + 4;
-  }
-
-  function wrapped(value: string, x = margin, width = contentWidth, size = 10, font = "F1") {
-    const lines = wrapText(value, width, size);
-    ensureSpace(lines.length * (size + 4));
-    lines.forEach((line) => {
-      content.push(`BT /${font} ${size} Tf ${x} ${y} Td (${pdfText(line)}) Tj ET`);
-      y -= size + 4;
-    });
-  }
-
-  function section(title: string) {
-    y -= 8;
-    text(title.toUpperCase(), margin, 9, "F2");
-    content.push(`${margin} ${y + 8} m ${pageWidth - margin} ${y + 8} l S`);
-  }
-
-  function detail(label: string, value: string) {
-    wrapped(`${label}: ${value || "Pending"}`, margin, contentWidth, 10, "F1");
-  }
-
+  const { doc, done } = createPdf({ compress: false, margin: 54, size: "LETTER" });
   const subtotal = quoteSubtotal(quote.lineItems);
   const pricingPending = options.pricingPending ?? quote.lineItems.every((item) => item.unitPrice <= 0);
 
-  text("Lattice OS", margin, 11, "F2");
-  text(`Quote ${quote.quoteNumber || "Pending"}`, margin, 24, "F2");
+  doc.font(boldFont).fontSize(11).text("Lattice OS");
+  doc.moveDown(0.4);
+  doc.fontSize(24).text(`Quote ${safeText(quote.quoteNumber) || "Pending"}`);
   if (options.statusLabel) {
-    text(options.statusLabel, margin, 11, "F2");
+    doc.moveDown(0.15);
+    doc.fontSize(11).text(safeText(options.statusLabel));
   }
 
-  y -= 8;
-  detail("Prepared for", quote.customerCompany);
-  detail("Contact", quote.customerContact);
-  detail("RFQ / Project", quote.projectName);
-  detail("Prepared by", quote.preparedBy || "Lattice");
-  detail("Quote date", quote.quoteDate);
-  detail("Valid until", quote.validUntil);
+  doc.moveDown(1);
+  doc.font(regularFont).fontSize(10);
+  [
+    ["Prepared for", quote.customerCompany],
+    ["Contact", quote.customerContact],
+    ["RFQ / Project", quote.projectName],
+    ["Prepared by", quote.preparedBy || "Lattice"],
+    ["Quote date", quote.quoteDate],
+    ["Valid until", quote.validUntil],
+  ].forEach(([label, value]) => doc.text(`${label}: ${safeText(value) || "Pending"}`));
 
-  section("Summary");
-  wrapped(
-    quote.notes ||
-      `Lattice quote package for ${quote.projectName || "this project"}, including uploaded manufacturing data, line-item requirements, supplier basis, and production assumptions.`,
-  );
+  doc.moveDown(1.2);
+  doc.font(boldFont).fontSize(10).text("SUMMARY");
+  doc.moveTo(54, doc.y + 4).lineTo(letterWidth - 54, doc.y + 4).stroke("#111111");
+  doc.moveDown(1);
+  doc.font(regularFont).fontSize(10).text(safeText(quote.notes) || `Lattice quote package for ${safeText(quote.projectName) || "this project"}.`, { lineGap: 2 });
 
-  section("Commercials");
-  detail("Subtotal", formatMaybePending(subtotal, pricingPending));
-  detail("Shipping", quote.shipping || "Billed at actual");
-  detail("Tax", quote.tax || "Not included");
-  detail("Total", formatMaybePending(subtotal, pricingPending));
-  detail("Lead time", quote.leadTime || "Pending");
+  doc.moveDown(1.2);
+  doc.font(boldFont).fontSize(10).text("COMMERCIALS");
+  doc.moveDown(0.5);
+  doc.font(regularFont).fontSize(10);
+  doc.text(`Subtotal: ${formatMaybePending(subtotal, pricingPending)}`);
+  doc.text(`Shipping: ${safeText(quote.shipping) || "Billed at actual"}`);
+  doc.text(`Tax: ${safeText(quote.tax) || "Not included"}`);
+  doc.text(`Total: ${formatMaybePending(subtotal, pricingPending)}`);
+  doc.text(`Lead time: ${safeText(quote.leadTime) || "Pending"}`);
 
-  section("Line Items");
+  doc.moveDown(1.2);
+  doc.font(boldFont).fontSize(10).text("LINE ITEMS");
+  doc.moveDown(0.5);
   quote.lineItems.forEach((item, index) => {
-    ensureSpace(70);
-    text(`${index + 1}. ${item.description || "Part / item"}`, margin, 11, "F2");
-    detail("Process", item.process || "TBD");
-    detail("Material", item.material || "TBD");
-    detail("Finish", item.finish || "TBD");
-    detail("Quantity", String(item.quantity));
-    detail("Unit price", formatMaybePending(item.unitPrice, pricingPending));
-    detail("Line total", formatMaybePending(lineItemTotal(item), pricingPending));
-    y -= 4;
+    ensureSpace(doc, 84);
+    doc.font(boldFont).fontSize(10).text(`${index + 1}. ${safeText(item.description) || "Part / item"}`);
+    doc.font(regularFont).fontSize(9);
+    doc.text(`Process: ${safeText(item.process) || "TBD"}`);
+    doc.text(`Material: ${safeText(item.material) || "TBD"}`);
+    doc.text(`Finish: ${safeText(item.finish) || "TBD"}`);
+    doc.text(`Qty: ${item.quantity}    Unit price: ${formatMaybePending(item.unitPrice, pricingPending)}    Line total: ${formatMaybePending(lineItemTotal(item), pricingPending)}`);
+    doc.moveDown(0.6);
   });
 
-  section("Design Package Reviewed");
+  doc.moveDown(0.8);
+  doc.font(boldFont).fontSize(10).text("DESIGN PACKAGE REVIEWED");
+  doc.font(regularFont).fontSize(9);
   const files = listFromText(quote.filesReviewed);
-  (files.length ? files : ["Design file / drawing reviewed"]).forEach((file) => wrapped(`- ${file}`));
+  (files.length ? files : ["Design file / drawing reviewed"]).forEach((file) => doc.text(`- ${safeText(file)}`));
 
-  section("Manufacturing Assumptions");
+  doc.moveDown(0.8);
+  doc.font(boldFont).fontSize(10).text("MANUFACTURING ASSUMPTIONS");
+  doc.font(regularFont).fontSize(9);
   const assumptions = listFromText(quote.assumptions);
   (assumptions.length ? assumptions : ["Customer-supplied CAD and drawings are complete and represent the latest revision."]).forEach((assumption) =>
-    wrapped(`- ${assumption}`),
+    doc.text(`- ${safeText(assumption)}`, { lineGap: 2 }),
   );
 
-  const clarifications = listFromText(quote.clarifications);
-  if (clarifications.length) {
-    section("Open Questions");
-    clarifications.forEach((clarification, index) => wrapped(`${index + 1}. ${clarification}`));
-  }
+  doc.end();
+  return done;
+}
 
-  section("Acceptance");
-  wrapped(`To accept this quote, reply with written approval and reference Quote ${quote.quoteNumber || "Pending"}.`);
+export function buildRequestQuotePdf(request: LatticeRequest) {
+  const { doc, done } = createPdf({ compress: false, margin: 36, size: "LETTER" });
+  const left = 36;
+  const right = letterWidth - 36;
+  const width = right - left;
+  const latestQuote = request.customerQuotes.at(-1);
+  const subtotalCents = quoteSubtotalCents(request);
+  const shippingCents = request.quote.shippingCostCents;
+  const taxCents = subtotalCents === null ? null : 0;
+  const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
+  const quoteDate = request.quote.quoteCreatedDate || latestQuote?.quoteDate || latestQuote?.issuedAt.slice(0, 10) || request.updatedAt.slice(0, 10);
+  const validUntil = request.quote.quoteValidUntil || latestQuote?.validUntil || addDaysIso(quoteDate, 14);
+  const leadTime = request.quote.leadTimeDays ? `${request.quote.leadTimeDays} days (${productionRegion(request)})` : latestQuote?.leadTime || "Pending";
+  const estimatedDelivery = request.quote.estimatedDeliveryDate || request.dueDate;
+  const shippingTerms = request.quote.shippingTerms || "Determined at Checkout";
+  const shippingMethod = request.quote.shippingMethod || "International";
 
-  pushPage();
+  doc.fillColor("#111111");
+  doc.font(boldFont).fontSize(9).text(`Quote ID: ${quoteReference(request)}`, left, 42);
+  doc.font(regularFont).fontSize(8).text("Lattice OS", left, 58).text("will@latticeos.co", left, 72);
+  doc.text(`Created on: ${formatDate(quoteDate)}`, right - 190, 42, { width: 190 });
+  doc.text(`Quote valid until: ${formatDate(validUntil)}`, right - 190, 56, { width: 190 });
+  doc.fontSize(7.5).text("For quote inquiries, contact your account manager", right - 190, 82, { width: 190 });
+  doc.font(boldFont).fontSize(8).text("Erik Mast", right - 190, 98, { width: 190 });
+  doc.font(regularFont).fontSize(7.5).text("erik.mast@latticeos.com", right - 190, 112, { width: 190 }).text("415-237-8791", right - 190, 126, { width: 190 });
 
-  const pageObjects: string[] = [];
-  const contentObjects: string[] = [];
-  const firstPageObjectNumber = 4;
-  const firstContentObjectNumber = firstPageObjectNumber + pages.length;
+  const infoY = 164;
+  mutedLabel(doc, "Prepared For", left, infoY, 130);
+  doc.font(boldFont).fontSize(9).text(safeText(request.requesterName), left, infoY + 18, { width: 135 });
+  doc.font(regularFont).fontSize(8).text(safeText(request.buyerCompany), left, infoY + 32, { width: 135 });
 
-  pages.forEach((page, index) => {
-    const contentObjectNumber = firstContentObjectNumber + index;
-    pageObjects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 3 0 R /F2 ${firstContentObjectNumber + pages.length} 0 R >> >> /Contents ${contentObjectNumber} 0 R >>`);
-    contentObjects.push(`<< /Length ${new TextEncoder().encode(page).length} >>\nstream\n${page}\nendstream`);
+  mutedLabel(doc, "Ship to", left + 160, infoY, 145);
+  doc.font(boldFont).fontSize(9).text(safeText(request.buyerCompany), left + 160, infoY + 18, { width: 145 });
+  doc.font(regularFont).fontSize(8).text("123 Main Street\nBrooklyn, NY 11201", left + 160, infoY + 32, { lineGap: 2, width: 145 });
+
+  mutedLabel(doc, "Order production speed", left + 345, infoY, 150);
+  doc.font(regularFont).fontSize(8).text(safeText(leadTime), left + 345, infoY + 18, { width: 150 });
+  mutedLabel(doc, "Estimated delivery", left + 345, infoY + 40, 150);
+  doc.font(regularFont).fontSize(8).text(formatDate(estimatedDelivery), left + 345, infoY + 58, { width: 150 });
+  mutedLabel(doc, "Shipping method", left + 345, infoY + 80, 150);
+  doc.font(regularFont).fontSize(8).text(safeText(shippingMethod), left + 345, infoY + 98, { width: 150 });
+  mutedLabel(doc, "Shipping terms", left + 345, infoY + 120, 150);
+  doc.font(regularFont).fontSize(8).text(safeText(shippingTerms), left + 345, infoY + 138, { width: 150 });
+
+  let y = 320;
+  doc.rect(left, y, width, 42).fill("#f0f0f0");
+  doc.fillColor("#111111").font(boldFont).fontSize(17).text("SUMMARY OF ORDER", left + 12, y + 13, { width: 260 });
+  doc.text(`ORDER TOTAL ${formatPriceCents(totalCents)}`, left + 300, y + 13, { align: "right", width: width - 312 });
+  y += 70;
+
+  const columns = {
+    details: { width: 258, x: left + 52 },
+    index: { width: 30, x: left + 12 },
+    production: { width: 62, x: left + 328 },
+    quantity: { width: 24, x: right - 148 },
+    subtotal: { width: 50, x: right - 50 },
+    unit: { width: 58, x: right - 112 },
+  };
+
+  doc.font(boldFont).fontSize(7.8);
+  doc.text("#", columns.index.x, y);
+  doc.text("Part details (Prototype)", columns.details.x, y, { width: columns.details.width });
+  doc.text("Production region", columns.production.x, y, { width: columns.production.width });
+  doc.text("Qty", columns.quantity.x, y, { align: "right", width: columns.quantity.width });
+  doc.text("Unit price", columns.unit.x, y, { align: "right", width: columns.unit.width });
+  doc.text("Subtotal", columns.subtotal.x, y, { align: "right", width: columns.subtotal.width });
+  y += 26;
+  doc.lineWidth(2.4).moveTo(left, y).lineTo(right, y).stroke("#111111");
+  y += 20;
+
+  bundledFilesByLineItem(request).forEach(({ cadFile, drawingFile, lineItem }, index) => {
+    const fileLines = [cadFile ? `[Rev 1] ${cadFile.name}` : `[Rev 1] ${lineItem.partName}`, drawingFile?.name].filter(Boolean).map((line) => safeText(line));
+    const config = safeText(configurationText(request, lineItem));
+    const detailsHeight = fileLines.reduce((height, line) => height + doc.heightOfString(line, { width: columns.details.width }), 0) + doc.heightOfString(lineItem.partName, { width: columns.details.width }) + doc.heightOfString(config, { width: columns.details.width }) + 18;
+    const rowHeight = Math.max(104, detailsHeight + 24);
+
+    if (y + rowHeight > letterHeight - 70) {
+      doc.addPage();
+      y = 54;
+    }
+
+    const rowTop = y;
+    doc.font(regularFont).fontSize(8.6).fillColor("#111111").text(String(index + 1), columns.index.x, rowTop, { width: columns.index.width });
+    let detailY = rowTop;
+    fileLines.forEach((line) => {
+      doc.font(boldFont).fontSize(9.5).text(line, columns.details.x, detailY, { width: columns.details.width });
+      detailY += doc.heightOfString(line, { width: columns.details.width }) + 3;
+    });
+    doc.font(boldFont).fontSize(9.5).text(safeText(lineItem.partName), columns.details.x, detailY, { width: columns.details.width });
+    detailY += doc.heightOfString(lineItem.partName, { width: columns.details.width }) + 3;
+    doc.font(regularFont).fontSize(9).text(config, columns.details.x, detailY, { lineGap: 1, width: columns.details.width });
+
+    doc.font(regularFont).fontSize(8.6).text(productionRegion(request), columns.production.x, rowTop, { width: columns.production.width });
+    doc.text(String(lineItem.quantity), columns.quantity.x, rowTop, { align: "right", width: columns.quantity.width });
+    doc.text(formatPriceCents(lineItemUnitCents(request, lineItem)), columns.unit.x, rowTop, { align: "right", width: columns.unit.width });
+    doc.text(formatPriceCents(lineItemTotalCents(request, lineItem)), columns.subtotal.x, rowTop, { align: "right", width: columns.subtotal.width });
+
+    y += rowHeight;
+    doc.lineWidth(0.7).moveTo(left, y).lineTo(right, y).stroke("#a8a8a8");
+    y += 20;
   });
 
-  const boldFontObjectNumber = firstContentObjectNumber + pages.length;
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    `<< /Type /Pages /Kids ${pages.map((_, index) => `${firstPageObjectNumber + index} 0 R`).join(" ")} /Count ${pages.length} >>`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    ...pageObjects,
-    ...contentObjects,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-  ];
+  const notes = latestQuote?.notes || request.quote.summary || "Pricing includes manufacturing coordination, production, and standard inspection for the listed line items.";
+  const summaryBoxWidth = 220;
+  const summaryBoxX = right - summaryBoxWidth;
+  const summaryBoxY = Math.max(y + 20, letterHeight - 200);
 
-  if (boldFontObjectNumber !== objects.length) {
-    throw new Error("PDF object numbering mismatch");
+  if (summaryBoxY + 150 > letterHeight - 46) {
+    doc.addPage();
+    y = 54;
+  } else {
+    y += 24;
   }
 
-  return makePdf(objects);
+  doc.font(boldFont).fontSize(12).text("Notes", left, y);
+  doc.font(regularFont).fontSize(10).text(safeText(notes), left, y + 20, { lineGap: 2, width: 330 });
+  doc.text(`Quote ID: ${quoteReference(request)}`, left, letterHeight - 74, { width: 250 });
+
+  doc.rect(summaryBoxX, y, summaryBoxWidth, 132).fill("#f0f0f0");
+  doc.fillColor("#111111");
+  summaryAmountRow(doc, "Part production", formatPriceCents(subtotalCents), summaryBoxX + 18, y + 24, summaryBoxWidth - 36);
+  summaryAmountRow(doc, `Shipping (${shippingMethod})`, shippingCents === null ? "Billed at actual" : formatPriceCents(shippingCents), summaryBoxX + 18, y + 50, summaryBoxWidth - 36);
+  summaryAmountRow(doc, "Tax", formatPriceCents(taxCents), summaryBoxX + 18, y + 76, summaryBoxWidth - 36);
+  summaryAmountRow(doc, "Order Total", formatPriceCents(totalCents), summaryBoxX + 18, y + 104, summaryBoxWidth - 36, true);
+
+  doc.addPage();
+  doc.font(boldFont).fontSize(13).text("FILES REVIEWED", left, 54);
+  doc.moveDown(0.6);
+  doc.font(regularFont).fontSize(9);
+  request.files.forEach((file) => doc.text(safeText(file.name), { lineGap: 2 }));
+
+  doc.moveDown(1.4);
+  doc.font(boldFont).fontSize(13).text("TERMS AND CONDITIONS");
+  doc.moveDown(0.8);
+  doc.font(regularFont).fontSize(9);
+  [
+    "Lead time is defined as production days following quote acceptance, purchase order approval, and final design release.",
+    "Engineering changes to material, quantity, part design, or drawing requirements may require Lattice to reassess cost and lead time.",
+    "Unless otherwise agreed in writing, quoted components are intended for prototype and development use.",
+    "Customer is responsible for providing accurate customs, end-use, destination, and purchasing information before checkout.",
+  ].forEach((term, index) => {
+    doc.text(`${index + 1}. ${term}`, { lineGap: 3 });
+    doc.moveDown(0.4);
+  });
+
+  doc.end();
+  return done;
 }

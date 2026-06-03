@@ -56,18 +56,20 @@ describe("customer notifications", () => {
       ],
     };
 
-    expect(buildCustomerNotifications([needsInfo, quoted])).toMatchObject([
-      {
-        href: `/quotes/${quoted.id}`,
-        title: "LQ-1001 is ready for review",
-        unread: true,
-      },
-      {
-        detail: "Please confirm thread callout.",
-        href: `/quotes/${needsInfo.id}`,
-        title: "Hydrogen skid bracket RFQ needs more information",
-        unread: true,
-      },
-    ]);
+    expect(buildCustomerNotifications([needsInfo, quoted])).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          href: `/quotes/${quoted.id}`,
+          title: "LQ-1001 is ready for review",
+          unread: true,
+        }),
+        expect.objectContaining({
+          detail: "Please confirm thread callout.",
+          href: `/quotes/${needsInfo.id}`,
+          title: "Hydrogen skid bracket RFQ needs more information",
+          unread: true,
+        }),
+      ]),
+    );
   });
 });

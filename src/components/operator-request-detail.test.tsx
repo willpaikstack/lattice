@@ -34,7 +34,10 @@ function makeSubmittedRequest() {
           notes: "Include inspection report and deburr all edges.",
         },
       ],
-      files: [{ name: "mounting-bracket.step", sizeBytes: 2048, type: "model/step" }],
+      files: [
+        { name: "mounting-bracket.step", sizeBytes: 2048, storageKey: "rfq/request-1/mounting-bracket.step", type: "model/step" },
+        { name: "mounting-bracket.pdf", sizeBytes: 4096, storageKey: "rfq/request-1/mounting-bracket.pdf", type: "application/pdf" },
+      ],
     }),
   );
 }
@@ -115,7 +118,7 @@ describe("AdminQuoteManagement", () => {
     expect(screen.getByText("Showing 1 draft")).toBeInTheDocument();
   });
 
-  it("opens an RFQ command drawer with review controls and intake context", () => {
+  it("opens a minimal RFQ review drawer with files, part details, and quote feedback", () => {
     const request = makeSubmittedRequest();
 
     render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
@@ -123,29 +126,53 @@ describe("AdminQuoteManagement", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open RFQ" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("RFQ command center")).toBeInTheDocument();
+    expect(screen.getByText("Quote review")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    expect(screen.getByText("Review controls")).toBeInTheDocument();
-    expect(screen.getByLabelText("Status")).toHaveDisplayValue("Submitted");
-    expect(screen.getByLabelText("Assigned owner")).toBeInTheDocument();
-    expect(screen.getByLabelText("Customer quote summary")).toBeInTheDocument();
-    expect(screen.getByText("Buyer intake")).toBeInTheDocument();
+    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
+    expect(screen.getByText("Configured parts")).toBeInTheDocument();
+    expect(screen.getByText("Quote feedback")).toBeInTheDocument();
+    expect(screen.getByText("Files for Mounting bracket")).toBeInTheDocument();
     expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Save review decision" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: /mounting-bracket.step/ })).toHaveAttribute(
+      "href",
+      "/api/local-files/rfq/request-1/mounting-bracket.step?name=mounting-bracket.step&type=model%2Fstep",
+    );
+    expect(screen.getByRole("link", { name: /mounting-bracket.step/ })).toHaveAttribute("download", "mounting-bracket.step");
+    expect(screen.getByRole("link", { name: /mounting-bracket.pdf/ })).toHaveAttribute(
+      "href",
+      "/api/local-files/rfq/request-1/mounting-bracket.pdf?name=mounting-bracket.pdf&type=application%2Fpdf",
+    );
+    expect(screen.getByRole("link", { name: /mounting-bracket.pdf/ })).toHaveAttribute("download", "mounting-bracket.pdf");
+    expect(screen.getByText("Part name")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Unit price - Mounting bracket/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Lead time days - Mounting bracket/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Shipping cost")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shipping method")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shipping terms")).toBeInTheDocument();
+    expect(screen.getByLabelText("Estimated delivery date")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote Created Date")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote Valid Until")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit Quote to Customer" })).toBeEnabled();
   });
 
-  it("opens quote issuance inside the admin command drawer", () => {
+  it("opens quote feedback from the quote feedback row action", () => {
     const request = makeSubmittedRequest();
 
     render(<AdminQuoteManagement requests={[request]} saveQuoteAction={() => undefined} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Issue quote" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quote feedback" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Customer quote")).toBeInTheDocument();
-    expect(screen.getByLabelText("Quote number")).toHaveDisplayValue(/LQ-/);
-    expect(screen.getByLabelText("Customer company")).toHaveDisplayValue("Amogy Manufacturing");
-    expect(screen.getByRole("button", { name: "Save to RFQ" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Quote feedback" })).toBeInTheDocument();
+    expect(screen.getByText("Part name")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Unit price - Mounting bracket/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Lead time days - Mounting bracket/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Shipping cost")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shipping method")).toBeInTheDocument();
+    expect(screen.getByLabelText("Shipping terms")).toBeInTheDocument();
+    expect(screen.getByLabelText("Estimated delivery date")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote Created Date")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quote Valid Until")).toBeInTheDocument();
   });
 });
 
@@ -208,9 +235,10 @@ describe("BuyerQuoteDetail", () => {
 
     expect(screen.getByRole("heading", { name: "LQ-1001" })).toBeInTheDocument();
     expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
-    expect(screen.getAllByText("Quoted").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Quote received").length).toBeGreaterThan(0);
     expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
-    expect(screen.getByText("15 days (Standard)")).toBeInTheDocument();
+    expect(screen.getByText("Summary of order")).toBeInTheDocument();
+    expect(screen.getByText("$76.04")).toBeInTheDocument();
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Summary")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();

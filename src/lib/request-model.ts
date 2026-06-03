@@ -32,6 +32,7 @@ export type UploadedFileInput = {
   name: string;
   sizeBytes: number;
   type: string;
+  storageKey?: string;
 };
 
 export type DraftRequestInput = {
@@ -102,6 +103,7 @@ export type CustomerQuoteLineItemSnapshot = {
   finish: string;
   quantity: number;
   unitPrice: number;
+  leadTimeDays?: number | null;
 };
 
 export type CustomerQuoteVersion = {
@@ -220,6 +222,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       name: file.name,
       sizeBytes: file.sizeBytes,
       type: file.type,
+      storageKey: file.storageKey,
     })),
     operatorReview: {
       completeness: "READY_FOR_REVIEW",
@@ -241,6 +244,12 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
     quote: {
       estimatedPriceCents: null,
       leadTimeDays: null,
+      shippingCostCents: null,
+      shippingMethod: "",
+      shippingTerms: "",
+      estimatedDeliveryDate: "",
+      quoteCreatedDate: "",
+      quoteValidUntil: "",
       summary: "",
     },
     statusEvents: [
@@ -294,6 +303,12 @@ export function submitDraftRequest(draft: LatticeRequest): LatticeRequest {
 export type QuoteSummary = {
   estimatedPriceCents: number | null;
   leadTimeDays: number | null;
+  shippingCostCents: number | null;
+  shippingMethod: string;
+  shippingTerms: string;
+  estimatedDeliveryDate: string;
+  quoteCreatedDate: string;
+  quoteValidUntil: string;
   summary: string;
 };
 
@@ -304,6 +319,12 @@ export type OperatorStatusUpdateInput = {
   supplierPackageNotes?: string;
   estimatedPriceCents?: number | null;
   leadTimeDays?: number | null;
+  shippingCostCents?: number | null;
+  shippingMethod?: string;
+  shippingTerms?: string;
+  estimatedDeliveryDate?: string;
+  quoteCreatedDate?: string;
+  quoteValidUntil?: string;
   quoteSummary?: string;
 };
 
@@ -354,8 +375,14 @@ export function applyOperatorStatusUpdate(
       supplierPackageNotes: input.supplierPackageNotes?.trim() || "",
     },
     quote: {
-      estimatedPriceCents: input.estimatedPriceCents ?? request.quote.estimatedPriceCents,
-      leadTimeDays: input.leadTimeDays ?? request.quote.leadTimeDays,
+      estimatedPriceCents: input.estimatedPriceCents !== undefined ? input.estimatedPriceCents : request.quote.estimatedPriceCents,
+      leadTimeDays: input.leadTimeDays !== undefined ? input.leadTimeDays : request.quote.leadTimeDays,
+      shippingCostCents: input.shippingCostCents !== undefined ? input.shippingCostCents : request.quote.shippingCostCents,
+      shippingMethod: input.shippingMethod ?? request.quote.shippingMethod,
+      shippingTerms: input.shippingTerms ?? request.quote.shippingTerms,
+      estimatedDeliveryDate: input.estimatedDeliveryDate ?? request.quote.estimatedDeliveryDate,
+      quoteCreatedDate: input.quoteCreatedDate ?? request.quote.quoteCreatedDate,
+      quoteValidUntil: input.quoteValidUntil ?? request.quote.quoteValidUntil,
       summary: input.quoteSummary?.trim() || request.quote.summary,
     },
     statusEvents: request.status === nextStatus

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ClipboardList, Factory, FileSearch, Inbox, Layers, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
+import { ArrowLeft, ClipboardList, Factory, FileSearch, FileText, Inbox, Layers, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { currentUser, initialsForName } from "@/lib/current-user";
 
-type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout";
+type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources";
 
 type NavItem = {
   href: string;
@@ -58,6 +58,7 @@ const adminNavSections: NavSection[] = [
       { href: "/admin/vendors", label: "Overseas Vendors", icon: "factory" },
       { href: "/admin/quotes", label: "Quote Submissions", icon: "money" },
       { href: "/admin/orders", label: "Placed Orders", icon: "factory" },
+      { href: "/admin/resources", label: "Resources", icon: "resources" },
     ],
   },
 ];
@@ -74,6 +75,7 @@ const iconByName: Record<IconName, LucideIcon> = {
   money: Inbox,
   project: ClipboardList,
   queue: FileSearch,
+  resources: FileText,
   user: User,
 };
 
@@ -178,7 +180,7 @@ function ProfileMenu() {
 
   function handleSignOut() {
     setIsOpen(false);
-    window.location.href = "/api/logout";
+    window.open("/api/logout", "_self");
   }
 
   return (

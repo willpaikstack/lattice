@@ -48,3 +48,10 @@ export async function saveLocalRequest(request: LatticeRequest) {
   await writeRequestsToDisk([request, ...requests.filter((candidate) => candidate.id !== request.id)]);
   return request;
 }
+
+export async function deleteLocalRequest(id: string) {
+  const requests = await readRequestsFromDisk();
+  const remainingRequests = requests.filter((request) => request.id !== id);
+  await writeRequestsToDisk(remainingRequests);
+  return requests.length !== remainingRequests.length;
+}

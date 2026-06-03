@@ -171,6 +171,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Customers", "/admin/customers");
     expectAllLinksNamed("Quote Submissions", "/admin/quotes");
     expectAllLinksNamed("Placed Orders", "/admin/orders");
+    expectAllLinksNamed("Resources", "/admin/resources");
     expectAllLinksNamed("Customer App", "/dashboard");
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
 
@@ -228,6 +229,8 @@ describe("AppShell", () => {
   });
 
   it("returns to the landing page when signing out", () => {
+    const windowOpen = vi.spyOn(window, "open").mockImplementation(() => null);
+
     render(
       <AppShell>
         <div>content</div>
@@ -237,6 +240,8 @@ describe("AppShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
     fireEvent.click(screen.getByRole("button", { name: "Sign Out" }));
 
-    expect(mockReplace).toHaveBeenCalledWith("/");
+    expect(windowOpen).toHaveBeenCalledWith("/api/logout", "_self");
+
+    windowOpen.mockRestore();
   });
 });

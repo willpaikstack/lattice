@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Download, FileText, ImageIcon, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, Download, FileText, Mail, Phone, User } from "lucide-react";
 
 import type { LatticeRequest, RequestLineItem, RequestStatus } from "@/lib/request-model";
 
@@ -28,7 +28,7 @@ const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; bu
   },
   QUOTED: {
     buyerAction: "Review the price, lead time, assumptions, and accept the quote when approved.",
-    label: "Quoted",
+    label: "Quote received",
     requestCopy: "Pricing is ready. Review the line items, production timing, assumptions, and total before accepting.",
     requestTitle: "Review quote and proceed to purchase",
     tone: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
@@ -110,16 +110,16 @@ function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
   return null;
 }
 
-function productionSpeed(request: LatticeRequest) {
-  if (!request.quote.leadTimeDays) {
-    return "Standard";
-  }
-
-  return `${request.quote.leadTimeDays} days (Standard)`;
-}
-
 function configurationText(request: LatticeRequest, item: RequestLineItem) {
   return [request.process, item.material, item.generalTolerance, item.surfaceFinish || "No finish (as machined)", ...(item.qualityDocumentation ?? [])].filter(Boolean).join(" / ");
+}
+
+function productionRegion(request: LatticeRequest) {
+  if (request.quote.shippingMethod === "Domestic") {
+    return "Domestic";
+  }
+
+  return "Overseas";
 }
 
 function reviewedFilesLabel(request: LatticeRequest) {
@@ -145,8 +145,9 @@ export function BuyerQuoteDetail({
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const selectedSupplierQuote = request.supplierQuotes.find((quote) => quote.isSelected || quote.status === "SELECTED");
   const subtotalCents = latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents;
-  const shippingCents = subtotalCents === null ? null : 3500;
-  const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0);
+  const shippingCents = request.quote.shippingCostCents;
+  const taxCents = subtotalCents === null ? null : 0;
+  const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
 
   return (
@@ -195,74 +196,54 @@ export function BuyerQuoteDetail({
           </div>
 
           <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="hidden grid-cols-[minmax(220px,1.25fr)_minmax(260px,1.65fr)_minmax(172px,0.9fr)_minmax(112px,0.65fr)_minmax(76px,0.45fr)] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#80858d] min-[1900px]:grid">
-              <span>Name</span>
-              <span>Configuration</span>
-              <span className="text-center">Production speed / quantity</span>
-              <span className="text-right">Price</span>
-              <span className="text-right">Actions</span>
+            <div className="flex flex-col gap-3 bg-[#f3f3f3] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-[20px] font-semibold uppercase tracking-normal text-[#111111]">Summary of order</h2>
+              <p className="text-[20px] font-semibold uppercase tracking-normal text-[#111111]">Order total {formatPrice(totalCents)}</p>
             </div>
 
-            <div className="divide-y divide-[#eeeeee]">
+            <div className="hidden grid-cols-[56px_minmax(300px,1.7fr)_minmax(132px,0.65fr)_minmax(72px,0.35fr)_minmax(112px,0.55fr)_minmax(112px,0.55fr)] gap-5 border-b-4 border-[#111111] px-6 py-4 text-[13px] font-semibold text-[#111111] min-[1200px]:grid">
+              <span>#</span>
+              <span>Part details</span>
+              <span>Production region</span>
+              <span className="text-right">Qty</span>
+              <span className="text-right">Unit price</span>
+              <span className="text-right">Subtotal</span>
+            </div>
+
+            <div className="divide-y divide-[#b8b8b8]">
               {request.lineItems.map((item, index) => {
                 const total = lineItemTotalCents(item, request);
                 const unit = lineItemUnitCents(item, total);
                 const file = request.files[index] ?? request.files[0];
 
                 return (
-                  <article className="grid gap-5 px-6 py-5 md:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] md:gap-x-6 min-[1900px]:grid-cols-[minmax(220px,1.25fr)_minmax(260px,1.65fr)_minmax(172px,0.9fr)_minmax(112px,0.65fr)_minmax(76px,0.45fr)] min-[1900px]:items-start" key={item.id}>
-                    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:gap-4">
-                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md border border-[#e7e7e7] bg-[#f7f8fa] text-[#a2a8b0]">
-                        <ImageIcon aria-hidden="true" className="h-5 w-5" strokeWidth={1.6} />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="text-[14px] font-semibold leading-5 text-[#202020]">{item.partName}</h2>
-                        <p className="mt-1 max-w-full truncate text-[12px] font-medium text-[#2f73c8]">{file?.name ?? "File pending"}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[#7b8088]">
-                          <Link className="transition hover:text-[#171717]" href="#files">
-                            View files
-                          </Link>
-                          <span>-</span>
-                          <Link className="inline-flex items-center gap-1 transition hover:text-[#171717]" href="#files">
-                            <Download aria-hidden="true" className="h-3 w-3" />
-                            Download
-                          </Link>
-                        </div>
-                      </div>
+                  <article className="grid gap-4 px-6 py-6 min-[1200px]:grid-cols-[56px_minmax(300px,1.7fr)_minmax(132px,0.65fr)_minmax(72px,0.35fr)_minmax(112px,0.55fr)_minmax(112px,0.55fr)] min-[1200px]:gap-5" key={item.id}>
+                    <p className="text-[14px] text-[#111111]">
+                      <span className="font-semibold min-[1200px]:hidden"># </span>
+                      {index + 1}
+                    </p>
+                    <div className="min-w-0">
+                      <p className="break-words text-[15px] font-semibold leading-5 text-[#111111]">{file?.name ? `[Rev 1] ${file.name}` : `[Rev 1] ${item.partName}`}</p>
+                      <p className="mt-1 break-words text-[15px] font-semibold leading-5 text-[#111111]">{item.partName}</p>
+                      <p className="mt-1 break-words text-[14px] leading-5 text-[#111111]">{configurationText(request, item)}</p>
+                      {item.notes ? <p className="mt-1 text-[13px] font-semibold leading-5 text-[#111111]">{item.notes}</p> : null}
                     </div>
-
-                    <div className="min-w-0 md:col-start-1 min-[1900px]:col-start-auto">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Configuration</p>
-                      <p className="mt-1 max-w-full break-words text-[13px] leading-5 text-[#30343a] min-[1900px]:mt-0">{configurationText(request, item)}</p>
-                      <button className="mt-2 max-w-full rounded-full bg-[#f6f6f6] px-2.5 py-1 text-left text-[11px] font-semibold leading-5 text-[#2f73c8] transition hover:bg-[#eeeeee]" type="button">
-                        No configuration
-                      </button>
-                    </div>
-
-                    <div className="grid gap-4 border-t border-[#eeeeee] pt-4 sm:grid-cols-[minmax(160px,1fr)_minmax(120px,0.7fr)_auto] sm:items-start md:col-start-2 md:row-span-2 md:row-start-1 md:grid-cols-1 md:self-stretch md:border-l md:border-t-0 md:pl-6 md:pt-0 min-[1500px]:grid-cols-[minmax(160px,1fr)_minmax(120px,0.7fr)_auto] min-[1900px]:contents">
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Production speed / quantity</p>
-                        <div className="mt-1 flex flex-col gap-2 min-[1900px]:mt-0 min-[1900px]:items-center">
-                          <select className="h-9 w-full min-w-0 rounded-md border border-[#dedede] bg-white px-2 text-[12px] font-medium text-[#30343a] outline-none min-[1500px]:w-full min-[1900px]:w-[152px]" defaultValue={productionSpeed(request)}>
-                            <option>{productionSpeed(request)}</option>
-                          </select>
-                          <input className="h-9 w-full rounded-md border border-[#dedede] bg-white px-3 text-center text-[13px] font-medium text-[#30343a] outline-none min-[1900px]:w-[72px]" readOnly type="number" value={item.quantity} />
-                        </div>
-                      </div>
-
-                      <div className="min-w-0 sm:text-right md:text-left min-[1500px]:text-right min-[1900px]:text-right">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Price</p>
-                        <p className="mt-1 text-[14px] font-semibold leading-5 text-[#202020] min-[1900px]:mt-0">{formatPrice(total)}</p>
-                        <p className="mt-1 text-[11px] leading-5 text-[#7b8088]">{unit === null ? "Unit price pending" : `${formatPrice(unit)} ea`}</p>
-                      </div>
-
-                      <div className="min-w-0 sm:text-right md:text-left min-[1500px]:text-right min-[1900px]:text-right">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] min-[1900px]:hidden">Actions</p>
-                        <button className="mt-1 text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717] min-[1900px]:mt-0" type="button">
-                          Remove
-                        </button>
-                      </div>
-                    </div>
+                    <p className="text-[14px] text-[#111111]">
+                      <span className="font-semibold min-[1200px]:hidden">Production region: </span>
+                      {productionRegion(request)}
+                    </p>
+                    <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
+                      <span className="font-semibold min-[1200px]:hidden">Qty: </span>
+                      {item.quantity}
+                    </p>
+                    <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
+                      <span className="font-semibold min-[1200px]:hidden">Unit price: </span>
+                      {formatPrice(unit)}
+                    </p>
+                    <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
+                      <span className="font-semibold min-[1200px]:hidden">Subtotal: </span>
+                      {formatPrice(total)}
+                    </p>
                   </article>
                 );
               })}
@@ -315,16 +296,18 @@ export function BuyerQuoteDetail({
             <div className="cursor-pointer space-y-4 px-6 py-5">
               <dl className="space-y-3 text-[13px]">
                 <div className="flex justify-between gap-4">
-                  <dt className="text-[#6f737a]">Subtotal</dt>
+                  <dt className="font-semibold text-[#202020]">Part production</dt>
                   <dd className="font-semibold text-[#202020]">{formatPrice(subtotalCents)}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-[#6f737a]">Estimated tax</dt>
-                  <dd className="font-semibold text-[#202020]">Calculated at checkout</dd>
+                  <dt className="font-semibold text-[#202020]">
+                    Shipping {request.quote.shippingMethod ? `(${request.quote.shippingMethod})` : ""}
+                  </dt>
+                  <dd className="font-semibold text-[#202020]">{shippingCents === null ? "Billed at actual" : formatPrice(shippingCents)}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <dt className="text-[#6f737a]">Shipping</dt>
-                  <dd className="font-semibold text-[#202020]">{formatPrice(shippingCents)}</dd>
+                  <dt className="font-semibold text-[#202020]">Tax</dt>
+                  <dd className="font-semibold text-[#202020]">{formatPrice(taxCents)}</dd>
                 </div>
               </dl>
               <div className="border-t border-[#eeeeee] pt-4">
@@ -354,14 +337,14 @@ export function BuyerQuoteDetail({
                 </button>
               )}
               {canDownloadQuote ? (
-                <Link
+                <a
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
-                  download
+                  download={`${quoteId.toLowerCase()}-quote.pdf`}
                   href={`/quotes/${request.id}/quote.pdf`}
                 >
                   <Download aria-hidden="true" className="h-3.5 w-3.5" />
                   Download quote PDF
-                </Link>
+                </a>
               ) : null}
             </div>
 

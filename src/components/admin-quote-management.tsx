@@ -4,17 +4,14 @@ import { ClipboardCheck, FileText, PackageCheck, ReceiptText, Search, Truck, X }
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { buildCustomerQuoteInputFromRequest, buildCustomerQuoteInputFromVersion } from "@/lib/quote-file";
 import type { LatticeRequest, SupplierQuoteStatus } from "@/lib/request-model";
-
-import { CustomerQuoteBuilder } from "./customer-quote-builder";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
   SUBMITTED: { label: "Submitted", nextAction: "Assign owner and review intake", tone: "border-blue-100 bg-blue-50 text-blue-700" },
   NEEDS_INFO: { label: "Needs info", nextAction: "Recover buyer clarification", tone: "border-amber-100 bg-amber-50 text-amber-700" },
   READY_FOR_SUPPLIER_RFQ: { label: "Supplier ready", nextAction: "Send supplier RFQs", tone: "border-indigo-100 bg-indigo-50 text-indigo-700" },
-  QUOTED: { label: "Quoted", nextAction: "Follow buyer decision", tone: "border-emerald-100 bg-emerald-50 text-emerald-700" },
+  QUOTED: { label: "Quote received", nextAction: "Follow buyer decision", tone: "border-emerald-100 bg-emerald-50 text-emerald-700" },
   PURCHASED: { label: "Purchased", nextAction: "Track order", tone: "border-slate-950 bg-slate-950 text-white" },
   CLOSED: { label: "Closed", nextAction: "No active quote work", tone: "border-slate-200 bg-slate-50 text-slate-700" },
 };
@@ -31,7 +28,7 @@ const statusFilters: Array<{ label: string; value: "ALL" | LatticeRequest["statu
   { label: "Submitted", value: "SUBMITTED" },
   { label: "Needs info", value: "NEEDS_INFO" },
   { label: "Supplier ready", value: "READY_FOR_SUPPLIER_RFQ" },
-  { label: "Quoted", value: "QUOTED" },
+  { label: "Quote received", value: "QUOTED" },
   { label: "Closed", value: "CLOSED" },
 ];
 
@@ -43,17 +40,6 @@ type StoredIncompleteRfq = {
   id: string;
   request?: LatticeRequest;
   updatedAt: string;
-};
-
-type PackageField = {
-  label: string;
-  value: string;
-  isMissing?: boolean;
-};
-
-type PackageGroup = {
-  title: string;
-  fields: PackageField[];
 };
 
 function formatCurrency(cents: number | null) {
@@ -69,7 +55,7 @@ function formatCurrency(cents: number | null) {
 }
 
 function formatCurrencyInput(cents: number | null) {
-  return cents === null ? "" : (cents / 100).toFixed(2);
+  return cents === null || !Number.isFinite(cents) ? "" : (cents / 100).toFixed(2);
 }
 
 function formatDate(value: string | null) {
@@ -104,6 +90,32 @@ function formatFileSize(sizeBytes: number) {
   }
 
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileDownloadHref(file: LatticeRequest["files"][number]) {
+  return file.storageKey
+    ? `/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`
+    : null;
+}
+
+function isDrawingFile(file: LatticeRequest["files"][number]) {
+  return /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type);
+}
+
+function isCadFile(file: LatticeRequest["files"][number]) {
+  return /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type);
+}
+
+function fileKindLabel(file: LatticeRequest["files"][number]) {
+  if (isDrawingFile(file)) {
+    return "Drawing";
+  }
+
+  if (isCadFile(file)) {
+    return "CAD file";
+  }
+
+  return "File";
 }
 
 function quoteReference(request: LatticeRequest) {
@@ -146,17 +158,6 @@ function draftEditHref(request: LatticeRequest) {
   return `/requests/new?draft=${encodeURIComponent(request.id)}`;
 }
 
-function statusEventCopy(event: LatticeRequest["statusEvents"][number]) {
-  const toLabel = statusCopy[event.to]?.label ?? event.to;
-  const fromLabel = event.from ? (statusCopy[event.from]?.label ?? event.from) : "Created";
-
-  if (event.from === event.to) {
-    return `${toLabel} confirmed`;
-  }
-
-  return `${fromLabel} to ${toLabel}`;
-}
-
 function readLocalDraftRequests() {
   if (typeof window === "undefined" || !window.localStorage?.getItem) {
     return [];
@@ -181,146 +182,73 @@ function sortByUpdatedAtNewest(requests: LatticeRequest[]) {
 }
 
 function cadFiles(request: LatticeRequest) {
-  return request.files.filter((file) => /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type));
+  return request.files.filter(isCadFile);
 }
 
 function drawingFiles(request: LatticeRequest) {
-  return request.files.filter((file) => /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type));
+  return request.files.filter(isDrawingFile);
 }
 
-function packageGroupsForRequest(request: LatticeRequest): PackageGroup[] {
-  const latestCustomerQuote = request.customerQuotes.at(-1);
-  const selectedQuote = selectedSupplierQuote(request);
-  const quoteValue = latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents;
-  const leadTime = latestCustomerQuote?.leadTime || (request.quote.leadTimeDays ? `${request.quote.leadTimeDays} business days` : "");
-  const hasShipping = Boolean(latestCustomerQuote?.shipping);
-  const hasTax = Boolean(latestCustomerQuote?.tax);
+function bundledFilesByPart(request: LatticeRequest) {
+  const cad = cadFiles(request);
+  const drawings = drawingFiles(request);
+  const bundledIds = new Set<string>();
+  const bundles = request.lineItems.map((lineItem, index) => {
+    const files = [cad[index], drawings[index]].filter((file): file is LatticeRequest["files"][number] => Boolean(file));
+    files.forEach((file) => bundledIds.add(file.id));
 
-  return [
-    {
-      title: "Quote identity",
-      fields: [
-        { label: "Quote number", value: quoteReference(request) },
-        { label: "Quote date", value: latestCustomerQuote?.quoteDate ? formatDate(latestCustomerQuote.quoteDate) : "Set when issuing" },
-        { label: "Valid until", value: latestCustomerQuote?.validUntil ? formatDate(latestCustomerQuote.validUntil) : "Set validity window", isMissing: !latestCustomerQuote },
-        { label: "Prepared by", value: latestCustomerQuote?.preparedBy || "Lattice" },
-      ],
-    },
-    {
-      title: "Buyer and ship-to",
-      fields: [
-        { label: "Buyer", value: request.buyerCompany },
-        { label: "Requester", value: request.requesterName },
-        { label: "Ship-to address", value: "Collect at checkout or before issue", isMissing: true },
-        { label: "Buyer contact", value: latestCustomerQuote?.customerContact || "Confirm email / phone", isMissing: !latestCustomerQuote?.customerContact },
-      ],
-    },
-    {
-      title: "Production and logistics",
-      fields: [
-        { label: "Production region", value: selectedQuote?.country || "Overseas supplier network", isMissing: !selectedQuote },
-        { label: "Production speed", value: leadTime || "Lead time pending", isMissing: !leadTime },
-        { label: "Ship-by / delivery", value: request.dueDate ? `Needed by ${formatDate(request.dueDate)}` : "Confirm target date", isMissing: !request.dueDate },
-        { label: "Shipping terms", value: latestCustomerQuote?.shipping || "Billed at actual / confirm terms", isMissing: !hasShipping },
-      ],
-    },
-    {
-      title: "Commercials and terms",
-      fields: [
-        { label: "Part production", value: formatCurrency(quoteValue ?? null), isMissing: quoteValue === null },
-        { label: "Shipping / tariffs", value: latestCustomerQuote?.shipping || "Confirm shipping and tariffs", isMissing: !hasShipping },
-        { label: "Tax", value: latestCustomerQuote?.tax || "Confirm tax status", isMissing: !hasTax },
-        { label: "DFM / customs notes", value: request.operatorReview.internalNotes || "Capture warnings, HTS/end-use, and terms", isMissing: !request.operatorReview.internalNotes },
-      ],
-    },
-  ];
+    return {
+      files,
+      lineItem,
+    };
+  });
+  const unassignedFiles = request.files.filter((file) => !bundledIds.has(file.id));
+
+  return { bundles, unassignedFiles };
 }
 
-function readinessItems(request: LatticeRequest) {
-  const latestCustomerQuote = request.customerQuotes.at(-1);
-  const selectedQuote = selectedSupplierQuote(request);
-  const hasFiles = request.files.length > 0;
-  const hasDrawings = drawingFiles(request).length > 0;
-  const hasPricing = Boolean(latestCustomerQuote) || request.quote.estimatedPriceCents !== null;
-  const hasLeadTime = Boolean(latestCustomerQuote?.leadTime) || request.quote.leadTimeDays !== null;
-  const hasSupplierBasis = receivedSupplierQuotes(request).length > 0;
+function lineItemUnitPriceInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  const latestQuote = request.customerQuotes.at(-1);
+  const quotedLine = latestQuote?.lineItems.find((item) => item.id === lineItem.id || item.description === lineItem.partName);
 
-  return [
-    { label: "CAD package", ready: hasFiles, detail: hasFiles ? `${request.files.length} file(s)` : "No files attached" },
-    { label: "Drawing/specs", ready: hasDrawings, detail: hasDrawings ? `${drawingFiles(request).length} drawing file(s)` : "Confirm if drawing is required" },
-    { label: "Supplier basis", ready: hasSupplierBasis, detail: selectedQuote ? selectedQuote.shopName : supplierSummary(request) },
-    { label: "Price", ready: hasPricing, detail: hasPricing ? formatCurrency(latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents) : "Missing price" },
-    { label: "Lead time", ready: hasLeadTime, detail: latestCustomerQuote?.leadTime || (request.quote.leadTimeDays ? `${request.quote.leadTimeDays} days` : "Missing lead time") },
-  ];
+  if (quotedLine) {
+    return quotedLine.unitPrice.toFixed(2);
+  }
+
+  if (request.lineItems.length === 1 && request.quote.estimatedPriceCents !== null && lineItem.quantity > 0) {
+    return (request.quote.estimatedPriceCents / 100 / lineItem.quantity).toFixed(2);
+  }
+
+  return "";
 }
 
-function PackageFieldList({ groups }: { groups: PackageGroup[] }) {
-  return (
-    <div className="grid gap-3 lg:grid-cols-2">
-      {groups.map((group) => (
-        <article className="rounded-md border border-[#ead7c5] bg-[#fffaf6] p-4" key={group.title}>
-          <h4 className="text-[13px] font-semibold uppercase tracking-[0.14em] text-[#6f4529]">{group.title}</h4>
-          <dl className="mt-3 space-y-2">
-            {group.fields.map((field) => (
-              <div className="grid gap-1 sm:grid-cols-[0.45fr_1fr]" key={`${group.title}-${field.label}`}>
-                <dt className="text-[12px] font-semibold text-[#86644d]">{field.label}</dt>
-                <dd className={`text-[13px] font-medium ${field.isMissing ? "text-[#a15c21]" : "text-[#24201d]"}`}>{field.value}</dd>
-              </div>
-            ))}
-          </dl>
-        </article>
-      ))}
-    </div>
-  );
-}
+function lineItemLeadTimeInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  const latestQuote = request.customerQuotes.at(-1);
+  const quotedLine = latestQuote?.lineItems.find((item) => item.id === lineItem.id || item.description === lineItem.partName);
 
-function ReadinessChecklist({ request }: { request: LatticeRequest }) {
-  return (
-    <div className="grid gap-2 sm:grid-cols-5">
-      {readinessItems(request).map((item) => (
-        <div className="rounded-md border border-[#eeeeee] bg-white px-3 py-2" key={item.label}>
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${item.ready ? "bg-[#16a34a]" : "bg-[#d97706]"}`} />
-            <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#737b86]">{item.label}</p>
-          </div>
-          <p className="mt-1 truncate text-[13px] font-medium text-[#30343a]">{item.detail}</p>
-        </div>
-      ))}
-    </div>
-  );
+  return quotedLine?.leadTimeDays ?? request.quote.leadTimeDays ?? "";
 }
 
 function AdminQuoteDetailDrawer({
-  isQuoteBuilderOpen,
   onClose,
-  onQuoteBuilderOpenChange,
   request,
-  saveQuoteAction,
   updateStatusAction,
 }: {
-  isQuoteBuilderOpen: boolean;
   onClose: () => void;
-  onQuoteBuilderOpenChange: (isOpen: boolean) => void;
   request: LatticeRequest;
-  saveQuoteAction?: AdminQuoteAction;
   updateStatusAction?: AdminQuoteAction;
 }) {
-  const latestCustomerQuote = request.customerQuotes.at(-1);
-  const quoteInput = latestCustomerQuote ? buildCustomerQuoteInputFromVersion(latestCustomerQuote) : buildCustomerQuoteInputFromRequest(request);
   const status = statusCopy[request.status];
-  const selectedQuote = selectedSupplierQuote(request);
-  const packageGroups = packageGroupsForRequest(request);
-  const requestCadFiles = cadFiles(request);
-  const requestDrawingFiles = drawingFiles(request);
+  const { bundles, unassignedFiles } = bundledFilesByPart(request);
 
   return (
     <div aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-[#1f2937]/45 px-4 py-6" role="dialog">
-      <div className="mx-auto max-w-[1500px] overflow-hidden rounded-md border border-[#e2d6ca] bg-[#fff7f0] shadow-2xl">
+      <div className="mx-auto max-w-[1180px] overflow-hidden rounded-md border border-[#e2d6ca] bg-white shadow-2xl">
         <div className="sticky top-0 z-10 border-b border-[#e8d2bf] bg-white">
           <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a4d2d]">RFQ command center</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a4d2d]">Quote review</p>
                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
               </div>
               <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{request.title}</h2>
@@ -329,19 +257,9 @@ function AdminQuoteDetailDrawer({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {saveQuoteAction ? (
-                <button
-                  className="inline-flex h-10 items-center gap-2 rounded-md bg-[#4f3424] px-4 text-[13px] font-semibold text-white transition hover:bg-[#3a281d]"
-                  onClick={() => onQuoteBuilderOpenChange(!isQuoteBuilderOpen)}
-                  type="button"
-                >
-                  <ReceiptText aria-hidden="true" size={16} />
-                  {isQuoteBuilderOpen ? "Hide package" : latestCustomerQuote ? "Revise quote" : "Issue quote"}
-                </button>
-              ) : null}
               <button
                 aria-label="Close RFQ drawer"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white text-[#262626] transition hover:bg-[#f8fafc]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[#262626] transition hover:bg-[#f8fafc]"
                 onClick={onClose}
                 type="button"
               >
@@ -352,173 +270,191 @@ function AdminQuoteDetailDrawer({
         </div>
 
         <div className="space-y-5 p-5">
-          <section className="grid gap-3 md:grid-cols-4">
-            <article className="rounded-md border border-[#ead7c5] bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#86644d]">Part production</p>
-              <p className="mt-2 text-[24px] font-semibold text-[#171717]">{formatCurrency(latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents)}</p>
-            </article>
-            <article className="rounded-md border border-[#ead7c5] bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#86644d]">Lead time</p>
-              <p className="mt-2 text-[24px] font-semibold text-[#171717]">{latestCustomerQuote?.leadTime || (request.quote.leadTimeDays ? `${request.quote.leadTimeDays} days` : "Pending")}</p>
-            </article>
-            <article className="rounded-md border border-[#ead7c5] bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#86644d]">Supplier basis</p>
-              <p className="mt-2 text-[16px] font-semibold text-[#171717]">{selectedQuote?.shopName ?? supplierSummary(request)}</p>
-              <p className="mt-1 text-[12px] text-[#777d86]">{selectedQuote?.country ?? `${request.supplierQuotes.length} shop(s) contacted`}</p>
-            </article>
-            <article className="rounded-md border border-[#ead7c5] bg-white p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#86644d]">Next step</p>
-              <p className="mt-2 text-[16px] font-semibold text-[#171717]">{nextActionForRequest(request)}</p>
-              <p className="mt-1 text-[12px] text-[#777d86]">Updated {formatDateTime(request.updatedAt)}</p>
-            </article>
-          </section>
+          <form action={updateStatusAction} className="space-y-5">
+            <input name="requestId" type="hidden" value={request.id} />
+            <input name="status" type="hidden" value="QUOTED" />
+            <input name="assignedOwner" type="hidden" value={request.operatorReview.assignedOwner ?? ""} />
+            <input name="supplierPackageNotes" type="hidden" value={request.operatorReview.supplierPackageNotes} />
+            <input name="internalNotes" type="hidden" value={request.operatorReview.internalNotes} />
 
-          <section className="rounded-md border border-[#ead7c5] bg-[#fffdfb] p-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <h3 className="text-[18px] font-semibold text-[#171717]">Quote package worksheet</h3>
-                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">
-                  Fields are organized around the quote packet information used in prior Fictiv orders: identity, buyer/ship-to, production logistics, pricing, and terms.
-                </p>
-              </div>
-              <span className="w-fit rounded-md border border-[#ead7c5] bg-[#fff6ee] px-3 py-1 text-[12px] font-semibold text-[#6f4529]">Fictiv-style packet</span>
-            </div>
-            <div className="mt-4">
-              <PackageFieldList groups={packageGroups} />
-            </div>
-          </section>
-
-          <ReadinessChecklist request={request} />
-
-          <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
-            <div className="space-y-5">
-              <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h3 className="text-[18px] font-semibold text-[#171717]">Review controls</h3>
-                    <p className="mt-1 text-[13px] leading-5 text-[#64748b]">Set the RFQ state, owner, pricing basis, and supplier package notes.</p>
+            <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
+              <h3 className="text-[18px] font-semibold text-[#171717]">Quote line items</h3>
+              <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
+                <div className="min-w-[980px]">
+                  <div className="grid grid-cols-[minmax(190px,0.9fr)_minmax(320px,1.35fr)_64px_150px_150px] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
+                    <span>Part name</span>
+                    <span>Files</span>
+                    <span className="text-center">Qty</span>
+                    <span>Unit price</span>
+                    <span>Lead time</span>
                   </div>
-                  <span className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-1 text-[12px] font-semibold text-[#4b5563]">
-                    {nextActionForRequest(request)}
-                  </span>
+                  <div className="divide-y divide-[#eeeeee]">
+                    {bundles.map(({ files, lineItem }) => {
+                      const cadFile = files.find(isCadFile);
+                      const drawingFile = files.find(isDrawingFile);
+                      const cadHref = cadFile ? fileDownloadHref(cadFile) : null;
+                      const drawingHref = drawingFile ? fileDownloadHref(drawingFile) : null;
+
+                      return (
+                        <div className="grid grid-cols-[minmax(190px,0.9fr)_minmax(320px,1.35fr)_64px_150px_150px] items-center gap-4 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
+                          <p className="min-w-0 break-words font-semibold text-[#202020]">{lineItem.partName}</p>
+                          <div className="grid min-w-0 gap-2">
+                            {cadFile && cadHref ? (
+                              <a
+                                className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[#315a94] underline-offset-2 hover:underline"
+                                download={cadFile.name}
+                                href={cadHref}
+                                title={`Download ${cadFile.name}`}
+                              >
+                                <span className="shrink-0 rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">CAD</span>
+                                <span className="min-w-0 truncate">{cadFile.name}</span>
+                              </a>
+                            ) : (
+                              <span
+                                aria-label={`CAD file unavailable for ${lineItem.partName}`}
+                                className="text-[12px] font-medium text-[#9ca3af]"
+                                title="CAD file unavailable"
+                              >
+                                CAD file unavailable
+                              </span>
+                            )}
+                            {drawingFile && drawingHref ? (
+                              <a
+                                className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[#315a94] underline-offset-2 hover:underline"
+                                download={drawingFile.name}
+                                href={drawingHref}
+                                title={`Download ${drawingFile.name}`}
+                              >
+                                <span className="shrink-0 rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">Drawing</span>
+                                <span className="min-w-0 truncate">{drawingFile.name}</span>
+                              </a>
+                            ) : (
+                              <span
+                                aria-label={`Drawing unavailable for ${lineItem.partName}`}
+                                className="text-[12px] font-medium text-[#9ca3af]"
+                                title="Drawing unavailable"
+                              >
+                                Drawing unavailable
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
+                          <label className="grid gap-1">
+                            <span className="sr-only">Unit price - {lineItem.partName}</span>
+                            <input
+                              className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                              defaultValue={lineItemUnitPriceInput(request, lineItem)}
+                              inputMode="decimal"
+                              name={`unitPrice:${lineItem.id}`}
+                              placeholder="0.00"
+                            />
+                          </label>
+                          <label className="grid gap-1">
+                            <span className="sr-only">Lead time days - {lineItem.partName}</span>
+                            <input
+                              className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                              defaultValue={lineItemLeadTimeInput(request, lineItem)}
+                              inputMode="numeric"
+                              name={`leadTimeDays:${lineItem.id}`}
+                              placeholder="Days"
+                            />
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+              </div>
+            </section>
 
-                <form action={updateStatusAction} className="mt-4 grid gap-4">
-                  <input name="requestId" type="hidden" value={request.id} />
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Status
-                    <select
-                      className="h-10 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] font-medium text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={request.status}
-                      name="status"
-                    >
-                      <option value="SUBMITTED">Submitted</option>
-                      <option value="NEEDS_INFO">Needs info</option>
-                      <option value="READY_FOR_SUPPLIER_RFQ">Supplier ready</option>
-                      <option value="QUOTED">Quoted</option>
-                      <option value="CLOSED">Closed</option>
-                    </select>
-                  </label>
-
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Assigned owner
-                      <input
-                        className="h-10 rounded-md border border-[#d9d9d9] px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.operatorReview.assignedOwner ?? ""}
-                        name="assignedOwner"
-                        placeholder="Admin owner"
-                      />
-                    </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Estimated price
-                      <input
-                        className="h-10 rounded-md border border-[#d9d9d9] px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={formatCurrencyInput(request.quote.estimatedPriceCents)}
-                        inputMode="decimal"
-                        name="estimatedPrice"
-                        placeholder="0.00"
-                      />
-                    </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Lead time days
-                      <input
-                        className="h-10 rounded-md border border-[#d9d9d9] px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.leadTimeDays ?? ""}
-                        inputMode="numeric"
-                        name="leadTimeDays"
-                        placeholder="15"
-                      />
-                    </label>
+            <div className="grid gap-5 xl:grid-cols-[1fr_0.72fr]">
+              <div className="space-y-5">
+                <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
+                  <div className="flex items-center gap-2">
+                    <FileText aria-hidden="true" className="text-[#6f4529]" size={18} />
+                    <h3 className="text-[18px] font-semibold text-[#171717]">Uploaded files</h3>
                   </div>
+                  <div className="mt-4 space-y-3">
+                    {bundles.map(({ files, lineItem }) => (
+                      <article className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={lineItem.id}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <h4 className="text-[14px] font-semibold text-[#202020]">Files for {lineItem.partName}</h4>
+                          <span className="rounded-md bg-white px-2 py-1 text-[12px] font-semibold text-[#4b5563]">Qty {lineItem.quantity}</span>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          {files.length > 0 ? (
+                            files.map((file) => {
+                              const href = fileDownloadHref(file);
 
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Customer quote summary
-                    <textarea
-                      className="min-h-20 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={request.quote.summary}
-                      name="quoteSummary"
-                      placeholder="Short customer-facing quote summary"
-                    />
-                  </label>
+                            return (
+                              <div className="flex flex-col gap-3 rounded-md border border-[#e6e6e6] bg-white p-3 sm:flex-row sm:items-center sm:justify-between" key={file.id}>
+                                <div className="min-w-0">
+                                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                    <span className="rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">
+                                      {fileKindLabel(file)}
+                                    </span>
+                                    <p className="truncate text-[14px] font-semibold text-[#202020]">{file.name}</p>
+                                  </div>
+                                  <p className="mt-1 text-[12px] text-[#8a8f98]">
+                                    {file.type || "Uploaded file"} - {formatFileSize(file.sizeBytes)}
+                                  </p>
+                                </div>
+                                {href ? (
+                                  <a className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]" href={href}>
+                                    Download
+                                  </a>
+                                ) : (
+                                  <span className="text-[12px] font-medium text-[#9a5a2f]">File bytes not stored</span>
+                                )}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="rounded-md border border-dashed border-[#d7d7d7] bg-white p-3 text-[12px] text-[#7b8088]">No uploaded files matched to this part.</p>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                  {unassignedFiles.length > 0 ? (
+                    <article className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">
+                      <h4 className="text-[14px] font-semibold text-[#202020]">Unassigned files</h4>
+                      <div className="mt-3 space-y-2">
+                        {unassignedFiles.map((file) => {
+                          const href = fileDownloadHref(file);
 
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Supplier package notes
-                    <textarea
-                      className="min-h-20 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={request.operatorReview.supplierPackageNotes}
-                      name="supplierPackageNotes"
-                      placeholder="What suppliers need to quote cleanly"
-                    />
-                  </label>
-
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Internal DFM / terms notes
-                    <textarea
-                      className="min-h-24 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={request.operatorReview.internalNotes}
-                      name="internalNotes"
-                      placeholder="DFM warnings, buyer clarification, customs/end-use, tariff, HTS, or tolerance notes"
-                    />
-                  </label>
-
-                  <button
-                    className="h-10 w-fit rounded-md bg-[#262626] px-4 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
-                    disabled={!updateStatusAction}
-                    type="submit"
-                  >
-                    Save review decision
-                  </button>
-                </form>
-              </section>
-
-              <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <h3 className="text-[18px] font-semibold text-[#171717]">Buyer intake</h3>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Customer</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">{request.buyerCompany}</p>
-                    <p className="mt-1 text-[13px] text-[#69707a]">{request.requesterName}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Needed by</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate(request.dueDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Process</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">{request.process}</p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Submitted</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDateTime(request.createdAt)}</p>
-                  </div>
+                          return (
+                            <div className="flex flex-col gap-3 rounded-md border border-[#e6e6e6] bg-white p-3 sm:flex-row sm:items-center sm:justify-between" key={file.id}>
+                              <div className="min-w-0">
+                                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                  <span className="rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">
+                                    {fileKindLabel(file)}
+                                  </span>
+                                  <p className="truncate text-[14px] font-semibold text-[#202020]">{file.name}</p>
+                                </div>
+                                <p className="mt-1 text-[12px] text-[#8a8f98]">
+                                  {file.type || "Uploaded file"} - {formatFileSize(file.sizeBytes)}
+                                </p>
+                              </div>
+                              {href ? (
+                                <a className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]" href={href}>
+                                  Download
+                                </a>
+                              ) : (
+                                <span className="text-[12px] font-medium text-[#9a5a2f]">File bytes not stored</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ) : null}
                 </div>
               </section>
 
               <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
                 <div className="flex items-center gap-2">
                   <PackageCheck aria-hidden="true" className="text-[#6f4529]" size={18} />
-                  <h3 className="text-[18px] font-semibold text-[#171717]">Line items</h3>
+                  <h3 className="text-[18px] font-semibold text-[#171717]">Configured parts</h3>
                 </div>
                 <div className="mt-4 space-y-3">
                   {request.lineItems.map((lineItem, index) => (
@@ -527,131 +463,136 @@ function AdminQuoteDetailDrawer({
                         <p className="font-semibold text-[#202020]">{lineItem.partName}</p>
                         <span className="rounded-md bg-white px-2 py-1 text-[12px] font-semibold text-[#4b5563]">Qty {lineItem.quantity}</span>
                       </div>
-                      <p className="mt-2 text-[13px] leading-5 text-[#64748b]">
-                        {request.process} - {lineItem.material} - {lineItem.generalTolerance || "Tolerance TBD"} - {lineItem.surfaceFinish || "Finish TBD"}
-                      </p>
+                      <dl className="mt-3 grid gap-3 text-[13px] sm:grid-cols-2">
+                        <div>
+                          <dt className="font-semibold text-[#6f737a]">Material</dt>
+                          <dd className="mt-1 text-[#202020]">{lineItem.material}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-[#6f737a]">Process</dt>
+                          <dd className="mt-1 text-[#202020]">{request.process}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-[#6f737a]">Tolerance</dt>
+                          <dd className="mt-1 text-[#202020]">{lineItem.generalTolerance || "Not specified"}</dd>
+                        </div>
+                        <div>
+                          <dt className="font-semibold text-[#6f737a]">Finish</dt>
+                          <dd className="mt-1 text-[#202020]">{lineItem.surfaceFinish || "Not specified"}</dd>
+                        </div>
+                      </dl>
                       {(lineItem.qualityDocumentation?.length ?? 0) > 0 ? (
-                        <p className="mt-2 text-[12px] font-semibold text-[#4b5563]">Quality docs: {lineItem.qualityDocumentation?.join(", ")}</p>
+                        <p className="mt-3 text-[12px] font-semibold text-[#4b5563]">Quality docs: {lineItem.qualityDocumentation?.join(", ")}</p>
                       ) : null}
-                      {lineItem.notes ? <p className="mt-2 text-[13px] leading-5 text-[#64748b]">{lineItem.notes}</p> : null}
+                      {lineItem.notes ? <p className="mt-3 text-[13px] leading-5 text-[#64748b]">{lineItem.notes}</p> : null}
                     </article>
                   ))}
-                </div>
-              </section>
-
-              <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <div className="flex items-center gap-2">
-                  <FileText aria-hidden="true" className="text-[#6f4529]" size={18} />
-                  <h3 className="text-[18px] font-semibold text-[#171717]">Files and activity</h3>
-                </div>
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">CAD files</p>
-                    {(requestCadFiles.length ? requestCadFiles : request.files).map((file) => (
-                      <div className="flex items-center justify-between gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2" key={file.id}>
-                        <span className="truncate text-[13px] font-semibold text-[#30343a]">{file.name}</span>
-                        <span className="shrink-0 text-[12px] text-[#8a8f98]">{formatFileSize(file.sizeBytes)}</span>
-                      </div>
-                    ))}
-                    {requestDrawingFiles.length > 0 ? (
-                      <>
-                        <p className="pt-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Drawings / specs</p>
-                        {requestDrawingFiles.map((file) => (
-                          <div className="flex items-center justify-between gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2" key={file.id}>
-                            <span className="truncate text-[13px] font-semibold text-[#30343a]">{file.name}</span>
-                            <span className="shrink-0 text-[12px] text-[#8a8f98]">{formatFileSize(file.sizeBytes)}</span>
-                          </div>
-                        ))}
-                      </>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Status history</p>
-                    {request.statusEvents.map((event) => (
-                      <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2" key={event.id}>
-                        <p className="text-[13px] font-semibold text-[#30343a]">{statusEventCopy(event)}</p>
-                        <p className="mt-1 text-[12px] text-[#8a8f98]">
-                          {event.actor} - {formatDateTime(event.at)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </section>
             </div>
 
             <div className="space-y-5">
               <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h3 className="text-[18px] font-semibold text-[#171717]">Customer quote packet</h3>
-                    <p className="mt-1 text-[13px] leading-5 text-[#64748b]">
-                      {latestCustomerQuote
-                        ? `${latestCustomerQuote.quoteNumber} v${latestCustomerQuote.versionNumber} is saved for the buyer.`
-                        : "Build the buyer-facing quote after price, lead time, files, shipping, tax, and terms are ready."}
-                    </p>
-                  </div>
-                  {saveQuoteAction ? (
-                    <button
-                      className="inline-flex h-10 items-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-4 text-[13px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                      onClick={() => onQuoteBuilderOpenChange(!isQuoteBuilderOpen)}
-                      type="button"
-                    >
-                      <ReceiptText aria-hidden="true" size={16} />
-                      {isQuoteBuilderOpen ? "Hide package" : latestCustomerQuote ? "Revise quote" : "Issue quote"}
-                    </button>
-                  ) : null}
-                </div>
+                <h3 className="text-[18px] font-semibold text-[#171717]">Quote feedback</h3>
+                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">Enter the critical numbers needed to respond to the customer.</p>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Quote total</p>
-                    <p className="mt-2 text-[20px] font-semibold text-[#202020]">{formatCurrency(latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents)}</p>
-                  </div>
-                  <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Lead time</p>
-                    <p className="mt-2 text-[20px] font-semibold text-[#202020]">
-                      {latestCustomerQuote?.leadTime || (request.quote.leadTimeDays ? `${request.quote.leadTimeDays} days` : "Pending")}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Buyer version</p>
-                    <p className="mt-2 text-[20px] font-semibold text-[#202020]">{latestCustomerQuote ? `v${latestCustomerQuote.versionNumber}` : "None"}</p>
-                  </div>
-                </div>
+                <div className="mt-4 grid gap-4">
+                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                    Shipping cost
+                    <input
+                      className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                      defaultValue={formatCurrencyInput(request.quote.shippingCostCents)}
+                      inputMode="decimal"
+                      name="shippingCost"
+                      placeholder="Billed at actual or 125.00"
+                    />
+                  </label>
 
-                {request.quote.summary ? <p className="mt-4 text-[14px] leading-6 text-[#4b5563]">{request.quote.summary}</p> : null}
-              </section>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Shipping method
+                      <select
+                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.shippingMethod}
+                        name="shippingMethod"
+                      >
+                        <option value="">Select method</option>
+                        <option value="International">International</option>
+                        <option value="Domestic">Domestic</option>
+                      </select>
+                    </label>
 
-              {isQuoteBuilderOpen ? <CustomerQuoteBuilder initialQuote={quoteInput} requestId={request.id} saveAction={saveQuoteAction} /> : null}
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Shipping terms
+                      <select
+                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.shippingTerms}
+                        name="shippingTerms"
+                      >
+                        <option value="">Select terms</option>
+                        <option value="EXW">EXW</option>
+                        <option value="DDP">DDP</option>
+                        <option value="Determined at Checkout">Determined at Checkout</option>
+                        <option value="DAP">DAP</option>
+                        <option value="FOB">FOB</option>
+                      </select>
+                    </label>
+                  </div>
 
-              <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <div className="flex items-center gap-2">
-                  <Truck aria-hidden="true" className="text-[#6f4529]" size={18} />
-                  <h3 className="text-[18px] font-semibold text-[#171717]">Supplier quote basis</h3>
-                </div>
-                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">{supplierSummary(request)}</p>
-                <div className="mt-4 space-y-3">
-                  {request.supplierQuotes.length > 0 ? (
-                    request.supplierQuotes.map((quote) => (
-                      <article className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={quote.id}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-semibold text-[#202020]">{quote.shopName}</p>
-                          <span className="rounded-md bg-white px-2 py-1 text-[12px] font-semibold text-[#4b5563]">{supplierQuoteLabels[quote.status]}</span>
-                        </div>
-                        <p className="mt-2 text-[13px] text-[#64748b]">
-                          {quote.contactName} - {quote.country} - {formatCurrency(quote.priceCents)} - {quote.leadTimeDays ? `${quote.leadTimeDays} day lead time` : "Lead time pending"}
-                        </p>
-                        {quote.notes ? <p className="mt-2 text-[13px] leading-5 text-[#64748b]">{quote.notes}</p> : null}
-                      </article>
-                    ))
-                  ) : (
-                    <p className="rounded-md border border-dashed border-[#d9d9d9] bg-[#fafafa] p-4 text-[13px] text-[#64748b]">No supplier outreach has been recorded yet.</p>
-                  )}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Estimated delivery date
+                      <input
+                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.estimatedDeliveryDate}
+                        name="estimatedDeliveryDate"
+                        type="date"
+                      />
+                    </label>
+
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Quote Created Date
+                      <input
+                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.quoteCreatedDate}
+                        name="quoteCreatedDate"
+                        type="date"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                    Quote Valid Until
+                    <input
+                      className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                      defaultValue={request.quote.quoteValidUntil}
+                      name="quoteValidUntil"
+                      type="date"
+                    />
+                  </label>
+
+                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                    Quote notes
+                    <textarea
+                      className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
+                      defaultValue={request.quote.summary}
+                      name="quoteSummary"
+                      placeholder="What should the customer know about price, lead time, shipping, exclusions, or assumptions?"
+                    />
+                  </label>
+
+                  <button
+                    className="h-10 rounded-md bg-[#262626] px-4 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
+                    disabled={!updateStatusAction}
+                    type="submit"
+                  >
+                    Submit Quote to Customer
+                  </button>
                 </div>
               </section>
             </div>
           </div>
+          </form>
         </div>
       </div>
     </div>
@@ -670,7 +611,6 @@ export function AdminQuoteManagement({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
-  const [isQuoteBuilderOpen, setIsQuoteBuilderOpen] = useState(false);
   const [localDraftRequests, setLocalDraftRequests] = useState<LatticeRequest[]>([]);
 
   const quoteRequests = useMemo(() => requests.filter((request) => request.status !== "DRAFT" && request.status !== "PURCHASED"), [requests]);
@@ -724,20 +664,16 @@ export function AdminQuoteManagement({
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  function openDetail(request: LatticeRequest, showQuoteBuilder = false) {
+  function openDetail(request: LatticeRequest) {
     setDetailRequest(request);
-    setIsQuoteBuilderOpen(showQuoteBuilder);
   }
 
   return (
     <div className="space-y-5">
       {detailRequest ? (
         <AdminQuoteDetailDrawer
-          isQuoteBuilderOpen={isQuoteBuilderOpen}
           onClose={() => setDetailRequest(null)}
-          onQuoteBuilderOpenChange={setIsQuoteBuilderOpen}
           request={detailRequest}
-          saveQuoteAction={saveQuoteAction}
           updateStatusAction={updateStatusAction}
         />
       ) : null}
@@ -891,9 +827,10 @@ export function AdminQuoteManagement({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1.14fr_0.68fr_0.74fr_0.72fr_0.62fr_0.76fr] gap-4 border-b border-[#eeeeee] bg-[#fffaf6] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80614d] max-xl:hidden">
+          <div className="grid grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] gap-4 border-b border-[#eeeeee] bg-[#fffaf6] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80614d] max-xl:hidden">
             <span>RFQ package</span>
             <span>Customer</span>
+            <span>Requested</span>
             <span>Files and parts</span>
             <span>Supplier basis</span>
             <span>Commercials</span>
@@ -912,7 +849,7 @@ export function AdminQuoteManagement({
               return (
                 <article
                   aria-label={`Manage quote submission for ${request.title}`}
-                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4f3424] xl:grid-cols-[1.14fr_0.68fr_0.74fr_0.72fr_0.62fr_0.76fr] xl:items-center"
+                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4f3424] xl:grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] xl:items-center"
                   key={request.id}
                 >
                   <div className="min-w-0">
@@ -936,6 +873,11 @@ export function AdminQuoteManagement({
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
                     <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{request.buyerCompany}</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Requested</p>
+                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{formatDateTime(request.createdAt)}</p>
                   </div>
 
                   <div>
@@ -979,10 +921,10 @@ export function AdminQuoteManagement({
                       {saveQuoteAction ? (
                         <button
                           className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                          onClick={() => openDetail(request, true)}
+                          onClick={() => openDetail(request)}
                           type="button"
                         >
-                          {latestCustomerQuote ? "Revise quote" : "Issue quote"}
+                          {latestCustomerQuote ? "Revise feedback" : "Quote feedback"}
                         </button>
                       ) : null}
                     </div>
