@@ -140,7 +140,7 @@ export function AdminOrderManagement({ orders }: { orders: LatticeRequest[] }) {
                   return (
                     <button
                       className={`h-9 shrink-0 rounded-md border px-3 text-[13px] font-semibold transition ${
-                        isActive ? "border-[#4f3424] bg-[#4f3424] text-white" : "border-[#e4c0a3] bg-white text-[#6b4a34] hover:bg-[#fff6ee]"
+                        isActive ? "border-[#FF5A5F] bg-[#FF5A5F] text-white" : "border-[#ffd1d4] bg-white text-[#767676] hover:bg-[#fff1f2]"
                       }`}
                       key={filter.value}
                       onClick={() => setStatusFilter(filter.value)}
@@ -172,7 +172,7 @@ export function AdminOrderManagement({ orders }: { orders: LatticeRequest[] }) {
               return (
                 <Link
                   aria-label={`Manage order for ${order.title}`}
-                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4f3424] xl:grid-cols-[1.14fr_0.72fr_0.72fr_0.58fr_0.58fr_0.78fr] xl:items-center"
+                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.14fr_0.72fr_0.72fr_0.58fr_0.58fr_0.78fr] xl:items-center"
                   href={`/supplier/orders/${order.id}`}
                   key={order.id}
                 >

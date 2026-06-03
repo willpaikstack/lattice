@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "../lib/request-model";
 
@@ -14,6 +14,18 @@ import { OperatorQueue } from "./operator-queue";
 import { OperatorRequestDetail } from "./operator-request-detail";
 import { SupplierOrderDetail } from "./supplier-order-detail";
 import { SupplierOrders } from "./supplier-orders";
+
+const mockPush = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
+beforeEach(() => {
+  mockPush.mockClear();
+});
 
 function makeSubmittedRequest() {
   return submitDraftRequest(
@@ -109,12 +121,23 @@ describe("AdminQuoteManagement", () => {
       files: [{ name: "Aluminum Plate.STEP", sizeBytes: 2048, type: "model/step" }],
     });
 
-    render(<AdminQuoteManagement requests={[draft, makeSubmittedRequest()]} />);
+    render(
+      <AdminQuoteManagement
+        customerProfileHrefs={{ "Amogy Manufacturing": "/admin/customers/company_amogy" }}
+        requests={[draft, makeSubmittedRequest()]}
+      />,
+    );
 
     expect(screen.getByRole("heading", { name: "Draft quotes not yet requested" })).toBeInTheDocument();
     expect(screen.getByText("Aluminum plates for reactor weld fixture")).toBeInTheDocument();
     expect(screen.getByText("Aluminum Plate")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open draft" })).toHaveAttribute("href", `/requests/new?draft=${draft.id}`);
+    expect(screen.queryByRole("link", { name: "Open draft" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open draft for Aluminum plates for reactor weld fixture" }));
+    expect(mockPush).toHaveBeenCalledWith(`/requests/new?draft=${draft.id}`);
+    expect(screen.getAllByRole("link", { name: "Open customer page for Amogy Manufacturing" }).map((link) => link.getAttribute("href"))).toEqual([
+      "/admin/customers/company_amogy",
+      "/admin/customers/company_amogy",
+    ]);
     expect(screen.getByText("Showing 1 draft")).toBeInTheDocument();
   });
 
@@ -123,7 +146,7 @@ describe("AdminQuoteManagement", () => {
 
     render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Open RFQ" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Quote review")).toBeInTheDocument();
@@ -155,25 +178,17 @@ describe("AdminQuoteManagement", () => {
     expect(screen.getByRole("button", { name: "Submit Quote to Customer" })).toBeEnabled();
   });
 
-  it("opens quote feedback from the quote feedback row action", () => {
+  it("opens the RFQ drawer when the quote submission card is clicked", () => {
     const request = makeSubmittedRequest();
 
-    render(<AdminQuoteManagement requests={[request]} saveQuoteAction={() => undefined} />);
+    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Quote feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Quote feedback" })).toBeInTheDocument();
-    expect(screen.getByText("Part name")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Unit price - Mounting bracket/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Lead time days - Mounting bracket/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Shipping cost")).toBeInTheDocument();
-    expect(screen.getByLabelText("Shipping method")).toBeInTheDocument();
-    expect(screen.getByLabelText("Shipping terms")).toBeInTheDocument();
-    expect(screen.getByLabelText("Estimated delivery date")).toBeInTheDocument();
-    expect(screen.getByLabelText("Quote Created Date")).toBeInTheDocument();
-    expect(screen.getByLabelText("Quote Valid Until")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
   });
+
 });
 
 describe("BuyerQuotes", () => {

@@ -16,7 +16,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - start local services with `docker compose up -d postgres minio`
   - run `npm run prisma:generate` and `npm run db:push`
   - run `npm test`, `npm run lint`, and preferably `npm run build`
-  - open local `/`, `/login`, `/requests/new`, `/quotes`, `/quotes/demo_quoted`, `/orders`, and `/orders/demo_purchased`
+  - open local `/`, `/login`, `/requests/new`, `/quotes`, `/orders`, and `/admin/quotes`
   - smoke test production `https://latticeos.co/` and `/admin/quotes`
   - visually check the public Figma AI pages, request-form dropdowns, quote table/detail, quote checkout, and order detail/help/reorder flows
 - Verify the current app end-to-end after pulling on any new computer:
@@ -45,8 +45,10 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Add real generated thumbnails or APS-derived preview images anywhere static CAD thumbnails are still useful outside the interactive upload preview.
 - Continue clarifying buyer `/quotes` and admin `/admin/quotes` role separation now that quote issuance is database-backed and admin-owned.
 - Connect the `/admin` quote request overview more deeply to durable quote versions and supplier quote records.
-- Add additional internal templates to `/admin/resources` as quote, RFQ, supplier outreach, order, and inspection document formats stabilize.
-- Persist the remaining admin quote package worksheet fields, especially ship-to address, buyer phone/email, production region/speed, ship-by date, tariff/tax treatment, DFM warnings, and customs/end-use notes.
+- Continue refining internal templates in `/admin/resources`; customer quote, supplier purchase order, and domestic invoice Excel templates now live there with in-app previews, with supplier outreach, order, and inspection document formats still future candidates.
+- Connect supplier purchase order and domestic invoice generation to accepted orders once the order workflow stores supplier release, customer PO, billing, tax, tariff, and payment-term data durably.
+- Continue aligning customer quote PDF generation with the data-connected Excel template fields, especially real ship-to address, buyer phone/email, production speed, ship-by date, DFM warnings, and customs/end-use notes.
+- Decide whether saved quote PDFs should later be stored durably and attached to buyer-facing quote/order records, emailed, or kept as manual downloads only.
 - Connect `/admin/vendors` to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
 - Decide whether to keep or retire `/operator/requests/[requestId]` after more RFQ detail review lives in the `/admin/quotes` command drawer.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
@@ -55,6 +57,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Continue deduplicating vendor-provided material/equipment entries across Zintilon, Saky Steel, ZYTC, Best Prototypes, and future vendor documents.
 - Add the original source files for previously entered Zintilon processing and sheet metal capability data into `docs/vendor-sources/` when available; the registry currently records placeholders for those older sources.
 - Add or update tests whenever request status, persistence, queue filtering, or role-specific views change.
+- Keep artificial RFQ fixture seeding disabled during real workflow commissioning; move live upload sharing to R2/S3 when production-style storage is needed.
 
 ## Cross-Computer Handoff Checklist
 

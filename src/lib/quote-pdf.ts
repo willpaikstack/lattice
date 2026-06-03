@@ -1,4 +1,6 @@
+import fs from "node:fs";
 import { createRequire } from "node:module";
+import path from "node:path";
 
 import { formatUsd, lineItemTotal, quoteSubtotal, type CustomerQuoteInput } from "./quote-file";
 import type { LatticeRequest, RequestLineItem, UploadedFile } from "./request-model";
@@ -12,8 +14,13 @@ const letterWidth = 612;
 const letterHeight = 792;
 const requireFromHere = createRequire(import.meta.url);
 const PDFDocument = requireFromHere("pdfkit") as typeof import("pdfkit");
-const regularFont = "/System/Library/Fonts/Supplemental/Verdana.ttf";
-const boldFont = "/System/Library/Fonts/Supplemental/Verdana Bold.ttf";
+const regularFont = "Helvetica";
+const boldFont = "Helvetica-Bold";
+const latticeAddress = "169 Madison Ave, #17525\nNew York, NY 10016";
+const latticeEmail = "mfg@latticeos.co";
+const latticeWebsite = "Latticeos.co";
+const latticePaymentTerms = "100% Payment in Advance";
+const latticeBannerPath = path.join(process.cwd(), "resources", "admin", "brand", "lattice-os-signature-banner.png");
 
 function safeText(value: string | number | null | undefined) {
   return String(value ?? "")
@@ -165,6 +172,15 @@ function summaryAmountRow(doc: PDFKit.PDFDocument, label: string, value: string,
   doc.text(safeText(value), x + width * 0.58, y, { align: "right", width: width * 0.42 });
 }
 
+function drawLatticeBanner(doc: PDFKit.PDFDocument, x: number, y: number, width: number) {
+  if (fs.existsSync(latticeBannerPath)) {
+    doc.image(latticeBannerPath, x, y, { width });
+    return;
+  }
+
+  doc.font(boldFont).fontSize(15).fillColor("#111111").text("Lattice OS", x, y + 8, { width });
+}
+
 export function buildCustomerQuotePdf(quote: CustomerQuoteInput, options: QuotePdfOptions = {}) {
   const { doc, done } = createPdf({ compress: false, margin: 54, size: "LETTER" });
   const subtotal = quoteSubtotal(quote.lineItems);
@@ -184,7 +200,7 @@ export function buildCustomerQuotePdf(quote: CustomerQuoteInput, options: QuoteP
     ["Prepared for", quote.customerCompany],
     ["Contact", quote.customerContact],
     ["RFQ / Project", quote.projectName],
-    ["Prepared by", quote.preparedBy || "Lattice"],
+    ["Prepared by", quote.preparedBy || "Lattice OS"],
     ["Quote date", quote.quoteDate],
     ["Valid until", quote.validUntil],
   ].forEach(([label, value]) => doc.text(`${label}: ${safeText(value) || "Pending"}`));
@@ -201,7 +217,7 @@ export function buildCustomerQuotePdf(quote: CustomerQuoteInput, options: QuoteP
   doc.font(regularFont).fontSize(10);
   doc.text(`Subtotal: ${formatMaybePending(subtotal, pricingPending)}`);
   doc.text(`Shipping: ${safeText(quote.shipping) || "Billed at actual"}`);
-  doc.text(`Tax: ${safeText(quote.tax) || "Not included"}`);
+  doc.text(`Tax: ${safeText(quote.tax) || "Excluded unless explicitly listed"}`);
   doc.text(`Total: ${formatMaybePending(subtotal, pricingPending)}`);
   doc.text(`Lead time: ${safeText(quote.leadTime) || "Pending"}`);
 
@@ -255,13 +271,14 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
   const shippingMethod = request.quote.shippingMethod || "International";
 
   doc.fillColor("#111111");
-  doc.font(boldFont).fontSize(9).text(`Quote ID: ${quoteReference(request)}`, left, 42);
-  doc.font(regularFont).fontSize(8).text("Lattice OS", left, 58).text("will@latticeos.co", left, 72);
+  drawLatticeBanner(doc, left, 36, 205);
+  doc.font(boldFont).fontSize(9).text(`Quote ID: ${quoteReference(request)}`, left, 108);
+  doc.font(regularFont).fontSize(8).text(latticeAddress, left, 124, { lineGap: 2 }).text(latticeEmail, left, 158).text(latticeWebsite, left, 172);
   doc.text(`Created on: ${formatDate(quoteDate)}`, right - 190, 42, { width: 190 });
   doc.text(`Quote valid until: ${formatDate(validUntil)}`, right - 190, 56, { width: 190 });
-  doc.fontSize(7.5).text("For quote inquiries, contact your account manager", right - 190, 82, { width: 190 });
-  doc.font(boldFont).fontSize(8).text("Erik Mast", right - 190, 98, { width: 190 });
-  doc.font(regularFont).fontSize(7.5).text("erik.mast@latticeos.com", right - 190, 112, { width: 190 }).text("415-237-8791", right - 190, 126, { width: 190 });
+  doc.fontSize(7.5).text("For quote inquiries, contact Lattice OS", right - 190, 82, { width: 190 });
+  doc.font(boldFont).fontSize(8).text("Lattice OS Manufacturing", right - 190, 98, { width: 190 });
+  doc.font(regularFont).fontSize(7.5).text(latticeEmail, right - 190, 112, { width: 190 }).text(latticeWebsite, right - 190, 126, { width: 190 });
 
   const infoY = 164;
   mutedLabel(doc, "Prepared For", left, infoY, 130);
@@ -270,7 +287,7 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
 
   mutedLabel(doc, "Ship to", left + 160, infoY, 145);
   doc.font(boldFont).fontSize(9).text(safeText(request.buyerCompany), left + 160, infoY + 18, { width: 145 });
-  doc.font(regularFont).fontSize(8).text("123 Main Street\nBrooklyn, NY 11201", left + 160, infoY + 32, { lineGap: 2, width: 145 });
+  doc.font(regularFont).fontSize(8).text("Ship-to address to be confirmed at checkout.", left + 160, infoY + 32, { lineGap: 2, width: 145 });
 
   mutedLabel(doc, "Order production speed", left + 345, infoY, 150);
   doc.font(regularFont).fontSize(8).text(safeText(leadTime), left + 345, infoY + 18, { width: 150 });
@@ -280,8 +297,10 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
   doc.font(regularFont).fontSize(8).text(safeText(shippingMethod), left + 345, infoY + 98, { width: 150 });
   mutedLabel(doc, "Shipping terms", left + 345, infoY + 120, 150);
   doc.font(regularFont).fontSize(8).text(safeText(shippingTerms), left + 345, infoY + 138, { width: 150 });
+  mutedLabel(doc, "Payment terms", left + 345, infoY + 160, 150);
+  doc.font(regularFont).fontSize(8).text(latticePaymentTerms, left + 345, infoY + 178, { width: 150 });
 
-  let y = 320;
+  let y = 340;
   doc.rect(left, y, width, 42).fill("#f0f0f0");
   doc.fillColor("#111111").font(boldFont).fontSize(17).text("SUMMARY OF ORDER", left + 12, y + 13, { width: 260 });
   doc.text(`ORDER TOTAL ${formatPriceCents(totalCents)}`, left + 300, y + 13, { align: "right", width: width - 312 });
@@ -353,6 +372,8 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
 
   doc.font(boldFont).fontSize(12).text("Notes", left, y);
   doc.font(regularFont).fontSize(10).text(safeText(notes), left, y + 20, { lineGap: 2, width: 330 });
+  doc.font(boldFont).fontSize(9).text("Payment terms", left, y + 82, { width: 330 });
+  doc.font(regularFont).fontSize(9).text(latticePaymentTerms, left, y + 98, { width: 330 });
   doc.text(`Quote ID: ${quoteReference(request)}`, left, letterHeight - 74, { width: 250 });
 
   doc.rect(summaryBoxX, y, summaryBoxWidth, 132).fill("#f0f0f0");
@@ -373,10 +394,11 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
   doc.moveDown(0.8);
   doc.font(regularFont).fontSize(9);
   [
+    `${latticePaymentTerms}. Production begins only after payment is received and final design release is complete.`,
     "Lead time is defined as production days following quote acceptance, purchase order approval, and final design release.",
     "Engineering changes to material, quantity, part design, or drawing requirements may require Lattice to reassess cost and lead time.",
-    "Unless otherwise agreed in writing, quoted components are intended for prototype and development use.",
-    "Customer is responsible for providing accurate customs, end-use, destination, and purchasing information before checkout.",
+    "Unless otherwise stated, tax, tariffs, import duties, customs brokerage, and special inspection documents are excluded from the quoted total.",
+    "Customer is responsible for providing accurate customs, end-use, destination, ship-to, and purchasing information before checkout.",
   ].forEach((term, index) => {
     doc.text(`${index + 1}. ${term}`, { lineGap: 3 });
     doc.moveDown(0.4);

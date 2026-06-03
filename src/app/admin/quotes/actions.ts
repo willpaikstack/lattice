@@ -14,6 +14,7 @@ const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
   "QUOTED",
   "CLOSED",
 ]);
+const latticePaymentTerms = "100% Payment in Advance";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -195,6 +196,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
   const estimatedPriceCents = lineItems.reduce((sum, item) => sum + Math.round(item.unitPrice * item.quantity * 100), 0);
   const quote = {
     assumptions: [
+      `${latticePaymentTerms}. Production begins after payment is received and final design release is complete.`,
       "Customer-supplied CAD and drawings are complete and represent the latest revision.",
       "Pricing is based on the uploaded RFQ package and listed manufacturing requirements.",
       "Standard dimensional inspection is included unless additional documentation is listed.",
@@ -211,7 +213,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     quoteDate: quoteCreatedDate,
     quoteNumber: `LQ-${current.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`,
     shipping: formatShippingLabel(shippingCostCents, shippingMethod, shippingTerms),
-    tax: "Tax calculated at checkout",
+    tax: "Tax, tariffs, import duties, customs brokerage, and special inspection documents are excluded unless explicitly listed.",
     validUntil: quoteValidUntil,
   };
 

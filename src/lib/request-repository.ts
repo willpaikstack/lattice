@@ -1,10 +1,17 @@
-import { getDemoRequests } from "./demo-requests";
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
 import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
+
+function isArtificialRequestId(id: string) {
+  return id.startsWith("demo_") || id.startsWith("fixture_");
+}
+
+function realRequestsOnly<T extends { id: string }>(requests: T[]) {
+  return requests.filter((request) => !isArtificialRequestId(request.id));
+}
 
 async function prisma() {
   return (await getPrismaClient()) as {
@@ -26,7 +33,7 @@ async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => 
     return await operation();
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma is unavailable; using demo request data.", error);
+      console.warn("Prisma is unavailable; using local request fallback data.", error);
     }
     return fallback();
   }
@@ -64,6 +71,7 @@ export async function listOperatorRequests() {
           status: {
             in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"],
           },
+          NOT: [{ id: { startsWith: "demo_" } }, { id: { startsWith: "fixture_" } }],
         },
         include: storedRequestInclude,
         orderBy: {
@@ -71,9 +79,9 @@ export async function listOperatorRequests() {
         },
       });
 
-      return getOperatorQueueRequests(storedRequests.map(mapStoredRequest));
+      return getOperatorQueueRequests(realRequestsOnly(storedRequests).map(mapStoredRequest));
     },
-    async () => getOperatorQueueRequests(sortRequestsNewestFirst([...(await listLocalRequests()), ...getDemoRequests()])),
+    async () => getOperatorQueueRequests(sortRequestsNewestFirst(await listLocalRequests())),
   );
 }
 
@@ -88,13 +96,17 @@ export async function listAdminRequests() {
         },
       });
 
-      return storedRequests.map(mapStoredRequest);
+      return realRequestsOnly(storedRequests).map(mapStoredRequest);
     },
-    async () => sortRequestsNewestFirst([...(await listLocalRequests()), ...getDemoRequests()]),
+    async () => sortRequestsNewestFirst(await listLocalRequests()),
   );
 }
 
 export async function getRequestById(id: string) {
+  if (isArtificialRequestId(id)) {
+    return null;
+  }
+
   return withDemoFallback(
     async () => {
       const client = await prisma();
@@ -105,7 +117,7 @@ export async function getRequestById(id: string) {
 
       return stored ? mapStoredRequest(stored) : null;
     },
-    async () => (await getLocalRequestById(id)) ?? getDemoRequests().find((request) => request.id === id) ?? null,
+    async () => getLocalRequestById(id),
   );
 }
 
@@ -118,6 +130,7 @@ export async function listBuyerQuotes() {
           status: {
             in: ["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"],
           },
+          NOT: [{ id: { startsWith: "demo_" } }, { id: { startsWith: "fixture_" } }],
         },
         include: storedRequestInclude,
         orderBy: {
@@ -125,11 +138,11 @@ export async function listBuyerQuotes() {
         },
       });
 
-      return storedRequests.map(mapStoredRequest);
+      return realRequestsOnly(storedRequests).map(mapStoredRequest);
     },
     async () =>
       sortRequestsNewestFirst(
-        [...(await listLocalRequests()), ...getDemoRequests()].filter((request) => request.status !== "PURCHASED"),
+        (await listLocalRequests()).filter((request) => request.status !== "PURCHASED"),
       ),
   );
 }
@@ -426,9 +439,9 @@ export async function listBuyerOrders() {
         },
       });
 
-      return storedRequests.map(mapStoredRequest);
+      return realRequestsOnly(storedRequests).map(mapStoredRequest);
     },
-    () => sortRequestsNewestFirst(getDemoRequests().filter((request) => request.status === "PURCHASED")),
+    async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
   );
 }
 
@@ -451,9 +464,9 @@ export async function listSupplierOrders() {
         ],
       });
 
-      return storedRequests.map(mapStoredRequest);
+      return realRequestsOnly(storedRequests).map(mapStoredRequest);
     },
-    () => sortRequestsNewestFirst(getDemoRequests().filter((request) => request.status === "PURCHASED")),
+    async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
   );
 }
 

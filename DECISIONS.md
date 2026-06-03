@@ -2,6 +2,98 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-03 - Generate Manual Customer Quote PDFs
+
+Decision: generate customer quote PDFs from the latest saved RFQ quote data through a manual admin download route, `/admin/quotes/[requestId]/quote.pdf`, while keeping the editable Excel quote template and generated workbook available for formatting/reference.
+
+Reason: operators need a customer-sendable quote document after entering unit prices, lead time, shipping, quote dates, and notes in `/admin/quotes`. William wants the format to emulate Fictiv most closely, branded as Lattice OS, with the current banner, address, `mfg@latticeos.co`, `Latticeos.co`, and 100% payment in advance.
+
+Implications:
+
+- Quote PDFs are generated on demand for manual download; the app does not email, externally send, or durably store PDF files yet.
+- The editable/reference quote assets live under `resources/admin/`, including the Fictiv reference PDF and Lattice OS banner image.
+- Customer quote artifacts should consistently use Lattice OS as the prepared-by identity and explicitly exclude tax, tariffs, import duties, customs brokerage, and special inspection documents unless listed.
+
+## 2026-06-03 - Use Airbnb-Inspired Admin Colors
+
+Decision: change the admin visual identity from the earlier peach palette to an Airbnb-inspired scheme using Rausch coral `#FF5A5F`, pale Rausch tints, Babu teal `#00A699`-based success states, Arches orange `#FC642D` for warning accents, and neutral grays `#484848` and `#767676`.
+
+Reason: the admin app should keep its distinct internal identity while using a more polished, recognizable color system with stronger primary actions and cleaner neutral contrast.
+
+Implications:
+
+- Admin shell, navigation, quote operations, vendor, customer, order, resource, and quote-builder surfaces should use the Rausch/tint/neutral palette.
+- Customer-facing app surfaces remain on the existing light operations palette unless deliberately changed.
+- The previous `#FFD3AC` peach direction is superseded for admin UI styling.
+
+## 2026-06-03 - Commission Quotes With Real Submitted Data
+
+Decision: remove artificial seeded/demo RFQ records from the active quote workflow and keep only real submitted quote records, starting with the aluminum plate RFQ submitted by William.
+
+Reason: the quote workflow is moving from UI/demo validation into real commissioning. Artificial records in the database, local fallback store, or runtime fallbacks make it harder to tell what needs real operator action.
+
+Implications:
+
+- Runtime request fallbacks should use `.data/requests.json` only, without merging hardcoded demo quote records.
+- Request and customer listing code should ignore retired `demo_` and `fixture_` RFQ IDs if they still exist in an old local database.
+- RFQ fixture seeding should stay disabled unless deliberately reintroduced for isolated test/demo environments.
+
+## 2026-06-03 - Preview Admin Document Templates In App
+
+Decision: make `/admin/resources` show in-app viewers for each document template, including workbook-style sheet previews for Excel templates and an inline preview mode for the quote PDF reference.
+
+Reason: operators should be able to inspect template structure, sections, and input fields before downloading files. The admin app should remain the primary interface for understanding and using quote, supplier PO, and invoice templates.
+
+Implications:
+
+- Workbook previews should reuse the same sheet data and input-cell logic used by generated Excel files.
+- Yellow highlighting in previews marks operator-editable cells, matching the internal workbook convention.
+- PDF resources can use an inline preview route while preserving attachment download behavior for download buttons.
+
+## 2026-06-03 - Add Supplier PO And Domestic Invoice Templates
+
+Decision: extend `/admin/resources` with generated editable Excel templates for supplier purchase orders sent to Chinese machine shops and domestic invoices sent to domestic machine shops or customers.
+
+Reason: the quote template establishes the customer-facing commercial offer, but Lattice also needs consistent downstream documents for releasing accepted work to overseas suppliers and billing domestic customers against accepted POs or order milestones.
+
+Implications:
+
+- Supplier PO templates should keep supplier-facing manufacturing release details, supplier pricing, logistics, inspection documents, payment terms, and release checks together.
+- Domestic invoice templates should align invoice line items with the accepted quote, customer PO, Lattice order record, tax/freight/tariff treatment, and AP follow-up notes.
+- Generated workbook templates live in `src/lib/admin-document-templates.ts` and download through protected admin resource routes.
+- `docs/admin-document-templates.md` records when operators should use each template and what to verify before sending.
+
+## 2026-06-03 - Generate Quote Workbooks From Live RFQ Data
+
+Decision: connect the customer quote Excel template to `/admin/quotes` by generating a request-specific workbook from the selected RFQ, rather than asking operators to manually copy values from the app into the static template.
+
+Status: DOC-001 was later changed on 2026-06-03 to use the Zintilon/Hubs-inspired single-tab customer quote template for manual PDF export. The request-specific `/admin/quotes/[requestId]/quote-template.xlsx` route still generates a data-connected workbook from live RFQ data.
+
+Reason: the quote template should remain useful as an editable Excel/PDF-export tool, but customer, file, line-item, pricing, lead-time, and shipping values already live in Lattice. Prefilling them reduces transcription errors and keeps quote artifacts tied to the durable RFQ record.
+
+Implications:
+
+- Keep DOC-001 as a single-tab customer quote reference/source template for one continuous Excel-to-PDF export.
+- Use `/admin/quotes/[requestId]/quote-template.xlsx` for data-connected quote workbooks.
+- Keep generated workbooks dependency-light and server-side so the route works in the existing Next.js app without browser spreadsheet tooling.
+- Treat the admin app as the primary data-entry surface; generated workbooks are exports/reference artifacts.
+- Highlight internal workbook input/source cells yellow while keeping customer-facing sheets and PDFs clean.
+
+## 2026-06-03 - Track Safe Demo RFQ Fixtures In Git
+
+Decision: add a Git-tracked `fixtures/` area and `npm run seed:fixtures` command for safe demo/test part files and stable local RFQs.
+
+Status: superseded later on 2026-06-03 by the real-data commissioning decision above; RFQ fixture seeding is now disabled.
+
+Reason: while Lattice OS is still in development, William needs a small set of sample RFQ uploads to travel with the repo across computers. The app's real local upload folder remains gitignored, so curated fixtures give repeatable test data without committing every scratch upload.
+
+Implications:
+
+- Only non-sensitive, small demo CAD/drawing files belong in `fixtures/`.
+- The seed command copies fixture files into `.data/uploads/fixtures` and writes stable RFQs into `.data/requests.json`.
+- When local Postgres is reachable, the seed command also attempts to seed the same RFQs into the database so fixtures appear whether the app is using Prisma or the local fallback store.
+- Real customer/vendor CAD files should continue to stay out of Git; use R2/S3 or another object store for production-style shared uploads.
+
 ## 2026-06-03 - Keep Admin Templates In A Resources Library
 
 Decision: add `/admin/resources` as an internal resource library for operator-facing templates and reference files, starting with a copied quote PDF template served through a protected admin route.
@@ -249,6 +341,8 @@ Implications:
 ## 2026-05-27 - Give Admin A Peach Visual Identity
 
 Decision: make the admin experience visually distinct from the customer app by using `#FFD3AC` as the primary peach palette for admin shell, navigation, and dashboard surfaces.
+
+Status: superseded on 2026-06-03 by the Airbnb-inspired admin color decision above.
 
 Reason: admin workflows should feel like a separate internal control space while staying inside the same Lattice OS product.
 

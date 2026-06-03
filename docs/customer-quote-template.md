@@ -1,6 +1,22 @@
 # Lattice Customer Quote Template
 
-Use this template after receiving customer designs/CAD files and completing manufacturability review. Replace bracketed placeholders before sending.
+The editable source template served by **DOC-001 - Customer quote Excel template** is `resources/admin/lattice-os-zintilon-quote-template.xlsx`.
+
+The preferred operating workflow is not to manually edit Excel for normal app-issued quotes. Enter quote data in the admin app first: unit prices, lead time, shipping cost, shipping method, shipping terms, quote dates, delivery date, and quote notes are captured in `/admin/quotes`. DOC-001 remains the editable source/reference template for shaping the final customer quote PDF format.
+
+DOC-001 is intentionally a single-tab workbook named `Quote` so Excel's print/export behavior creates one continuous quote PDF. The sheet structure is:
+
+- customer-facing quote header, prepared-for, ship-to, quote details, summary of order, line items, notes, totals, and manufacturing assumptions
+- line-item table where `Process`, `Material`, and `Finish` appear as distinct lines inside `Part details`, with a separate `Production Region` column
+- Fictiv-style summary band where `SUMMARY OF ORDER` and `ORDER TOTAL` appear on the same line
+- General Terms and Conditions of Sale copied from the Hubs reference structure, with Hubs/Protolabs references replaced by Lattice/Lattice OS
+- no separate Inputs, Terms, or Vendor Patterns tabs
+
+The template is also connected to live RFQ data from the admin quote workflow. Each RFQ drawer in `/admin/quotes` includes an **Excel quote** download that generates `/admin/quotes/[requestId]/quote-template.xlsx` from the selected request. Once a customer quote has been saved, the same drawer also includes **Download quote PDF**, which generates `/admin/quotes/[requestId]/quote.pdf` for manual download. The generated workbook and PDF fill customer, RFQ, file, line-item, unit-price, lead-time, shipping, quote-date, validity, DFM note, and total fields from the app's request and latest saved customer quote data.
+
+Editable quote cells in DOC-001 are highlighted pale yellow. Because DOC-001 is a formatting/source template, remove or restyle yellow input highlighting before sending a final customer PDF if needed.
+
+Use this template after receiving customer designs/CAD files and completing manufacturability review. Replace bracketed placeholders before sending. The current customer quote format should follow the Fictiv-style structure most closely: branded header, prepared-for and ship-to blocks, quote details, summary of order, line items, notes, production assumptions, and acceptance/payment terms.
 
 ---
 
@@ -8,7 +24,7 @@ Use this template after receiving customer designs/CAD files and completing manu
 
 **Prepared for:** [Customer company]  
 **Contact:** [Customer name, email]  
-**Prepared by:** Lattice  
+**Prepared by:** Lattice OS  
 **RFQ / Project:** [Project name or RFQ title]  
 **Quote date:** [Month DD, YYYY]  
 **Quote valid until:** [Month DD, YYYY]  
@@ -34,15 +50,14 @@ This quote includes:
 
 ## Quote Line Items
 
-| Item | Part / Description | Process | Material | Finish | Qty | Unit Price | Line Total |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: |
-| 1 | [Part name] | [CNC machining / sheet metal / fabrication] | [Material] | [Finish] | [Qty] | $[0.00] | $[0.00] |
-| 2 | [Part name] | [Process] | [Material] | [Finish] | [Qty] | $[0.00] | $[0.00] |
+| Item | Part Details | Production Region | Qty | Unit Price | Line Total |
+| --- | --- | --- | ---: | ---: | ---: |
+| 1 | [Part name]<br>Process: [CNC machining / sheet metal / fabrication]<br>Material: [Material]<br>Finish: [Finish] | [Overseas / Domestic] | [Qty] | $[0.00] | $[0.00] |
+| 2 | [Part name]<br>Process: [Process]<br>Material: [Material]<br>Finish: [Finish] | [Production region] | [Qty] | $[0.00] | $[0.00] |
 
 **Subtotal:** $[0.00]  
-**Engineering / setup:** $[0.00]  
 **Shipping estimate:** $[0.00 or "Billed at actual"]  
-**Tax:** [Not included / estimated at $0.00]  
+**Tax:** [Excluded unless explicitly listed / estimated at $0.00]  
 
 ## Total Quote
 
@@ -53,7 +68,7 @@ This quote includes:
 Estimated production lead time is **[X-Y business days]** after all of the following are complete:
 
 - Written quote acceptance
-- Purchase order or payment approval
+- 100% payment in advance
 - Final CAD/drawing package confirmed for release
 - Any open manufacturability questions resolved
 
@@ -93,7 +108,7 @@ Unless explicitly listed above, this quote excludes:
 
 ## Acceptance
 
-To accept this quote, reply with written approval and provide a purchase order referencing **Quote [QUOTE-NUMBER]**.
+To accept this quote, reply with written approval and complete payment referencing **Quote [QUOTE-NUMBER]**. Standard payment terms are **100% Payment in Advance**.
 
 Accepted by: _______________________________  
 Company: _______________________________  
@@ -117,7 +132,7 @@ Internal notes not sent to customer:
 
 **Prepared for:** Apex Robotics  
 **Contact:** Maya Chen, maya@apex.example  
-**Prepared by:** Lattice  
+**Prepared by:** Lattice OS  
 **RFQ / Project:** Sensor Mount Bracket Pilot Run  
 **Quote date:** May 26, 2026  
 **Quote valid until:** June 9, 2026  
@@ -136,14 +151,14 @@ Thank you for sending the design package for the Sensor Mount Bracket pilot run.
 
 ## Quote Line Items
 
-| Item | Part / Description | Process | Material | Finish | Qty | Unit Price | Line Total |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: |
-| 1 | Sensor Mount Bracket | CNC machining | 6061-T6 aluminum | Clear anodize | 50 | $86.00 | $4,300.00 |
-| 2 | Setup and programming | CNC machining | N/A | N/A | 1 | $425.00 | $425.00 |
+| Item | Part Details | Production Region | Qty | Unit Price | Line Total |
+| --- | --- | --- | ---: | ---: | ---: |
+| 1 | Sensor Mount Bracket<br>Process: CNC machining<br>Material: 6061-T6 aluminum<br>Finish: Clear anodize | Overseas | 50 | $86.00 | $4,300.00 |
+| 2 | Setup and programming<br>Process: CNC machining<br>Material: N/A<br>Finish: N/A | Overseas | 1 | $425.00 | $425.00 |
 
 **Subtotal:** $4,725.00  
 **Shipping estimate:** Billed at actual  
-**Tax:** Not included  
+**Tax:** Excluded unless explicitly listed  
 
 ## Total Quote
 
@@ -151,7 +166,7 @@ Thank you for sending the design package for the Sensor Mount Bracket pilot run.
 
 ## Lead Time
 
-Estimated production lead time is **12-15 business days** after written quote acceptance, purchase order approval, and final design release.
+Estimated production lead time is **12-15 business days** after written quote acceptance, 100% payment in advance, and final design release.
 
 ## Manufacturing Assumptions
 
@@ -168,4 +183,4 @@ Estimated production lead time is **12-15 business days** after written quote ac
 
 ## Acceptance
 
-To accept this quote, reply with written approval and provide a purchase order referencing **Quote LQ-2026-0142**.
+To accept this quote, reply with written approval and complete payment referencing **Quote LQ-2026-0142**.

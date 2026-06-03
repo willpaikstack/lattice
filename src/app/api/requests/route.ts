@@ -26,7 +26,9 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.includes("multipart/form-data")) {
-    return request.json() as Promise<DraftRequestInput>;
+    const input = (await request.json()) as DraftRequestInput;
+    assertStoredFileReferences(input);
+    return input;
   }
 
   const formData = await request.formData();
@@ -43,7 +45,11 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
       const uploadedFile = formData.get(`file-${index}`);
 
       if (!(uploadedFile instanceof File)) {
-        return fileMetadata;
+        throw new Error(`${fileMetadata.name} must be uploaded again before submitting.`);
+      }
+
+      if (uploadedFile.size <= 0) {
+        throw new Error(`${fileMetadata.name} is empty and cannot be submitted.`);
       }
 
       const stored = await saveLocalUpload(uploadedFile);
@@ -59,4 +65,12 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
   );
 
   return input;
+}
+
+function assertStoredFileReferences(input: DraftRequestInput) {
+  const missingFileBytes = input.files.find((file) => !file.storageKey && file.sizeBytes <= 0);
+
+  if (missingFileBytes) {
+    throw new Error(`${missingFileBytes.name} must be uploaded again before submitting.`);
+  }
 }

@@ -1,17 +1,19 @@
 "use client";
 
-import { ClipboardCheck, FileText, PackageCheck, ReceiptText, Search, Truck, X } from "lucide-react";
+import { ClipboardCheck, ExternalLink, FileSpreadsheet, FileText, PackageCheck, ReceiptText, Search, Truck, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { LatticeRequest, SupplierQuoteStatus } from "@/lib/request-model";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
-  SUBMITTED: { label: "Submitted", nextAction: "Assign owner and review intake", tone: "border-blue-100 bg-blue-50 text-blue-700" },
-  NEEDS_INFO: { label: "Needs info", nextAction: "Recover buyer clarification", tone: "border-amber-100 bg-amber-50 text-amber-700" },
-  READY_FOR_SUPPLIER_RFQ: { label: "Supplier ready", nextAction: "Send supplier RFQs", tone: "border-indigo-100 bg-indigo-50 text-indigo-700" },
-  QUOTED: { label: "Quote received", nextAction: "Follow buyer decision", tone: "border-emerald-100 bg-emerald-50 text-emerald-700" },
+  SUBMITTED: { label: "Submitted", nextAction: "Assign owner and review intake", tone: "border-[#ffd1d4] bg-[#fff1f2] text-[#FF5A5F]" },
+  NEEDS_INFO: { label: "Needs info", nextAction: "Recover buyer clarification", tone: "border-[#ffd4c3] bg-[#fff0ea] text-[#FC642D]" },
+  READY_FOR_SUPPLIER_RFQ: { label: "Supplier ready", nextAction: "Send supplier RFQs", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
+  QUOTED: { label: "Quote received", nextAction: "Follow buyer decision", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
   PURCHASED: { label: "Purchased", nextAction: "Track order", tone: "border-slate-950 bg-slate-950 text-white" },
   CLOSED: { label: "Closed", nextAction: "No active quote work", tone: "border-slate-200 bg-slate-50 text-slate-700" },
 };
@@ -158,6 +160,31 @@ function draftEditHref(request: LatticeRequest) {
   return `/requests/new?draft=${encodeURIComponent(request.id)}`;
 }
 
+function customerProfileHref(companyName: string, customerProfileHrefs: Record<string, string>) {
+  return customerProfileHrefs[companyName] ?? `/admin/customers/${encodeURIComponent(companyName)}`;
+}
+
+function CustomerProfileShortcut({
+  companyName,
+  customerProfileHrefs,
+}: {
+  companyName: string;
+  customerProfileHrefs: Record<string, string>;
+}) {
+  return (
+    <Link
+      aria-label={`Open customer page for ${companyName}`}
+      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#ffd1d4] bg-white text-[#767676] transition hover:border-[#FF5A5F] hover:bg-[#fff1f2] hover:text-[#FF5A5F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A5F]"
+      href={customerProfileHref(companyName, customerProfileHrefs)}
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+      title={`Open customer page for ${companyName}`}
+    >
+      <ExternalLink aria-hidden="true" size={14} />
+    </Link>
+  );
+}
+
 function readLocalDraftRequests() {
   if (typeof window === "undefined" || !window.localStorage?.getItem) {
     return [];
@@ -239,6 +266,7 @@ function AdminQuoteDetailDrawer({
   updateStatusAction?: AdminQuoteAction;
 }) {
   const status = statusCopy[request.status];
+  const latestCustomerQuote = request.customerQuotes.at(-1);
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
 
   return (
@@ -248,7 +276,7 @@ function AdminQuoteDetailDrawer({
           <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a4d2d]">Quote review</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#767676]">Quote review</p>
                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
               </div>
               <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{request.title}</h2>
@@ -257,6 +285,26 @@ function AdminQuoteDetailDrawer({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {latestCustomerQuote ? (
+                <a
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
+                  download
+                  href={`/admin/quotes/${request.id}/quote.pdf`}
+                  title="Downloads the last saved customer quote PDF."
+                >
+                  <FileText aria-hidden="true" size={16} />
+                  Download quote PDF
+                </a>
+              ) : null}
+              <a
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
+                download
+                href={`/admin/quotes/${request.id}/quote-template.xlsx`}
+                title="Exports the last saved quote data. Save quote feedback first if you changed pricing or shipping."
+              >
+                <FileSpreadsheet aria-hidden="true" size={16} />
+                Export saved Excel
+              </a>
               <button
                 aria-label="Close RFQ drawer"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[#262626] transition hover:bg-[#f8fafc]"
@@ -306,7 +354,7 @@ function AdminQuoteDetailDrawer({
                                 href={cadHref}
                                 title={`Download ${cadFile.name}`}
                               >
-                                <span className="shrink-0 rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">CAD</span>
+                                <span className="shrink-0 rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#767676]">CAD</span>
                                 <span className="min-w-0 truncate">{cadFile.name}</span>
                               </a>
                             ) : (
@@ -325,7 +373,7 @@ function AdminQuoteDetailDrawer({
                                 href={drawingHref}
                                 title={`Download ${drawingFile.name}`}
                               >
-                                <span className="shrink-0 rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">Drawing</span>
+                                <span className="shrink-0 rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#767676]">Drawing</span>
                                 <span className="min-w-0 truncate">{drawingFile.name}</span>
                               </a>
                             ) : (
@@ -371,7 +419,7 @@ function AdminQuoteDetailDrawer({
               <div className="space-y-5">
                 <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
                   <div className="flex items-center gap-2">
-                    <FileText aria-hidden="true" className="text-[#6f4529]" size={18} />
+                    <FileText aria-hidden="true" className="text-[#767676]" size={18} />
                     <h3 className="text-[18px] font-semibold text-[#171717]">Uploaded files</h3>
                   </div>
                   <div className="mt-4 space-y-3">
@@ -390,7 +438,7 @@ function AdminQuoteDetailDrawer({
                               <div className="flex flex-col gap-3 rounded-md border border-[#e6e6e6] bg-white p-3 sm:flex-row sm:items-center sm:justify-between" key={file.id}>
                                 <div className="min-w-0">
                                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <span className="rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">
+                                    <span className="rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#767676]">
                                       {fileKindLabel(file)}
                                     </span>
                                     <p className="truncate text-[14px] font-semibold text-[#202020]">{file.name}</p>
@@ -404,7 +452,7 @@ function AdminQuoteDetailDrawer({
                                     Download
                                   </a>
                                 ) : (
-                                  <span className="text-[12px] font-medium text-[#9a5a2f]">File bytes not stored</span>
+                                  <span className="text-[12px] font-medium text-[#9a5a2f]">Reference only - ask buyer to re-upload</span>
                                 )}
                               </div>
                             );
@@ -426,7 +474,7 @@ function AdminQuoteDetailDrawer({
                             <div className="flex flex-col gap-3 rounded-md border border-[#e6e6e6] bg-white p-3 sm:flex-row sm:items-center sm:justify-between" key={file.id}>
                               <div className="min-w-0">
                                 <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <span className="rounded-md border border-[#ead7c5] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6f4529]">
+                                  <span className="rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#767676]">
                                     {fileKindLabel(file)}
                                   </span>
                                   <p className="truncate text-[14px] font-semibold text-[#202020]">{file.name}</p>
@@ -440,7 +488,7 @@ function AdminQuoteDetailDrawer({
                                   Download
                                 </a>
                               ) : (
-                                <span className="text-[12px] font-medium text-[#9a5a2f]">File bytes not stored</span>
+                                <span className="text-[12px] font-medium text-[#9a5a2f]">Reference only - ask buyer to re-upload</span>
                               )}
                             </div>
                           );
@@ -453,7 +501,7 @@ function AdminQuoteDetailDrawer({
 
               <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
                 <div className="flex items-center gap-2">
-                  <PackageCheck aria-hidden="true" className="text-[#6f4529]" size={18} />
+                  <PackageCheck aria-hidden="true" className="text-[#767676]" size={18} />
                   <h3 className="text-[18px] font-semibold text-[#171717]">Configured parts</h3>
                 </div>
                 <div className="mt-4 space-y-3">
@@ -600,14 +648,15 @@ function AdminQuoteDetailDrawer({
 }
 
 export function AdminQuoteManagement({
+  customerProfileHrefs = {},
   requests,
-  saveQuoteAction,
   updateStatusAction,
 }: {
+  customerProfileHrefs?: Record<string, string>;
   requests: LatticeRequest[];
-  saveQuoteAction?: AdminQuoteAction;
   updateStatusAction?: AdminQuoteAction;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
@@ -668,6 +717,24 @@ export function AdminQuoteManagement({
     setDetailRequest(request);
   }
 
+  function openDetailFromKey(event: KeyboardEvent<HTMLElement>, request: LatticeRequest) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    openDetail(request);
+  }
+
+  function openDraftFromKey(event: KeyboardEvent<HTMLElement>, request: LatticeRequest) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    router.push(draftEditHref(request));
+  }
+
   return (
     <div className="space-y-5">
       {detailRequest ? (
@@ -679,41 +746,41 @@ export function AdminQuoteManagement({
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-4">
-        <article className="rounded-md border border-[#e7d3c1] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#6f4529]">
+        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
+          <div className="flex items-center gap-2 text-[#767676]">
             <ClipboardCheck aria-hidden="true" size={17} />
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Active submissions</p>
           </div>
           <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{activeQuoteRequests.length}</p>
         </article>
-        <article className="rounded-md border border-[#e7d3c1] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#6f4529]">
+        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
+          <div className="flex items-center gap-2 text-[#767676]">
             <Truck aria-hidden="true" size={17} />
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Shop quotes</p>
           </div>
           <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{activeSupplierQuotes}</p>
         </article>
-        <article className="rounded-md border border-[#e7d3c1] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#6f4529]">
+        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
+          <div className="flex items-center gap-2 text-[#767676]">
             <PackageCheck aria-hidden="true" size={17} />
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Ready to price</p>
           </div>
           <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{readyForIssueCount}</p>
         </article>
-        <article className="rounded-md border border-[#e7d3c1] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#6f4529]">
+        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
+          <div className="flex items-center gap-2 text-[#767676]">
             <ReceiptText aria-hidden="true" size={17} />
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Quoted value</p>
           </div>
           <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{formatCurrency(quotedValueCents)}</p>
-          {blockedRequests > 0 ? <p className="mt-2 text-[12px] font-semibold text-[#a15c21]">{blockedRequests} blocked</p> : null}
+          {blockedRequests > 0 ? <p className="mt-2 text-[12px] font-semibold text-[#FC642D]">{blockedRequests} blocked</p> : null}
         </article>
       </section>
 
-      <section className="overflow-hidden rounded-md border border-[#e6d2bf] bg-white">
-        <div className="flex flex-col gap-2 border-b border-[#eeeeee] bg-[#fffaf6] px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+      <section className="overflow-hidden rounded-md border border-[#ffd1d4] bg-white">
+        <div className="flex flex-col gap-2 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#7a4d2d]">Customer drafts</p>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#767676]">Customer drafts</p>
             <h2 className="mt-1 text-[20px] font-semibold text-[#171717]">Draft quotes not yet requested</h2>
           </div>
           <p className="text-[12px] text-[#777d86]">
@@ -723,12 +790,11 @@ export function AdminQuoteManagement({
 
         {draftRequests.length > 0 ? (
           <>
-            <div className="grid grid-cols-[1.1fr_0.72fr_0.72fr_0.54fr_0.58fr] gap-4 border-b border-[#eeeeee] bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
+            <div className="grid grid-cols-[1.1fr_0.72fr_0.72fr_0.54fr] gap-4 border-b border-[#eeeeee] bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
               <span>Draft quote</span>
               <span>Customer</span>
               <span>Part and process</span>
               <span>Updated</span>
-              <span>Action</span>
             </div>
 
             <div className="divide-y divide-[#eeeeee]">
@@ -737,20 +803,27 @@ export function AdminQuoteManagement({
 
                 return (
                   <article
-                    className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] xl:grid-cols-[1.1fr_0.72fr_0.72fr_0.54fr_0.58fr] xl:items-center"
+                    aria-label={`Open draft for ${request.title}`}
+                    className="grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.1fr_0.72fr_0.72fr_0.54fr] xl:items-center"
                     key={request.id}
+                    onClick={() => router.push(draftEditHref(request))}
+                    onKeyDown={(event) => openDraftFromKey(event, request)}
+                    role="button"
+                    tabIndex={0}
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{quoteReference(request)}</span>
-                        <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${statusCopy.DRAFT.tone}`}>Draft</span>
                       </div>
                       <p className="mt-2 truncate text-[15px] font-semibold text-[#202020]">{request.title}</p>
                     </div>
 
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
-                      <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{request.buyerCompany}</p>
+                      <div className="mt-1 flex min-w-0 items-center gap-2 xl:mt-0">
+                        <p className="min-w-0 truncate text-[14px] font-medium text-[#30343a]">{request.buyerCompany}</p>
+                        <CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} />
+                      </div>
                       <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
                     </div>
 
@@ -767,15 +840,6 @@ export function AdminQuoteManagement({
                       <p className="mt-1 text-[14px] text-[#4b525b] xl:mt-0">{formatDateTime(request.updatedAt)}</p>
                     </div>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Action</p>
-                      <Link
-                        className="mt-1 inline-flex rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc] xl:mt-0"
-                        href={draftEditHref(request)}
-                      >
-                        Open draft
-                      </Link>
-                    </div>
                   </article>
                 );
               })}
@@ -792,7 +856,7 @@ export function AdminQuoteManagement({
           <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">Submitted RFQs will appear here once customers request quotes.</p>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-md border border-[#e6d2bf] bg-white">
+        <section className="overflow-hidden rounded-md border border-[#ffd1d4] bg-white">
           <div className="border-b border-[#eeeeee] p-4">
             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
               <label className="relative block xl:w-[420px]">
@@ -813,7 +877,7 @@ export function AdminQuoteManagement({
                   return (
                     <button
                       className={`h-9 shrink-0 rounded-md border px-3 text-[13px] font-semibold transition ${
-                        isActive ? "border-[#4f3424] bg-[#4f3424] text-white" : "border-[#e4c0a3] bg-white text-[#6b4a34] hover:bg-[#fff6ee]"
+                        isActive ? "border-[#FF5A5F] bg-[#FF5A5F] text-white" : "border-[#ffd1d4] bg-white text-[#767676] hover:bg-[#fff1f2]"
                       }`}
                       key={filter.value}
                       onClick={() => setStatusFilter(filter.value)}
@@ -827,7 +891,7 @@ export function AdminQuoteManagement({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] gap-4 border-b border-[#eeeeee] bg-[#fffaf6] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80614d] max-xl:hidden">
+          <div className="grid grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] gap-4 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#767676] max-xl:hidden">
             <span>RFQ package</span>
             <span>Customer</span>
             <span>Requested</span>
@@ -849,8 +913,12 @@ export function AdminQuoteManagement({
               return (
                 <article
                   aria-label={`Manage quote submission for ${request.title}`}
-                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4f3424] xl:grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] xl:items-center"
+                  className="grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] xl:items-center"
                   key={request.id}
+                  onClick={() => openDetail(request)}
+                  onKeyDown={(event) => openDetailFromKey(event, request)}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -858,8 +926,11 @@ export function AdminQuoteManagement({
                       <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
                     </div>
                     <button
-                      className="mt-2 block max-w-full truncate text-left text-[15px] font-semibold text-[#202020] transition hover:text-[#4f3424]"
-                      onClick={() => openDetail(request)}
+                      className="mt-2 block max-w-full truncate text-left text-[15px] font-semibold text-[#202020] transition hover:text-[#FF5A5F]"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openDetail(request);
+                      }}
                       type="button"
                     >
                       {request.title}
@@ -871,7 +942,10 @@ export function AdminQuoteManagement({
 
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
-                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{request.buyerCompany}</p>
+                    <div className="mt-1 flex min-w-0 items-center gap-2 xl:mt-0">
+                      <p className="min-w-0 truncate text-[14px] font-medium text-[#30343a]">{request.buyerCompany}</p>
+                      <CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} />
+                    </div>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
                   </div>
 
@@ -910,24 +984,6 @@ export function AdminQuoteManagement({
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Next step</p>
                     <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{nextActionForRequest(request)}</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{formatDate(request.dueDate)}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                        onClick={() => openDetail(request)}
-                        type="button"
-                      >
-                        Open RFQ
-                      </button>
-                      {saveQuoteAction ? (
-                        <button
-                          className="rounded-md border border-[#d7d7d7] bg-white px-3 py-2 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                          onClick={() => openDetail(request)}
-                          type="button"
-                        >
-                          {latestCustomerQuote ? "Revise feedback" : "Quote feedback"}
-                        </button>
-                      ) : null}
-                    </div>
                   </div>
                 </article>
               );
@@ -941,7 +997,7 @@ export function AdminQuoteManagement({
             ) : null}
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fffaf6] px-4 py-3 text-[12px] text-[#777d86]">
+          <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fff7f7] px-4 py-3 text-[12px] text-[#777d86]">
             <span>
               Showing {filteredRequests.length} of {quoteRequests.length} submissions
             </span>

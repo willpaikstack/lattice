@@ -1,7 +1,7 @@
 import { buildAdminCustomerSummaries } from "./admin-customers";
-import { getDemoRequests } from "./demo-requests";
+import { listLocalRequests } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
-import type { RequestStatus } from "./request-model";
+import type { LatticeRequest, RequestStatus } from "./request-model";
 import { mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 
 export type CustomerProfileInput = {
@@ -16,8 +16,15 @@ export type CustomerProfileInput = {
   notes: string;
 };
 
+export type CustomerProfileIcon = {
+  label: string;
+  background: string;
+  foreground: string;
+};
+
 export type CustomerProfile = CustomerProfileInput & {
   id: string;
+  icon: CustomerProfileIcon;
   users: Array<{
     id: string;
     name: string;
@@ -38,6 +45,7 @@ export type CustomerProfile = CustomerProfileInput & {
     status: RequestStatus;
     href: string;
   } | null;
+  requests: LatticeRequest[];
   fabricationShops: Array<{
     name: string;
     country: string;
@@ -45,6 +53,36 @@ export type CustomerProfile = CustomerProfileInput & {
     selectedOrderCount: number;
   }>;
 };
+
+const customerIconPalettes: CustomerProfileIcon[] = [
+  { label: "", background: "#fff6ee", foreground: "#7a4a22" },
+  { label: "", background: "#eef6ff", foreground: "#245c8f" },
+  { label: "", background: "#f2f7ec", foreground: "#3f6d2a" },
+  { label: "", background: "#f6f0ff", foreground: "#5b3f8f" },
+  { label: "", background: "#fff8d9", foreground: "#7a5b0a" },
+  { label: "", background: "#eefaf6", foreground: "#1f6b58" },
+  { label: "", background: "#f8eeee", foreground: "#8a3535" },
+  { label: "", background: "#eff1f5", foreground: "#475569" },
+];
+
+function hashText(value: string) {
+  return [...value].reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) >>> 0, 0);
+}
+
+export function customerProfileIcon(name: string): CustomerProfileIcon {
+  const words = name
+    .replace(/[^A-Za-z0-9 ]/g, " ")
+    .split(" ")
+    .map((word) => word.trim())
+    .filter(Boolean);
+  const label = (words.length >= 2 ? `${words[0][0]}${words[1][0]}` : words[0]?.slice(0, 2) || "CU").toUpperCase();
+  const palette = customerIconPalettes[hashText(name) % customerIconPalettes.length];
+
+  return {
+    ...palette,
+    label,
+  };
+}
 
 type StoredCompany = {
   id: string;
@@ -69,34 +107,42 @@ async function prisma() {
   return (await getPrismaClient()) as {
     company: {
       findMany: (args: unknown) => Promise<StoredCompany[]>;
+      findFirst: (args: unknown) => Promise<StoredCompany | null>;
       findUnique: (args: unknown) => Promise<StoredCompany | null>;
       update: (args: unknown) => Promise<StoredCompany>;
     };
   };
 }
 
-async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => T) {
+async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => T | Promise<T>) {
   try {
     return await operation();
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma is unavailable; using demo customer profile data.", error);
+      console.warn("Prisma is unavailable; using local customer profile fallback data.", error);
     }
     return fallback();
   }
 }
 
+function isArtificialRequestId(id: string) {
+  return id.startsWith("demo_") || id.startsWith("fixture_");
+}
+
 function profileFromStoredCompany(company: StoredCompany): CustomerProfile {
-  const requests = company.requests.map((request) =>
-    mapStoredRequest({
-      ...request,
-      buyerCompany: request.buyerCompany ?? { name: company.name },
-    }),
-  );
+  const requests = company.requests
+    .filter((request) => !isArtificialRequestId(request.id))
+    .map((request) =>
+      mapStoredRequest({
+        ...request,
+        buyerCompany: request.buyerCompany ?? { name: company.name },
+      }),
+    );
   const summary = buildAdminCustomerSummaries(requests)[0];
 
   return {
     id: company.id,
+    icon: customerProfileIcon(company.name),
     name: company.name,
     website: company.website ?? "",
     industry: company.industry ?? "",
@@ -117,39 +163,50 @@ function profileFromStoredCompany(company: StoredCompany): CustomerProfile {
     },
     latestActivityAt: summary?.latestActivityAt ?? "",
     latestRequest: summary?.latestRequest ?? null,
+    requests,
     fabricationShops: summary?.fabricationShops ?? [],
   };
 }
 
-function demoProfiles() {
-  return buildAdminCustomerSummaries(getDemoRequests()).map<CustomerProfile>((summary) => ({
-    id: encodeURIComponent(summary.name),
-    name: summary.name,
-    website: "",
-    industry: "",
-    primaryContactName: summary.requesters[0] ?? "",
-    primaryContactEmail: "",
-    billingEmail: "",
-    customerTier: "Standard",
-    accountStatus: "Active",
-    notes: "",
-    users: summary.requesters.map((requester, index) => ({
-      id: `${encodeURIComponent(summary.name)}_${index}`,
-      name: requester,
-      email: "",
-    })),
-    metrics: {
-      totalRequests: summary.totalRequests,
-      activeQuoteRequests: summary.activeQuoteRequests,
-      placedOrders: summary.placedOrders,
-      blockedRequests: summary.blockedRequests,
-      quotedValueCents: summary.quotedValueCents,
-      orderValueCents: summary.orderValueCents,
-    },
-    latestActivityAt: summary.latestActivityAt,
-    latestRequest: summary.latestRequest,
-    fabricationShops: summary.fabricationShops,
-  }));
+function profilesFromRequests(requestsSource: LatticeRequest[]) {
+  const realRequests = requestsSource.filter((request) => !isArtificialRequestId(request.id));
+
+  return buildAdminCustomerSummaries(realRequests).map<CustomerProfile>((summary) => {
+    const requests = realRequests
+      .filter((request) => request.buyerCompany === summary.name)
+      .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+
+    return {
+      id: encodeURIComponent(summary.name),
+      icon: customerProfileIcon(summary.name),
+      name: summary.name,
+      website: "",
+      industry: "",
+      primaryContactName: summary.requesters[0] ?? "",
+      primaryContactEmail: "",
+      billingEmail: "",
+      customerTier: "Standard",
+      accountStatus: "Active",
+      notes: "",
+      users: summary.requesters.map((requester, index) => ({
+        id: `${encodeURIComponent(summary.name)}_${index}`,
+        name: requester,
+        email: "",
+      })),
+      metrics: {
+        totalRequests: summary.totalRequests,
+        activeQuoteRequests: summary.activeQuoteRequests,
+        placedOrders: summary.placedOrders,
+        blockedRequests: summary.blockedRequests,
+        quotedValueCents: summary.quotedValueCents,
+        orderValueCents: summary.orderValueCents,
+      },
+      latestActivityAt: summary.latestActivityAt,
+      latestRequest: summary.latestRequest,
+      requests,
+      fabricationShops: summary.fabricationShops,
+    };
+  });
 }
 
 export async function listCustomerProfiles() {
@@ -175,9 +232,9 @@ export async function listCustomerProfiles() {
         },
       });
 
-      return companies.map(profileFromStoredCompany);
+      return companies.map(profileFromStoredCompany).filter((profile) => profile.metrics.totalRequests > 0);
     },
-    demoProfiles,
+    async () => profilesFromRequests(await listLocalRequests()),
   );
 }
 
@@ -185,8 +242,24 @@ export async function getCustomerProfile(id: string) {
   return withDemoFallback(
     async () => {
       const client = await prisma();
+      const decodedId = decodeURIComponent(id);
       const company = await client.company.findUnique({
         where: { id },
+        include: {
+          users: {
+            orderBy: {
+              name: "asc",
+            },
+          },
+          requests: {
+            include: storedRequestInclude,
+            orderBy: {
+              updatedAt: "desc",
+            },
+          },
+        },
+      }) ?? await client.company.findFirst({
+        where: { name: decodedId },
         include: {
           users: {
             orderBy: {
@@ -204,9 +277,9 @@ export async function getCustomerProfile(id: string) {
 
       return company ? profileFromStoredCompany(company) : null;
     },
-    () => {
+    async () => {
       const decodedId = decodeURIComponent(id);
-      return demoProfiles().find((profile) => profile.id === id || profile.name === decodedId) ?? null;
+      return profilesFromRequests(await listLocalRequests()).find((profile) => profile.id === id || profile.name === decodedId) ?? null;
     },
   );
 }

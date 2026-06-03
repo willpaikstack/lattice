@@ -103,13 +103,13 @@ function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: Navigatio
   return (
     <Link
       aria-label="Lattice home"
-      className={`flex h-11 w-11 items-center justify-center rounded-xl shadow-sm ${isAdmin ? "bg-[#4f3424]" : "bg-[#171717]"}`}
+      className={`flex h-11 w-11 items-center justify-center rounded-xl shadow-sm ${isAdmin ? "bg-[#FF5A5F]" : "bg-[#171717]"}`}
       href="/dashboard"
       onClick={(event) => onNavigate?.(event, "/dashboard")}
     >
       <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 28 28">
-        <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill={isAdmin ? "#FFD3AC" : "#f6f7f8"} opacity="0.92" />
-        <path d="M14 2.8v11.3l9.8 5.5M14 14.1 4.2 19.6M14 14.1l9.8-5.7M14 14.1 4.2 8.4" fill="none" stroke={isAdmin ? "#a26943" : "#62666d"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+        <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill={isAdmin ? "#fff1f2" : "#f6f7f8"} opacity="0.92" />
+        <path d="M14 2.8v11.3l9.8 5.5M14 14.1 4.2 19.6M14 14.1l9.8-5.7M14 14.1 4.2 8.4" fill="none" stroke={isAdmin ? "#FF5A5F" : "#62666d"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
       </svg>
     </Link>
   );
@@ -118,20 +118,20 @@ function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: Navigatio
 function DesktopNavSection({ onNavigate, section, pathname, tone }: { onNavigate: NavigationHandler; section: NavSection; pathname: string; tone: "customer" | "admin" }) {
   return (
     <section className="space-y-2">
-      <p className={`px-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === "admin" ? "text-[#7a4d2d]" : "text-[#8c8f94]"}`}>{section.title}</p>
+      <p className={`px-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === "admin" ? "text-[#767676]" : "text-[#8c8f94]"}`}>{section.title}</p>
       <div className="space-y-1.5">
         {section.items.map((item) => {
           const isActive = isNavItemActive(pathname, item.href);
           const activeClass =
             tone === "admin"
-              ? "bg-[#FFD3AC] font-semibold text-[#3a281d] shadow-[inset_3px_0_0_#a26943]"
+              ? "bg-[#fff1f2] font-semibold text-[#484848] shadow-[inset_3px_0_0_#FF5A5F]"
               : "border border-stone-200/60 bg-white font-medium text-stone-900 shadow-sm";
-          const inactiveClass = tone === "admin" ? "font-medium text-[#80614d]" : "border border-transparent font-medium text-stone-600";
+          const inactiveClass = tone === "admin" ? "font-medium text-[#767676]" : "border border-transparent font-medium text-stone-600";
           const hoverClass =
             isActive
               ? ""
               : tone === "admin"
-                ? "hover:bg-[#fff1e4] hover:text-[#4f3424]"
+                ? "hover:bg-[#fff1f2] hover:text-[#FF5A5F]"
                 : "hover:bg-stone-200/50 hover:text-stone-900";
 
           return (
@@ -158,17 +158,17 @@ function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" 
   return (
     <Link
       className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
-        tone === "admin" ? "border-[#efb987] bg-[#fff6ee] hover:bg-[#ffe8d3]" : "border-[#e4e1dc] bg-[#fbfaf8] hover:bg-white"
+        tone === "admin" ? "border-[#ffd1d4] bg-[#fff1f2] hover:bg-[#ffe3e5]" : "border-[#e4e1dc] bg-[#fbfaf8] hover:bg-white"
       }`}
       href={href}
       onClick={(event) => onNavigate(event, href)}
     >
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone === "admin" ? "bg-[#FFD3AC] text-[#3a281d]" : "bg-white text-[#6b7280] shadow-sm"}`}>
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone === "admin" ? "bg-[#fff1f2] text-[#484848]" : "bg-white text-[#6b7280] shadow-sm"}`}>
         <SidebarIcon name={icon} />
       </span>
       <span className="min-w-0">
-        <span className={`block text-[14px] font-semibold ${tone === "admin" ? "text-[#3a281d]" : "text-[#222222]"}`}>{label}</span>
-        <span className={`mt-0.5 block text-[12px] leading-4 ${tone === "admin" ? "text-[#80614d]" : "text-[#7a7f87]"}`}>{detail}</span>
+        <span className={`block text-[14px] font-semibold ${tone === "admin" ? "text-[#484848]" : "text-[#222222]"}`}>{label}</span>
+        <span className={`mt-0.5 block text-[12px] leading-4 ${tone === "admin" ? "text-[#767676]" : "text-[#7a7f87]"}`}>{detail}</span>
       </span>
     </Link>
   );
@@ -310,11 +310,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className={`min-h-screen text-slate-950 ${inAdminExperience ? "bg-[#fff4ea]" : "bg-[#f8f7f4]"}`}>
+    <div className={`min-h-screen text-slate-950 ${inAdminExperience ? "bg-[#fff7f7]" : "bg-[#f8f7f4]"}`}>
       <div className="min-h-screen lg:pl-72">
         <aside
           className={`fixed inset-y-0 left-0 z-30 hidden w-72 shrink-0 overflow-y-auto border-r px-4 py-5 shadow-[4px_0_24px_rgba(0,0,0,0.03)] [scrollbar-width:none] lg:flex lg:flex-col [&::-webkit-scrollbar]:hidden ${
-            inAdminExperience ? "border-[#efc29a] bg-[#fffaf6]" : "border-[#e8e3da] bg-[#fbfaf7]"
+            inAdminExperience ? "border-[#ffd1d4] bg-[#fff7f7]" : "border-[#e8e3da] bg-[#fbfaf7]"
           }`}
         >
           <div>
@@ -339,9 +339,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 Request Quote
               </Link>
             ) : inAdminExperience ? (
-              <div className="mt-12 rounded-md border border-[#efb987] bg-[#FFD3AC] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6f4529]">Admin mode</p>
-                <p className="mt-2 text-[14px] leading-5 text-[#3a281d]">A focused workspace for quote requests and supplier follow-up.</p>
+              <div className="mt-12 rounded-md border border-[#ffd1d4] bg-[#fff1f2] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#767676]">Admin mode</p>
+                <p className="mt-2 text-[14px] leading-5 text-[#484848]">A focused workspace for quote requests and supplier follow-up.</p>
               </div>
             ) : null}
 
@@ -371,13 +371,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex min-w-0 flex-1 flex-col">
           <header
             className={`sticky top-0 z-10 border-b px-5 py-4 backdrop-blur lg:hidden ${
-              inAdminExperience ? "border-[#efc29a] bg-[#fff6ee]/95" : "border-slate-200 bg-white/90"
+              inAdminExperience ? "border-[#ffd1d4] bg-[#fff1f2]/95" : "border-slate-200 bg-white/90"
             }`}
           >
             <div className="flex items-center justify-between gap-4">
               <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
               <Link
-                className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#FFD3AC] text-[#3a281d]" : "bg-[#858585] text-[#ffffff]"}`}
+                className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#fff1f2] text-[#484848]" : "bg-[#858585] text-[#ffffff]"}`}
                 href={inAdminExperience ? "/dashboard" : "/admin"}
                 onClick={(event) => handleNavigate(event, inAdminExperience ? "/dashboard" : "/admin")}
               >
@@ -394,8 +394,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     className={`rounded-full border px-3 py-1.5 ${
                       inAdminExperience
                         ? isActive
-                          ? "border-[#a26943] bg-[#FFD3AC] font-semibold text-[#3a281d]"
-                          : "border-[#efb987] bg-[#fffaf6] text-[#5c3d28]"
+                          ? "border-[#FF5A5F] bg-[#fff1f2] font-semibold text-[#484848]"
+                          : "border-[#ffd1d4] bg-[#fff7f7] text-[#767676]"
                         : isActive
                           ? "border-slate-950 bg-slate-950 font-semibold text-[#ffffff]"
                           : "border-slate-200 bg-white"

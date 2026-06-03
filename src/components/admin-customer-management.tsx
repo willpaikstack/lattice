@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { CustomerProfileIcon } from "@/components/customer-profile-icon";
 import type { CustomerProfile } from "@/lib/customer-profiles";
 import type { WaitingListEntry } from "@/lib/waiting-list";
 
@@ -102,7 +103,7 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
               return (
                 <button
                   className={`h-9 shrink-0 rounded-md border px-3 text-[13px] font-semibold transition ${
-                    isActive ? "border-[#4f3424] bg-[#4f3424] text-white" : "border-[#e4c0a3] bg-white text-[#6b4a34] hover:bg-[#fff6ee]"
+                    isActive ? "border-[#FF5A5F] bg-[#FF5A5F] text-white" : "border-[#ffd1d4] bg-white text-[#767676] hover:bg-[#fff1f2]"
                   }`}
                   key={item.value}
                   onClick={() => setFilter(item.value)}
@@ -129,20 +130,23 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
         {filteredCustomers.map((customer) => (
           <Link
             aria-label={`Open customer profile for ${customer.name}`}
-            className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#4f3424] xl:grid-cols-[1.15fr_0.78fr_0.56fr_0.56fr_0.58fr_0.62fr] xl:items-center"
+            className="group grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.15fr_0.78fr_0.56fr_0.56fr_0.58fr_0.62fr] xl:items-center"
             href={`/admin/customers/${customer.id}`}
             key={customer.id}
           >
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{customer.website || "Website not set"}</span>
-                <span className="inline-flex rounded-md border border-[#f0d0b5] bg-[#fff6ee] px-2 py-0.5 text-[11px] font-semibold text-[#7a4a22]">{customer.accountStatus}</span>
+            <div className="flex min-w-0 items-start gap-3">
+              <CustomerProfileIcon icon={customer.icon} size="sm" />
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{customer.website || "Website not set"}</span>
+                  <span className="inline-flex rounded-md border border-[#ffd1d4] bg-[#fff1f2] px-2 py-0.5 text-[11px] font-semibold text-[#767676]">{customer.accountStatus}</span>
+                </div>
+                <h2 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">{customer.name}</h2>
+                <p className="mt-1 truncate text-[13px] text-[#69707a]">
+                  {customer.primaryContactName || customer.users[0]?.name || "No contact recorded"}
+                  {customer.primaryContactEmail ? ` - ${customer.primaryContactEmail}` : ""}
+                </p>
               </div>
-              <h2 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">{customer.name}</h2>
-              <p className="mt-1 truncate text-[13px] text-[#69707a]">
-                {customer.primaryContactName || customer.users[0]?.name || "No contact recorded"}
-                {customer.primaryContactEmail ? ` - ${customer.primaryContactEmail}` : ""}
-              </p>
             </div>
 
             <div>
@@ -171,7 +175,7 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Status</p>
               <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{customer.accountStatus}</p>
-              <p className="mt-1 text-[12px] text-[#8a8f98]">Open profile</p>
+              <p className="mt-1 text-[12px] font-semibold text-[#767676] transition group-hover:text-[#171717]">Open profile</p>
             </div>
           </Link>
         ))}
@@ -219,7 +223,7 @@ function WaitingListTable({ entries }: { entries: WaitingListEntry[] }) {
               value={query}
             />
           </label>
-          <p className="w-fit rounded-md border border-[#f0d0b5] bg-[#fff6ee] px-3 py-2 text-[13px] font-semibold text-[#7a4a22]">{entries.length} joined</p>
+          <p className="w-fit rounded-md border border-[#ffd1d4] bg-[#fff1f2] px-3 py-2 text-[13px] font-semibold text-[#767676]">{entries.length} joined</p>
         </div>
       </div>
 
@@ -255,7 +259,7 @@ function WaitingListTable({ entries }: { entries: WaitingListEntry[] }) {
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Joined</p>
-                  <p className="mt-1 text-[13px] font-semibold text-[#7a4a22] xl:mt-0">{formatJoinedDate(entry.joinedAt)}</p>
+                  <p className="mt-1 text-[13px] font-semibold text-[#767676] xl:mt-0">{formatJoinedDate(entry.joinedAt)}</p>
                 </div>
               </article>
             ))}

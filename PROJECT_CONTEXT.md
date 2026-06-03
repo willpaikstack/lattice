@@ -35,6 +35,7 @@ Production launch baseline as of 2026-06-02:
 - Public waiting-list requests persist to Neon via Prisma; email outbox fallback is non-fatal when Resend is not configured.
 - Local development RFQ submissions use PostgreSQL when available and fall back to `.data/requests.json` only when Prisma/Postgres is unreachable, matching the local waiting-list fallback style so sample submissions can still be tested on machines without Docker.
 - Local development RFQ file uploads now store actual CAD/drawing bytes under gitignored `.data/uploads/rfq/<date>/...` and persist `UploadedFile.storageKey` with the RFQ. This is a temporary local storage bridge; production still needs Cloudflare R2 or another S3-compatible object store.
+- Artificial seeded RFQs have been removed from the runtime quote workflow as of 2026-06-03. Local development now keeps only real submitted RFQ records in `.data/requests.json` when Prisma/Postgres is unavailable.
 - Resend, Cloudflare R2/S3 production storage, custom domain, and multi-user production authentication are still pending. A local single-account credential gate now protects workspace routes through a signed HTTP-only session cookie.
 
 The current working vertical slice:
@@ -47,10 +48,12 @@ The current working vertical slice:
 6. Prisma persists the request to PostgreSQL.
 7. Draft customer quotes are visible from admin quote submissions in a separate draft table, including same-browser incomplete RFQ drafts and durable `DRAFT` requests.
 8. Submitted requests appear in admin quote submissions, where admins open a minimal RFQ review drawer focused on downloading uploaded files, checking configured part details, and entering critical quote feedback: one unit price per configured part, lead time, shipping cost, shipping method, shipping terms, estimated delivery date, quote created date, quote valid-until date, and notes.
-9. The older, fuller customer quote packet builder still exists in code for future customer-facing quote version work, but the first admin RFQ review drawer is intentionally minimal.
-10. Buyer quote rows at `/quotes` are split into in-progress RFQs and quote-received requests, and open a consistent quote detail template at `/quotes/[requestId]` with a summary-of-order table, per-part unit prices, saved customer quote versions, lead time, files, supplier quote basis, activity, and purchase conversion.
-11. Purchased quotes leave the buyer Quotes page and live in `/orders`; opening a purchased quote detail route redirects to the matching order detail.
-12. Buyer-facing quote statuses are intentionally limited to `Draft`, `Quote received`, `Ordered`, and `Closed`. More granular submitted, needs-info, and supplier-review states remain internal RFQ workflow states rather than customer quote statuses.
+9. From the admin RFQ review drawer, operators enter unit pricing, lead time, shipping cost, shipping terms, quote dates, delivery date, and quote notes in the app, then can export a request-specific Excel quote workbook at `/admin/quotes/[requestId]/quote-template.xlsx` and manually download the latest saved customer quote PDF at `/admin/quotes/[requestId]/quote.pdf`; both are populated from the saved RFQ, uploaded files, quote feedback, customer quote version, and shipping fields.
+10. As of 2026-06-03, artificial seeded/demo RFQs are removed from runtime quote fallbacks. The local fallback store currently keeps only the real aluminum plate RFQ submitted by William while the workflow moves into real commissioning.
+11. The older, fuller customer quote packet builder still exists in code for future customer-facing quote version work, but the first admin RFQ review drawer is intentionally minimal.
+12. Buyer quote rows at `/quotes` are split into in-progress RFQs and quote-received requests, and open a consistent quote detail template at `/quotes/[requestId]` with a summary-of-order table, per-part unit prices, saved customer quote versions, lead time, files, supplier quote basis, activity, and purchase conversion.
+13. Purchased quotes leave the buyer Quotes page and live in `/orders`; opening a purchased quote detail route redirects to the matching order detail.
+14. Buyer-facing quote statuses are intentionally limited to `Draft`, `Quote received`, `Ordered`, and `Closed`. More granular submitted, needs-info, and supplier-review states remain internal RFQ workflow states rather than customer quote statuses.
 
 Important routes:
 
@@ -72,8 +75,10 @@ Important routes:
 - `/admin/customers` and `/admin/customers/[companyId]` - customer management, including a waiting list viewer.
 - `/admin/vendors` - Notion-database-inspired overseas vendor directory for shop contacts, capabilities, quality notes, RFQ history, and order coverage.
 - `/admin/quotes` - admin quote submissions command center for RFQ review, status updates, supplier quote context, and customer quote issuance.
+- `/admin/quotes/[requestId]/quote-template.xlsx` - admin download route for a data-connected customer quote Excel workbook generated from the selected RFQ.
+- `/admin/quotes/[requestId]/quote.pdf` - admin manual-download route for the latest saved customer quote PDF generated from the selected RFQ and quote version.
 - `/admin/orders` - admin order management.
-- `/admin/resources` - admin resource library for downloadable internal templates and reference files, currently including the quote PDF template.
+- `/admin/resources` - admin resource library for downloadable and previewable internal templates and reference files, with stable document IDs such as `DOC-001`; currently includes the quote PDF reference, a single-tab editable Excel customer quote template for continuous PDF export, supplier purchase order template for Chinese machine shops, and domestic customer invoice template. Excel templates render workbook-style previews with yellow operator-input cells; the quote PDF reference renders inline while retaining download behavior.
 - `/materials` - customer-facing material catalog grouped by material family and subgroup; vendor source/provenance stays out of this page and is retained only in internal repositories.
 - `/capabilities` - fabrication capabilities.
 - `/equipment` - vendor equipment catalog sourced from China machine-shop contacts so buyers/operators can inspect real capacity, limits, and source provenance before routing RFQs.
@@ -86,6 +91,7 @@ Important folders:
 - `src/lib/` - business logic, typed data, persistence, and repository code.
 - `prisma/` - database schema.
 - `docs/` - product research, Bubble audit notes, and implementation plans.
+- `fixtures/` - currently disabled for RFQ seeding so artificial quote records do not re-enter the commissioned workflow.
 - `docs/autodesk-aps-cad-preview.md` - Autodesk Platform Services CAD preview setup and secret-handling guidance.
 - `public/equipment/` - manufacturing/equipment imagery.
 
@@ -114,7 +120,7 @@ The authenticated product UI should move toward a light B2B operations console:
 - restrained accents
 - manufacturing-specific fields and language
 - supplier-network trust signals that prove real capacity, equipment, source provenance, and process limits rather than generic capability claims
-- admin surfaces should feel visually distinct from the customer app, using `#FFD3AC` as the primary peach palette
+- admin surfaces should feel visually distinct from the customer app, using an Airbnb-inspired palette: Rausch coral `#FF5A5F` for primary admin actions and active accents, pale Rausch tints for admin surfaces, Babu teal `#00A699`-based success states, Arches orange `#FC642D` warnings, and Airbnb neutral grays `#484848` and `#767676` for text
 
 Avoid making the app feel like a generic startup landing page. Lattice is an operational tool for RFQs, procurement, manufacturing partners, quotes, and orders.
 
@@ -148,14 +154,17 @@ The Bubble reference worth improving:
 - `src/components/buyer-orders.tsx` and `src/components/buyer-order-detail.tsx` - buyer order views.
 - `src/components/supplier-orders.tsx` and `src/components/supplier-order-detail.tsx` - supplier order views.
 - `src/components/admin-*.tsx` - admin operation surfaces, including the quote-request overview dashboard and admin quote submissions command center.
-- `resources/admin/` and `src/app/admin/resources/` - internal admin template/reference files and the admin resource-library download page/routes.
+- `resources/admin/`, `src/app/admin/resources/`, and `src/lib/admin-document-templates.ts` - internal admin template/reference files, generated workbook templates, preview models, and the admin resource-library download page/routes, including the Lattice customer quote Excel template, supplier purchase order template, and domestic invoice template.
+- `docs/admin-document-templates.md` - durable source of truth for admin document template IDs, backing files, routes, reference assets, and usage rules, including DOC-001's single-tab continuous-PDF customer quote requirement.
 - `src/components/admin-vendor-database.tsx` and `src/lib/admin-vendors.ts` - overseas vendor database UI and request-derived vendor summaries.
 - `src/components/customer-quote-builder.tsx` and `src/lib/quote-file.ts` - customer-facing quote assembly, Markdown generation, and quote-version form helpers.
+- `src/lib/quote-xlsx.ts` - dependency-free Excel workbook generator for data-connected customer quote templates.
 - `src/lib/request-model.ts` - core request types, statuses, and transitions.
 - `src/lib/request-persistence.ts` - app/database mapping.
 - `src/lib/request-repository.ts` - database operations.
 - `src/lib/local-request-store.ts` - development-only server-side RFQ fallback store used when local Postgres is unavailable.
 - `src/lib/local-file-storage.ts` and `/api/local-files/[...storageKey]` - temporary local CAD/drawing file storage and download path for development RFQs.
+- `fixtures/demo-rfqs.json` - empty disabled RFQ fixture manifest retained only as a placeholder if isolated non-production test data is deliberately reintroduced.
 - `src/lib/customer-notifications.ts` - buyer notification derivation for quote-ready and missing-info RFQ states, with static fallback notifications.
 - `src/lib/autodesk-platform-services.ts` - APS authentication, OSS upload, Model Derivative translation, and viewer token helpers.
 - `src/lib/request-queue.ts` - legacy operator queue filtering/sorting kept for tests and future reuse if needed.

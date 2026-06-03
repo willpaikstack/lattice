@@ -28,6 +28,8 @@ export type CustomerQuoteInput = {
   lineItems: CustomerQuoteLineItem[];
 };
 
+const latticePaymentTerms = "100% Payment in Advance";
+
 export function lineItemTotal(item: CustomerQuoteLineItem) {
   return item.quantity * item.unitPrice;
 }
@@ -85,6 +87,7 @@ export function buildCustomerQuoteInputFromRequest(request: LatticeRequest): Cus
 
   return {
     assumptions: [
+      `${latticePaymentTerms}. Production begins after payment is received and final design release is complete.`,
       "Customer-supplied CAD and drawings are complete and represent the latest revision.",
       "Pricing is based on the uploaded RFQ package and listed manufacturing requirements.",
       "Standard dimensional inspection is included unless additional documentation is listed.",
@@ -104,12 +107,12 @@ export function buildCustomerQuoteInputFromRequest(request: LatticeRequest): Cus
       unitPrice: 0,
     })),
     notes: request.quote.summary || "Pricing includes manufacturing coordination, production, and standard inspection for the listed line items.",
-    preparedBy: "Lattice",
+    preparedBy: "Lattice OS",
     projectName: request.title,
     quoteDate,
     quoteNumber: `LQ-${request.id.slice(-8).toUpperCase()}`,
     shipping: "Billed at actual",
-    tax: "Not included",
+    tax: "Tax, tariffs, import duties, customs brokerage, and special inspection documents are excluded unless explicitly listed.",
     validUntil: addDaysIsoFrom(quoteDate, 14),
   };
 }
@@ -158,7 +161,7 @@ export function buildCustomerQuoteMarkdown(quote: CustomerQuoteInput) {
 
 **Prepared for:** ${quote.customerCompany || "[Customer company]"}  
 **Contact:** ${quote.customerContact || "[Customer contact]"}  
-**Prepared by:** ${quote.preparedBy || "Lattice"}  
+**Prepared by:** ${quote.preparedBy || "Lattice OS"}  
 **RFQ / Project:** ${quote.projectName || "[Project name]"}  
 **Quote date:** ${quote.quoteDate || "[Quote date]"}  
 **Quote valid until:** ${quote.validUntil || "[Valid until]"}  
@@ -180,7 +183,7 @@ ${lineRows.join("\n")}
 
 **Subtotal:** ${formatUsd(subtotal)}  
 **Shipping:** ${quote.shipping || "Billed at actual"}  
-**Tax:** ${quote.tax || "Not included"}  
+**Tax:** ${quote.tax || "Excluded unless explicitly listed"}  
 
 ## Total Quote
 
@@ -200,6 +203,6 @@ ${hasClarifications ? clarifications.map((clarification, index) => `${index + 1}
 
 ## Acceptance
 
-To accept this quote, reply with written approval and provide a purchase order referencing **Quote ${quote.quoteNumber || "[Quote number]"}**.
+To accept this quote, reply with written approval and complete payment referencing **Quote ${quote.quoteNumber || "[Quote number]"}**. Standard payment terms are **${latticePaymentTerms}**.
 `;
 }

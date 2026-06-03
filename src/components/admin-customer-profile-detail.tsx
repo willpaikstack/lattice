@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { CustomerProfileIcon } from "@/components/customer-profile-icon";
 import type { CustomerProfile } from "@/lib/customer-profiles";
+import type { LatticeRequest, RequestStatus } from "@/lib/request-model";
 
 function formatCurrency(cents: number) {
   return new Intl.NumberFormat("en-US", {
@@ -8,6 +10,29 @@ function formatCurrency(cents: number) {
     maximumFractionDigits: 0,
     style: "currency",
   }).format(cents / 100);
+}
+
+function formatDate(value: string) {
+  if (!value) {
+    return "Not set";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function statusLabel(status: RequestStatus) {
+  return status
+    .split("_")
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function requestHref(request: LatticeRequest) {
+  return request.status === "PURCHASED" ? `/orders/${request.id}` : `/operator/requests/${request.id}`;
 }
 
 function Field({
@@ -37,6 +62,88 @@ function Field({
   );
 }
 
+function CustomerRequestHistory({ requests }: { requests: LatticeRequest[] }) {
+  return (
+    <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
+      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h2 className="text-[19px] font-semibold tracking-tight text-[#202020]">RFQs and orders</h2>
+          <p className="mt-1 text-[14px] leading-6 text-[#707782]">Every request currently attached to this customer record.</p>
+        </div>
+        <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86]">{requests.length} record(s)</p>
+      </div>
+
+      {requests.length ? (
+        <div className="mt-4 divide-y divide-[#eeeeee] overflow-hidden rounded-md border border-[#eeeeee]">
+          {requests.map((request) => {
+            const latestCustomerQuote = request.customerQuotes.at(-1);
+
+            return (
+              <article className="bg-white p-4" key={request.id}>
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-md border border-[#ffd1d4] bg-[#fff1f2] px-2 py-0.5 text-[11px] font-semibold text-[#767676]">
+                        {statusLabel(request.status)}
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">{request.process}</span>
+                    </div>
+                    <h3 className="mt-2 text-[15px] font-semibold text-[#202020]">{request.title}</h3>
+                    <p className="mt-1 text-[13px] leading-5 text-[#707782]">
+                      Requested by {request.requesterName} - due {formatDate(request.dueDate)} - updated {formatDate(request.updatedAt)}
+                    </p>
+                  </div>
+                  <Link className="shrink-0 text-[13px] font-semibold text-[#FF5A5F] transition hover:text-[#171717]" href={requestHref(request)}>
+                    Open record
+                  </Link>
+                </div>
+
+                <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                  <div className="rounded-md bg-[#f8fafc] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Quote</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">
+                      {latestCustomerQuote ? formatCurrency(latestCustomerQuote.totalCents) : request.quote.estimatedPriceCents ? formatCurrency(request.quote.estimatedPriceCents) : "Pending"}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[#707782]">
+                      {latestCustomerQuote ? `${latestCustomerQuote.quoteNumber} - v${latestCustomerQuote.versionNumber}` : request.quote.leadTimeDays ? `${request.quote.leadTimeDays} day lead time` : "No customer quote yet"}
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-[#f8fafc] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Files</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">{request.files.length}</p>
+                    <p className="mt-1 line-clamp-2 text-[12px] text-[#707782]">{request.files.map((file) => file.name).join(", ") || "No files recorded"}</p>
+                  </div>
+                  <div className="rounded-md bg-[#f8fafc] p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Supplier</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#202020]">{request.supplierOrder.shopName || "Not assigned"}</p>
+                    <p className="mt-1 text-[12px] text-[#707782]">{request.supplierQuotes.length} quote(s) - {request.supplierOrder.status.replaceAll("_", " ").toLowerCase()}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 rounded-md bg-[#fbfbfb] p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Line items</p>
+                  <div className="mt-2 grid gap-2">
+                    {request.lineItems.map((item) => (
+                      <div className="grid gap-1 text-[13px] text-[#4b525b] md:grid-cols-[1fr_0.34fr_0.7fr_0.7fr]" key={item.id}>
+                        <span className="font-semibold text-[#202020]">{item.partName}</span>
+                        <span>Qty {item.quantity}</span>
+                        <span>{item.material}</span>
+                        <span>{item.surfaceFinish || item.generalTolerance || "Standard finish/tolerance"}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-md bg-[#f8fafc] p-4 text-[14px] leading-6 text-[#707782]">No RFQs or orders are attached to this customer yet.</p>
+      )}
+    </section>
+  );
+}
+
 export function AdminCustomerProfileDetail({
   profile,
   updateAction,
@@ -52,12 +159,15 @@ export function AdminCustomerProfileDetail({
 
       <section className="rounded-md border border-[#e6e6e6] bg-[#f8fafc] p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#64748b]">Customer profile</p>
-            <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-tight text-[#171717]">{profile.name}</h1>
-            <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#5f6673]">
-              This profile is attached to the platform business record that owns this customer&apos;s users, RFQs, quotes, and orders.
-            </p>
+          <div className="flex min-w-0 gap-4">
+            <CustomerProfileIcon icon={profile.icon} size="lg" />
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#64748b]">Customer profile</p>
+              <h1 className="mt-2 break-words text-[34px] font-semibold leading-tight tracking-tight text-[#171717]">{profile.name}</h1>
+              <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#5f6673]">
+                This profile is attached to the platform business record that owns this customer&apos;s users, RFQs, quotes, and orders.
+              </p>
+            </div>
           </div>
           <div className="rounded-md border border-[#d7d7d7] bg-white px-4 py-3 text-sm text-[#4b5563]">
             <p className="font-semibold text-[#202020]">{profile.accountStatus}</p>
@@ -158,6 +268,8 @@ export function AdminCustomerProfileDetail({
           </section>
         </div>
       </div>
+
+      <CustomerRequestHistory requests={profile.requests} />
     </div>
   );
 }

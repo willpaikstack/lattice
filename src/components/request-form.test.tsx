@@ -133,6 +133,88 @@ describe("RequestForm", () => {
     expect(screen.getByLabelText("Manufacturing notes")).toHaveDisplayValue("Reorder from PO-DEMO_PUR / LQ-DEMO_PUR.");
     expect(screen.getByText("This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.")).toBeInTheDocument();
     expect(screen.getByLabelText("Upload replacement CAD for mounting-bracket.step")).toBeInTheDocument();
+    expect(screen.getByText(/This is only a saved filename/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
+  });
+
+  it("requires reopened reference-only RFQs to upload CAD bytes before submitting", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            preview: {
+              status: "configuration_required",
+              message: "Add APS credentials to enable live previews.",
+            },
+          }),
+          { status: 501 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            request: {
+              id: "req_resubmitted",
+              title: "Valve manifold order reorder",
+              status: "SUBMITTED",
+            },
+          }),
+          { status: 201 },
+        ),
+      );
+
+    render(
+      <RequestForm
+        initialState={{
+          buyerCompany: "Apex Fluidics",
+          dueDate: "2026-06-16",
+          fileName: "mounting-bracket.step",
+          generalTolerance: "iso_2768_medium_m",
+          material: "al_6061_t6",
+          partName: "Mounting bracket",
+          process: "cnc_milling",
+          projectName: "Valve manifold order reorder",
+          qualityDocumentation: ["standard_inspection"],
+          quantity: "24",
+          requesterName: "William Paik",
+          surfaceFinish: "as_machined_ra_3_2",
+          technicalDrawingName: "mounting-bracket-drawing.pdf",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
+
+    const replacement = new File(["solid"], "mounting-bracket.step", { type: "model/step" });
+    fireEvent.change(screen.getByLabelText("Upload replacement CAD for mounting-bracket.step"), {
+      target: { files: [replacement] },
+    });
+
+    await screen.findByText("Autodesk preview setup needed");
+    expect(screen.getByText(/This is only a saved drawing filename/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
+
+    const drawing = new File(["drawing"], "mounting-bracket-drawing.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/Technical drawing/), {
+      target: { files: [drawing] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Request Quote" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith("/api/requests", expect.objectContaining({ method: "POST" })));
+    const submittedForm = fetchMock.mock.calls.at(-1)?.[1]?.body as FormData;
+    const submitted = JSON.parse(String(submittedForm.get("request")));
+
+    expect(submitted.files).toMatchObject([
+      { name: "mounting-bracket.step", sizeBytes: replacement.size, type: "model/step" },
+      { name: "mounting-bracket-drawing.pdf", sizeBytes: drawing.size, type: "application/pdf" },
+    ]);
+    expect(submittedForm.get("file-0")).toBe(replacement);
+    expect(submittedForm.get("file-1")).toBe(drawing);
   });
 
   it("restores an Autodesk CAD preview from a saved draft", () => {

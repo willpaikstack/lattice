@@ -63,6 +63,10 @@ See `docs/autodesk-aps-cad-preview.md` for setup, bucket naming, and secret-rota
 
 After setting the variables and restarting the server, visit `/api/cad-previews/configuration` to verify that the server can authenticate with Autodesk without exposing any secrets.
 
+## Real RFQ data
+
+The quote workflow is now commissioned for real submitted RFQs. Avoid seeding artificial RFQ records into the quote database or local fallback store. Use `.data/requests.json` only as the local development fallback when Prisma/Postgres is unavailable, and keep real customer/vendor CAD files out of Git.
+
 ## Shared agent context
 
 This repo carries lightweight project memory so AI agents on different computers can pick up the same context:

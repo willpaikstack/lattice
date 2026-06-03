@@ -161,6 +161,14 @@ function drawingCanPreview(file: File | null) {
   return file.type === "application/pdf" || file.type.startsWith("image/");
 }
 
+function lineItemHasCadBytes(lineItem: LineItemState) {
+  return Boolean(lineItem.selectedFile && lineItem.selectedFile.size > 0);
+}
+
+function lineItemHasDrawingBytes(lineItem: LineItemState) {
+  return !lineItem.technicalDrawingName.trim() || Boolean(lineItem.selectedDrawingFile && lineItem.selectedDrawingFile.size > 0);
+}
+
 function initialCadPreview(
   initialState?: RequestFormInitialState,
 ): CadUploadPreviewState {
@@ -514,6 +522,9 @@ function LineItemConfigurationCard({
   onDrawingSelected: (id: string, file: File | null) => void;
   onReviewDrawing: (id: string) => void;
 }) {
+  const needsCadUpload = !lineItemHasCadBytes(lineItem);
+  const needsDrawingUpload = !lineItemHasDrawingBytes(lineItem);
+
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
@@ -585,6 +596,12 @@ function LineItemConfigurationCard({
                   </button>
                 ) : null}
               </div>
+              {needsDrawingUpload ? (
+                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm font-medium leading-6 text-amber-900">
+                  This is only a saved drawing filename. Upload the drawing
+                  again if it should be included in the RFQ package.
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-8">
@@ -796,6 +813,12 @@ function LineItemConfigurationCard({
                   />
                 </Field>
               </div>
+              {needsCadUpload ? (
+                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium leading-6 text-amber-900">
+                  This is only a saved filename. Upload the CAD file again so
+                  Lattice can store the actual STEP/part bytes for quoting.
+                </p>
+              ) : null}
               <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">
                 <span>Manufacturing notes</span>
                 <textarea
@@ -875,7 +898,9 @@ export function RequestForm({
           lineItem.generalTolerance.trim() &&
           lineItem.surfaceFinish.trim() &&
           Number(lineItem.quantity) > 0 &&
-          lineItem.fileName.trim(),
+          lineItem.fileName.trim() &&
+          lineItemHasCadBytes(lineItem) &&
+          lineItemHasDrawingBytes(lineItem),
       ),
     [configuredLineItems, projectForm],
   );
@@ -1218,6 +1243,28 @@ export function RequestForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const missingCadBytes = configuredLineItems.find(
+      (lineItem) => !lineItemHasCadBytes(lineItem),
+    );
+
+    if (missingCadBytes) {
+      setError(
+        `${missingCadBytes.fileName} is only a saved filename. Upload the CAD file again before submitting so its bytes can be stored.`,
+      );
+      return;
+    }
+
+    const missingDrawingBytes = configuredLineItems.find(
+      (lineItem) => !lineItemHasDrawingBytes(lineItem),
+    );
+
+    if (missingDrawingBytes) {
+      setError(
+        `${missingDrawingBytes.technicalDrawingName} is only a saved filename. Upload the drawing again before submitting so its bytes can be stored.`,
+      );
+      return;
+    }
 
     const input: DraftRequestInput = {
       buyerCompany: projectForm.buyerCompany,

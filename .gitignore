@@ -25,6 +25,11 @@
 *.pem
 .tmp-*
 .data/
+.codex-tmp/
+.npm-cache/
+.publish-tmp/
+outputs/
+~$*.xlsx
 
 # debug
 npm-debug.log*
