@@ -1,12 +1,12 @@
 "use client";
 
-import { ClipboardCheck, ExternalLink, FileSpreadsheet, FileText, PackageCheck, ReceiptText, Search, Truck, X } from "lucide-react";
+import { ClipboardCheck, ExternalLink, FileText, PackageCheck, ReceiptText, Search, Truck, X } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { LatticeRequest, SupplierQuoteStatus } from "@/lib/request-model";
+import { quotedLineForRequestItem, type LatticeRequest, type SupplierQuoteStatus } from "@/lib/request-model";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
@@ -80,6 +80,32 @@ function formatDateTime(value: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function addDaysIso(dateValue: string, days: number) {
+  const date = new Date(`${dateValue}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function defaultQuoteCreatedDate(request: LatticeRequest) {
+  if (request.status === "QUOTED") {
+    return request.quote.quoteCreatedDate || request.customerQuotes.at(-1)?.quoteDate || todayIsoDate();
+  }
+
+  return todayIsoDate();
+}
+
+function defaultQuoteValidUntil(request: LatticeRequest, quoteCreatedDate: string) {
+  if (request.status === "QUOTED" && request.quote.quoteValidUntil) {
+    return request.quote.quoteValidUntil;
+  }
+
+  return addDaysIso(quoteCreatedDate, 30);
 }
 
 function formatFileSize(sizeBytes: number) {
@@ -236,7 +262,7 @@ function bundledFilesByPart(request: LatticeRequest) {
 
 function lineItemUnitPriceInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
   const latestQuote = request.customerQuotes.at(-1);
-  const quotedLine = latestQuote?.lineItems.find((item) => item.id === lineItem.id || item.description === lineItem.partName);
+  const quotedLine = quotedLineForRequestItem(latestQuote?.lineItems, lineItem);
 
   if (quotedLine) {
     return quotedLine.unitPrice.toFixed(2);
@@ -251,7 +277,7 @@ function lineItemUnitPriceInput(request: LatticeRequest, lineItem: LatticeReques
 
 function lineItemLeadTimeInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
   const latestQuote = request.customerQuotes.at(-1);
-  const quotedLine = latestQuote?.lineItems.find((item) => item.id === lineItem.id || item.description === lineItem.partName);
+  const quotedLine = quotedLineForRequestItem(latestQuote?.lineItems, lineItem);
 
   return quotedLine?.leadTimeDays ?? request.quote.leadTimeDays ?? "";
 }
@@ -268,10 +294,17 @@ function AdminQuoteDetailDrawer({
   const status = statusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
+  const quoteCreatedDate = defaultQuoteCreatedDate(request);
+  const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
 
   return (
-    <div aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-[#1f2937]/45 px-4 py-6" role="dialog">
-      <div className="mx-auto max-w-[1180px] overflow-hidden rounded-md border border-[#e2d6ca] bg-white shadow-2xl">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1f2937]/45 px-4 py-6" onClick={onClose} role="presentation">
+      <div
+        aria-modal="true"
+        className="mx-auto max-w-[1180px] overflow-hidden rounded-md border border-[#e2d6ca] bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
         <div className="sticky top-0 z-10 border-b border-[#e8d2bf] bg-white">
           <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
@@ -288,23 +321,13 @@ function AdminQuoteDetailDrawer({
               {latestCustomerQuote ? (
                 <a
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                  download
                   href={`/admin/quotes/${request.id}/quote.pdf`}
-                  title="Downloads the last saved customer quote PDF."
+                  title="Opens the last saved customer quote PDF for review."
                 >
                   <FileText aria-hidden="true" size={16} />
-                  Download quote PDF
+                  View quote PDF
                 </a>
               ) : null}
-              <a
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                download
-                href={`/admin/quotes/${request.id}/quote-template.xlsx`}
-                title="Exports the last saved quote data. Save quote feedback first if you changed pricing or shipping."
-              >
-                <FileSpreadsheet aria-hidden="true" size={16} />
-                Export saved Excel
-              </a>
               <button
                 aria-label="Close RFQ drawer"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[#262626] transition hover:bg-[#f8fafc]"
@@ -601,10 +624,11 @@ function AdminQuoteDetailDrawer({
                     <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                       Quote Created Date
                       <input
-                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.quoteCreatedDate}
+                        className="h-11 rounded-md border border-[#d9d9d9] bg-[#f8fafc] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
                         name="quoteCreatedDate"
+                        readOnly
                         type="date"
+                        value={quoteCreatedDate}
                       />
                     </label>
                   </div>
@@ -613,9 +637,10 @@ function AdminQuoteDetailDrawer({
                     Quote Valid Until
                     <input
                       className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={request.quote.quoteValidUntil}
                       name="quoteValidUntil"
+                      onChange={(event) => setQuoteValidUntil(event.target.value)}
                       type="date"
+                      value={quoteValidUntil}
                     />
                   </label>
 
@@ -657,6 +682,8 @@ export function AdminQuoteManagement({
   updateStatusAction?: AdminQuoteAction;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const deepLinkedRequestId = searchParams.get("requestId");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
@@ -679,6 +706,15 @@ export function AdminQuoteManagement({
   const quotedValueCents = activeQuoteRequests.reduce((sum, request) => sum + (request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents ?? 0), 0);
   const blockedRequests = quoteRequests.filter((request) => request.status === "NEEDS_INFO").length;
   const readyForIssueCount = activeQuoteRequests.filter((request) => request.status === "QUOTED" || request.quote.estimatedPriceCents !== null).length;
+
+  useEffect(() => {
+    if (!deepLinkedRequestId) {
+      setDetailRequest(null);
+      return;
+    }
+
+    setDetailRequest(quoteRequests.find((request) => request.id === deepLinkedRequestId) ?? null);
+  }, [deepLinkedRequestId, quoteRequests]);
 
   const filteredRequests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -715,6 +751,18 @@ export function AdminQuoteManagement({
 
   function openDetail(request: LatticeRequest) {
     setDetailRequest(request);
+
+    if (deepLinkedRequestId !== request.id) {
+      router.push(`/admin/quotes?requestId=${encodeURIComponent(request.id)}`, { scroll: false });
+    }
+  }
+
+  function closeDetail() {
+    setDetailRequest(null);
+
+    if (deepLinkedRequestId) {
+      router.replace("/admin/quotes", { scroll: false });
+    }
   }
 
   function openDetailFromKey(event: KeyboardEvent<HTMLElement>, request: LatticeRequest) {
@@ -739,7 +787,8 @@ export function AdminQuoteManagement({
     <div className="space-y-5">
       {detailRequest ? (
         <AdminQuoteDetailDrawer
-          onClose={() => setDetailRequest(null)}
+          key={detailRequest.id}
+          onClose={closeDetail}
           request={detailRequest}
           updateStatusAction={updateStatusAction}
         />

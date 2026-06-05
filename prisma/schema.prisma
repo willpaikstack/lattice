@@ -76,6 +76,33 @@ model WaitingListEntry {
   joinedAt         DateTime @default(now())
 }
 
+model AccountDefaults {
+  id                         String   @id
+  name                       String   @default("")
+  email                      String   @default("")
+  phone                      String   @default("")
+  passwordChangedAt          String   @default("")
+  mfaEnabled                 Boolean  @default(true)
+  shippingName               String   @default("")
+  shippingCompany            String   @default("")
+  shippingAddress1           String   @default("")
+  shippingAddress2           String   @default("")
+  shippingCity               String   @default("")
+  shippingState              String   @default("")
+  shippingZipCode            String   @default("")
+  billingName                String   @default("")
+  billingCompany             String   @default("")
+  billingAddress1            String   @default("")
+  billingAddress2            String   @default("")
+  billingCity                String   @default("")
+  billingState               String   @default("")
+  billingZipCode             String   @default("")
+  billingEmail               String   @default("")
+  billingInvoiceRoutingNotes String   @default("")
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
 model Request {
   id                     String                 @id @default(cuid())
   title                  String
@@ -85,6 +112,16 @@ model Request {
   buyerCompanyId         String?
   buyerCompany           Company?               @relation(fields: [buyerCompanyId], references: [id])
   requesterName          String
+  requesterEmail         String                 @default("")
+  requesterPhone         String                 @default("")
+  shipToName             String                 @default("")
+  shipToCompany          String                 @default("")
+  shipToAddress1         String                 @default("")
+  shipToAddress2         String                 @default("")
+  shipToCity             String                 @default("")
+  shipToState            String                 @default("")
+  shipToZipCode          String                 @default("")
+  shipToPhone            String                 @default("")
   operatorCompleteness   OperatorCompleteness   @default(READY_FOR_REVIEW)
   assignedOwner          String?
   internalNotes          String                 @default("")
@@ -103,6 +140,9 @@ model Request {
   quoteCreatedDate       DateTime?
   quoteValidUntil        DateTime?
   quoteSummary           String                 @default("")
+  revisionOfRequestId    String?
+  revisionNumber         Int                    @default(1)
+  revisionChangeLog      String[]               @default([])
   lineItems              RequestLineItem[]
   files                  UploadedFile[]
   supplierDocuments      SupplierDocument[]

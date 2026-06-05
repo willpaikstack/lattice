@@ -176,8 +176,8 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
   const shippingCostCents = getOptionalPriceCents(formData, "shippingCost");
   const shippingMethod = getString(formData, "shippingMethod");
   const shippingTerms = getString(formData, "shippingTerms");
-  const quoteCreatedDate = getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10);
-  const quoteValidUntil = getString(formData, "quoteValidUntil") || addDaysIso(quoteCreatedDate, 14);
+  const quoteCreatedDate = new Date().toISOString().slice(0, 10);
+  const quoteValidUntil = getString(formData, "quoteValidUntil") || addDaysIso(quoteCreatedDate, 30);
   const quoteSummary = getString(formData, "quoteSummary").trim();
   const lineItems = current.lineItems.map((item) => ({
     description: item.partName,

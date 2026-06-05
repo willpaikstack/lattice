@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { buildCustomerQuoteInputFromRequest, buildCustomerQuoteInputFromVersion, customerQuotePdfFileName } from "@/lib/quote-file";
 import { buildRequestQuotePdf } from "@/lib/quote-pdf";
+import { convertCustomerQuoteTemplateToPdf } from "@/lib/quote-template-pdf";
 import type { RequestStatus } from "@/lib/request-model";
 import { getRequestById } from "@/lib/request-repository";
 
@@ -20,7 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ req
 
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const quote = latestCustomerQuote ? buildCustomerQuoteInputFromVersion(latestCustomerQuote) : buildCustomerQuoteInputFromRequest(request);
-  const pdf = await buildRequestQuotePdf(request);
+  const pdf = (await convertCustomerQuoteTemplateToPdf(request)) ?? (await buildRequestQuotePdf(request));
   const body = new ArrayBuffer(pdf.byteLength);
   new Uint8Array(body).set(pdf);
 

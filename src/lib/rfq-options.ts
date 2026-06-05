@@ -67,11 +67,26 @@ export const materialCostOptions: RfqOption[] = [
   option("tier_4", "$$$$", "____", { rank: 4 }),
 ];
 
-export const rfqMaterialOptions: RfqOption[] = cncMaterialLibrary.map((entry) =>
-  option(entry.value, entry.label, entry.value, {
-    family: entry.family,
-    sources: entry.sources.join(", "),
-  }),
+function uniqueOptionsByValue(options: RfqOption[]) {
+  const seen = new Set<string>();
+
+  return options.filter((option) => {
+    if (seen.has(option.value)) {
+      return false;
+    }
+
+    seen.add(option.value);
+    return true;
+  });
+}
+
+export const rfqMaterialOptions: RfqOption[] = uniqueOptionsByValue(
+  cncMaterialLibrary.map((entry) =>
+    option(entry.value, entry.label, entry.value, {
+      family: entry.family,
+      sources: entry.sources.join(", "),
+    }),
+  ),
 );
 
 export const companySeedOptions: RfqOption[] = [option("amogy", "Amogy Inc.")];

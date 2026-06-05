@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { contactSnapshotFromAccountSettings, getAccountSettings } from "@/lib/account-settings";
 import { saveLocalUpload } from "@/lib/local-file-storage";
 import { createSubmittedRequest, listOperatorRequests } from "@/lib/request-repository";
 import type { DraftRequestInput } from "@/lib/request-model";
@@ -13,13 +14,26 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const input = await parseSubmittedRequest(request);
+    const input = await withAccountDefaults(await parseSubmittedRequest(request));
     const created = await createSubmittedRequest(input);
     return NextResponse.json({ request: created }, { status: 201 });
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "Unable to create request";
     return NextResponse.json({ error: message }, { status: 400 });
   }
+}
+
+async function withAccountDefaults(input: DraftRequestInput): Promise<DraftRequestInput> {
+  const settings = await getAccountSettings();
+  const defaults = contactSnapshotFromAccountSettings(settings);
+
+  return {
+    ...input,
+    contact: {
+      ...defaults,
+      ...(input.contact ?? {}),
+    },
+  };
 }
 
 async function parseSubmittedRequest(request: Request): Promise<DraftRequestInput> {
@@ -45,6 +59,10 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
       const uploadedFile = formData.get(`file-${index}`);
 
       if (!(uploadedFile instanceof File)) {
+        if (fileMetadata.storageKey) {
+          return fileMetadata;
+        }
+
         throw new Error(`${fileMetadata.name} must be uploaded again before submitting.`);
       }
 

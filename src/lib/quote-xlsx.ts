@@ -1,4 +1,9 @@
-import type { LatticeRequest } from "./request-model";
+import fs from "node:fs";
+import path from "node:path";
+import zlib from "node:zlib";
+
+import { buildStandardQuoteNotes } from "./quote-notes";
+import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest } from "./request-model";
 
 export type CellValue = string | number | null;
 
@@ -14,6 +19,7 @@ const latticeAddress = "169 Madison Ave, #17525\nNew York, NY 10016";
 const latticeEmail = "mfg@latticeos.co";
 const latticeWebsite = "Latticeos.co";
 const latticePaymentTerms = "100% Payment in Advance";
+const defaultSalesTaxRate = 0.0825;
 
 const textStyle = 1;
 const titleStyle = 2;
@@ -107,6 +113,64 @@ function createZip(files: Array<{ name: string; content: string | Buffer }>) {
   return Buffer.concat([...localParts, centralDirectory, end]);
 }
 
+function readZipEntries(buffer: Buffer) {
+  let endOffset = -1;
+  const searchStart = Math.max(0, buffer.length - 0xffff - 22);
+
+  for (let offset = buffer.length - 22; offset >= searchStart; offset -= 1) {
+    if (buffer.readUInt32LE(offset) === 0x06054b50) {
+      endOffset = offset;
+      break;
+    }
+  }
+
+  if (endOffset === -1) {
+    throw new Error("Unable to find XLSX central directory.");
+  }
+
+  const entryCount = buffer.readUInt16LE(endOffset + 10);
+  let centralOffset = buffer.readUInt32LE(endOffset + 16);
+  const entries: Array<{ name: string; content: Buffer }> = [];
+
+  for (let index = 0; index < entryCount; index += 1) {
+    if (buffer.readUInt32LE(centralOffset) !== 0x02014b50) {
+      throw new Error("Invalid XLSX central directory entry.");
+    }
+
+    const method = buffer.readUInt16LE(centralOffset + 10);
+    const compressedSize = buffer.readUInt32LE(centralOffset + 20);
+    const nameLength = buffer.readUInt16LE(centralOffset + 28);
+    const extraLength = buffer.readUInt16LE(centralOffset + 30);
+    const commentLength = buffer.readUInt16LE(centralOffset + 32);
+    const localOffset = buffer.readUInt32LE(centralOffset + 42);
+    const nameStart = centralOffset + 46;
+    const name = buffer.subarray(nameStart, nameStart + nameLength).toString("utf8");
+
+    if (buffer.readUInt32LE(localOffset) !== 0x04034b50) {
+      throw new Error(`Invalid XLSX local file header for ${name}.`);
+    }
+
+    const localNameLength = buffer.readUInt16LE(localOffset + 26);
+    const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+    const dataStart = localOffset + 30 + localNameLength + localExtraLength;
+    const compressed = buffer.subarray(dataStart, dataStart + compressedSize);
+    let content: Buffer;
+
+    if (method === 0) {
+      content = Buffer.from(compressed);
+    } else if (method === 8) {
+      content = zlib.inflateRawSync(compressed);
+    } else {
+      throw new Error(`Unsupported XLSX compression method ${method} for ${name}.`);
+    }
+
+    entries.push({ name, content });
+    centralOffset += 46 + nameLength + extraLength + commentLength;
+  }
+
+  return entries;
+}
+
 function xml(value: string | number) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -114,6 +178,40 @@ function xml(value: string | number) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
+}
+
+function preserveStyleAttributes(attributes: string) {
+  return attributes.match(/\s+s="[^"]+"/)?.[0] ?? "";
+}
+
+function replaceCell(sheet: string, reference: string, replacement: (attributes: string, body: string) => string) {
+  const cellPattern = new RegExp(`<x:c r="${reference}"([^>]*)\\s*\\/>|<x:c r="${reference}"([^>]*)>([\\s\\S]*?)<\\/x:c>`);
+
+  return sheet.replace(cellPattern, (match, attributesSelfClosing: string | undefined, attributesWithBody: string | undefined, body: string | undefined) => {
+    const attributes = attributesSelfClosing ?? attributesWithBody ?? "";
+    return replacement(attributes, body ?? "");
+  });
+}
+
+function setStringCell(sheet: string, reference: string, value: string) {
+  return replaceCell(sheet, reference, (attributes) => `<x:c r="${reference}"${preserveStyleAttributes(attributes)} t="str"><x:v>${xml(value)}</x:v></x:c>`);
+}
+
+function setNumberCell(sheet: string, reference: string, value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return setStringCell(sheet, reference, "");
+  }
+
+  return replaceCell(sheet, reference, (attributes) => `<x:c r="${reference}"${preserveStyleAttributes(attributes)} t="n"><x:v>${value}</x:v></x:c>`);
+}
+
+function setFormulaCachedCell(sheet: string, reference: string, value: string | number | null) {
+  return replaceCell(sheet, reference, (attributes, body) => {
+    const formula = body.match(/<x:f[\s\S]*?<\/x:f>/)?.[0] ?? "";
+    const valueXml = value === null ? "" : xml(value);
+    const typeAttribute = typeof value === "string" ? ' t="str"' : ' t="n"';
+    return `<x:c r="${reference}"${preserveStyleAttributes(attributes)}${typeAttribute}>${formula}<x:v>${valueXml}</x:v></x:c>`;
+  });
 }
 
 function columnName(index: number) {
@@ -143,7 +241,7 @@ function isMoneyCell(sheetName: string, rowIndex: number, columnIndex: number) {
   }
 
   if (sheetName === "Invoice") {
-    return (columnIndex >= 4 && columnIndex <= 5 && rowIndex >= 16 && rowIndex <= 25) || (columnIndex === 1 && rowIndex >= 27 && rowIndex <= 32);
+    return (columnIndex >= 4 && columnIndex <= 5 && rowIndex >= 15 && rowIndex <= 24) || (columnIndex === 1 && rowIndex >= 26 && rowIndex <= 30) || (columnIndex === 8 && rowIndex === 3);
   }
 
   return false;
@@ -170,8 +268,10 @@ export function isTemplateInputCell(sheetName: string, rowIndex: number, columnI
 
   if (sheetName === "Invoice") {
     return (
-      (columnIndex === 1 && ((rowIndex >= 3 && rowIndex <= 13) || (rowIndex >= 27 && rowIndex <= 32) || (rowIndex >= 34 && rowIndex <= 36))) ||
-      (rowIndex >= 16 && rowIndex <= 25 && columnIndex >= 1 && columnIndex <= 7 && columnIndex !== 5)
+      ((rowIndex >= 3 && rowIndex <= 6) && [1, 5, 8].includes(columnIndex)) ||
+      ((rowIndex >= 9 && rowIndex <= 12) && [0, 4].includes(columnIndex)) ||
+      (rowIndex >= 15 && rowIndex <= 24 && columnIndex >= 0 && columnIndex <= 7 && columnIndex !== 5) ||
+      (columnIndex === 1 && ((rowIndex >= 26 && rowIndex <= 30) || (rowIndex >= 32 && rowIndex <= 35)))
     );
   }
 
@@ -208,6 +308,15 @@ function styleForCell(sheetName: string, rowIndex: number, columnIndex: number) 
 
   if (rowIndex === 2) {
     return headerStyle;
+  }
+
+  if (sheetName === "Invoice") {
+    if (rowIndex === 8 || rowIndex === 14) return headerStyle;
+    if (columnIndex === 0 && ((rowIndex >= 3 && rowIndex <= 6) || (rowIndex >= 26 && rowIndex <= 30) || (rowIndex >= 32 && rowIndex <= 35))) return labelStyle;
+    if (columnIndex === 4 && rowIndex >= 3 && rowIndex <= 6) return labelStyle;
+    if (columnIndex === 7 && rowIndex >= 3 && rowIndex <= 6) return labelStyle;
+    if (rowIndex === 30 && columnIndex <= 1) return totalStyle;
+    if (isMoneyCell(sheetName, rowIndex, columnIndex)) return moneyStyle;
   }
 
   return textStyle;
@@ -363,7 +472,7 @@ function addDaysIso(dateValue: string, days: number) {
 
 function latestLinePrice(request: LatticeRequest, lineItemId: string, partName: string) {
   const latest = request.customerQuotes.at(-1);
-  const line = latest?.lineItems.find((item) => item.id === lineItemId || item.description === partName);
+  const line = quotedLineForRequestItem(latest?.lineItems, { id: lineItemId, partName });
   if (line) {
     return line.unitPrice;
   }
@@ -397,6 +506,169 @@ function itemDetails(request: LatticeRequest, index: number) {
   const lineItem = request.lineItems[index];
 
   return [`[Rev 1] ${cadFiles[index]?.name ?? lineItem.partName}`, drawingFiles[index]?.name, lineItem.partName].filter(Boolean).join("\n");
+}
+
+function templateItemDetails(request: LatticeRequest, index: number) {
+  const lineItem = request.lineItems[index];
+  if (!lineItem) {
+    return "";
+  }
+
+  const cadFiles = request.files.filter((file) => /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type));
+  const drawingFiles = request.files.filter((file) => /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type));
+  const details = [
+    cadFiles[index]?.name ?? lineItem.partName,
+    drawingFiles[index]?.name,
+    `Process: ${request.process || "TBD"}`,
+    `Material: ${lineItem.material || "TBD"}`,
+    `Finish: ${lineItem.surfaceFinish || "As machined / not specified"}`,
+  ];
+
+  if (lineItem.generalTolerance) {
+    details.push(`Tolerance: ${lineItem.generalTolerance}`);
+  }
+
+  if (lineItem.qualityDocumentation?.length) {
+    details.push(`Inspection/docs: ${lineItem.qualityDocumentation.join(", ")}`);
+  }
+
+  return details.filter(Boolean).join("\n");
+}
+
+function formatQuoteDateForTemplate(value: string | null | undefined) {
+  return formatIsoDate(value);
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+}
+
+function leadTimeText(request: LatticeRequest) {
+  const latest = request.customerQuotes.at(-1);
+
+  if (latest?.leadTime) {
+    return latest.leadTime;
+  }
+
+  return request.quote.leadTimeDays ? `${request.quote.leadTimeDays} business days` : "Pending";
+}
+
+function templateNotes(request: LatticeRequest) {
+  const latest = request.customerQuotes.at(-1);
+  const quoteDate = formatQuoteDateForTemplate(request.quote.quoteCreatedDate || latest?.quoteDate) || new Date().toISOString().slice(0, 10);
+  const shipBy = request.quote.leadTimeDays ? addDaysIso(quoteDate, request.quote.leadTimeDays) : null;
+
+  return ["Notes:", buildStandardQuoteNotes(quoteDate, shipBy)].join("\n");
+}
+
+function preparedForLines(request: LatticeRequest) {
+  return [request.requesterName, request.requesterEmail, request.requesterPhone].filter(Boolean);
+}
+
+function shipToLines(request: LatticeRequest) {
+  const lines = requestShipToLines({
+    shipToAddress1: request.shipToAddress1,
+    shipToAddress2: request.shipToAddress2,
+    shipToCity: request.shipToCity,
+    shipToCompany: request.shipToCompany || request.buyerCompany,
+    shipToName: request.shipToName || request.requesterName,
+    shipToPhone: request.shipToPhone || request.requesterPhone,
+    shipToState: request.shipToState,
+    shipToZipCode: request.shipToZipCode,
+  });
+
+  return lines.length ? lines : [request.requesterName, request.buyerCompany].filter(Boolean);
+}
+
+function patchWorkbookCalcMode(workbookXmlValue: string) {
+  const calcPr = '<x:calcPr calcMode="auto" fullCalcOnLoad="1" forceFullCalc="1" />';
+
+  if (/<x:calcPr\b[\s\S]*?\/>/.test(workbookXmlValue)) {
+    return workbookXmlValue.replace(/<x:calcPr\b[\s\S]*?\/>/, calcPr);
+  }
+
+  if (/<x:calcPr\b[\s\S]*?<\/x:calcPr>/.test(workbookXmlValue)) {
+    return workbookXmlValue.replace(/<x:calcPr\b[\s\S]*?<\/x:calcPr>/, calcPr);
+  }
+
+  return workbookXmlValue.replace("</x:workbook>", `${calcPr}</x:workbook>`);
+}
+
+function buildCustomerQuoteFromExcelTemplate(request: LatticeRequest) {
+  const templatePath = path.join(process.cwd(), "resources", "admin", "lattice-os-zintilon-quote-template.xlsx");
+  const entries = readZipEntries(fs.readFileSync(templatePath));
+  const latest = request.customerQuotes.at(-1);
+  const quoteDate = formatQuoteDateForTemplate(request.quote.quoteCreatedDate || latest?.quoteDate) || new Date().toISOString().slice(0, 10);
+  const validUntil = formatQuoteDateForTemplate(request.quote.quoteValidUntil || latest?.validUntil) || addDaysIso(quoteDate, 30);
+  const subtotal = quoteSubtotal(request);
+  const shipping = request.quote.shippingCostCents === null ? 0 : request.quote.shippingCostCents / 100;
+  const salesTax = Math.round(subtotal * defaultSalesTaxRate * 100) / 100;
+  const total = subtotal + shipping + salesTax;
+  const preparedFor = preparedForLines(request).join("\n");
+  const shipTo = shipToLines(request).join("\n");
+  const shippingDetails = [request.quote.shippingMethod || "International", request.quote.shippingTerms || "Determined at checkout"].filter(Boolean).join(" / ");
+
+  const patchedEntries = entries.map((entry) => {
+    if (entry.name === "xl/workbook.xml") {
+      return { ...entry, content: Buffer.from(patchWorkbookCalcMode(entry.content.toString("utf8")), "utf8") };
+    }
+
+    if (entry.name !== "xl/worksheets/sheet1.xml") {
+      return entry;
+    }
+
+    let sheet = entry.content.toString("utf8");
+    sheet = setStringCell(sheet, "I3", quoteReference(request));
+    sheet = setStringCell(sheet, "I4", quoteDate);
+    sheet = setStringCell(sheet, "I5", validUntil);
+    sheet = setStringCell(sheet, "I6", latticePaymentTerms);
+    sheet = setStringCell(sheet, "A10", preparedFor);
+    sheet = setStringCell(sheet, "D10", shipTo);
+    sheet = setStringCell(sheet, "A11", "");
+    sheet = setStringCell(sheet, "D11", "");
+    sheet = setStringCell(sheet, "G10", `Production speed: ${leadTimeText(request)}`);
+    sheet = setStringCell(sheet, "G11", `Shipping: ${shippingDetails}`);
+
+    request.lineItems.slice(0, 10).forEach((lineItem, index) => {
+      const row = 16 + index;
+      const unitPrice = latestLinePrice(request, lineItem.id, lineItem.partName);
+      const lineTotal = unitPrice === null ? null : unitPrice * lineItem.quantity;
+
+      sheet = setNumberCell(sheet, `A${row}`, index + 1);
+      sheet = setStringCell(sheet, `B${row}`, templateItemDetails(request, index));
+      sheet = setStringCell(sheet, `F${row}`, productionRegion(request));
+      sheet = setNumberCell(sheet, `G${row}`, lineItem.quantity);
+      sheet = setNumberCell(sheet, `H${row}`, unitPrice);
+      sheet = setFormulaCachedCell(sheet, `I${row}`, lineTotal);
+    });
+
+    for (let index = request.lineItems.length; index < 10; index += 1) {
+      const row = 16 + index;
+      sheet = setNumberCell(sheet, `A${row}`, index + 1);
+      sheet = setStringCell(sheet, `B${row}`, "");
+      sheet = setStringCell(sheet, `F${row}`, "");
+      sheet = setStringCell(sheet, `G${row}`, "");
+      sheet = setStringCell(sheet, `H${row}`, "");
+      sheet = setFormulaCachedCell(sheet, `I${row}`, null);
+    }
+
+    sheet = setStringCell(sheet, "A27", templateNotes(request));
+    sheet = setFormulaCachedCell(sheet, "G13", `ORDER TOTAL $${formatMoney(total)}`);
+    sheet = setFormulaCachedCell(sheet, "I27", subtotal);
+    sheet = setNumberCell(sheet, "H28", shipping);
+    sheet = setFormulaCachedCell(sheet, "I28", shipping);
+    sheet = setStringCell(sheet, "F29", "Sales Tax");
+    sheet = setNumberCell(sheet, "H29", salesTax);
+    sheet = setFormulaCachedCell(sheet, "I29", salesTax);
+    sheet = setStringCell(sheet, "F30", "");
+    sheet = setStringCell(sheet, "H30", "");
+    sheet = setStringCell(sheet, "I30", "");
+    sheet = setFormulaCachedCell(sheet, "I31", total);
+
+    return { ...entry, content: Buffer.from(sheet, "utf8") };
+  });
+
+  return createZip(patchedEntries);
 }
 
 function termsRows() {
@@ -442,9 +714,12 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
   const latest = request.customerQuotes.at(-1);
   const quoteDate = formatIsoDate(request.quote.quoteCreatedDate || latest?.quoteDate) || new Date().toISOString().slice(0, 10);
   const validUntil = formatIsoDate(request.quote.quoteValidUntil || latest?.validUntil) || addDaysIso(quoteDate, 30);
+  const shipBy = request.quote.leadTimeDays ? addDaysIso(quoteDate, request.quote.leadTimeDays) : null;
+  const standardNotes = buildStandardQuoteNotes(quoteDate, shipBy);
   const subtotal = quoteSubtotal(request);
   const shipping = request.quote.shippingCostCents === null ? 0 : request.quote.shippingCostCents / 100;
-  const total = subtotal + shipping;
+  const salesTax = Math.round(subtotal * defaultSalesTaxRate * 100) / 100;
+  const total = subtotal + shipping + salesTax;
   const lineRows = request.lineItems.slice(0, 20).map((lineItem, index) => {
     const unitPrice = latestLinePrice(request, lineItem.id, lineItem.partName);
     const lineTotal = unitPrice === null ? null : unitPrice * lineItem.quantity;
@@ -465,7 +740,8 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
     ];
   });
   const paddedLines = [...lineRows, ...Array.from({ length: Math.max(0, 20 - lineRows.length) }, (_, index) => [lineRows.length + index + 1, "", "", "", "", "", null, null, null, "", "", ""])];
-  const contact = latest?.customerContact || request.requesterName;
+  const preparedFor = preparedForLines(request).join("\n");
+  const shipTo = shipToLines(request).join("\n");
 
   const inputRows: SheetRow[] = [
     ["Lattice Customer Quote Template - Inputs"],
@@ -474,9 +750,9 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
     ["Quote status", request.status === "QUOTED" || request.status === "PURCHASED" ? "Quoted" : "Draft from RFQ data"],
     ["Quote date", quoteDate],
     ["Valid until", validUntil],
-    ["Prepared for company", latest?.customerCompany || request.buyerCompany],
-    ["Prepared for contact", contact],
-    ["Bill to / ship to", request.buyerCompany],
+    ["Prepared for", preparedFor],
+    ["Ship to", shipTo],
+    ["Bill to / ship to", shipTo],
     ["Prepared by", latest?.preparedBy || "Lattice OS"],
     ["Account manager", request.operatorReview.assignedOwner || "William Paik"],
     ["Account manager email", latticeEmail],
@@ -485,7 +761,7 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
     ["RFQ / project", latest?.projectName || request.title],
     ["Production region", productionRegion(request)],
     ["Production speed", latest?.leadTime || (request.quote.leadTimeDays ? `${request.quote.leadTimeDays} business days` : "")],
-    ["Ship by", "TBD after PO"],
+    ["Ship by", shipBy || "Pending"],
     ["Estimated delivery", request.quote.estimatedDeliveryDate || "TBD after checkout"],
     ["Shipping method", request.quote.shippingMethod || "International"],
     ["Shipping terms", request.quote.shippingTerms || "Determined at checkout"],
@@ -497,12 +773,11 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
     ["Part production subtotal", subtotal],
     ["Engineering / setup", 0],
     ["Shipping", shipping],
-    ["Tax", 0],
-    ["Tariffs / duties", 0],
+    ["Sales Tax", salesTax],
     ["Other fees", 0],
     ["Order total", total],
     ["Quote validity note", "Price is valid until the valid-until date; lead time is valid for 15 days unless otherwise stated."],
-    ["Customer summary note", request.quote.summary || latest?.notes || "Pricing includes manufacturing coordination, production, standard inspection, and shipment according to the terms below."],
+    ["Customer summary note", standardNotes],
   ];
 
   const quoteRows: SheetRow[] = [
@@ -513,13 +788,13 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
     [],
     ["PREPARED FOR", "", "", "SHIP TO", "", "", "QUOTE DETAILS"],
     [
-      `${latest?.customerCompany || request.buyerCompany}\n${contact}`,
+      preparedFor,
       "",
       "",
-      request.buyerCompany,
+      shipTo,
       "",
       "",
-      `Production speed: ${inputRows[16][1] || "Pending"}\nShip by: TBD after PO\nEstimated delivery: ${request.quote.estimatedDeliveryDate || "TBD after checkout"}\nShipping: ${request.quote.shippingMethod || "International"}\nTerms: ${request.quote.shippingTerms || "Determined at checkout"}`,
+      `Production speed: ${inputRows[16][1] || "Pending"}\nShip by: ${shipBy || "Pending"}\nEstimated delivery: ${request.quote.estimatedDeliveryDate || "TBD after checkout"}\nShipping: ${request.quote.shippingMethod || "International"}\nTerms: ${request.quote.shippingTerms || "Determined at checkout"}`,
     ],
     [],
     [],
@@ -533,10 +808,9 @@ function buildSheets(request: LatticeRequest): SheetModel[] {
     ...paddedLines.slice(0, 10).flatMap((row) => [[row[0], row[1], "", row[2], row[3], row[4], row[6], row[7], row[8]], [], []]),
     [],
     ["NOTES", "", "", "", "", "Part production", "", "", subtotal],
-    [request.quote.summary || latest?.notes || "Pricing includes manufacturing coordination, production, standard inspection, and shipment according to the terms below.", "", "", "", "", "Engineering / setup", "", "", 0],
-    ["Price is valid until the valid-until date; lead time is valid for 15 days unless otherwise stated.", "", "", "", "", "Shipping", "", "", shipping],
-    ["", "", "", "", "", "Tax", "", "", 0],
-    ["", "", "", "", "", "Tariffs / duties", "", "", 0],
+    [standardNotes, "", "", "", "", "Engineering / setup", "", "", 0],
+    ["", "", "", "", "", "Shipping", "", "", shipping],
+    ["", "", "", "", "", "Sales Tax", "", "", salesTax],
     ["", "", "", "", "", "Other fees", "", "", 0],
     ["", "", "", "", "", "Order Total", "", "", total],
     [],
@@ -571,8 +845,7 @@ export function customerQuoteXlsxFileName(request: LatticeRequest) {
 }
 
 export function buildCustomerQuoteXlsx(request: LatticeRequest) {
-  const sheets = buildSheets(request);
-  return buildXlsxWorkbook(sheets);
+  return buildCustomerQuoteFromExcelTemplate(request);
 }
 
 function blankCustomerQuoteTemplateRequest(): LatticeRequest {
@@ -626,7 +899,20 @@ function blankCustomerQuoteTemplateRequest(): LatticeRequest {
       shippingTerms: "Determined at checkout",
       summary: "Pricing includes manufacturing coordination, production, standard inspection, and shipment according to the terms below.",
     },
+    revisionChangeLog: [],
+    revisionNumber: 1,
+    revisionOfRequestId: null,
+    requesterEmail: "customer@example.com",
     requesterName: "Customer name, email, phone",
+    requesterPhone: "+1 (555) 010-0000",
+    shipToAddress1: "[Address 1]",
+    shipToAddress2: "",
+    shipToCity: "[City]",
+    shipToCompany: "Customer company",
+    shipToName: "Customer name",
+    shipToPhone: "+1 (555) 010-0000",
+    shipToState: "[State]",
+    shipToZipCode: "[Zip]",
     status: "SUBMITTED",
     statusEvents: [],
     supplierOrder: {

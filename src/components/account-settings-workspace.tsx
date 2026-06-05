@@ -1,34 +1,114 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ProfilePictureEditor } from "@/components/profile-picture-editor";
+import {
+  accountSettingsStorageKey,
+  defaultAccountSettings,
+  initialBillingContact,
+  initialShippingAddress,
+  type AccountAddress as Address,
+  type AccountSettingsSnapshot,
+  type BillingContact,
+  type PaymentCard,
+  type TeamMember,
+} from "@/lib/account-settings-shared";
 
 type ActiveTab = "account" | "team";
 type EditableField = "name" | "phone" | "email" | "password" | "shipping" | "billingAddress" | "billing" | null;
-type TeamMember = {
-  email: string;
-  name: string;
-  role: "Admin" | "Buyer" | "Reviewer";
-  status: "Active" | "Invited" | "Suspended";
-};
-type PaymentCard = {
-  brand: string;
-  expires: string;
-  holder: string;
-  id: string;
-  last4: string;
-};
 
-const initialTeamMembers: TeamMember[] = [
-  { email: "william.paik@amogy.co", name: "William Paik", role: "Admin", status: "Active" },
-  { email: "procurement@amogy.co", name: "Procurement Team", role: "Buyer", status: "Active" },
-  { email: "quality@amogy.co", name: "Quality Team", role: "Reviewer", status: "Invited" },
-];
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
-const initialCards: PaymentCard[] = [
-  { brand: "Visa", expires: "08/2028", holder: "William Paik", id: "card-7329", last4: "7329" },
-  { brand: "Visa", expires: "11/2027", holder: "Amogy Card", id: "card-9682", last4: "9682" },
-];
+function readStoredAccountSettings() {
+  if (typeof window === "undefined" || !window.localStorage?.getItem) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(accountSettingsStorageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredAccountSettings(settings: AccountSettingsSnapshot) {
+  if (typeof window === "undefined" || !window.localStorage?.setItem) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(accountSettingsStorageKey, JSON.stringify(settings));
+  } catch {
+    // Account edits should still work in-memory when browser storage is unavailable.
+  }
+}
+
+function storedString(settings: Record<string, unknown>, key: string) {
+  const value = settings[key];
+  return typeof value === "string" ? value : null;
+}
+
+function storedAddress(value: unknown, fallback: Address) {
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  return {
+    address1: storedString(value, "address1") ?? fallback.address1,
+    address2: storedString(value, "address2") ?? fallback.address2,
+    city: storedString(value, "city") ?? fallback.city,
+    company: storedString(value, "company") ?? fallback.company,
+    name: storedString(value, "name") ?? fallback.name,
+    state: storedString(value, "state") ?? fallback.state,
+    zipCode: storedString(value, "zipCode") ?? fallback.zipCode,
+  };
+}
+
+function storedBillingContact(value: unknown, fallback: BillingContact) {
+  if (typeof value === "string") {
+    const [email = fallback.email, ...notes] = value.split("\n");
+    return {
+      email: email.trim() || fallback.email,
+      invoiceRoutingNotes: notes.join("\n").trim() || fallback.invoiceRoutingNotes,
+    };
+  }
+
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  return {
+    email: storedString(value, "email") ?? fallback.email,
+    invoiceRoutingNotes: storedString(value, "invoiceRoutingNotes") ?? fallback.invoiceRoutingNotes,
+  };
+}
+
+function getInitialAccountSettings(serverInitialSettings?: AccountSettingsSnapshot): AccountSettingsSnapshot {
+  const defaults = serverInitialSettings ?? defaultAccountSettings();
+  const stored = readStoredAccountSettings();
+  if (!isRecord(stored)) {
+    return defaults;
+  }
+
+  const storedCards = stored.cards;
+  const storedTeamMembers = stored.teamMembers;
+
+  return {
+    billing: storedBillingContact(stored.billing, defaults.billing),
+    billingAddress: storedAddress(stored.billingAddress, defaults.billingAddress),
+    cards: Array.isArray(storedCards) ? (storedCards as PaymentCard[]) : defaults.cards,
+    email: storedString(stored, "email") ?? defaults.email,
+    mfaEnabled: typeof stored.mfaEnabled === "boolean" ? stored.mfaEnabled : defaults.mfaEnabled,
+    name: storedString(stored, "name") ?? defaults.name,
+    passwordChangedAt: storedString(stored, "passwordChangedAt") ?? defaults.passwordChangedAt,
+    phone: storedString(stored, "phone") ?? defaults.phone,
+    shipping: storedAddress(stored.shipping, defaults.shipping),
+    teamMembers: Array.isArray(storedTeamMembers) ? (storedTeamMembers as TeamMember[]) : defaults.teamMembers,
+  };
+}
 
 function getPhoneDigits(value: string) {
   return value.replace(/\D/g, "").slice(0, 11);
@@ -172,30 +252,66 @@ function CardBrand({ brand }: { brand: string }) {
   );
 }
 
-export function AccountSettingsWorkspace() {
+export function AccountSettingsWorkspace({
+  initialSettings: serverInitialSettings,
+  saveSettingsAction,
+}: {
+  initialSettings?: AccountSettingsSnapshot;
+  saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<void>;
+}) {
+  const [initialSettings] = useState(() => getInitialAccountSettings(serverInitialSettings));
   const [activeTab, setActiveTab] = useState<ActiveTab>("account");
   const [editing, setEditing] = useState<EditableField>(null);
   const [notice, setNotice] = useState("Account settings changes are stored for this demo session.");
   const [error, setError] = useState("");
-  const [name, setName] = useState("William Paik");
-  const [phone, setPhone] = useState("+1 (310) 617-4533");
-  const [email, setEmail] = useState("william.paik@amogy.co");
-  const [passwordChangedAt, setPasswordChangedAt] = useState("May 12, 2026");
-  const [mfaEnabled, setMfaEnabled] = useState(true);
+  const [name, setName] = useState(initialSettings.name);
+  const [phone, setPhone] = useState(initialSettings.phone);
+  const [email, setEmail] = useState(initialSettings.email);
+  const [passwordChangedAt, setPasswordChangedAt] = useState(initialSettings.passwordChangedAt);
+  const [mfaEnabled, setMfaEnabled] = useState(initialSettings.mfaEnabled);
   const [companyName] = useState("Amogy");
-  const [shipping, setShipping] = useState("Brooklyn Advanced Manufacturing\n19 Morris Ave, Brooklyn, NY 11205, United States");
-  const [billingAddress, setBillingAddress] = useState("Amogy Accounts Payable\n500 7th Ave, New York, NY 10018, United States");
-  const [billing, setBilling] = useState("procurement@amogy.co\nRoute invoices to AP after PO match.");
-  const [cards, setCards] = useState(initialCards);
-  const [teamMembers, setTeamMembers] = useState(initialTeamMembers);
+  const [shipping, setShipping] = useState<Address>(initialSettings.shipping);
+  const [billingAddress, setBillingAddress] = useState<Address>(initialSettings.billingAddress);
+  const [billing, setBilling] = useState<BillingContact>(initialSettings.billing);
+  const [cards, setCards] = useState(initialSettings.cards);
+  const [teamMembers, setTeamMembers] = useState(initialSettings.teamMembers);
   const [draftValue, setDraftValue] = useState("");
   const [passwordDraft, setPasswordDraft] = useState({ confirm: "", next: "" });
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [cardDraft, setCardDraft] = useState({ expires: "", holder: "", last4: "" });
   const [memberDraft, setMemberDraft] = useState<TeamMember>({ email: "", name: "", role: "Buyer", status: "Invited" });
   const [managedMemberEmail, setManagedMemberEmail] = useState<string | null>(null);
+  const [addressDraft, setAddressDraft] = useState<Address>(initialShippingAddress);
+  const [billingDraft, setBillingDraft] = useState<BillingContact>(initialBillingContact);
 
   const managedMember = useMemo(() => teamMembers.find((member) => member.email === managedMemberEmail) ?? null, [managedMemberEmail, teamMembers]);
+
+  useEffect(() => {
+    if (!saveSettingsAction) {
+      return;
+    }
+
+    void saveSettingsAction(initialSettings);
+  }, [initialSettings, saveSettingsAction]);
+
+  function persistSettings(overrides: Partial<AccountSettingsSnapshot>) {
+    const nextSettings = {
+      billing,
+      billingAddress,
+      cards,
+      email,
+      mfaEnabled,
+      name,
+      passwordChangedAt,
+      phone,
+      shipping,
+      teamMembers,
+      ...overrides,
+    };
+
+    writeStoredAccountSettings(nextSettings);
+    void saveSettingsAction?.(nextSettings);
+  }
 
   function beginEdit(field: Exclude<EditableField, null>, value: string) {
     setEditing(field);
@@ -207,6 +323,22 @@ export function AccountSettingsWorkspace() {
     }
   }
 
+  function beginAddressEdit(field: "shipping" | "billingAddress", value: Address) {
+    setEditing(field);
+    setAddressDraft(value);
+    setDraftValue("");
+    setError("");
+    setNotice("Make a change, then save or cancel.");
+  }
+
+  function beginBillingEdit(value: BillingContact) {
+    setEditing("billing");
+    setBillingDraft(value);
+    setDraftValue("");
+    setError("");
+    setNotice("Make a change, then save or cancel.");
+  }
+
   function finishEdit(message: string) {
     setEditing(null);
     setDraftValue("");
@@ -215,6 +347,46 @@ export function AccountSettingsWorkspace() {
   }
 
   function saveEdit(field: Exclude<EditableField, null>) {
+    if (field === "shipping" || field === "billingAddress") {
+      const nextAddress = {
+        address1: addressDraft.address1.trim(),
+        address2: addressDraft.address2.trim(),
+        city: addressDraft.city.trim(),
+        company: addressDraft.company.trim(),
+        name: addressDraft.name.trim(),
+        state: addressDraft.state.trim(),
+        zipCode: addressDraft.zipCode.trim(),
+      };
+
+      if (!nextAddress.name || !nextAddress.company || !nextAddress.address1 || !nextAddress.city || !nextAddress.state || !nextAddress.zipCode) {
+        setError("Name, company, address 1, city, state, and zip code are required.");
+        return;
+      }
+
+      if (field === "shipping") setShipping(nextAddress);
+      if (field === "billingAddress") setBillingAddress(nextAddress);
+      persistSettings(field === "shipping" ? { shipping: nextAddress } : { billingAddress: nextAddress });
+      finishEdit("Account setting updated for this demo session.");
+      return;
+    }
+
+    if (field === "billing") {
+      const nextBilling = {
+        email: billingDraft.email.trim(),
+        invoiceRoutingNotes: billingDraft.invoiceRoutingNotes.trim(),
+      };
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextBilling.email)) {
+        setError("Enter a valid billing email address.");
+        return;
+      }
+
+      setBilling(nextBilling);
+      persistSettings({ billing: nextBilling });
+      finishEdit("Account setting updated for this demo session.");
+      return;
+    }
+
     const trimmed = draftValue.trim();
     if (field !== "password" && !trimmed) {
       setError("This field cannot be blank.");
@@ -235,7 +407,9 @@ export function AccountSettingsWorkspace() {
         setError("The password confirmation does not match.");
         return;
       }
-      setPasswordChangedAt("May 29, 2026");
+      const nextChangedAt = "May 29, 2026";
+      setPasswordChangedAt(nextChangedAt);
+      persistSettings({ passwordChangedAt: nextChangedAt });
       finishEdit("Password updated for this demo session.");
       return;
     }
@@ -247,15 +421,19 @@ export function AccountSettingsWorkspace() {
         return;
       }
       setPhone(formattedPhone);
+      persistSettings({ phone: formattedPhone });
       finishEdit("Account setting updated for this demo session.");
       return;
     }
 
-    if (field === "name") setName(trimmed);
-    if (field === "email") setEmail(trimmed);
-    if (field === "shipping") setShipping(trimmed);
-    if (field === "billingAddress") setBillingAddress(trimmed);
-    if (field === "billing") setBilling(trimmed);
+    if (field === "name") {
+      setName(trimmed);
+      persistSettings({ name: trimmed });
+    }
+    if (field === "email") {
+      setEmail(trimmed);
+      persistSettings({ email: trimmed });
+    }
     finishEdit("Account setting updated for this demo session.");
   }
 
@@ -273,10 +451,12 @@ export function AccountSettingsWorkspace() {
       return;
     }
     const last4 = cardDraft.last4.trim();
-    setCards((current) => [
-      ...current,
+    const nextCards = [
+      ...cards,
       { brand: "Visa", expires: cardDraft.expires.trim(), holder: cardDraft.holder.trim(), id: `card-${last4}`, last4 },
-    ]);
+    ];
+    setCards(nextCards);
+    persistSettings({ cards: nextCards });
     setCardDraft({ expires: "", holder: "", last4: "" });
     setIsAddingCard(false);
     finishEdit("Payment method added for this demo session.");
@@ -290,7 +470,9 @@ export function AccountSettingsWorkspace() {
   }
 
   function removeCard(card: PaymentCard) {
-    setCards((current) => current.filter((item) => item.id !== card.id));
+    const nextCards = cards.filter((item) => item.id !== card.id);
+    setCards(nextCards);
+    persistSettings({ cards: nextCards });
     setNotice(`Card ending in ${card.last4} was removed for this demo session.`);
   }
 
@@ -307,14 +489,18 @@ export function AccountSettingsWorkspace() {
       setError("That email is already on the team account.");
       return;
     }
-    setTeamMembers((current) => [...current, { ...memberDraft, email: memberDraft.email.trim(), name: memberDraft.name.trim() }]);
+    const nextTeamMembers = [...teamMembers, { ...memberDraft, email: memberDraft.email.trim(), name: memberDraft.name.trim() }];
+    setTeamMembers(nextTeamMembers);
+    persistSettings({ teamMembers: nextTeamMembers });
     setMemberDraft({ email: "", name: "", role: "Buyer", status: "Invited" });
     setError("");
     setNotice("Team member invited for this demo session.");
   }
 
   function updateManagedMember(next: TeamMember) {
-    setTeamMembers((current) => current.map((member) => (member.email === next.email ? next : member)));
+    const nextTeamMembers = teamMembers.map((member) => (member.email === next.email ? next : member));
+    setTeamMembers(nextTeamMembers);
+    persistSettings({ teamMembers: nextTeamMembers });
     setManagedMemberEmail(null);
     setNotice(`${next.name} was updated for this demo session.`);
   }
@@ -354,7 +540,15 @@ export function AccountSettingsWorkspace() {
               {mfaEnabled ? "Multi-factor authentication is active for sensitive quote, order, and payment actions." : "MFA is paused. Re-enable it before payment or account permission changes."}
             </p>
           </div>
-          <button className="w-fit rounded-sm bg-[#ffc62b] px-4 py-2 text-[13px] font-semibold text-[#182231]" onClick={() => setMfaEnabled((current) => !current)} type="button">
+          <button
+            className="w-fit rounded-sm bg-[#ffc62b] px-4 py-2 text-[13px] font-semibold text-[#182231]"
+            onClick={() => {
+              const nextMfaEnabled = !mfaEnabled;
+              setMfaEnabled(nextMfaEnabled);
+              persistSettings({ mfaEnabled: nextMfaEnabled });
+            }}
+            type="button"
+          >
             {mfaEnabled ? "Pause MFA" : "Enable MFA"}
           </button>
         </div>
@@ -511,25 +705,43 @@ export function AccountSettingsWorkspace() {
 
             <Card>
               <CardTitle detail="Defaults used at checkout and when supplier-ready packages are created." title="Manufacturing Account Defaults" />
-              <EditableRow action={<FieldButton onClick={() => beginEdit("shipping", shipping)}>Edit shipping</FieldButton>} label="Saved shipping address">
+              <EditableRow action={<FieldButton onClick={() => beginAddressEdit("shipping", shipping)}>Edit shipping</FieldButton>} label="Saved shipping address">
                 {editing === "shipping" ? (
-                  <EditTextArea cancel={() => finishEdit("Shipping edit canceled.")} error={error} field="shipping" label="Shipping address" multiline saveEdit={saveEdit} setDraftValue={setDraftValue} value={draftValue} />
+                  <AddressEditor
+                    address={addressDraft}
+                    cancel={() => finishEdit("Shipping edit canceled.")}
+                    error={error}
+                    save={() => saveEdit("shipping")}
+                    setAddress={setAddressDraft}
+                  />
                 ) : (
-                  <MultilineValue value={shipping} />
+                  <AddressValue address={shipping} />
                 )}
               </EditableRow>
-              <EditableRow action={<FieldButton onClick={() => beginEdit("billingAddress", billingAddress)}>Edit billing address</FieldButton>} label="Billing address">
+              <EditableRow action={<FieldButton onClick={() => beginAddressEdit("billingAddress", billingAddress)}>Edit billing address</FieldButton>} label="Billing address">
                 {editing === "billingAddress" ? (
-                  <EditTextArea cancel={() => finishEdit("Billing address edit canceled.")} error={error} field="billingAddress" label="Billing address" multiline saveEdit={saveEdit} setDraftValue={setDraftValue} value={draftValue} />
+                  <AddressEditor
+                    address={addressDraft}
+                    cancel={() => finishEdit("Billing address edit canceled.")}
+                    error={error}
+                    save={() => saveEdit("billingAddress")}
+                    setAddress={setAddressDraft}
+                  />
                 ) : (
-                  <MultilineValue value={billingAddress} />
+                  <AddressValue address={billingAddress} />
                 )}
               </EditableRow>
-              <EditableRow action={<FieldButton onClick={() => beginEdit("billing", billing)}>Edit billing</FieldButton>} label="Billing contact">
+              <EditableRow action={<FieldButton onClick={() => beginBillingEdit(billing)}>Edit billing</FieldButton>} label="Billing contact">
                 {editing === "billing" ? (
-                  <EditTextArea cancel={() => finishEdit("Billing edit canceled.")} error={error} field="billing" label="Billing contact" multiline saveEdit={saveEdit} setDraftValue={setDraftValue} value={draftValue} />
+                  <BillingContactEditor
+                    billing={billingDraft}
+                    cancel={() => finishEdit("Billing edit canceled.")}
+                    error={error}
+                    save={() => saveEdit("billing")}
+                    setBilling={setBillingDraft}
+                  />
                 ) : (
-                  <MultilineValue value={billing} />
+                  <BillingContactValue billing={billing} />
                 )}
               </EditableRow>
             </Card>
@@ -641,17 +853,101 @@ function EditTextArea({
   );
 }
 
-function MultilineValue({ value }: { value: string }) {
-  const [first, ...rest] = value.split("\n");
+function AddressEditor({
+  address,
+  cancel,
+  error,
+  save,
+  setAddress,
+}: {
+  address: Address;
+  cancel: () => void;
+  error: string;
+  save: () => void;
+  setAddress: React.Dispatch<React.SetStateAction<Address>>;
+}) {
+  function updateAddress(field: keyof Address, value: string) {
+    setAddress((current) => ({ ...current, [field]: value }));
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <TextField label="Name" name="address-name" onChange={(name) => updateAddress("name", name)} value={address.name} />
+        </div>
+        <div className="sm:col-span-2">
+          <TextField label="Company" name="company" onChange={(company) => updateAddress("company", company)} value={address.company} />
+        </div>
+        <div className="sm:col-span-2">
+          <TextField label="Address 1" name="address-1" onChange={(address1) => updateAddress("address1", address1)} value={address.address1} />
+        </div>
+        <div className="sm:col-span-2">
+          <TextField label="Address 2" name="address-2" onChange={(address2) => updateAddress("address2", address2)} value={address.address2} />
+        </div>
+        <TextField label="City" name="city" onChange={(city) => updateAddress("city", city)} value={address.city} />
+        <TextField label="State" name="state" onChange={(state) => updateAddress("state", state)} value={address.state} />
+        <TextField label="Zip code" name="zip-code" onChange={(zipCode) => updateAddress("zipCode", zipCode)} value={address.zipCode} />
+      </div>
+      <SaveCancel cancel={cancel} error={error} save={save} />
+    </div>
+  );
+}
+
+function AddressValue({ address }: { address: Address }) {
+  const cityStateZip = [address.city, [address.state, address.zipCode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 
   return (
     <>
-      <p>{first}</p>
-      {rest.map((line) => (
-        <p className="text-[#737b86]" key={line}>
-          {line}
-        </p>
-      ))}
+      <p>{address.name}</p>
+      <p>{address.company}</p>
+      <p>{address.address1}</p>
+      {address.address2 ? <p className="text-[#737b86]">{address.address2}</p> : null}
+      <p className="text-[#737b86]">{cityStateZip}</p>
+    </>
+  );
+}
+
+function BillingContactEditor({
+  billing,
+  cancel,
+  error,
+  save,
+  setBilling,
+}: {
+  billing: BillingContact;
+  cancel: () => void;
+  error: string;
+  save: () => void;
+  setBilling: React.Dispatch<React.SetStateAction<BillingContact>>;
+}) {
+  function updateBilling(field: keyof BillingContact, value: string) {
+    setBilling((current) => ({ ...current, [field]: value }));
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3">
+        <TextField label="Billing email" name="billing-email" onChange={(email) => updateBilling("email", email)} type="email" value={billing.email} />
+        <label className="block text-[13px] font-semibold text-[#303846]">
+          Invoice routing notes
+          <textarea
+            className="mt-2 min-h-24 w-full rounded-md border border-[#cfd5dd] bg-white px-3 py-2 text-[14px] font-medium text-[#182231] outline-none transition focus:border-[#00a889] focus:ring-2 focus:ring-[#00a889]/15"
+            onChange={(event) => updateBilling("invoiceRoutingNotes", event.target.value)}
+            value={billing.invoiceRoutingNotes}
+          />
+        </label>
+      </div>
+      <SaveCancel cancel={cancel} error={error} save={save} />
+    </div>
+  );
+}
+
+function BillingContactValue({ billing }: { billing: BillingContact }) {
+  return (
+    <>
+      <p>{billing.email}</p>
+      {billing.invoiceRoutingNotes ? <p className="text-[#737b86]">{billing.invoiceRoutingNotes}</p> : null}
     </>
   );
 }

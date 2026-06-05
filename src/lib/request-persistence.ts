@@ -40,6 +40,16 @@ export type StoredRequest = {
   status: LatticeRequest["status"];
   buyerCompany: { name: string } | null;
   requesterName: string;
+  requesterEmail?: string;
+  requesterPhone?: string;
+  shipToName?: string;
+  shipToCompany?: string;
+  shipToAddress1?: string;
+  shipToAddress2?: string;
+  shipToCity?: string;
+  shipToState?: string;
+  shipToZipCode?: string;
+  shipToPhone?: string;
   operatorCompleteness: LatticeRequest["operatorReview"]["completeness"];
   assignedOwner: string | null;
   internalNotes: string;
@@ -58,6 +68,9 @@ export type StoredRequest = {
   quoteCreatedDate: Date | null;
   quoteValidUntil: Date | null;
   quoteSummary: string;
+  revisionOfRequestId?: string | null;
+  revisionNumber?: number;
+  revisionChangeLog?: string[];
   lineItems: Array<{
     id: string;
     partName: string;
@@ -188,6 +201,16 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     dueDate: toDueDate(submitted.dueDate),
     status: submitted.status,
     requesterName: submitted.requesterName,
+    requesterEmail: submitted.requesterEmail,
+    requesterPhone: submitted.requesterPhone,
+    shipToName: submitted.shipToName,
+    shipToCompany: submitted.shipToCompany,
+    shipToAddress1: submitted.shipToAddress1,
+    shipToAddress2: submitted.shipToAddress2,
+    shipToCity: submitted.shipToCity,
+    shipToState: submitted.shipToState,
+    shipToZipCode: submitted.shipToZipCode,
+    shipToPhone: submitted.shipToPhone,
     operatorCompleteness: submitted.operatorReview.completeness,
     assignedOwner: submitted.operatorReview.assignedOwner,
     internalNotes: submitted.operatorReview.internalNotes,
@@ -206,6 +229,9 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     quoteCreatedDate: toOptionalDate(submitted.quote.quoteCreatedDate),
     quoteValidUntil: toOptionalDate(submitted.quote.quoteValidUntil),
     quoteSummary: submitted.quote.summary,
+    revisionOfRequestId: submitted.revisionOfRequestId,
+    revisionNumber: submitted.revisionNumber,
+    revisionChangeLog: submitted.revisionChangeLog,
     buyerCompany: {
       create: {
         name: submitted.buyerCompany,
@@ -245,6 +271,16 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
     id: stored.id,
     buyerCompany: stored.buyerCompany?.name ?? "Unknown buyer",
     requesterName: stored.requesterName,
+    requesterEmail: stored.requesterEmail ?? "",
+    requesterPhone: stored.requesterPhone ?? "",
+    shipToName: stored.shipToName ?? stored.requesterName,
+    shipToCompany: stored.shipToCompany ?? stored.buyerCompany?.name ?? "",
+    shipToAddress1: stored.shipToAddress1 ?? "",
+    shipToAddress2: stored.shipToAddress2 ?? "",
+    shipToCity: stored.shipToCity ?? "",
+    shipToState: stored.shipToState ?? "",
+    shipToZipCode: stored.shipToZipCode ?? "",
+    shipToPhone: stored.shipToPhone ?? stored.requesterPhone ?? "",
     title: stored.title,
     process: stored.process,
     dueDate: formatDueDate(stored.dueDate),
@@ -339,6 +375,9 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       quoteValidUntil: formatOptionalDate(stored.quoteValidUntil),
       summary: stored.quoteSummary,
     },
+    revisionOfRequestId: stored.revisionOfRequestId ?? null,
+    revisionNumber: stored.revisionNumber ?? 1,
+    revisionChangeLog: stored.revisionChangeLog ?? [],
     statusEvents: stored.statusEvents.map((event) => ({
       id: event.id,
       from: event.from,

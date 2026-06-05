@@ -6,6 +6,25 @@ import { sortRequestsNewestFirst } from "./request-queue";
 
 const storePath = path.join(process.cwd(), ".data", "requests.json");
 
+function normalizeLocalRequest(request: LatticeRequest): LatticeRequest {
+  return {
+    ...request,
+    requesterEmail: request.requesterEmail ?? "",
+    requesterPhone: request.requesterPhone ?? "",
+    shipToName: request.shipToName ?? request.requesterName,
+    shipToCompany: request.shipToCompany ?? request.buyerCompany,
+    shipToAddress1: request.shipToAddress1 ?? "",
+    shipToAddress2: request.shipToAddress2 ?? "",
+    shipToCity: request.shipToCity ?? "",
+    shipToState: request.shipToState ?? "",
+    shipToZipCode: request.shipToZipCode ?? "",
+    shipToPhone: request.shipToPhone ?? request.requesterPhone ?? "",
+    revisionOfRequestId: request.revisionOfRequestId ?? null,
+    revisionNumber: request.revisionNumber ?? 1,
+    revisionChangeLog: request.revisionChangeLog ?? [],
+  };
+}
+
 async function readRequestsFromDisk(): Promise<LatticeRequest[]> {
   try {
     const raw = await readFile(storePath, "utf8");
@@ -15,7 +34,7 @@ async function readRequestsFromDisk(): Promise<LatticeRequest[]> {
     }
 
     const parsed = JSON.parse(normalized);
-    return Array.isArray(parsed) ? (parsed as LatticeRequest[]) : [];
+    return Array.isArray(parsed) ? (parsed as LatticeRequest[]).map(normalizeLocalRequest) : [];
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return [];

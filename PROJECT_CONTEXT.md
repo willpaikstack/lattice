@@ -34,8 +34,10 @@ Production launch baseline as of 2026-06-02:
 - `.vercelignore` excludes local env files from CLI deployment uploads.
 - Public waiting-list requests persist to Neon via Prisma; email outbox fallback is non-fatal when Resend is not configured.
 - Local development RFQ submissions use PostgreSQL when available and fall back to `.data/requests.json` only when Prisma/Postgres is unreachable, matching the local waiting-list fallback style so sample submissions can still be tested on machines without Docker.
+- Manufacturing account defaults now persist server-side when possible and fall back to `.data/account-settings.json` locally; submitted RFQs snapshot requester email/phone and ship-to contact/address data so quote PDFs can be generated from durable RFQ data instead of browser-only account settings.
 - Local development RFQ file uploads now store actual CAD/drawing bytes under gitignored `.data/uploads/rfq/<date>/...` and persist `UploadedFile.storageKey` with the RFQ. This is a temporary local storage bridge; production still needs Cloudflare R2 or another S3-compatible object store.
 - Artificial seeded RFQs have been removed from the runtime quote workflow as of 2026-06-03. Local development now keeps only real submitted RFQ records in `.data/requests.json` when Prisma/Postgres is unavailable.
+- DOC-004, the generated customer quote PDF template, is frozen as Rev 1 as of 2026-06-04. Rev 1 uses the current Hubs-inspired PDF renderer and should not be changed without starting a Rev 2 iteration.
 - Resend, Cloudflare R2/S3 production storage, custom domain, and multi-user production authentication are still pending. A local single-account credential gate now protects workspace routes through a signed HTTP-only session cookie.
 
 The current working vertical slice:
@@ -51,9 +53,10 @@ The current working vertical slice:
 9. From the admin RFQ review drawer, operators enter unit pricing, lead time, shipping cost, shipping terms, quote dates, delivery date, and quote notes in the app, then can export a request-specific Excel quote workbook at `/admin/quotes/[requestId]/quote-template.xlsx` and manually download the latest saved customer quote PDF at `/admin/quotes/[requestId]/quote.pdf`; both are populated from the saved RFQ, uploaded files, quote feedback, customer quote version, and shipping fields.
 10. As of 2026-06-03, artificial seeded/demo RFQs are removed from runtime quote fallbacks. The local fallback store currently keeps only the real aluminum plate RFQ submitted by William while the workflow moves into real commissioning.
 11. The older, fuller customer quote packet builder still exists in code for future customer-facing quote version work, but the first admin RFQ review drawer is intentionally minimal.
-12. Buyer quote rows at `/quotes` are split into in-progress RFQs and quote-received requests, and open a consistent quote detail template at `/quotes/[requestId]` with a summary-of-order table, per-part unit prices, saved customer quote versions, lead time, files, supplier quote basis, activity, and purchase conversion.
-13. Purchased quotes leave the buyer Quotes page and live in `/orders`; opening a purchased quote detail route redirects to the matching order detail.
-14. Buyer-facing quote statuses are intentionally limited to `Draft`, `Quote received`, `Ordered`, and `Closed`. More granular submitted, needs-info, and supplier-review states remain internal RFQ workflow states rather than customer quote statuses.
+12. Buyer quote rows at `/quotes` are split into in-progress RFQs and quote-received requests, and open a consistent quote detail template at `/quotes/[requestId]` with a summary-of-order table, per-part unit prices, saved customer quote versions, lead time, files, supplier quote basis, activity, purchase conversion, and an edit/resubmit action for active priced quotes.
+13. Buyers can edit and resubmit active non-final quote/RFQ records by opening `/requests/new?revise=[requestId]` from submitted, needs-info, supplier-pricing, or quote-received states. The flow preloads the existing RFQ as a new request draft rather than mutating the original record. Revision drafts reuse saved CAD/drawing `storageKey` references when available, so buyers only need to upload replacements or repair older filename-only records.
+14. Purchased quotes leave the buyer Quotes page and live in `/orders`; opening a purchased quote detail route redirects to the matching order detail.
+15. Buyer-facing quote statuses are intentionally limited to `Draft`, `Quote received`, `Ordered`, and `Closed`. More granular submitted, needs-info, and supplier-review states remain internal RFQ workflow states rather than customer quote statuses.
 
 Important routes:
 
@@ -62,7 +65,7 @@ Important routes:
 - `/forgot-password` - public password reset request page for the interim local credential gate; it does not reveal whether an email exists and records/sends reset instructions when supported.
 - `/waiting-list` - public waiting list request page that writes local waitlist entries for admin review, blocks exact duplicate emails with an on-page notice, emails same-domain requesters with the existing waitlist contact, and triggers a thank-you email for new entries.
 - `/dashboard` - command center/dashboard.
-- `/requests/new` - buyer RFQ/request creation; supports `?reorder=[requestId]` to prefill a new RFQ draft from a prior purchased order.
+- `/requests/new` - buyer RFQ/request creation; supports `?reorder=[requestId]` to prefill a new RFQ draft from a prior purchased order and `?revise=[requestId]` to prefill a new RFQ draft from an active priced quote.
 - `/operator/requests` - redirects to `/admin/quotes`; the separate RFQ queue page was retired as redundant.
 - `/operator/requests/[requestId]` - legacy/focused operator request detail screen; primary quote-submission review now lives in `/admin/quotes`.
 - `/quotes` and `/quotes/[requestId]` - buyer quote/RFQ tracking, split into in-progress and quoted-request tables; purchased quotes are excluded and handled in orders.
@@ -78,7 +81,7 @@ Important routes:
 - `/admin/quotes/[requestId]/quote-template.xlsx` - admin download route for a data-connected customer quote Excel workbook generated from the selected RFQ.
 - `/admin/quotes/[requestId]/quote.pdf` - admin manual-download route for the latest saved customer quote PDF generated from the selected RFQ and quote version.
 - `/admin/orders` - admin order management.
-- `/admin/resources` - admin resource library for downloadable and previewable internal templates and reference files, with stable document IDs such as `DOC-001`; currently includes the quote PDF reference, a single-tab editable Excel customer quote template for continuous PDF export, supplier purchase order template for Chinese machine shops, and domestic customer invoice template. Excel templates render workbook-style previews with yellow operator-input cells; the quote PDF reference renders inline while retaining download behavior.
+- `/admin/resources` - admin resource library for downloadable and previewable internal templates and reference files, with stable document IDs such as `DOC-001`; currently includes the quote PDF reference, a single-tab editable Excel customer quote template for continuous PDF export, supplier purchase order template for Chinese machine shops, and DOC-003 domestic customer invoice template. DOC-003 is a three-sheet invoice workbook with an invoice face, remittance instructions, and invoice terms, modeled from Protolabs/Fictiv invoice references. Excel templates render workbook-style previews with yellow operator-input cells; the quote PDF reference renders inline while retaining download behavior.
 - `/materials` - customer-facing material catalog grouped by material family and subgroup; vendor source/provenance stays out of this page and is retained only in internal repositories.
 - `/capabilities` - fabrication capabilities.
 - `/equipment` - vendor equipment catalog sourced from China machine-shop contacts so buyers/operators can inspect real capacity, limits, and source provenance before routing RFQs.
@@ -146,6 +149,7 @@ The Bubble reference worth improving:
 - `src/components/app-shell.tsx` - shared shell/navigation.
 - `src/components/public-entry.tsx` - shared public greeting-page header and dark technical background used by `/`, `/login`, `/forgot-password`, and the waiting-list confirmation page.
 - `src/lib/auth-crypto.ts`, `src/lib/session.ts`, `src/app/login/actions.ts`, and `src/proxy.ts` - local single-account credential authentication, signed session cookie helpers, login action, and optimistic route protection.
+- `src/lib/account-settings.ts` and `src/lib/account-settings-shared.ts` - server-visible manufacturing account defaults, browser-safe defaults/types, and RFQ quote-contact snapshot helpers.
 - `src/components/request-form.tsx` - buyer RFQ form.
 - `src/components/cad-upload-preview.tsx` and `src/components/autodesk-model-viewer.tsx` - upload-time CAD preview and Autodesk Viewer integration.
 - `src/components/operator-queue.tsx` - operator request queue.

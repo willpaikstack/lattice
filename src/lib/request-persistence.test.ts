@@ -5,6 +5,17 @@ import { buildSubmittedRequestCreateInput, mapStoredRequest } from "./request-pe
 
 const draftInput: DraftRequestInput = {
   buyerCompany: "Amogy Manufacturing",
+  contact: {
+    requesterEmail: "william.paik@amogy.co",
+    requesterPhone: "+1 (310) 617-4533",
+    shipToAddress1: "19 Morris Ave",
+    shipToCity: "Brooklyn",
+    shipToCompany: "Amogy",
+    shipToName: "William Paik",
+    shipToPhone: "+1 (310) 617-4533",
+    shipToState: "NY",
+    shipToZipCode: "11205",
+  },
   requesterName: "William Paik",
   title: "CNC bracket package",
   process: "CNC machining",
@@ -28,6 +39,12 @@ const draftInput: DraftRequestInput = {
       storageKey: "rfq/2026-06-02/bracket-a.step",
     },
   ],
+  revision: {
+    changeLog: ["Line 1 quantity: 6 -> 12"],
+    revisionNumber: 2,
+    sourceQuoteReference: "LQ-1001",
+    sourceRequestId: "req_original",
+  },
 };
 
 describe("request persistence", () => {
@@ -38,6 +55,16 @@ describe("request persistence", () => {
       title: "CNC bracket package",
       process: "CNC machining",
       requesterName: "William Paik",
+      requesterEmail: "william.paik@amogy.co",
+      requesterPhone: "+1 (310) 617-4533",
+      shipToName: "William Paik",
+      shipToCompany: "Amogy",
+      shipToAddress1: "19 Morris Ave",
+      shipToAddress2: "",
+      shipToCity: "Brooklyn",
+      shipToState: "NY",
+      shipToZipCode: "11205",
+      shipToPhone: "+1 (310) 617-4533",
       status: "SUBMITTED",
       operatorCompleteness: "READY_FOR_REVIEW",
       supplierOrderStatus: "AWAITING_ACKNOWLEDGMENT",
@@ -59,6 +86,9 @@ describe("request persistence", () => {
       quoteCreatedDate: null,
       quoteValidUntil: null,
       quoteSummary: "",
+      revisionOfRequestId: "req_original",
+      revisionNumber: 2,
+      revisionChangeLog: ["Line 1 quantity: 6 -> 12"],
       lineItems: {
         create: [
           {
@@ -101,6 +131,16 @@ describe("request persistence", () => {
       status: "SUBMITTED" as const,
       buyerCompany: { name: "Amogy Manufacturing" },
       requesterName: "William Paik",
+      requesterEmail: "william.paik@amogy.co",
+      requesterPhone: "+1 (310) 617-4533",
+      shipToName: "William Paik",
+      shipToCompany: "Amogy",
+      shipToAddress1: "19 Morris Ave",
+      shipToAddress2: "",
+      shipToCity: "Brooklyn",
+      shipToState: "NY",
+      shipToZipCode: "11205",
+      shipToPhone: "+1 (310) 617-4533",
       operatorCompleteness: "READY_FOR_REVIEW" as const,
       assignedOwner: null,
       internalNotes: "",
@@ -119,6 +159,9 @@ describe("request persistence", () => {
       quoteCreatedDate: new Date("2026-06-02T00:00:00.000Z"),
       quoteValidUntil: new Date("2026-06-16T00:00:00.000Z"),
       quoteSummary: "",
+      revisionOfRequestId: "req_original",
+      revisionNumber: 2,
+      revisionChangeLog: ["Line 1 quantity: 6 -> 12"],
       lineItems: [
         {
           id: "line_1",
@@ -231,6 +274,10 @@ describe("request persistence", () => {
       id: "req_1",
       buyerCompany: "Amogy Manufacturing",
       requesterName: "William Paik",
+      requesterEmail: "william.paik@amogy.co",
+      requesterPhone: "+1 (310) 617-4533",
+      shipToCompany: "Amogy",
+      shipToAddress1: "19 Morris Ave",
       title: "CNC bracket package",
       process: "CNC machining",
       dueDate: "2026-06-15",
@@ -278,6 +325,9 @@ describe("request persistence", () => {
         quoteValidUntil: "2026-06-16",
         summary: "",
       },
+      revisionOfRequestId: "req_original",
+      revisionNumber: 2,
+      revisionChangeLog: ["Line 1 quantity: 6 -> 12"],
       supplierQuotes: [
         {
           id: "supplier_quote_1",

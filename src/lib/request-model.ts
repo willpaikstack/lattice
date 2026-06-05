@@ -35,12 +35,32 @@ export type UploadedFileInput = {
   storageKey?: string;
 };
 
+export type RequestContactSnapshot = {
+  requesterEmail: string;
+  requesterPhone: string;
+  shipToAddress1: string;
+  shipToAddress2: string;
+  shipToCity: string;
+  shipToCompany: string;
+  shipToName: string;
+  shipToPhone: string;
+  shipToState: string;
+  shipToZipCode: string;
+};
+
 export type DraftRequestInput = {
   buyerCompany: string;
+  contact?: Partial<RequestContactSnapshot>;
   requesterName: string;
   title: string;
   process: string;
   dueDate: string;
+  revision?: {
+    changeLog: string[];
+    revisionNumber: number;
+    sourceQuoteReference?: string;
+    sourceRequestId: string;
+  };
   lineItems: RequestLineItemInput[];
   files: UploadedFileInput[];
 };
@@ -129,6 +149,17 @@ export type CustomerQuoteVersion = {
   issuedAt: string;
 };
 
+export function quotedLineForRequestItem(
+  quotedLines: CustomerQuoteLineItemSnapshot[] | undefined,
+  lineItem: Pick<RequestLineItem, "id" | "partName">,
+) {
+  if (!quotedLines?.length) {
+    return null;
+  }
+
+  return quotedLines.find((line) => line.id === lineItem.id) ?? quotedLines.find((line) => line.description === lineItem.partName) ?? null;
+}
+
 export type StatusEvent = {
   id: string;
   from: RequestStatus | null;
@@ -147,7 +178,17 @@ export type OperatorReview = {
 export type LatticeRequest = {
   id: string;
   buyerCompany: string;
+  requesterEmail: string;
   requesterName: string;
+  requesterPhone: string;
+  shipToAddress1: string;
+  shipToAddress2: string;
+  shipToCity: string;
+  shipToCompany: string;
+  shipToName: string;
+  shipToPhone: string;
+  shipToState: string;
+  shipToZipCode: string;
   title: string;
   process: string;
   dueDate: string;
@@ -159,6 +200,9 @@ export type LatticeRequest = {
   supplierQuotes: SupplierQuote[];
   customerQuotes: CustomerQuoteVersion[];
   quote: QuoteSummary;
+  revisionOfRequestId: string | null;
+  revisionNumber: number;
+  revisionChangeLog: string[];
   statusEvents: StatusEvent[];
   createdAt: string;
   updatedAt: string;
@@ -173,6 +217,45 @@ function assertText(value: string, label: string) {
   if (!value.trim()) {
     throw new Error(`${label} is required`);
   }
+}
+
+function text(value: string | undefined) {
+  return value?.trim() ?? "";
+}
+
+export function requestShipToCityLine(request: Partial<RequestContactSnapshot>) {
+  return [request.shipToCity, [request.shipToState, request.shipToZipCode].filter(Boolean).join(" ")]
+    .filter(Boolean)
+    .join(", ");
+}
+
+export function requestShipToLines(request: Partial<RequestContactSnapshot>) {
+  return [
+    request.shipToName,
+    request.shipToCompany,
+    request.shipToAddress1,
+    request.shipToAddress2,
+    requestShipToCityLine(request),
+    request.shipToPhone,
+  ].filter(Boolean) as string[];
+}
+
+function contactSnapshotForDraft(input: DraftRequestInput): RequestContactSnapshot {
+  const contact = input.contact ?? {};
+  const requesterPhone = text(contact.requesterPhone);
+
+  return {
+    requesterEmail: text(contact.requesterEmail),
+    requesterPhone,
+    shipToAddress1: text(contact.shipToAddress1),
+    shipToAddress2: text(contact.shipToAddress2),
+    shipToCity: text(contact.shipToCity),
+    shipToCompany: text(contact.shipToCompany) || input.buyerCompany.trim(),
+    shipToName: text(contact.shipToName) || input.requesterName.trim(),
+    shipToPhone: text(contact.shipToPhone) || requesterPhone,
+    shipToState: text(contact.shipToState),
+    shipToZipCode: text(contact.shipToZipCode),
+  };
 }
 
 function assertValidDraft(input: DraftRequestInput) {
@@ -199,10 +282,21 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
   assertValidDraft(input);
 
   const timestamp = nowIso();
+  const contact = contactSnapshotForDraft(input);
   const request: LatticeRequest = {
     id: makeId("req"),
     buyerCompany: input.buyerCompany.trim(),
+    requesterEmail: contact.requesterEmail,
     requesterName: input.requesterName.trim(),
+    requesterPhone: contact.requesterPhone,
+    shipToAddress1: contact.shipToAddress1,
+    shipToAddress2: contact.shipToAddress2,
+    shipToCity: contact.shipToCity,
+    shipToCompany: contact.shipToCompany,
+    shipToName: contact.shipToName,
+    shipToPhone: contact.shipToPhone,
+    shipToState: contact.shipToState,
+    shipToZipCode: contact.shipToZipCode,
     title: input.title.trim(),
     process: input.process.trim(),
     dueDate: input.dueDate,
@@ -252,6 +346,9 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       quoteValidUntil: "",
       summary: "",
     },
+    revisionOfRequestId: input.revision?.sourceRequestId.trim() || null,
+    revisionNumber: Math.max(1, input.revision?.revisionNumber ?? 1),
+    revisionChangeLog: input.revision?.changeLog.map((line) => line.trim()).filter(Boolean) ?? [],
     statusEvents: [
       {
         id: makeId("event"),

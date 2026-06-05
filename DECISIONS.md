@@ -2,6 +2,70 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-04 - Use A Three-Sheet Domestic Invoice Packet
+
+Decision: DOC-003 should be a three-sheet workbook: customer-facing invoice, remittance instructions, and invoice terms.
+
+Reason: the Protolabs and Fictiv invoice references separate operational invoice fields from payment/remittance details while still keeping invoice number, date, PO, sales order, terms, bill-to/ship-to, line items, sales tax, and amount due visible on the main invoice face.
+
+Implications:
+
+- The `Invoice` sheet is the primary customer-facing page for invoice identifiers, PO/order references, bill-to/ship-to, line items, subtotal, shipping/freight, sales tax, amount paid, and amount due.
+- The `Remittance` sheet carries ACH/wire/check placeholders, lockbox/courier details, payment references, and AP notes.
+- The `Invoice Terms` sheet carries standard payment, scope, tax/freight, dispute, late payment, and confidentiality language.
+- Future generated invoice PDFs should preserve this separation unless William explicitly chooses a one-page invoice format.
+
+## 2026-06-04 - Let Buyers Revise Active Non-Final Quotes
+
+Decision: active buyer quotes/RFQs in `SUBMITTED`, `NEEDS_INFO`, `READY_FOR_SUPPLIER_RFQ`, or `QUOTED` status should expose an edit/resubmit action that opens `/requests/new?revise=[requestId]` as a prefilled new RFQ request.
+
+Reason: customers may need to change quantity, material, finish, timing, notes, or uploaded files before Lattice finishes quoting, or after seeing price and lead time, without mutating the original submitted/auditable record.
+
+Implications:
+
+- The original quote/RFQ remains an auditable record; revision starts as a new RFQ submission.
+- Revision drafts copy the existing part, saved CAD/drawing file storage references, configuration, quantity, due-date basis, and notes, but buyers still review and resubmit through the normal RFQ intake.
+- Buyers do not need to reupload saved files when revising; reupload is required only for intentional replacements or older records that only contain filenames without storage keys.
+- Future durable revision lineage can link the new RFQ back to the original quoted request when quote-history/version reporting needs it.
+
+## 2026-06-04 - Freeze Customer Quote PDF Template Rev 1
+
+Decision: freeze the current generated customer quote PDF as **DOC-004 Rev 1**.
+
+Reason: William approved the current Hubs-inspired quote PDF direction, including embedded Arial/Arial Bold typography, dark slate text, blue email links, underlined section headings, compact quote/production detail blocks, the line-item table, notes, manufacturing assumptions, and the General Terms closing address block.
+
+Implications:
+
+- `/admin/resources/quote-template` is the Rev 1 reference template and downloads as `lattice-os-customer-quote-template-rev-1.pdf`.
+- `/admin/quotes/[requestId]/quote.pdf` should continue using this Rev 1 renderer for customer quote outputs until William explicitly starts Rev 2 changes.
+- Future quote PDF design changes should be tracked as Rev 2 or later, not silently folded into the Rev 1 baseline.
+
+## 2026-06-04 - Snapshot Account Defaults Onto Submitted RFQs
+
+Decision: store manufacturing account defaults server-side and snapshot requester contact plus ship-to details onto each RFQ at submission time.
+
+Reason: customer quote PDFs are generated on the server, so browser-only account settings cannot reliably populate quote contact blocks. RFQ quote documents also need historical accuracy; later account setting edits should not silently rewrite old quote contact/address data unless an operator deliberately updates that RFQ.
+
+Implications:
+
+- Account settings keep the browser localStorage bridge for continuity but also persist through a server action into Prisma when available, with `.data/account-settings.json` as the local fallback.
+- Submitted RFQs now persist requester email, requester phone, ship-to name, company, address, and phone fields.
+- Quote PDF and Excel generation read contact and ship-to details from the RFQ snapshot.
+- Existing local fallback RFQs may need one-time backfills when they were submitted before these fields existed.
+
+## 2026-06-04 - Use DOC-001 Excel As Quote Source Of Truth
+
+Decision: use `resources/admin/lattice-os-zintilon-quote-template.xlsx` as the source of truth for customer quote workbooks and Excel-derived PDFs instead of recreating the quote layout in code.
+
+Reason: the hand-built PDF approximation missed too much of the written content in the template, especially manufacturing assumptions and the full general terms. The app should fill the live quote values into DOC-001 while preserving the template's styling, merged cells, formulas, assumptions, and terms text.
+
+Implications:
+
+- `/admin/quotes/[requestId]/quote-template.xlsx` clones and patches the DOC-001 workbook with quote number, dates, customer fields, line items, unit prices, lead time, shipping, notes, and totals.
+- Quote PDF routes should first attempt to convert that filled workbook to PDF; PDFKit remains only a fallback when no spreadsheet converter is installed.
+- Exact template-matching PDF output requires LibreOffice/soffice or an equivalent spreadsheet-to-PDF converter in local and production environments.
+- Future quote template edits should happen in the Excel source file and then be validated through the generated workbook/PDF routes.
+
 ## 2026-06-03 - Generate Manual Customer Quote PDFs
 
 Decision: generate customer quote PDFs from the latest saved RFQ quote data through a manual admin download route, `/admin/quotes/[requestId]/quote.pdf`, while keeping the editable Excel quote template and generated workbook available for formatting/reference.

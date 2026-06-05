@@ -113,7 +113,7 @@ export function buildCustomerQuoteInputFromRequest(request: LatticeRequest): Cus
     quoteNumber: `LQ-${request.id.slice(-8).toUpperCase()}`,
     shipping: "Billed at actual",
     tax: "Tax, tariffs, import duties, customs brokerage, and special inspection documents are excluded unless explicitly listed.",
-    validUntil: addDaysIsoFrom(quoteDate, 14),
+    validUntil: addDaysIsoFrom(quoteDate, 30),
   };
 }
 

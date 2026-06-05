@@ -10,6 +10,16 @@ describe("request model", () => {
       title: "CNC bracket package",
       process: "CNC machining",
       dueDate: "2026-06-15",
+      contact: {
+        requesterEmail: "william.paik@amogy.co",
+        requesterPhone: "+1 (310) 617-4533",
+        shipToAddress1: "19 Morris Ave",
+        shipToCity: "Brooklyn",
+        shipToCompany: "Amogy",
+        shipToName: "William Paik",
+        shipToState: "NY",
+        shipToZipCode: "11205",
+      },
       lineItems: [
         {
           partName: "Bracket A",
@@ -34,6 +44,9 @@ describe("request model", () => {
     expect(draft.lineItems).toHaveLength(1);
     expect(draft.files).toHaveLength(1);
     expect(draft.lineItems[0].partName).toBe("Bracket A");
+    expect(draft.requesterEmail).toBe("william.paik@amogy.co");
+    expect(draft.shipToCompany).toBe("Amogy");
+    expect(draft.shipToAddress1).toBe("19 Morris Ave");
     expect(draft.lineItems[0].generalTolerance).toBe("ISO 2768 Medium (m)");
     expect(draft.lineItems[0].surfaceFinish).toBe("As machined (Ra 3.2 µm / Ra 126 µin)");
     expect(draft.lineItems[0].qualityDocumentation).toEqual(["Standard Inspection"]);
@@ -73,6 +86,34 @@ describe("request model", () => {
       to: "SUBMITTED",
       actor: "buyer",
     });
+  });
+
+  it("stores revision lineage and changelog on revised drafts", () => {
+    const draft = buildDraftRequest({
+      buyerCompany: "Amogy Manufacturing",
+      requesterName: "William Paik",
+      title: "Revision request",
+      process: "CNC machining",
+      dueDate: "2026-06-21",
+      revision: {
+        changeLog: ["Line 1 quantity: 4 -> 8"],
+        revisionNumber: 2,
+        sourceQuoteReference: "LQ-1001",
+        sourceRequestId: "req_original",
+      },
+      lineItems: [
+        {
+          partName: "Bracket A",
+          quantity: 8,
+          material: "6061-T6 Aluminum",
+        },
+      ],
+      files: [{ name: "bracket-a.step", sizeBytes: 2048, type: "model/step", storageKey: "rfq/bracket-a.step" }],
+    });
+
+    expect(draft.revisionOfRequestId).toBe("req_original");
+    expect(draft.revisionNumber).toBe(2);
+    expect(draft.revisionChangeLog).toEqual(["Line 1 quantity: 4 -> 8"]);
   });
 
   it("rejects submission when the buyer request has no uploaded files", () => {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Download, FileText, Mail, Phone, User } from "lucide-react";
 
-import type { LatticeRequest, RequestLineItem, RequestStatus } from "@/lib/request-model";
+import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
@@ -97,7 +97,7 @@ function lineItemUnitCents(item: RequestLineItem, totalCents: number | null) {
 }
 
 function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
-  const customerLine = request.customerQuotes.at(-1)?.lineItems.find((line) => line.description === item.partName || line.id === item.id);
+  const customerLine = quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
 
   if (customerLine) {
     return Math.round(customerLine.unitPrice * customerLine.quantity * 100);
@@ -132,6 +132,14 @@ function reviewedFilesLabel(request: LatticeRequest) {
   return request.files.map((file) => file.name).join(", ") || "No files attached";
 }
 
+function canEditRequest(request: LatticeRequest) {
+  return request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ" || request.status === "QUOTED";
+}
+
+function editRequestLabel(request: LatticeRequest) {
+  return request.status === "QUOTED" ? "Edit and resubmit quote" : "Edit and resubmit request";
+}
+
 export function BuyerQuoteDetail({
   checkoutHref,
   request,
@@ -141,6 +149,7 @@ export function BuyerQuoteDetail({
 }) {
   const canPurchase = request.status === "QUOTED";
   const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
+  const canReviseQuote = canEditRequest(request);
   const status = quoteStatusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const selectedSupplierQuote = request.supplierQuotes.find((quote) => quote.isSelected || quote.status === "SELECTED");
@@ -180,6 +189,23 @@ export function BuyerQuoteDetail({
               </div>
             </div>
           </section>
+
+          {request.revisionNumber > 1 || request.revisionChangeLog.length > 0 ? (
+            <section className="rounded-md border border-[#e7e7e7] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Revision history</p>
+                  <h2 className="mt-1 text-[18px] font-semibold text-[#202020]">Revision {request.revisionNumber}</h2>
+                </div>
+                {request.revisionOfRequestId ? <span className="text-[12px] font-medium text-[#6f737a]">Original: {request.revisionOfRequestId}</span> : null}
+              </div>
+              <ul className="mt-4 space-y-2 text-[13px] leading-6 text-[#4f5660]">
+                {(request.revisionChangeLog.length ? request.revisionChangeLog : ["Revision submitted for updated review."]).map((change) => (
+                  <li className="rounded-md bg-[#fafafa] px-3 py-2" key={change}>{change}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-3 text-[13px]">
             <button className="font-semibold text-[#2f73c8] transition hover:text-[#171717]" type="button">
@@ -336,6 +362,14 @@ export function BuyerQuoteDetail({
                   {canPurchase ? "Accept quote" : status.buyerAction}
                 </button>
               )}
+              {canReviseQuote ? (
+                <Link
+                  className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
+                  href={`/requests/new?revise=${request.id}`}
+                >
+                  {editRequestLabel(request)}
+                </Link>
+              ) : null}
               {canDownloadQuote ? (
                 <a
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"

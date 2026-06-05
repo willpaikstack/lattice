@@ -1,9 +1,28 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AccountSettingsWorkspace } from "./account-settings-workspace";
 
+const accountSettingsStorageKey = "lattice.account-settings.v1";
+
 describe("AccountSettingsWorkspace", () => {
+  beforeEach(() => {
+    const store = new Map<string, string>();
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        getItem: vi.fn((key: string) => store.get(key) ?? null),
+        removeItem: vi.fn((key: string) => {
+          store.delete(key);
+        }),
+        setItem: vi.fn((key: string, value: string) => {
+          store.set(key, value);
+        }),
+      },
+    });
+    window.localStorage.removeItem(accountSettingsStorageKey);
+  });
+
   it("edits account contact details inline", () => {
     render(<AccountSettingsWorkspace />);
 
@@ -32,6 +51,22 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("+1 (212) 555-0199")).toBeInTheDocument();
     expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
   });
+
+  it("keeps the saved phone number after the settings page remounts", async () => {
+    const { unmount } = render(<AccountSettingsWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit phone" }));
+    fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "9295859892" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getByText("+1 (929) 585-9892")).toBeInTheDocument();
+
+    unmount();
+    render(<AccountSettingsWorkspace />);
+
+    expect(await screen.findByText("+1 (929) 585-9892")).toBeInTheDocument();
+  });
+
 
   it("opens an avatar composer for preset profile pictures", () => {
     render(<AccountSettingsWorkspace />);
@@ -87,16 +122,74 @@ describe("AccountSettingsWorkspace", () => {
     render(<AccountSettingsWorkspace />);
 
     expect(screen.queryByText("Default RFQ requirements")).not.toBeInTheDocument();
-    expect(screen.getByText("Amogy Accounts Payable")).toBeInTheDocument();
-    expect(screen.getByText("500 7th Ave, New York, NY 10018, United States")).toBeInTheDocument();
+    expect(screen.getAllByText("Amogy").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("19 Morris Ave").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Brooklyn, NY 11205").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit billing address" }));
-    fireEvent.change(screen.getByLabelText("Billing address"), { target: { value: "Amogy Finance\n44 Water St, New York, NY 10004, United States" } });
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Accounts Payable" } });
+    fireEvent.change(screen.getByLabelText("Company"), { target: { value: "Amogy Finance" } });
+    fireEvent.change(screen.getByLabelText("Address 1"), { target: { value: "44 Water St" } });
+    fireEvent.change(screen.getByLabelText("Address 2"), { target: { value: "Suite 1200" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "New York" } });
+    fireEvent.change(screen.getByLabelText("State"), { target: { value: "NY" } });
+    fireEvent.change(screen.getByLabelText("Zip code"), { target: { value: "10004" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
+    expect(screen.getByText("Accounts Payable")).toBeInTheDocument();
     expect(screen.getByText("Amogy Finance")).toBeInTheDocument();
-    expect(screen.getByText("44 Water St, New York, NY 10004, United States")).toBeInTheDocument();
+    expect(screen.getByText("44 Water St")).toBeInTheDocument();
+    expect(screen.getByText("Suite 1200")).toBeInTheDocument();
+    expect(screen.getByText("New York, NY 10004")).toBeInTheDocument();
     expect(screen.getByText("procurement@amogy.co")).toBeInTheDocument();
+  });
+
+  it("edits the saved shipping address with structured address fields", () => {
+    render(<AccountSettingsWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit shipping" }));
+
+    expect(screen.getByLabelText("Name")).toHaveValue("William Paik");
+    expect(screen.getByLabelText("Company")).toHaveValue("Amogy");
+    expect(screen.getByLabelText("Address 1")).toHaveValue("19 Morris Ave");
+    expect(screen.getByLabelText("Address 2")).toHaveValue("");
+    expect(screen.getByLabelText("City")).toHaveValue("Brooklyn");
+    expect(screen.getByLabelText("State")).toHaveValue("NY");
+    expect(screen.getByLabelText("Zip code")).toHaveValue("11205");
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Receiving Team" } });
+    fireEvent.change(screen.getByLabelText("Company"), { target: { value: "Lattice Receiving" } });
+    fireEvent.change(screen.getByLabelText("Address 1"), { target: { value: "75 Varick St" } });
+    fireEvent.change(screen.getByLabelText("Address 2"), { target: { value: "Dock 3" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "New York" } });
+    fireEvent.change(screen.getByLabelText("State"), { target: { value: "NY" } });
+    fireEvent.change(screen.getByLabelText("Zip code"), { target: { value: "10013" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getByText("Receiving Team")).toBeInTheDocument();
+    expect(screen.getByText("Lattice Receiving")).toBeInTheDocument();
+    expect(screen.getByText("75 Varick St")).toBeInTheDocument();
+    expect(screen.getByText("Dock 3")).toBeInTheDocument();
+    expect(screen.getByText("New York, NY 10013")).toBeInTheDocument();
+  });
+
+  it("edits billing contact details with separate fields", () => {
+    render(<AccountSettingsWorkspace />);
+
+    expect(screen.getByText("procurement@amogy.co")).toBeInTheDocument();
+    expect(screen.getByText("Route invoices to AP after PO match.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit billing" }));
+
+    expect(screen.getByLabelText("Billing email")).toHaveValue("procurement@amogy.co");
+    expect(screen.getByLabelText("Invoice routing notes")).toHaveValue("Route invoices to AP after PO match.");
+
+    fireEvent.change(screen.getByLabelText("Billing email"), { target: { value: "ap@amogy.co" } });
+    fireEvent.change(screen.getByLabelText("Invoice routing notes"), { target: { value: "Send invoices after PO, packing slip, and receiver match." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getByText("ap@amogy.co")).toBeInTheDocument();
+    expect(screen.getByText("Send invoices after PO, packing slip, and receiver match.")).toBeInTheDocument();
   });
 
   it("switches to team management and updates a member", () => {

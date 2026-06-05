@@ -44,8 +44,8 @@ describe("AdminActivityDashboard", () => {
     expect(screen.getByText("Overdue")).toBeInTheDocument();
     expect(screen.getByText("Open quoted value")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Critical quote queue" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Resolve missing buyer info/ })).toHaveAttribute("href", "/operator/requests/req_needs_info");
-    expect(screen.getByRole("link", { name: /Send supplier RFQ package/ })).toHaveAttribute("href", "/operator/requests/req_ready");
+    expect(screen.getByRole("link", { name: /Resolve missing buyer info/ })).toHaveAttribute("href", "/admin/quotes?requestId=req_needs_info");
+    expect(screen.getByRole("link", { name: /Send supplier RFQ package/ })).toHaveAttribute("href", "/admin/quotes?requestId=req_ready");
     expect(screen.getByRole("heading", { name: "Quote pipeline" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Recent quote requests" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Customers" })).not.toBeInTheDocument();

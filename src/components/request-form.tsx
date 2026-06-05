@@ -42,7 +42,13 @@ type LineItemState = {
   qualityDocumentation: string[];
   notes: string;
   fileName: string;
+  fileSizeBytes: number;
+  fileStorageKey?: string;
+  fileType: string;
   technicalDrawingName: string;
+  technicalDrawingSizeBytes: number;
+  technicalDrawingStorageKey?: string;
+  technicalDrawingType: string;
   partMarkings: boolean;
   tightLinearTolerance: boolean;
   threads: boolean;
@@ -53,14 +59,20 @@ type LineItemState = {
   cadPreview: CadUploadPreviewState;
 };
 
-type LegacyInitialState = Partial<
-  ProjectFormState &
-    Omit<
-      LineItemState,
-      "id" | "selectedFile" | "selectedDrawingFile" | "cadPreview"
-    >
+type InitialLineItemState = Partial<
+  Omit<
+    LineItemState,
+    "id" | "selectedFile" | "selectedDrawingFile" | "cadPreview"
+  >
 > & {
   cadPreview?: CadUploadPreviewState;
+};
+
+type LegacyInitialState = Partial<ProjectFormState & InitialLineItemState> & {
+  lineItems?: InitialLineItemState[];
+  revisionSourceQuoteReference?: string;
+  revisionSourceRequestId?: string;
+  revisionSourceRevisionNumber?: number;
 };
 
 export type RequestFormInitialState = LegacyInitialState;
@@ -108,7 +120,13 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   qualityDocumentation: ["standard_inspection"],
   notes: "",
   fileName: "",
+  fileSizeBytes: 0,
+  fileStorageKey: undefined,
+  fileType: "",
   technicalDrawingName: "",
+  technicalDrawingSizeBytes: 0,
+  technicalDrawingStorageKey: undefined,
+  technicalDrawingType: "",
   partMarkings: false,
   tightLinearTolerance: false,
   threads: false,
@@ -162,15 +180,15 @@ function drawingCanPreview(file: File | null) {
 }
 
 function lineItemHasCadBytes(lineItem: LineItemState) {
-  return Boolean(lineItem.selectedFile && lineItem.selectedFile.size > 0);
+  return Boolean((lineItem.selectedFile && lineItem.selectedFile.size > 0) || lineItem.fileStorageKey);
 }
 
 function lineItemHasDrawingBytes(lineItem: LineItemState) {
-  return !lineItem.technicalDrawingName.trim() || Boolean(lineItem.selectedDrawingFile && lineItem.selectedDrawingFile.size > 0);
+  return !lineItem.technicalDrawingName.trim() || Boolean((lineItem.selectedDrawingFile && lineItem.selectedDrawingFile.size > 0) || lineItem.technicalDrawingStorageKey);
 }
 
 function initialCadPreview(
-  initialState?: RequestFormInitialState,
+  initialState?: InitialLineItemState,
 ): CadUploadPreviewState {
   if (!initialState?.fileName?.trim()) {
     return { status: "empty" };
@@ -202,16 +220,24 @@ function initialCadPreview(
   return {
     status: "reference_only",
     fileName: initialState.fileName,
-    message:
-      "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.",
+    message: initialState.fileStorageKey
+      ? "This CAD file is saved with the RFQ. Upload a replacement only if you want to change it."
+      : "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview.",
   };
 }
 
 function lineItemFromInitialState(
   initialState?: RequestFormInitialState,
 ): LineItemState {
+  return lineItemFromInitialLineItem(initialState, "line-1");
+}
+
+function lineItemFromInitialLineItem(
+  initialState: InitialLineItemState | undefined,
+  id: string,
+): LineItemState {
   return {
-    ...makeLineItemInitialState("line-1"),
+    ...makeLineItemInitialState(id),
     partName: initialState?.partName ?? "",
     quantity: initialState?.quantity ?? "1",
     material: initialState?.material ?? "ss_304",
@@ -222,7 +248,13 @@ function lineItemFromInitialState(
     ],
     notes: initialState?.notes ?? "",
     fileName: initialState?.fileName ?? "",
+    fileSizeBytes: initialState?.fileSizeBytes ?? 0,
+    fileStorageKey: initialState?.fileStorageKey,
+    fileType: initialState?.fileType ?? "",
     technicalDrawingName: initialState?.technicalDrawingName ?? "",
+    technicalDrawingSizeBytes: initialState?.technicalDrawingSizeBytes ?? 0,
+    technicalDrawingStorageKey: initialState?.technicalDrawingStorageKey,
+    technicalDrawingType: initialState?.technicalDrawingType ?? "",
     partMarkings: initialState?.partMarkings ?? false,
     tightLinearTolerance: initialState?.tightLinearTolerance ?? false,
     threads: initialState?.threads ?? false,
@@ -272,6 +304,67 @@ function writeIncompleteRfqs(drafts: StoredIncompleteRfq[]) {
 
 function removeIncompleteRfq(id: string) {
   writeIncompleteRfqs(readIncompleteRfqs().filter((draft) => draft.id !== id));
+}
+
+function normalizedValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value.join(", ") : (value ?? "").trim();
+}
+
+function pushChange(changes: string[], label: string, before: string | string[] | undefined, after: string | string[] | undefined) {
+  const previous = normalizedValue(before);
+  const next = normalizedValue(after);
+
+  if (previous !== next) {
+    changes.push(`${label}: ${previous || "blank"} -> ${next || "blank"}`);
+  }
+}
+
+function buildRevisionChangeLog(
+  source: RequestFormInitialState,
+  currentProject: ProjectFormState,
+  currentLineItems: LineItemState[],
+) {
+  const changes: string[] = [];
+
+  pushChange(changes, "Quote name", source.projectName, currentProject.projectName);
+  pushChange(changes, "Needed by", source.dueDate, currentProject.dueDate);
+  pushChange(changes, "Manufacturing process", source.process, currentProject.process);
+  pushChange(changes, "Customer PO", source.customerPo, currentProject.customerPo);
+
+  const sourceLineItems = source.lineItems?.length ? source.lineItems : [source];
+  const count = Math.max(sourceLineItems.length, currentLineItems.length);
+
+  for (let index = 0; index < count; index += 1) {
+    const sourceLine = sourceLineItems[index];
+    const currentLine = currentLineItems[index];
+    const prefix = `Line ${index + 1}`;
+
+    if (!sourceLine && currentLine) {
+      changes.push(`${prefix}: added ${currentLine.partName || currentLine.fileName || "new part"}`);
+      continue;
+    }
+
+    if (sourceLine && !currentLine) {
+      changes.push(`${prefix}: removed ${sourceLine.partName || sourceLine.fileName || "part"}`);
+      continue;
+    }
+
+    if (!sourceLine || !currentLine) {
+      continue;
+    }
+
+    pushChange(changes, `${prefix} part name`, sourceLine.partName, currentLine.partName);
+    pushChange(changes, `${prefix} quantity`, sourceLine.quantity, currentLine.quantity);
+    pushChange(changes, `${prefix} material`, sourceLine.material, currentLine.material);
+    pushChange(changes, `${prefix} tolerance`, sourceLine.generalTolerance, currentLine.generalTolerance);
+    pushChange(changes, `${prefix} finish`, sourceLine.surfaceFinish, currentLine.surfaceFinish);
+    pushChange(changes, `${prefix} quality docs`, sourceLine.qualityDocumentation, currentLine.qualityDocumentation);
+    pushChange(changes, `${prefix} CAD file`, sourceLine.fileName, currentLine.fileName);
+    pushChange(changes, `${prefix} drawing`, sourceLine.technicalDrawingName, currentLine.technicalDrawingName);
+    pushChange(changes, `${prefix} notes`, sourceLine.notes, currentLine.notes);
+  }
+
+  return changes.length ? changes : ["Resubmitted for review with no field-level changes detected."];
 }
 
 function makeLocalDraftId() {
@@ -852,9 +945,11 @@ export function RequestForm({
     ...makeProjectInitialState(),
     ...resolvedInitialState,
   }));
-  const [lineItems, setLineItems] = useState<LineItemState[]>(() => [
-    lineItemFromInitialState(resolvedInitialState),
-  ]);
+  const [lineItems, setLineItems] = useState<LineItemState[]>(() =>
+    resolvedInitialState?.lineItems?.length
+      ? resolvedInitialState.lineItems.map((lineItem, index) => lineItemFromInitialLineItem(lineItem, `line-${index + 1}`))
+      : [lineItemFromInitialState(resolvedInitialState)],
+  );
   const [error, setError] = useState<string | null>(null);
   const [createdRequest, setCreatedRequest] = useState<LatticeRequest | null>(
     null,
@@ -955,6 +1050,29 @@ export function RequestForm({
     }
 
     const timestamp = new Date().toISOString();
+    const lineItemsForResume = configuredLineItems.map((lineItem) => ({
+      fileName: lineItem.fileName,
+      fileSizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
+      fileStorageKey: lineItem.selectedFile ? undefined : lineItem.fileStorageKey,
+      fileType: lineItem.selectedFile?.type || lineItem.fileType,
+      generalTolerance: lineItem.generalTolerance,
+      material: lineItem.material,
+      notes: lineItem.notes,
+      engineeringFits: lineItem.engineeringFits,
+      partName: lineItem.partName,
+      partMarkings: lineItem.partMarkings,
+      qualityDocumentation: lineItem.qualityDocumentation,
+      quantity: lineItem.quantity,
+      sharpInternalCorners: lineItem.sharpInternalCorners,
+      surfaceFinish: lineItem.surfaceFinish,
+      technicalDrawingName: lineItem.technicalDrawingName,
+      technicalDrawingSizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
+      technicalDrawingStorageKey: lineItem.selectedDrawingFile ? undefined : lineItem.technicalDrawingStorageKey,
+      technicalDrawingType: lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType,
+      threads: lineItem.threads,
+      tightLinearTolerance: lineItem.tightLinearTolerance,
+      cadPreview: persistedCadPreview(lineItem.cadPreview),
+    }));
     const initialStateForResume: RequestFormInitialState = {
       buyerCompany: projectForm.buyerCompany,
       customerPo: projectForm.customerPo,
@@ -969,9 +1087,13 @@ export function RequestForm({
       qualityDocumentation: primaryLineItem.qualityDocumentation,
       quantity: primaryLineItem.quantity,
       requesterName: projectForm.requesterName,
+      revisionSourceQuoteReference: resolvedInitialState?.revisionSourceQuoteReference,
+      revisionSourceRequestId: resolvedInitialState?.revisionSourceRequestId,
+      revisionSourceRevisionNumber: resolvedInitialState?.revisionSourceRevisionNumber,
       surfaceFinish: primaryLineItem.surfaceFinish,
       technicalDrawingName: primaryLineItem.technicalDrawingName,
       cadPreview: persistedCadPreview(primaryLineItem.cadPreview),
+      lineItems: lineItemsForResume,
     };
     const requestTitle =
       projectForm.projectName.trim() ||
@@ -981,7 +1103,17 @@ export function RequestForm({
     const request: LatticeRequest = {
       id: draftId,
       buyerCompany: projectForm.buyerCompany,
+      requesterEmail: "",
       requesterName: projectForm.requesterName,
+      requesterPhone: "",
+      shipToAddress1: "",
+      shipToAddress2: "",
+      shipToCity: "",
+      shipToCompany: projectForm.buyerCompany,
+      shipToName: projectForm.requesterName,
+      shipToPhone: "",
+      shipToState: "",
+      shipToZipCode: "",
       title: requestTitle,
       process: optionLabel(processOptions, projectForm.process),
       dueDate: projectForm.dueDate,
@@ -1000,16 +1132,18 @@ export function RequestForm({
         {
           id: `${lineItem.id}-file`,
           name: lineItem.fileName,
-          sizeBytes: lineItem.selectedFile?.size ?? 0,
-          type: lineItem.selectedFile?.type || "reference/name-only",
+          sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
+          storageKey: lineItem.selectedFile ? undefined : lineItem.fileStorageKey,
+          type: lineItem.selectedFile?.type || lineItem.fileType || "reference/name-only",
         },
         ...(lineItem.technicalDrawingName
           ? [
               {
                 id: `${lineItem.id}-drawing`,
                 name: lineItem.technicalDrawingName,
-                sizeBytes: lineItem.selectedDrawingFile?.size ?? 0,
-                type: lineItem.selectedDrawingFile?.type || "reference/name-only",
+                sizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
+                storageKey: lineItem.selectedDrawingFile ? undefined : lineItem.technicalDrawingStorageKey,
+                type: lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType || "reference/name-only",
               },
             ]
           : []),
@@ -1042,6 +1176,11 @@ export function RequestForm({
         quoteValidUntil: "",
         summary: "",
       },
+      revisionChangeLog: resolvedInitialState?.revisionSourceRequestId
+        ? buildRevisionChangeLog(resolvedInitialState, projectForm, configuredLineItems)
+        : [],
+      revisionNumber: resolvedInitialState?.revisionSourceRequestId ? (resolvedInitialState.revisionSourceRevisionNumber ?? 1) + 1 : 1,
+      revisionOfRequestId: resolvedInitialState?.revisionSourceRequestId ?? null,
       statusEvents: [
         {
           id: `${draftId}-event-draft`,
@@ -1105,6 +1244,9 @@ export function RequestForm({
           ...lineItem,
           selectedFile: file,
           fileName,
+          fileSizeBytes: file?.size ?? 0,
+          fileStorageKey: undefined,
+          fileType: file?.type ?? "",
           partName: lineItem.partName.trim() || suggestedName,
           cadPreview: file
             ? { status: "uploading", fileName: file.name }
@@ -1189,6 +1331,8 @@ export function RequestForm({
         ...makeLineItemInitialState(id),
         selectedFile: file,
         fileName,
+        fileSizeBytes: file.size,
+        fileType: file.type,
         partName: suggestedName,
         cadPreview: { status: "uploading", fileName },
       },
@@ -1204,6 +1348,9 @@ export function RequestForm({
               ...lineItem,
               selectedDrawingFile: file,
               technicalDrawingName: file?.name ?? "",
+              technicalDrawingSizeBytes: file?.size ?? 0,
+              technicalDrawingStorageKey: undefined,
+              technicalDrawingType: file?.type ?? "",
             }
           : lineItem,
       ),
@@ -1223,21 +1370,15 @@ export function RequestForm({
   }
 
   function drawingRequiredNotes(lineItem: LineItemState) {
-    return [
-      lineItem.partMarkings
-        ? "Part markings requested; drawing required."
-        : null,
-      lineItem.tightLinearTolerance
-        ? "Linear tolerance tighter than general tolerance requested; drawing required."
-        : null,
+    const generatedNotes = [
+      lineItem.partMarkings ? "Part markings requested; drawing required." : null,
+      lineItem.tightLinearTolerance ? "Linear tolerance tighter than general tolerance requested; drawing required." : null,
       lineItem.threads ? "Threads requested; drawing required." : null,
-      lineItem.engineeringFits
-        ? "Engineering fits requested; drawing required."
-        : null,
-      lineItem.sharpInternalCorners
-        ? "Sharp internal corners requested; drawing required."
-        : null,
-    ].filter(Boolean);
+      lineItem.engineeringFits ? "Engineering fits requested; drawing required." : null,
+      lineItem.sharpInternalCorners ? "Sharp internal corners requested; drawing required." : null,
+    ].filter((note): note is string => Boolean(note));
+
+    return generatedNotes.filter((note) => !lineItem.notes.includes(note));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1272,6 +1413,14 @@ export function RequestForm({
       title: projectForm.projectName,
       process: optionLabel(processOptions, projectForm.process),
       dueDate: projectForm.dueDate,
+      revision: resolvedInitialState?.revisionSourceRequestId
+        ? {
+            changeLog: buildRevisionChangeLog(resolvedInitialState, projectForm, configuredLineItems),
+            revisionNumber: (resolvedInitialState.revisionSourceRevisionNumber ?? 1) + 1,
+            sourceQuoteReference: resolvedInitialState.revisionSourceQuoteReference,
+            sourceRequestId: resolvedInitialState.revisionSourceRequestId,
+          }
+        : undefined,
       lineItems: configuredLineItems.map((lineItem, index) => {
         const noteLines = [
           index === 0 && projectForm.customerPo.trim()
@@ -1302,16 +1451,18 @@ export function RequestForm({
       files: configuredLineItems.flatMap((lineItem) => [
         {
           name: lineItem.fileName,
-          sizeBytes: lineItem.selectedFile?.size ?? 0,
-          type: lineItem.selectedFile?.type || "reference/name-only",
+          sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
+          storageKey: lineItem.selectedFile ? undefined : lineItem.fileStorageKey,
+          type: lineItem.selectedFile?.type || lineItem.fileType || "reference/name-only",
         },
         ...(lineItem.technicalDrawingName
           ? [
               {
                 name: lineItem.technicalDrawingName,
-                sizeBytes: lineItem.selectedDrawingFile?.size ?? 0,
+                sizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
+                storageKey: lineItem.selectedDrawingFile ? undefined : lineItem.technicalDrawingStorageKey,
                 type:
-                  lineItem.selectedDrawingFile?.type || "reference/name-only",
+                  lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType || "reference/name-only",
               },
             ]
           : []),

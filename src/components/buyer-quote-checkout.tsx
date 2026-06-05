@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarDays, CheckCircle2, FileText, Landmark, MapPin, ShieldCheck, Truck } from "lucide-react";
 import type { ReactNode } from "react";
 
-import type { LatticeRequest, RequestLineItem } from "@/lib/request-model";
+import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
 
 function formatPrice(cents: number | null) {
   if (cents === null) {
@@ -21,7 +21,7 @@ function quoteReference(request: LatticeRequest) {
 }
 
 function lineTotalCents(request: LatticeRequest, item: RequestLineItem) {
-  const customerLine = request.customerQuotes.at(-1)?.lineItems.find((line) => line.description === item.partName || line.id === item.id);
+  const customerLine = quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
 
   if (customerLine) {
     return Math.round(customerLine.unitPrice * customerLine.quantity * 100);

@@ -139,6 +139,10 @@ function CriticalQueueItem({ request }: { request: AdminCriticalQuoteRequest }) 
   );
 }
 
+function adminQuoteHref(requestId: string) {
+  return `/admin/quotes?requestId=${encodeURIComponent(requestId)}`;
+}
+
 export function AdminActivityDashboard({ summary }: { summary: AdminActivitySummary }) {
   return (
     <div className="mx-auto max-w-[1240px] space-y-5">
@@ -212,7 +216,7 @@ export function AdminActivityDashboard({ summary }: { summary: AdminActivitySumm
           </div>
           <div className="divide-y divide-[#ffe1e3]">
             {summary.recentActivity.slice(0, 6).map((request) => (
-              <Link className="grid gap-3 p-5 transition hover:bg-[#fff1f2] lg:grid-cols-[1.15fr_0.62fr_0.48fr_0.42fr] lg:items-center" href={`/operator/requests/${request.id}`} key={request.id}>
+              <Link className="grid gap-3 p-5 transition hover:bg-[#fff1f2] lg:grid-cols-[1.15fr_0.62fr_0.48fr_0.42fr] lg:items-center" href={adminQuoteHref(request.id)} key={request.id}>
                 <div>
                   <p className="text-[15px] font-semibold text-[#484848]">{request.title}</p>
                   <p className="mt-1 text-[13px] text-[#767676]">

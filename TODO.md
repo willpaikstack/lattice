@@ -31,8 +31,10 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator reviews RFQ
   - operator marks missing info or ready for supplier RFQ
   - operator saves a durable customer quote version with per-part unit pricing
+  - buyer revises active priced quotes through a prefilled new RFQ when price or lead time needs changes
   - buyer and operator views stay in sync
-- Apply the latest request schema changes, including `CLOSED` and the quote shipping/date fields, to local and production databases with Prisma after pulling this change.
+- Apply the latest request schema changes, including `CLOSED`, quote shipping/date fields, account defaults, RFQ contact/ship-to snapshot fields, and quote revision fields (`revisionOfRequestId`, `revisionNumber`, `revisionChangeLog`), to local and production databases with Prisma after pulling this change.
+- Continue refining quote revision lineage views, including admin-side source-chain navigation from revised RFQs back to the original request.
 - If buyers need post-purchase quote history, expose the saved quote/PDF from `/orders/[requestId]` instead of putting purchased records back into `/quotes`.
 - Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events. `/notifications` now derives quote-ready and missing-info rows from request state with static fallback data.
 - Configure Autodesk Platform Services for live CAD previews:
@@ -47,7 +49,10 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Connect the `/admin` quote request overview more deeply to durable quote versions and supplier quote records.
 - Continue refining internal templates in `/admin/resources`; customer quote, supplier purchase order, and domestic invoice Excel templates now live there with in-app previews, with supplier outreach, order, and inspection document formats still future candidates.
 - Connect supplier purchase order and domestic invoice generation to accepted orders once the order workflow stores supplier release, customer PO, billing, tax, tariff, and payment-term data durably.
-- Continue aligning customer quote PDF generation with the data-connected Excel template fields, especially real ship-to address, buyer phone/email, production speed, ship-by date, DFM warnings, and customs/end-use notes.
+- Connect DOC-003 invoice generation to accepted order data, including invoice number, customer PO, sales order/order reference, bill-to/ship-to, shipping/freight, sales tax, amount paid, amount due, and remittance instructions.
+- Install LibreOffice/soffice locally and add an equivalent spreadsheet-to-PDF converter to production so quote PDF routes can render the filled DOC-001 Excel template exactly instead of falling back to PDFKit.
+- Add RFQ intake controls for requester email/phone and explicit ship-to overrides if buyers need to change them per RFQ; current submissions snapshot the saved account defaults onto the RFQ.
+- Continue aligning customer quote template fields with real order data, especially ship-by date, DFM warnings, and customs/end-use notes.
 - Decide whether saved quote PDFs should later be stored durably and attached to buyer-facing quote/order records, emailed, or kept as manual downloads only.
 - Connect `/admin/vendors` to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
 - Decide whether to keep or retire `/operator/requests/[requestId]` after more RFQ detail review lives in the `/admin/quotes` command drawer.

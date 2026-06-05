@@ -16,15 +16,20 @@ import { SupplierOrderDetail } from "./supplier-order-detail";
 import { SupplierOrders } from "./supplier-orders";
 
 const mockPush = vi.fn();
+let mockRequestIdParam: string | null = null;
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  useSearchParams: () => ({
+    get: (key: string) => (key === "requestId" ? mockRequestIdParam : null),
+  }),
 }));
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockRequestIdParam = null;
 });
 
 function makeSubmittedRequest() {
@@ -189,6 +194,31 @@ describe("AdminQuoteManagement", () => {
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
   });
 
+  it("closes the RFQ drawer when the backdrop is clicked", () => {
+    const request = makeSubmittedRequest();
+
+    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
+    fireEvent.click(screen.getByRole("dialog"));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("presentation"));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens the RFQ drawer from an admin quote deep link", async () => {
+    const request = makeSubmittedRequest();
+    mockRequestIdParam = request.id;
+
+    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
+  });
+
 });
 
 describe("BuyerQuotes", () => {
@@ -206,6 +236,17 @@ describe("BuyerQuotes", () => {
 });
 
 describe("BuyerQuoteDetail", () => {
+  it("lets customers edit and resubmit pending RFQs before pricing is ready", () => {
+    const request = makeSubmittedRequest();
+
+    render(<BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />);
+
+    expect(screen.getAllByText("Lattice review in progress").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Lattice is checking the RFQ package before supplier outreach." })).toBeDisabled();
+    expect(screen.getByRole("link", { name: "Edit and resubmit request" })).toHaveAttribute("href", `/requests/new?revise=${request.id}`);
+    expect(screen.queryByRole("link", { name: "Download quote PDF" })).not.toBeInTheDocument();
+  });
+
   it("renders priced quote details and enables purchase conversion", () => {
     const quotedRequest = makeQuotedRequest();
     const requestWithCustomerQuote = {
@@ -257,6 +298,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Summary")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Edit and resubmit quote" })).toHaveAttribute("href", `/requests/new?revise=${requestWithCustomerQuote.id}`);
     expect(screen.getByRole("link", { name: "Download quote PDF" })).toHaveAttribute("href", `/quotes/${requestWithCustomerQuote.id}/quote.pdf`);
     expect(screen.getByText("Quote activity")).toBeInTheDocument();
     expect(screen.getByText("Quote basis")).toBeInTheDocument();

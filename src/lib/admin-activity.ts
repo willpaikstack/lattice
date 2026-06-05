@@ -89,7 +89,7 @@ function getCriticalQuoteRequest(request: LatticeRequest, now: Date): AdminCriti
     supplierQuotesTotal,
     createdAt: request.createdAt,
     updatedAt: request.updatedAt,
-    href: `/operator/requests/${request.id}`,
+    href: `/admin/quotes?requestId=${encodeURIComponent(request.id)}`,
   };
 
   if (request.status === "NEEDS_INFO") {
@@ -130,7 +130,6 @@ function getCriticalQuoteRequest(request: LatticeRequest, now: Date): AdminCriti
 
   return {
     ...base,
-    href: `/quotes/${request.id}`,
     nextStep: "Monitor buyer decision",
     reason: request.quote.summary || "Customer quote has been issued and is waiting for buyer response.",
     tone: "neutral",

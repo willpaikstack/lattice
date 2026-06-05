@@ -1,7 +1,8 @@
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { FileSpreadsheet, FileText } from "lucide-react";
 
 import { domesticInvoiceSheets, supplierPoSheets } from "@/lib/admin-document-templates";
 import { isTemplateInputCell, type SheetModel } from "@/lib/quote-xlsx";
+import { ResourceCard } from "./resource-card";
 
 type Resource = {
   description: string;
@@ -52,7 +53,11 @@ const resources: Resource[] = [
             ["#", "Part details", "", "", "", "Production Region", "Qty", "Unit price", "Subtotal"],
             [1, "[Part name / file package]\nProcess: [Process]\nMaterial: [Material]\nFinish: [Finish]", "", "", "", "[Production region]", 1, "$0.00", "$0.00"],
             [],
-            ["Notes:", "[Customer-visible quote notes, assumptions, DFM comments, exclusions, or delivery details.]"],
+            [
+              "Notes:",
+              "[1] Order by 3 PM PST on [tomorrow's date] to ship your parts by [ship date]. Parts ship together at the slowest production speed in your quote.\n[2] Customs clearance information is required for shipments across country borders.",
+            ],
+            ["", "", "", "", "", "Sales Tax", "", "", "8.25% of part production subtotal"],
             [],
             ["MANUFACTURING ASSUMPTIONS AND ACCEPTANCE"],
             ["1. 100% Payment in Advance; production begins only after payment is received and final design release is complete."],
@@ -61,7 +66,7 @@ const resources: Resource[] = [
             ["GENERAL TERMS AND CONDITIONS OF SALE"],
             ["General Terms and Conditions of Sale"],
             ["Version 1.5.10 - Jun 26, 2024"],
-            ["These general terms and conditions of sale apply to any purchase of goods and services by a customer from Lattice OS."],
+            ["These general terms and conditions of sale apply to any purchase of goods and services by a customer from Nexus Manufacturing Technologies, Inc."],
             ["1. General"],
             ["1.1. Lattice Quotes. Lattice provides a Quote for Buyer’s Goods based on a 3D CAD model submitted by Buyer to Seller."],
           ],
@@ -89,19 +94,19 @@ const resources: Resource[] = [
     href: "/admin/resources/domestic-invoice-template",
     id: "DOC-003",
     label: "Domestic invoice template",
-    meta: "XLSX - 2 sheets",
+    meta: "XLSX - 3 sheets",
     preview: {
       kind: "workbook",
       sheets: domesticInvoiceSheets,
     },
   },
   {
-    description: "Reference quote layout used while shaping the buyer-facing Lattice quote PDF.",
-    fileName: "quote-pdf-template.pdf",
+    description: "Frozen Rev 1 generated customer quote PDF template used by the admin quote workflow, with the current Hubs-inspired typography, line-item table, assumptions, and terms.",
+    fileName: "lattice-os-customer-quote-template-rev-1.pdf",
     href: "/admin/resources/quote-template",
     id: "DOC-004",
-    label: "Quote PDF template",
-    meta: "PDF - 3 pages - 50 KB",
+    label: "Customer quote PDF template - Rev 1",
+    meta: "PDF - Rev 1 - generated from quote renderer",
     preview: {
       href: "/admin/resources/quote-template?preview=1",
       kind: "pdf",
@@ -117,15 +122,15 @@ function cellDisplayValue(value: SheetModel["rows"][number][number]) {
   return String(value);
 }
 
-function WorkbookPreview({ sheets }: { sheets: SheetModel[] }) {
+function WorkbookPreview({ mode = "inline", sheets }: { mode?: "inline" | "popup"; sheets: SheetModel[] }) {
   return (
-    <div className="overflow-hidden rounded-md border border-[#eeeeee] bg-[#fbfbfb]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-[#eeeeee] bg-[#fbfbfb]">
       <div className="flex items-center gap-2 border-b border-[#eeeeee] bg-[#fff7f7] px-3 py-2 text-[12px] font-semibold text-[#767676]">
         <FileSpreadsheet aria-hidden="true" className="h-4 w-4" />
         <span>{sheets.length} sheet{sheets.length === 1 ? "" : "s"}</span>
         <span className="rounded-md border border-[#ffd1d4] bg-[#fff3cf] px-2 py-0.5 text-[11px] text-[#767676]">Yellow cells accept operator input</span>
       </div>
-      <div className="max-h-[520px] overflow-auto">
+      <div className={mode === "popup" ? "min-h-0 flex-1 overflow-auto" : "max-h-[520px] overflow-auto"}>
         <div className="space-y-4 p-3">
           {sheets.map((sheet) => {
             const columnCount = Math.max(1, ...sheet.rows.map((row) => row.length));
@@ -195,24 +200,24 @@ function WorkbookPreview({ sheets }: { sheets: SheetModel[] }) {
   );
 }
 
-function PdfPreview({ href, label }: { href: string; label: string }) {
+function PdfPreview({ href, label, mode = "inline" }: { href: string; label: string; mode?: "inline" | "popup" }) {
   return (
-    <div className="overflow-hidden rounded-md border border-[#eeeeee] bg-[#fbfbfb]">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border border-[#eeeeee] bg-[#fbfbfb]">
       <div className="flex items-center gap-2 border-b border-[#eeeeee] bg-[#fff7f7] px-3 py-2 text-[12px] font-semibold text-[#767676]">
         <FileText aria-hidden="true" className="h-4 w-4" />
         <span>PDF preview</span>
       </div>
-      <iframe className="h-[520px] w-full bg-white" src={href} title={`${label} preview`} />
+      <iframe className={mode === "popup" ? "min-h-0 w-full flex-1 bg-white" : "h-[520px] w-full bg-white"} src={href} title={`${label} preview`} />
     </div>
   );
 }
 
-function ResourcePreview({ resource }: { resource: Resource }) {
+function ResourcePreview({ mode = "inline", resource }: { mode?: "inline" | "popup"; resource: Resource }) {
   if (resource.preview.kind === "pdf") {
-    return <PdfPreview href={resource.preview.href} label={resource.label} />;
+    return <PdfPreview href={resource.preview.href} label={resource.label} mode={mode} />;
   }
 
-  return <WorkbookPreview sheets={resource.preview.sheets} />;
+  return <WorkbookPreview mode={mode} sheets={resource.preview.sheets} />;
 }
 
 export default function AdminResourcesPage() {
@@ -241,32 +246,18 @@ export default function AdminResourcesPage() {
 
         <div className="mt-5 divide-y divide-[#eeeeee] overflow-hidden rounded-md border border-[#eeeeee]">
           {resources.map((resource) => (
-            <article className="grid gap-4 bg-white p-4" key={resource.href}>
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
-                <div className="flex min-w-0 gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#ffd1d4] bg-[#fff7f7] text-[#767676]">
-                    <FileText aria-hidden="true" className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-md border border-[#ffd1d4] bg-[#fff7f7] px-2 py-1 text-[11px] font-semibold text-[#767676]">{resource.id}</span>
-                      <h3 className="text-[15px] font-semibold text-[#171717]">{resource.label}</h3>
-                    </div>
-                    <p className="mt-1 text-[13px] leading-5 text-[#5f6673]">{resource.description}</p>
-                    <p className="mt-2 text-[12px] font-medium text-[#7b8088]">{resource.meta}</p>
-                  </div>
-                </div>
-                <a
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-[#FF5A5F] px-4 text-sm font-semibold text-white transition hover:bg-[#484848]"
-                  download={resource.fileName}
-                  href={resource.href}
-                >
-                  <Download aria-hidden="true" className="h-4 w-4" />
-                  Download
-                </a>
-              </div>
+            <ResourceCard
+              description={resource.description}
+              fileName={resource.fileName}
+              href={resource.href}
+              id={resource.id}
+              key={resource.href}
+              label={resource.label}
+              meta={resource.meta}
+              popupPreview={<ResourcePreview mode="popup" resource={resource} />}
+            >
               <ResourcePreview resource={resource} />
-            </article>
+            </ResourceCard>
           ))}
         </div>
       </section>

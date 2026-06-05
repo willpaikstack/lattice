@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarDays, Download, FileText, HelpCircle, ImageIcon, PackageCheck, ReceiptText, RotateCcw, Truck, User } from "lucide-react";
 import type { ReactNode } from "react";
 
-import type { LatticeRequest, RequestLineItem, SupplierDocumentCategory, SupplierOrderStatus } from "@/lib/request-model";
+import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type SupplierDocumentCategory, type SupplierOrderStatus } from "@/lib/request-model";
 
 const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
@@ -103,7 +103,7 @@ function quoteReference(order: LatticeRequest) {
 }
 
 function lineItemTotalCents(order: LatticeRequest, item: RequestLineItem) {
-  const quotedLine = order.customerQuotes.at(-1)?.lineItems.find((line) => line.description === item.partName || line.id === item.id);
+  const quotedLine = quotedLineForRequestItem(order.customerQuotes.at(-1)?.lineItems, item);
 
   if (quotedLine) {
     return Math.round(quotedLine.unitPrice * quotedLine.quantity * 100);

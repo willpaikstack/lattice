@@ -8,13 +8,14 @@ Internal document templates are available from `/admin/resources`. This file is 
 | --- | --- | --- | --- | --- |
 | DOC-001 | Customer quote Excel template | `/admin/resources/customer-quote-template` | `resources/admin/lattice-os-zintilon-quote-template.xlsx` | Editable one-sheet customer quote source meant to export/print as one continuous PDF. |
 | DOC-002 | Supplier purchase order template | `/admin/resources/supplier-purchase-order-template` | `src/lib/admin-document-templates.ts` | Supplier-facing PO workbook for releasing accepted work to Chinese machine shops. |
-| DOC-003 | Domestic invoice template | `/admin/resources/domestic-invoice-template` | `src/lib/admin-document-templates.ts` | Customer-facing invoice workbook for accepted orders or billing milestones. |
-| DOC-004 | Quote PDF template/reference | `/admin/resources/quote-template` | `resources/admin/quote-pdf-template.pdf` | Reference PDF layout used while shaping Lattice quote output. |
+| DOC-003 | Domestic invoice template | `/admin/resources/domestic-invoice-template` | `src/lib/admin-document-templates.ts` | Customer-facing invoice workbook for accepted orders or billing milestones, with a separate remittance sheet. |
+| DOC-004 | Customer quote PDF template - Rev 1 | `/admin/resources/quote-template` | `src/app/admin/resources/quote-template/route.ts` + `src/lib/quote-pdf.ts` | Frozen Rev 1 generated customer quote PDF template used by the admin quote workflow. |
 
 Supporting quote references and brand assets:
 
 - `resources/admin/quote-references/fictiv-quote-paik-042726-reference.pdf` - Fictiv quote reference; use as the primary style inspiration for quote spacing and structure.
 - `resources/admin/brand/lattice-os-signature-banner.png` - Lattice OS banner asset used in quote/PDF branding experiments.
+- `resources/admin/quote-pdf-template.pdf` - older static quote PDF reference retained as a historical artifact; DOC-004 now uses the live generated PDF route.
 - `resources/admin/lattice-customer-quote-template.xlsx` - older generated four-sheet customer quote workbook retained as a historical/reference artifact, not the current DOC-001 download.
 
 ## Customer Quote
@@ -36,7 +37,7 @@ Current DOC-001 requirements:
 - Line items should include a `Production Region` column.
 - The totals box should include part production subtotal, shipping, tax, tariffs/duties, and order total. Do not include an `Engineering / setup` row unless William explicitly re-adds it.
 - The bottom of the same sheet contains **General Terms and Conditions of Sale** copied from the Hubs reference structure.
-- Replace any Hubs or Protolabs references with Lattice/Lattice OS. The current legal/contact identity is Lattice OS, `169 Madison Ave, #17525 New York, NY 10016`, `mfg@latticeos.co`.
+- Replace any Hubs or Protolabs references with the current Nexus/Lattice identity. In customer quote General Terms and the closing address block, the company name is `Nexus Manufacturing Technologies, Inc.` with `169 Madison Ave, #17525 New York, NY 10016`, `mfg@latticeos.co`.
 - Remove the table of contents from the General Terms section.
 - Do not put General Terms on a separate tab; the goal is a single continuous Excel-to-PDF export.
 - DOC-001 currently downloads as `lattice-os-customer-quote-template.xlsx`.
@@ -45,7 +46,14 @@ Related app-generated quote artifacts:
 
 - `/admin/quotes/[requestId]/quote-template.xlsx` generates a request-specific, data-connected Excel workbook from saved RFQ data. That route is separate from DOC-001.
 - `/admin/quotes/[requestId]/quote.pdf` generates a manual-download customer quote PDF from the latest saved quote version.
+- `/admin/resources/quote-template` is **DOC-004 Rev 1** and generates the frozen current customer quote PDF template from the same renderer used by the admin quote workflow. It downloads as `lattice-os-customer-quote-template-rev-1.pdf`.
 - DOC-001 is the human-editable design/source template; the app-generated routes are operational outputs.
+
+DOC-004 Rev 1 freeze:
+
+- Approved on June 4, 2026.
+- Visual direction: Hubs-inspired typography and color, embedded Arial/Arial Bold fallback fonts, dark slate text, blue email links, white sections, black hairline dividers, compact quote/production detail rows, and a Hubs-style General Terms closing address block. The visible top-left seller name and General Terms company name are Nexus Manufacturing Technologies, Inc. Shipping terms are stored in quote feedback but intentionally hidden from the customer PDF for now. Quote totals show `Sales Tax` calculated by default as 8.25% of the part-production subtotal, and the customer PDF does not show a separate tariffs/duties line.
+- Treat future quote PDF design changes as Rev 2 or later unless William explicitly reopens Rev 1.
 
 ## Supplier Purchase Order
 
@@ -64,11 +72,14 @@ Before sending, confirm the final CAD/drawing revision, quantity, material, fini
 
 Download: **DOC-003 - Domestic invoice template**
 
-Use when Lattice bills a domestic machine shop or customer after PO acceptance, shipment milestone, or another agreed billing trigger. This template is customer-facing and should align with the accepted quote, customer PO, and order record.
+Use when Nexus bills a domestic machine shop or customer after PO acceptance, shipment milestone, or another agreed billing trigger. This template is customer-facing and should align with the accepted quote, customer PO, sales order/order record, shipment or milestone status, and remittance instructions.
 
 Primary sheets:
 
-- `Invoice` - invoice number, bill-to contact, customer PO number, related quote/order, payment terms, remittance instructions, line items, tax treatment, freight, tariffs/duties, sales tax, and amount due. Yellow cells indicate internal input areas and should be removed or avoided on final customer-delivered invoice exports.
-- `Invoice Terms` - standard payment, scope, tax/duty, dispute, late payment, and confidentiality language.
+- `Invoice` - seller header, invoice number/date, customer number, payment terms, due date, customer PO, sales order, related quote/order, billing trigger, bill-to and ship-to blocks, line items, subtotal, shipping/freight, sales tax, amount paid, amount due, payment-method note, AP follow-up owner, and customer note. Yellow cells indicate operator input areas.
+- `Remittance` - ACH/wire/check placeholders, beneficiary, bank fields, mailing/lockbox/courier details, remittance email, and required payment references.
+- `Invoice Terms` - standard payment, scope, tax/freight, dispute, late payment, and confidentiality language.
 
-Before sending, verify the customer PO number, quote/order reference, billing address, payment terms, tax treatment, shipment or milestone status, and AP follow-up owner.
+Reference invoices used for the current structure: a Protolabs-style invoice with compact invoice identifiers, bill-to/ship-to blocks, item table, subtotal/sales-tax/total, and lockbox remittance details; and a Fictiv-style two-page invoice with invoice identifiers, PO/sales-order fields, amount due, and a separate remittance-instructions page.
+
+Before sending, verify the customer PO number, sales order/order reference, quote reference, billing and shipping addresses, payment terms, due date, tax treatment, remittance instructions, shipment or milestone status, and AP follow-up owner.

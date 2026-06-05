@@ -137,6 +137,63 @@ describe("RequestForm", () => {
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
   });
 
+  it("renders every copied line item in a prefilled quote revision draft", () => {
+    render(
+      <RequestForm
+        initialState={{
+          buyerCompany: "Amogy Manufacturing",
+          dueDate: "2026-06-24",
+          lineItems: [
+            {
+              fileName: "Aluminum Plate.STEP",
+              generalTolerance: "iso_2768_medium_m",
+              material: "al_6061_t6",
+              notes: "Threads requested; drawing required.",
+              partName: "Aluminum Plate",
+              qualityDocumentation: ["standard_inspection"],
+              quantity: "4",
+              surfaceFinish: "as_machined_ra_3_2",
+              technicalDrawingName: "Aluminum Plate Hole Call Out.pdf",
+              threads: true,
+            },
+            {
+              fileName: "Tubesheet Retainer Plate.STEP",
+              generalTolerance: "iso_2768_medium_m",
+              material: "al_6061_t6",
+              notes: "Threads requested; drawing required.",
+              partName: "Tubesheet Retainer Plate",
+              qualityDocumentation: ["standard_inspection"],
+              quantity: "4",
+              surfaceFinish: "as_machined_ra_3_2",
+              technicalDrawingName: "Tubesheet Retainer Plate Hole Callout.pdf",
+              threads: true,
+            },
+          ],
+          process: "cnc_milling",
+          projectName: "Tubesheet Retainer Plate revision",
+          requesterName: "William Paik",
+        }}
+        prefillNotice="Quote revision draft prepared from LQ-MPYTWFRU."
+      />,
+    );
+
+    expect(screen.getByText("Quote revision draft prepared from LQ-MPYTWFRU.")).toBeInTheDocument();
+    expect(screen.getByText("Line item 1")).toBeInTheDocument();
+    expect(screen.getByText("Line item 2")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Aluminum Plate" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Tubesheet Retainer Plate" })).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Part / line item name").map((input) => (input as HTMLInputElement).value)).toEqual([
+      "Aluminum Plate",
+      "Tubesheet Retainer Plate",
+    ]);
+    expect(screen.getAllByLabelText("File reference").map((input) => (input as HTMLInputElement).value)).toEqual([
+      "Aluminum Plate.STEP",
+      "Tubesheet Retainer Plate.STEP",
+    ]);
+    expect(screen.getAllByText(/This is only a saved filename/)).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
+  });
+
   it("requires reopened reference-only RFQs to upload CAD bytes before submitting", async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock
@@ -215,6 +272,92 @@ describe("RequestForm", () => {
     ]);
     expect(submittedForm.get("file-0")).toBe(replacement);
     expect(submittedForm.get("file-1")).toBe(drawing);
+  });
+
+  it("lets a revision resubmit saved CAD and drawing files without reuploading them", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          request: {
+            id: "req_revision",
+            title: "Tubesheet Retainer Plate revision",
+            status: "SUBMITTED",
+          },
+        }),
+        { status: 201 },
+      ),
+    );
+
+    render(
+      <RequestForm
+        initialState={{
+          buyerCompany: "Amogy Manufacturing",
+          dueDate: "2026-06-24",
+          lineItems: [
+            {
+              fileName: "Aluminum Plate.STEP",
+              fileSizeBytes: 74752,
+              fileStorageKey: "rfq/2026-06-03/aluminum-plate.step",
+              fileType: "application/octet-stream",
+              generalTolerance: "iso_2768_medium_m",
+              material: "al_6061_t6",
+              notes: "Threads requested; drawing required.",
+              partName: "Aluminum Plate",
+              qualityDocumentation: ["standard_inspection"],
+              quantity: "4",
+              surfaceFinish: "as_machined_ra_3_2",
+              technicalDrawingName: "Aluminum Plate Hole Call Out.pdf",
+              technicalDrawingSizeBytes: 106496,
+              technicalDrawingStorageKey: "rfq/2026-06-03/aluminum-plate-hole-callout.pdf",
+              technicalDrawingType: "application/pdf",
+              threads: true,
+            },
+          ],
+          process: "cnc_milling",
+          projectName: "Tubesheet Retainer Plate revision",
+          requesterName: "William Paik",
+          revisionSourceQuoteReference: "LQ-MPYTWFRU",
+          revisionSourceRequestId: "req_mpytwfru_f7mhsk",
+          revisionSourceRevisionNumber: 1,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("This CAD file is saved with the RFQ. Upload a replacement only if you want to change it.")).toBeInTheDocument();
+    expect(screen.queryByText(/This is only a saved filename/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/This is only a saved drawing filename/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Request Quote" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/requests", expect.objectContaining({ method: "POST" })));
+    const submittedForm = fetchMock.mock.calls.at(-1)?.[1]?.body as FormData;
+    const submitted = JSON.parse(String(submittedForm.get("request")));
+
+    expect(submitted.revision).toMatchObject({
+      revisionNumber: 2,
+      sourceQuoteReference: "LQ-MPYTWFRU",
+      sourceRequestId: "req_mpytwfru_f7mhsk",
+    });
+    expect(submitted.revision.changeLog).toEqual(["Resubmitted for review with no field-level changes detected."]);
+    expect(submitted.files).toMatchObject([
+      {
+        name: "Aluminum Plate.STEP",
+        sizeBytes: 74752,
+        storageKey: "rfq/2026-06-03/aluminum-plate.step",
+        type: "application/octet-stream",
+      },
+      {
+        name: "Aluminum Plate Hole Call Out.pdf",
+        sizeBytes: 106496,
+        storageKey: "rfq/2026-06-03/aluminum-plate-hole-callout.pdf",
+        type: "application/pdf",
+      },
+    ]);
+    expect(submitted.lineItems[0].notes).toBe("Threads requested; drawing required.");
+    expect(submittedForm.get("file-0")).toBeNull();
+    expect(submittedForm.get("file-1")).toBeNull();
   });
 
   it("restores an Autodesk CAD preview from a saved draft", () => {
