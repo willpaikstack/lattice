@@ -25,6 +25,7 @@ type StoredAccountDefaults = {
   billingName: string;
   billingState: string;
   billingZipCode: string;
+  companyName?: string;
   email: string;
   id: string;
   mfaEnabled: boolean;
@@ -67,6 +68,7 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     },
     billingAddress: normalizeAddress(settings.billingAddress),
     cards: settings.cards,
+    companyName: text(settings.companyName) || defaultAccountSettings().companyName,
     email: text(settings.email),
     mfaEnabled: Boolean(settings.mfaEnabled),
     name: text(settings.name),
@@ -96,6 +98,7 @@ function fromStoredAccountDefaults(stored: StoredAccountDefaults): AccountSettin
       zipCode: stored.billingZipCode,
     },
     email: stored.email,
+    companyName: stored.companyName || defaults.companyName,
     mfaEnabled: stored.mfaEnabled,
     name: stored.name,
     passwordChangedAt: stored.passwordChangedAt,
@@ -125,6 +128,7 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
     billingName: normalized.billingAddress.name,
     billingState: normalized.billingAddress.state,
     billingZipCode: normalized.billingAddress.zipCode,
+    companyName: normalized.companyName,
     email: normalized.email,
     id: accountDefaultsId,
     mfaEnabled: normalized.mfaEnabled,

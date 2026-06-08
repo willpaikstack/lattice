@@ -40,8 +40,15 @@ enum SupplierDocumentCategory {
   OTHER
 }
 
+enum InvoiceStatus {
+  ISSUED
+  PAID
+  VOID
+}
+
 model Company {
   id                  String    @id @default(cuid())
+  customerId          String?   @unique
   name                String
   website             String    @default("")
   industry            String    @default("")
@@ -55,6 +62,13 @@ model Company {
   requests            Request[]
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+}
+
+model CustomerSequence {
+  key       String   @id
+  nextValue Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model User {
@@ -81,6 +95,7 @@ model AccountDefaults {
   name                       String   @default("")
   email                      String   @default("")
   phone                      String   @default("")
+  companyName                String   @default("")
   passwordChangedAt          String   @default("")
   mfaEnabled                 Boolean  @default(true)
   shippingName               String   @default("")
@@ -140,18 +155,59 @@ model Request {
   quoteCreatedDate       DateTime?
   quoteValidUntil        DateTime?
   quoteSummary           String                 @default("")
+  isArchived             Boolean                @default(false)
   revisionOfRequestId    String?
   revisionNumber         Int                    @default(1)
   revisionChangeLog      String[]               @default([])
   lineItems              RequestLineItem[]
   files                  UploadedFile[]
+  supplierQuoteFiles     SupplierQuoteAttachment[]
   supplierDocuments      SupplierDocument[]
   supplierUpdates        SupplierUpdate[]
   supplierQuotes         SupplierQuote[]
   customerQuotes         CustomerQuoteVersion[]
+  invoices               Invoice[]
   statusEvents           StatusEvent[]
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
+}
+
+model InvoiceSequence {
+  year      Int      @id
+  nextValue Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Invoice {
+  id                 String        @id @default(cuid())
+  invoiceNumber      String        @unique
+  sequenceYear       Int
+  sequenceValue      Int
+  status             InvoiceStatus @default(ISSUED)
+  requestId          String?
+  request            Request?      @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  customerCompany    String        @default("")
+  customerContact    String        @default("")
+  customerPo         String        @default("")
+  quoteNumber        String        @default("")
+  paymentTerms       String        @default("100% Payment in Advance")
+  shippingTerms      String        @default("")
+  subtotalCents      Int           @default(0)
+  shippingCents      Int           @default(0)
+  salesTaxCents      Int           @default(0)
+  amountPaidCents    Int           @default(0)
+  amountDueCents     Int           @default(0)
+  issuedAt           DateTime      @default(now())
+  dueDate            DateTime?
+  billToSnapshot     Json?
+  shipToSnapshot     Json?
+  lineItemsSnapshot  Json
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@unique([sequenceYear, sequenceValue])
+  @@index([requestId, issuedAt])
 }
 
 model CustomerQuoteVersion {
@@ -206,6 +262,19 @@ model SupplierQuote {
   isSelected   Boolean             @default(false)
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+}
+
+model SupplierQuoteAttachment {
+  id         String   @id @default(cuid())
+  requestId  String
+  request    Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name       String
+  sizeBytes  Int
+  type       String
+  storageKey String?
+  createdAt  DateTime @default(now())
+
+  @@index([requestId, createdAt])
 }
 
 model RequestLineItem {

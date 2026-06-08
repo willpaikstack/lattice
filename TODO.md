@@ -5,7 +5,8 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 ## Next Priorities
 
 - Production launch hardening after the 2026-06-02 Vercel/Neon setup:
-  - replace the interim single-account credential gate with durable multi-user authentication, role/route authorization, password recovery, and optional MFA
+  - configure Google Workspace SSO credentials in local, preview, and production environments, then decide when to disable the interim local password fallback
+  - continue replacing the interim single-account credential gate with durable multi-user authentication, role/route authorization, password recovery, and optional MFA
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
   - configure Resend and a verified sending domain for waiting-list emails
   - decide whether to keep local email outbox files for development only or add durable email-event records in Postgres
@@ -33,7 +34,9 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator saves a durable customer quote version with per-part unit pricing
   - buyer revises active priced quotes through a prefilled new RFQ when price or lead time needs changes
   - buyer and operator views stay in sync
-- Apply the latest request schema changes, including `CLOSED`, quote shipping/date fields, account defaults, RFQ contact/ship-to snapshot fields, and quote revision fields (`revisionOfRequestId`, `revisionNumber`, `revisionChangeLog`), to local and production databases with Prisma after pulling this change.
+- Apply the latest schema changes, including `CLOSED`, quote shipping/date fields, account defaults, `AccountDefaults.companyName`, RFQ contact/ship-to snapshot fields, and quote revision fields (`revisionOfRequestId`, `revisionNumber`, `revisionChangeLog`), to local and production databases with Prisma after pulling this change.
+- Apply the new supplier quote attachment schema (`SupplierQuoteAttachment`) to local and production databases with Prisma after Postgres is reachable; local development can store received Chinese shop quote files in `.data/uploads/supplier-quotes` through the fallback store until then.
+- Apply the new admin order archive schema field (`Request.isArchived`) to local and production databases with Prisma after Postgres is reachable; local development can use the `.data/requests.json` fallback until then.
 - Continue refining quote revision lineage views, including admin-side source-chain navigation from revised RFQs back to the original request.
 - If buyers need post-purchase quote history, expose the saved quote/PDF from `/orders/[requestId]` instead of putting purchased records back into `/quotes`.
 - Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events. `/notifications` now derives quote-ready and missing-info rows from request state with static fallback data.
@@ -47,14 +50,15 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Add real generated thumbnails or APS-derived preview images anywhere static CAD thumbnails are still useful outside the interactive upload preview.
 - Continue clarifying buyer `/quotes` and admin `/admin/quotes` role separation now that quote issuance is database-backed and admin-owned.
 - Connect the `/admin` quote request overview more deeply to durable quote versions and supplier quote records.
-- Continue refining internal templates in `/admin/resources`; customer quote, supplier purchase order, and domestic invoice Excel templates now live there with in-app previews, with supplier outreach, order, and inspection document formats still future candidates.
-- Connect supplier purchase order and domestic invoice generation to accepted orders once the order workflow stores supplier release, customer PO, billing, tax, tariff, and payment-term data durably.
-- Connect DOC-003 invoice generation to accepted order data, including invoice number, customer PO, sales order/order reference, bill-to/ship-to, shipping/freight, sales tax, amount paid, amount due, and remittance instructions.
-- Install LibreOffice/soffice locally and add an equivalent spreadsheet-to-PDF converter to production so quote PDF routes can render the filled DOC-001 Excel template exactly instead of falling back to PDFKit.
+- Continue refining internal templates in `/admin/resources`; customer quote, supplier purchase order, and domestic invoice PDF templates now live there with in-app previews, with supplier outreach, order, and inspection document formats still future candidates.
+- Connect DOC-002 supplier purchase order PDF generation to accepted orders once the order workflow stores supplier release, awarded supplier, release package, logistics, and quality-document requirements durably.
+- Apply the new customer/invoice issuance schema (`CustomerSequence`, `Company.customerId`, `InvoiceSequence`, `Invoice.quoteNumber`, and `Invoice.shippingTerms`) to local/production databases with Prisma once Postgres is reachable; this machine currently lacks Docker/local Postgres, so `npm run db:push` cannot complete here.
+- Promote order invoice downloads from stable order-derived invoice references to saved `Invoice` records, including annual invoice IDs, customer PO from checkout, customer IDs, amount paid/status, billing contact, tax treatment, and immutable issued invoice snapshots.
+- Decide whether request-specific quote workbook exports should continue using the retired DOC-001 workbook as source material or move fully to generated PDF/workbook renderers.
 - Add RFQ intake controls for requester email/phone and explicit ship-to overrides if buyers need to change them per RFQ; current submissions snapshot the saved account defaults onto the RFQ.
 - Continue aligning customer quote template fields with real order data, especially ship-by date, DFM warnings, and customs/end-use notes.
 - Decide whether saved quote PDFs should later be stored durably and attached to buyer-facing quote/order records, emailed, or kept as manual downloads only.
-- Connect `/admin/vendors` to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
+- Promote `/admin/vendors` from the current `.data/admin-vendor-overrides.json` local edit bridge to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
 - Decide whether to keep or retire `/operator/requests/[requestId]` after more RFQ detail review lives in the `/admin/quotes` command drawer.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
 - Keep the RFQ material selector aligned with researched marketplace and supplier-network material coverage; the current CNC selector is sourced from `src/lib/cnc-material-library.ts`.

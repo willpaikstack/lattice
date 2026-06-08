@@ -91,6 +91,14 @@ export function SupplierOrderDetail({
                 <dd className="font-medium text-slate-950">{order.supplierOrder.documents.length}</dd>
               </div>
             </dl>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Link className="inline-flex min-h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100" href={`/supplier/orders/${order.id}/invoice.pdf?preview=1`}>
+                View invoice
+              </Link>
+              <Link className="inline-flex min-h-10 items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800" href={`/supplier/orders/${order.id}/invoice.pdf`}>
+                Download invoice
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -170,6 +178,18 @@ export function SupplierOrderDetail({
           <div className="mt-5 rounded-md bg-slate-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Lattice package notes</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{order.operatorReview.supplierPackageNotes || "No supplier package notes have been added yet."}</p>
+          </div>
+          <div className="mt-5 rounded-md border border-slate-200 bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Customer invoice</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Render the placed-order invoice from the accepted quote, line items, shipping, tax, bill-to, and ship-to snapshot.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link className="inline-flex min-h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50" href={`/supplier/orders/${order.id}/invoice.pdf?preview=1`}>
+                Preview PDF
+              </Link>
+              <Link className="inline-flex min-h-9 items-center justify-center rounded-md bg-slate-950 px-3 text-sm font-semibold text-white transition hover:bg-slate-800" href={`/supplier/orders/${order.id}/invoice.pdf`}>
+                Download PDF
+              </Link>
+            </div>
           </div>
         </section>
       </div>

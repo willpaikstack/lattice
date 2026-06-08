@@ -1,18 +1,19 @@
-import { buildDomesticInvoiceTemplateXlsx } from "@/lib/admin-document-templates";
+import { buildDomesticInvoiceTemplatePdf } from "@/lib/invoice-pdf";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const workbook = buildDomesticInvoiceTemplateXlsx();
-  const body = new ArrayBuffer(workbook.byteLength);
-  new Uint8Array(body).set(workbook);
+export async function GET(request: Request) {
+  const preview = new URL(request.url).searchParams.get("preview") === "1";
+  const pdf = await buildDomesticInvoiceTemplatePdf();
+  const body = new ArrayBuffer(pdf.byteLength);
+  new Uint8Array(body).set(pdf);
 
   return new Response(body, {
     headers: {
       "Cache-Control": "no-store",
-      "Content-Disposition": 'attachment; filename="lattice-domestic-invoice-template.xlsx"',
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `${preview ? "inline" : "attachment"}; filename="nexus-domestic-invoice-template.pdf"`,
+      "Content-Type": "application/pdf",
     },
   });
 }

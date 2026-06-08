@@ -15,7 +15,7 @@ import {
 } from "@/lib/account-settings-shared";
 
 type ActiveTab = "account" | "team";
-type EditableField = "name" | "phone" | "email" | "password" | "shipping" | "billingAddress" | "billing" | null;
+type EditableField = "name" | "phone" | "email" | "password" | "companyName" | "shipping" | "billingAddress" | "billing" | null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -100,6 +100,7 @@ function getInitialAccountSettings(serverInitialSettings?: AccountSettingsSnapsh
     billing: storedBillingContact(stored.billing, defaults.billing),
     billingAddress: storedAddress(stored.billingAddress, defaults.billingAddress),
     cards: Array.isArray(storedCards) ? (storedCards as PaymentCard[]) : defaults.cards,
+    companyName: storedString(stored, "companyName") ?? defaults.companyName,
     email: storedString(stored, "email") ?? defaults.email,
     mfaEnabled: typeof stored.mfaEnabled === "boolean" ? stored.mfaEnabled : defaults.mfaEnabled,
     name: storedString(stored, "name") ?? defaults.name,
@@ -269,7 +270,7 @@ export function AccountSettingsWorkspace({
   const [email, setEmail] = useState(initialSettings.email);
   const [passwordChangedAt, setPasswordChangedAt] = useState(initialSettings.passwordChangedAt);
   const [mfaEnabled, setMfaEnabled] = useState(initialSettings.mfaEnabled);
-  const [companyName] = useState("Amogy");
+  const [companyName, setCompanyName] = useState(initialSettings.companyName);
   const [shipping, setShipping] = useState<Address>(initialSettings.shipping);
   const [billingAddress, setBillingAddress] = useState<Address>(initialSettings.billingAddress);
   const [billing, setBilling] = useState<BillingContact>(initialSettings.billing);
@@ -299,6 +300,7 @@ export function AccountSettingsWorkspace({
       billing,
       billingAddress,
       cards,
+      companyName,
       email,
       mfaEnabled,
       name,
@@ -429,6 +431,10 @@ export function AccountSettingsWorkspace({
     if (field === "name") {
       setName(trimmed);
       persistSettings({ name: trimmed });
+    }
+    if (field === "companyName") {
+      setCompanyName(trimmed);
+      persistSettings({ companyName: trimmed });
     }
     if (field === "email") {
       setEmail(trimmed);
@@ -616,9 +622,15 @@ export function AccountSettingsWorkspace({
                   </>
                 )}
               </EditableRow>
-              <EditableRow action={<FieldButton onClick={() => setNotice("Company account names are managed by Lattice support until organization admin is connected.")}>View account</FieldButton>} label="Account name">
-                <p>{companyName}</p>
-                <p className="text-[#737b86]">Joined on May 26, 2026</p>
+              <EditableRow action={<FieldButton onClick={() => beginEdit("companyName", companyName)}>Edit company</FieldButton>} label="Buyer company">
+                {editing === "companyName" ? (
+                  <EditTextArea cancel={() => finishEdit("Company edit canceled.")} error={error} field="companyName" label="Buyer company" saveEdit={saveEdit} setDraftValue={setDraftValue} value={draftValue} />
+                ) : (
+                  <>
+                    <p>{companyName}</p>
+                    <p className="text-[#737b86]">Used as the default company name on new RFQs.</p>
+                  </>
+                )}
               </EditableRow>
               <EditableRow action={<FieldButton onClick={() => setNotice("Financial permissions are enabled for card checkout and tax-exempt purchasing.")}>Review permissions</FieldButton>} label="Financial permissions">
                 <Permission detail={`Credit card checkout enabled under ${companyName} on April 20, 2023`} title="Pay by credit card" />

@@ -1,4 +1,5 @@
 import { RequestForm, type RequestFormInitialState } from "@/components/request-form";
+import { getAccountSettings } from "@/lib/account-settings";
 import type { LatticeRequest } from "@/lib/request-model";
 import { getRequestById } from "@/lib/request-repository";
 import {
@@ -208,6 +209,9 @@ function draftInitialState(draft: LatticeRequest): RequestFormInitialState {
     customerPo: "",
     dueDate: draft.dueDate || dueDateFromToday(14),
     fileName: primaryFile?.name ?? "",
+    fileSizeBytes: primaryFile?.sizeBytes ?? 0,
+    fileStorageKey: primaryFile?.storageKey,
+    fileType: primaryFile?.type ?? "",
     generalTolerance: optionValueFromLabel(generalToleranceOptions, primaryLineItem?.generalTolerance, "iso_2768_medium_m"),
     material: optionValueFromLabel(rfqMaterialOptions, primaryLineItem?.material, "ss_304"),
     notes: primaryLineItem?.notes ?? "",
@@ -221,6 +225,9 @@ function draftInitialState(draft: LatticeRequest): RequestFormInitialState {
     requesterName: draft.requesterName,
     surfaceFinish: optionValueFromLabel(surfaceFinishOptions, primaryLineItem?.surfaceFinish, "as_machined_ra_3_2"),
     technicalDrawingName: drawingFile?.name ?? "",
+    technicalDrawingSizeBytes: drawingFile?.sizeBytes ?? 0,
+    technicalDrawingStorageKey: drawingFile?.storageKey,
+    technicalDrawingType: drawingFile?.type ?? "",
   };
 }
 
@@ -229,6 +236,7 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
   const reviseId = firstParam(params.revise);
   const reorderId = firstParam(params.reorder);
   const draftId = firstParam(params.draft);
+  const accountSettings = await getAccountSettings();
   const reviseSource = reviseId ? await getRequestById(reviseId) : null;
   const reorderSource = reorderId ? await getRequestById(reorderId) : null;
   const draftSource = draftId ? await getRequestById(draftId) : null;
@@ -244,6 +252,7 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
 
   return (
     <RequestForm
+      defaultBuyerCompany={accountSettings.companyName}
       initialState={initialState}
       localDraftId={draftId}
       prefillNotice={

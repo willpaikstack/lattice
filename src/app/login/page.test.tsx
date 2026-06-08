@@ -13,6 +13,10 @@ describe("Login page", () => {
     expect(screen.getByLabelText("Email")).toHaveAttribute("name", "email");
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
     expect(screen.getByLabelText("Password")).toHaveAttribute("name", "password");
+    expect(screen.getByRole("link", { name: "Continue with Google Workspace" })).toHaveAttribute(
+      "href",
+      "/api/auth/google?next=%2Fdashboard",
+    );
     expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(
       "href",
       "/forgot-password",
@@ -28,5 +32,15 @@ describe("Login page", () => {
     render(await LoginPage({ searchParams: Promise.resolve({ error: "invalid-credentials" }) }));
 
     expect(screen.getByText("The email or password is incorrect.")).toBeInTheDocument();
+  });
+
+  it("preserves a safe next path for Google and password login", async () => {
+    render(await LoginPage({ searchParams: Promise.resolve({ next: "/admin/vendors" }) }));
+
+    expect(screen.getByRole("link", { name: "Continue with Google Workspace" })).toHaveAttribute(
+      "href",
+      "/api/auth/google?next=%2Fadmin%2Fvendors",
+    );
+    expect(screen.getByDisplayValue("/admin/vendors")).toHaveAttribute("name", "next");
   });
 });

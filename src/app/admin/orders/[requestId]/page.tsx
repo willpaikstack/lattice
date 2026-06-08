@@ -1,0 +1,30 @@
+import { notFound } from "next/navigation";
+
+import { BuyerOrderDetail } from "@/components/buyer-order-detail";
+import { getRequestById } from "@/lib/request-repository";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminOrderDetailPage({ params }: { params: Promise<{ requestId: string }> }) {
+  const { requestId } = await params;
+  const order = await getRequestById(requestId);
+
+  if (!order || order.status !== "PURCHASED") {
+    notFound();
+  }
+
+  return (
+    <BuyerOrderDetail
+      order={order}
+      routeConfig={{
+        backHref: "/admin/orders",
+        backLabel: "Back to placed orders",
+        helpHref: null,
+        invoiceHref: `/admin/orders/${order.id}/invoice.pdf`,
+        invoicePreviewHref: `/admin/orders/${order.id}/invoice.pdf?preview=1`,
+        reorderHref: null,
+        supplierQuoteReturnTo: `/admin/orders/${encodeURIComponent(order.id)}`,
+      }}
+    />
+  );
+}

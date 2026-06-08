@@ -99,13 +99,14 @@ function SidebarIcon({ name }: { name: IconName }) {
 
 function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: NavigationHandler; tone?: "customer" | "admin" }) {
   const isAdmin = tone === "admin";
+  const homeHref = isAdmin ? "/admin" : "/dashboard";
 
   return (
     <Link
-      aria-label="Lattice home"
+      aria-label={isAdmin ? "Lattice admin home" : "Lattice home"}
       className={`flex h-11 w-11 items-center justify-center rounded-xl shadow-sm ${isAdmin ? "bg-[#FF5A5F]" : "bg-[#171717]"}`}
-      href="/dashboard"
-      onClick={(event) => onNavigate?.(event, "/dashboard")}
+      href={homeHref}
+      onClick={(event) => onNavigate?.(event, homeHref)}
     >
       <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 28 28">
         <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill={isAdmin ? "#fff1f2" : "#f6f7f8"} opacity="0.92" />
@@ -151,6 +152,35 @@ function DesktopNavSection({ onNavigate, section, pathname, tone }: { onNavigate
         })}
       </div>
     </section>
+  );
+}
+
+function CompactNavItem({ item, onNavigate, pathname, tone }: { item: NavItem; onNavigate: NavigationHandler; pathname: string; tone: "customer" | "admin" }) {
+  const isActive = isNavItemActive(pathname, item.href);
+  const activeClass =
+    tone === "admin"
+      ? "bg-[#fff1f2] font-semibold text-[#484848] shadow-[inset_3px_0_0_#FF5A5F]"
+      : "border border-stone-200/60 bg-white font-medium text-stone-900 shadow-sm";
+  const inactiveClass = tone === "admin" ? "font-medium text-[#767676]" : "border border-transparent font-medium text-stone-600";
+  const hoverClass =
+    isActive
+      ? ""
+      : tone === "admin"
+        ? "hover:bg-[#fff1f2] hover:text-[#FF5A5F]"
+        : "hover:bg-stone-200/50 hover:text-stone-900";
+
+  return (
+    <Link
+      aria-current={isActive ? "page" : undefined}
+      className={`group flex min-h-10 shrink-0 items-center gap-3 rounded-lg px-3 text-[14px] transition duration-150 active:scale-[0.99] ${hoverClass} ${isActive ? activeClass : inactiveClass}`}
+      href={item.href}
+      onClick={(event) => onNavigate(event, item.href)}
+    >
+      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${isActive && tone !== "admin" ? "text-stone-900" : "text-stone-400 group-hover:text-current"}`}>
+        <SidebarIcon name={item.icon} />
+      </span>
+      <span>{item.label}</span>
+    </Link>
   );
 }
 
@@ -384,30 +414,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {inAdminExperience ? "Customer App" : "Admin"}
               </Link>
             </div>
-            <nav className="mt-4 flex gap-2 overflow-x-auto pb-1 text-sm font-medium text-slate-600">
-              {navSections.flatMap((section) => section.items).map((item) => {
-                const isActive = isNavItemActive(activeNavPathname, item.href);
-
-                return (
-                  <Link
-                    aria-current={isActive ? "page" : undefined}
-                    className={`rounded-full border px-3 py-1.5 ${
-                      inAdminExperience
-                        ? isActive
-                          ? "border-[#FF5A5F] bg-[#fff1f2] font-semibold text-[#484848]"
-                          : "border-[#ffd1d4] bg-[#fff7f7] text-[#767676]"
-                        : isActive
-                          ? "border-slate-950 bg-slate-950 font-semibold text-[#ffffff]"
-                          : "border-slate-200 bg-white"
-                    }`}
-                    href={item.href}
-                    key={`mobile-${item.label}`}
-                    onClick={(event) => handleNavigate(event, item.href)}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav aria-label="Compact navigation" className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {navSections.flatMap((section) => section.items).map((item) => (
+                <CompactNavItem
+                  item={item}
+                  key={`mobile-${item.href}`}
+                  onNavigate={handleNavigate}
+                  pathname={activeNavPathname}
+                  tone={inAdminExperience ? "admin" : "customer"}
+                />
+              ))}
             </nav>
           </header>
 

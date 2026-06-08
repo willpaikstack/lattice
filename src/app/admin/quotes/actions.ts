@@ -173,6 +173,10 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     throw new Error("Request not found");
   }
 
+  if (current.status === "QUOTED" && current.customerQuotes.length > 0) {
+    throw new Error("Customer-submitted quotes are immutable");
+  }
+
   const shippingCostCents = getOptionalPriceCents(formData, "shippingCost");
   const shippingMethod = getString(formData, "shippingMethod");
   const shippingTerms = getString(formData, "shippingTerms");

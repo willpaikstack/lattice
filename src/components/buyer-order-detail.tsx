@@ -3,6 +3,17 @@ import { ArrowLeft, CalendarDays, Download, FileText, HelpCircle, ImageIcon, Pac
 import type { ReactNode } from "react";
 
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type SupplierDocumentCategory, type SupplierOrderStatus } from "@/lib/request-model";
+import { SupplierQuoteFiles } from "./supplier-quote-files";
+
+type OrderDetailRouteConfig = {
+  backHref: string;
+  backLabel: string;
+  helpHref: string | null;
+  invoiceHref: string;
+  invoicePreviewHref: string;
+  reorderHref: string | null;
+  supplierQuoteReturnTo: string;
+};
 
 const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
@@ -157,7 +168,23 @@ function DefinitionRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-export function BuyerOrderDetail({ order }: { order: LatticeRequest }) {
+export function BuyerOrderDetail({
+  order,
+  routeConfig,
+}: {
+  order: LatticeRequest;
+  routeConfig?: Partial<OrderDetailRouteConfig>;
+}) {
+  const routes: OrderDetailRouteConfig = {
+    backHref: "/orders",
+    backLabel: "Back to orders",
+    helpHref: `/orders/${order.id}/help`,
+    invoiceHref: `/orders/${order.id}/invoice.pdf`,
+    invoicePreviewHref: `/orders/${order.id}/invoice.pdf?preview=1`,
+    reorderHref: `/requests/new?reorder=${order.id}`,
+    supplierQuoteReturnTo: `/orders/${encodeURIComponent(order.id)}`,
+    ...routeConfig,
+  };
   const selectedSupplier = order.supplierQuotes.find((quote) => quote.isSelected) ?? null;
   const status = supplierStatusLabels[order.supplierOrder.status];
   const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
@@ -169,9 +196,9 @@ export function BuyerOrderDetail({ order }: { order: LatticeRequest }) {
   return (
     <div className="mx-auto w-full max-w-[1480px] px-2 pb-10">
       <div className="mb-7">
-        <Link className="inline-flex items-center gap-2 text-[13px] font-medium text-[#6f737a] transition hover:text-[#171717]" href="/orders">
+        <Link className="inline-flex items-center gap-2 text-[13px] font-medium text-[#6f737a] transition hover:text-[#171717]" href={routes.backHref}>
           <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={1.8} />
-          Back to orders
+          {routes.backLabel}
         </Link>
         <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -183,10 +210,20 @@ export function BuyerOrderDetail({ order }: { order: LatticeRequest }) {
             <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-normal text-[#171717]">{order.title}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={`/orders/${order.id}/help`}>
-              <HelpCircle aria-hidden="true" className="h-4 w-4" />
-              Help with order
+            <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.invoicePreviewHref}>
+              <ReceiptText aria-hidden="true" className="h-4 w-4" />
+              View invoice
             </Link>
+            <Link className="inline-flex min-h-9 items-center gap-2 rounded-md bg-[#171717] px-3 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={routes.invoiceHref}>
+              <Download aria-hidden="true" className="h-4 w-4" />
+              Download invoice
+            </Link>
+            {routes.helpHref ? (
+              <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.helpHref}>
+                <HelpCircle aria-hidden="true" className="h-4 w-4" />
+                Help with order
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>
@@ -317,6 +354,12 @@ export function BuyerOrderDetail({ order }: { order: LatticeRequest }) {
             </Section>
           </div>
 
+          <SupplierQuoteFiles
+            request={order}
+            returnTo={routes.supplierQuoteReturnTo}
+            uploadHref="/api/supplier-quote-files"
+          />
+
           <Section title="Order activity">
             <ol className="space-y-3 p-5">
               {order.supplierOrder.updates.length ? (
@@ -356,14 +399,22 @@ export function BuyerOrderDetail({ order }: { order: LatticeRequest }) {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={`/requests/new?reorder=${order.id}`}>
-                  <RotateCcw aria-hidden="true" className="h-4 w-4" />
-                  Reorder parts
+                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.invoicePreviewHref}>
+                  <ReceiptText aria-hidden="true" className="h-4 w-4" />
+                  View invoice
                 </Link>
-                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={`/orders/${order.id}/help`}>
-                  <HelpCircle aria-hidden="true" className="h-4 w-4" />
-                  Help with order
-                </Link>
+                {routes.reorderHref ? (
+                  <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={routes.reorderHref}>
+                    <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                    Reorder parts
+                  </Link>
+                ) : null}
+                {routes.helpHref ? (
+                  <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.helpHref}>
+                    <HelpCircle aria-hidden="true" className="h-4 w-4" />
+                    Help with order
+                  </Link>
+                ) : null}
               </div>
             </div>
 

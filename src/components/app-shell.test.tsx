@@ -132,7 +132,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
     expectAllLinksNamed("Admin", "/admin");
-    expect(screen.getByText("Your Resources")).toBeInTheDocument();
+    expect(screen.getAllByText("Your Resources").length).toBeGreaterThan(0);
     expect(screen.getByText("William Paik")).toBeInTheDocument();
     expect(screen.getByText("will@latticeos.co")).toBeInTheDocument();
 
@@ -158,6 +158,25 @@ describe("AppShell", () => {
     expect(requestQuoteLinks[0]).toHaveClass("border-stone-200/60", "bg-white", "font-medium", "text-stone-900", "shadow-sm");
   });
 
+  it("keeps compact navigation as a row of sidebar-style links with icons", () => {
+    mockUsePathname.mockReturnValue("/quotes/demo_submitted");
+
+    render(
+      <AppShell>
+        <div>quote detail</div>
+      </AppShell>,
+    );
+
+    const quoteLinks = screen.getAllByRole("link", { name: "Quotes" });
+    const compactQuoteLink = quoteLinks.at(-1);
+    const compactNavigation = screen.getByRole("navigation", { name: "Compact navigation" });
+
+    expect(compactNavigation).toHaveClass("flex", "overflow-x-auto");
+    expect(compactQuoteLink).toHaveClass("rounded-lg", "gap-3");
+    expect(compactQuoteLink).not.toHaveClass("rounded-full");
+    expect(compactQuoteLink?.querySelector("svg")).not.toBeNull();
+  });
+
   it("uses admin-only navigation on the admin dashboard", () => {
     mockUsePathname.mockReturnValue("/admin");
 
@@ -168,6 +187,7 @@ describe("AppShell", () => {
     );
 
     expectAllLinksNamed("Overview", "/admin");
+    expectAllLinksNamed("Lattice admin home", "/admin");
     expectAllLinksNamed("Customers", "/admin/customers");
     expectAllLinksNamed("Quote Submissions", "/admin/quotes");
     expectAllLinksNamed("Placed Orders", "/admin/orders");

@@ -73,6 +73,10 @@ export type UploadedFile = UploadedFileInput & {
   id: string;
 };
 
+export type SupplierQuoteAttachment = UploadedFile & {
+  uploadedAt: string;
+};
+
 export type SupplierDocument = {
   id: string;
   name: string;
@@ -197,8 +201,10 @@ export type LatticeRequest = {
   files: UploadedFile[];
   operatorReview: OperatorReview;
   supplierOrder: SupplierOrder;
+  supplierQuoteFiles: SupplierQuoteAttachment[];
   supplierQuotes: SupplierQuote[];
   customerQuotes: CustomerQuoteVersion[];
+  isArchived: boolean;
   quote: QuoteSummary;
   revisionOfRequestId: string | null;
   revisionNumber: number;
@@ -333,8 +339,10 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       documents: [],
       updates: [],
     },
+    supplierQuoteFiles: [],
     supplierQuotes: [],
     customerQuotes: [],
+    isArchived: false,
     quote: {
       estimatedPriceCents: null,
       leadTimeDays: null,

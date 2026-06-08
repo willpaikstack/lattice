@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { BuyerQuoteCheckout } from "@/components/buyer-quote-checkout";
+import { getAccountSettings } from "@/lib/account-settings";
 import { getRequestById } from "@/lib/request-repository";
 
 import { purchaseQuoteAction } from "../actions";
@@ -19,5 +20,14 @@ export default async function BuyerQuoteCheckoutPage({ params }: BuyerQuoteCheck
     notFound();
   }
 
-  return <BuyerQuoteCheckout placeOrderAction={purchaseQuoteAction.bind(null, request.id)} request={request} />;
+  const accountSettings = await getAccountSettings();
+
+  return (
+    <BuyerQuoteCheckout
+      placeOrderAction={purchaseQuoteAction.bind(null, request.id)}
+      receivingPhone={accountSettings.phone}
+      request={request}
+      shippingAddress={accountSettings.shipping}
+    />
+  );
 }

@@ -859,6 +859,7 @@ function blankCustomerQuoteTemplateRequest(): LatticeRequest {
       { id: "file-drawing-placeholder", name: "drawing.pdf", sizeBytes: 0, type: "application/pdf" },
     ],
     id: "req_template",
+    isArchived: false,
     lineItems: [
       {
         generalTolerance: "[Tolerance / dimensions]",
@@ -924,6 +925,7 @@ function blankCustomerQuoteTemplateRequest(): LatticeRequest {
       trackingNumber: "",
       updates: [],
     },
+    supplierQuoteFiles: [],
     supplierQuotes: [],
     title: "Project or RFQ title",
     updatedAt: new Date().toISOString(),

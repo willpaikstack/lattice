@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Download, FileText, Mail, Phone, User } from "lucide-react";
 
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
+import { SupplierQuoteFiles } from "./supplier-quote-files";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
@@ -122,6 +123,24 @@ function productionRegion(request: LatticeRequest) {
   return "Overseas";
 }
 
+function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][number] | undefined; index: number }) {
+  const faceTone = index % 2 === 0 ? "bg-[#d8e5f3]" : "bg-[#dfe7dd]";
+  const sideTone = index % 2 === 0 ? "bg-[#b8cbe1]" : "bg-[#c2d1bf]";
+  const topTone = index % 2 === 0 ? "bg-[#edf3fa]" : "bg-[#eef4ec]";
+
+  return (
+    <div className="w-full shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-[#f7f8fa] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7)] sm:w-32">
+      <div className="relative h-24 bg-[linear-gradient(90deg,rgba(17,24,39,0.06)_1px,transparent_1px),linear-gradient(0deg,rgba(17,24,39,0.06)_1px,transparent_1px)] bg-[size:12px_12px]">
+        <div className={`absolute left-7 top-8 h-10 w-14 -skew-y-6 rounded-sm border border-[#8f9ba8] ${faceTone}`} />
+        <div className={`absolute left-11 top-5 h-10 w-14 skew-y-[20deg] rounded-sm border border-[#9aa6b2] ${topTone}`} />
+        <div className={`absolute left-[4.35rem] top-9 h-10 w-9 skew-y-[20deg] rounded-sm border border-[#8f9ba8] ${sideTone}`} />
+        <span className="absolute bottom-2 left-2 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#69717c]">CAD render</span>
+      </div>
+      <p className="truncate border-t border-[#e4e6ea] px-2 py-1.5 text-[10px] font-medium text-[#6f737a]">{file?.name ?? "Render pending"}</p>
+    </div>
+  );
+}
+
 function reviewedFilesLabel(request: LatticeRequest) {
   const latestQuote = request.customerQuotes.at(-1);
 
@@ -227,10 +246,9 @@ export function BuyerQuoteDetail({
               <p className="text-[20px] font-semibold uppercase tracking-normal text-[#111111]">Order total {formatPrice(totalCents)}</p>
             </div>
 
-            <div className="hidden grid-cols-[56px_minmax(300px,1.7fr)_minmax(132px,0.65fr)_minmax(72px,0.35fr)_minmax(112px,0.55fr)_minmax(112px,0.55fr)] gap-5 border-b-4 border-[#111111] px-6 py-4 text-[13px] font-semibold text-[#111111] min-[1200px]:grid">
+            <div className="hidden grid-cols-[42px_minmax(260px,1fr)_52px_96px_104px] gap-4 border-b-4 border-[#111111] px-5 py-4 text-[12px] font-semibold text-[#111111] min-[1200px]:grid">
               <span>#</span>
               <span>Part details</span>
-              <span>Production region</span>
               <span className="text-right">Qty</span>
               <span className="text-right">Unit price</span>
               <span className="text-right">Subtotal</span>
@@ -243,21 +261,21 @@ export function BuyerQuoteDetail({
                 const file = request.files[index] ?? request.files[0];
 
                 return (
-                  <article className="grid gap-4 px-6 py-6 min-[1200px]:grid-cols-[56px_minmax(300px,1.7fr)_minmax(132px,0.65fr)_minmax(72px,0.35fr)_minmax(112px,0.55fr)_minmax(112px,0.55fr)] min-[1200px]:gap-5" key={item.id}>
+                  <article className="grid gap-4 px-5 py-6 min-[1200px]:grid-cols-[42px_minmax(260px,1fr)_52px_96px_104px] min-[1200px]:gap-4" key={item.id}>
                     <p className="text-[14px] text-[#111111]">
                       <span className="font-semibold min-[1200px]:hidden"># </span>
                       {index + 1}
                     </p>
-                    <div className="min-w-0">
-                      <p className="break-words text-[15px] font-semibold leading-5 text-[#111111]">{file?.name ? `[Rev 1] ${file.name}` : `[Rev 1] ${item.partName}`}</p>
-                      <p className="mt-1 break-words text-[15px] font-semibold leading-5 text-[#111111]">{item.partName}</p>
-                      <p className="mt-1 break-words text-[14px] leading-5 text-[#111111]">{configurationText(request, item)}</p>
-                      {item.notes ? <p className="mt-1 text-[13px] font-semibold leading-5 text-[#111111]">{item.notes}</p> : null}
+                    <div className="min-w-0 sm:flex sm:gap-4">
+                      <CadRenderPreview file={file} index={index} />
+                      <div className="mt-3 min-w-0 sm:mt-0">
+                        <p className="break-words text-[15px] font-semibold leading-5 text-[#111111]">{file?.name ? `[Rev 1] ${file.name}` : `[Rev 1] ${item.partName}`}</p>
+                        <p className="mt-1 break-words text-[15px] font-semibold leading-5 text-[#111111]">{item.partName}</p>
+                        <p className="mt-1 break-words text-[14px] leading-5 text-[#111111]">{configurationText(request, item)}</p>
+                        <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6f737a]">Production region: {productionRegion(request)}</p>
+                        {item.notes ? <p className="mt-1 text-[13px] font-semibold leading-5 text-[#111111]">{item.notes}</p> : null}
+                      </div>
                     </div>
-                    <p className="text-[14px] text-[#111111]">
-                      <span className="font-semibold min-[1200px]:hidden">Production region: </span>
-                      {productionRegion(request)}
-                    </p>
                     <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
                       <span className="font-semibold min-[1200px]:hidden">Qty: </span>
                       {item.quantity}
@@ -312,6 +330,12 @@ export function BuyerQuoteDetail({
               </dl>
             </div>
           </section>
+
+          <SupplierQuoteFiles
+            request={request}
+            returnTo={`/quotes/${encodeURIComponent(request.id)}`}
+            uploadHref="/api/supplier-quote-files"
+          />
         </main>
 
         <aside className="space-y-5 xl:col-span-4">

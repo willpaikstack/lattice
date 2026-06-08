@@ -70,7 +70,7 @@ describe("admin activity summary", () => {
     expect(summary.criticalRequests[0]).toMatchObject({
       nextStep: "Recover overdue quote request",
       tone: "critical",
-      href: "/operator/requests/req_submitted",
+      href: "/admin/quotes?requestId=req_submitted",
     });
     expect(summary.recentActivity.map((request) => request.id)).not.toContain("req_purchased");
   });

@@ -7,6 +7,7 @@ import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { quotedLineForRequestItem, type LatticeRequest, type SupplierQuoteStatus } from "@/lib/request-model";
+import { SupplierQuoteFiles } from "./supplier-quote-files";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
@@ -54,6 +55,19 @@ function formatCurrency(cents: number | null) {
     maximumFractionDigits: 0,
     style: "currency",
   }).format(cents / 100);
+}
+
+function formatDollarAmount(value: number | null | undefined) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "Pending";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: "currency",
+  }).format(value);
 }
 
 function formatCurrencyInput(cents: number | null) {
@@ -275,11 +289,34 @@ function lineItemUnitPriceInput(request: LatticeRequest, lineItem: LatticeReques
   return "";
 }
 
+function lineItemUnitPriceDisplay(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  const latestQuote = request.customerQuotes.at(-1);
+  const quotedLine = quotedLineForRequestItem(latestQuote?.lineItems, lineItem);
+
+  if (quotedLine) {
+    return formatDollarAmount(quotedLine.unitPrice);
+  }
+
+  if (request.lineItems.length === 1 && request.quote.estimatedPriceCents !== null && lineItem.quantity > 0) {
+    return formatDollarAmount(request.quote.estimatedPriceCents / 100 / lineItem.quantity);
+  }
+
+  return "Pending";
+}
+
 function lineItemLeadTimeInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
   const latestQuote = request.customerQuotes.at(-1);
   const quotedLine = quotedLineForRequestItem(latestQuote?.lineItems, lineItem);
 
   return quotedLine?.leadTimeDays ?? request.quote.leadTimeDays ?? "";
+}
+
+function lineItemLeadTimeDisplay(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  const latestQuote = request.customerQuotes.at(-1);
+  const quotedLine = quotedLineForRequestItem(latestQuote?.lineItems, lineItem);
+  const leadTimeDays = quotedLine?.leadTimeDays ?? request.quote.leadTimeDays;
+
+  return leadTimeDays ? `${leadTimeDays} business days` : "Pending";
 }
 
 function AdminQuoteDetailDrawer({
@@ -293,6 +330,7 @@ function AdminQuoteDetailDrawer({
 }) {
   const status = statusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
+  const isSubmittedToCustomer = request.status === "QUOTED" && Boolean(latestCustomerQuote);
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
   const quoteCreatedDate = defaultQuoteCreatedDate(request);
   const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
@@ -341,6 +379,13 @@ function AdminQuoteDetailDrawer({
         </div>
 
         <div className="space-y-5 p-5">
+          <SupplierQuoteFiles
+            request={request}
+            returnTo={`/admin/quotes?requestId=${encodeURIComponent(request.id)}`}
+            uploadHref="/api/supplier-quote-files"
+            variant="admin"
+          />
+
           <form action={updateStatusAction} className="space-y-5">
             <input name="requestId" type="hidden" value={request.id} />
             <input name="status" type="hidden" value="QUOTED" />
@@ -350,6 +395,9 @@ function AdminQuoteDetailDrawer({
 
             <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
               <h3 className="text-[18px] font-semibold text-[#171717]">Quote line items</h3>
+              {isSubmittedToCustomer ? (
+                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">This quote has been submitted to the customer. Pricing and lead times are locked for auditability.</p>
+              ) : null}
               <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
                 <div className="min-w-[980px]">
                   <div className="grid grid-cols-[minmax(190px,0.9fr)_minmax(320px,1.35fr)_64px_150px_150px] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
@@ -410,26 +458,35 @@ function AdminQuoteDetailDrawer({
                             )}
                           </div>
                           <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
-                          <label className="grid gap-1">
-                            <span className="sr-only">Unit price - {lineItem.partName}</span>
-                            <input
-                              className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                              defaultValue={lineItemUnitPriceInput(request, lineItem)}
-                              inputMode="decimal"
-                              name={`unitPrice:${lineItem.id}`}
-                              placeholder="0.00"
-                            />
-                          </label>
-                          <label className="grid gap-1">
-                            <span className="sr-only">Lead time days - {lineItem.partName}</span>
-                            <input
-                              className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                              defaultValue={lineItemLeadTimeInput(request, lineItem)}
-                              inputMode="numeric"
-                              name={`leadTimeDays:${lineItem.id}`}
-                              placeholder="Days"
-                            />
-                          </label>
+                          {isSubmittedToCustomer ? (
+                            <>
+                              <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2 text-[14px] font-semibold text-[#202020]">{lineItemUnitPriceDisplay(request, lineItem)}</p>
+                              <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2 text-[14px] font-semibold text-[#202020]">{lineItemLeadTimeDisplay(request, lineItem)}</p>
+                            </>
+                          ) : (
+                            <>
+                              <label className="grid gap-1">
+                                <span className="sr-only">Unit price - {lineItem.partName}</span>
+                                <input
+                                  className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                                  defaultValue={lineItemUnitPriceInput(request, lineItem)}
+                                  inputMode="decimal"
+                                  name={`unitPrice:${lineItem.id}`}
+                                  placeholder="0.00"
+                                />
+                              </label>
+                              <label className="grid gap-1">
+                                <span className="sr-only">Lead time days - {lineItem.partName}</span>
+                                <input
+                                  className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                                  defaultValue={lineItemLeadTimeInput(request, lineItem)}
+                                  inputMode="numeric"
+                                  name={`leadTimeDays:${lineItem.id}`}
+                                  placeholder="Days"
+                                />
+                              </label>
+                            </>
+                          )}
                         </div>
                       );
                     })}
@@ -565,102 +622,133 @@ function AdminQuoteDetailDrawer({
             <div className="space-y-5">
               <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
                 <h3 className="text-[18px] font-semibold text-[#171717]">Quote feedback</h3>
-                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">Enter the critical numbers needed to respond to the customer.</p>
+                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">
+                  {isSubmittedToCustomer ? "Customer-submitted quote details are locked. Create a new RFQ revision if the commercial terms need to change." : "Enter the critical numbers needed to respond to the customer."}
+                </p>
 
                 <div className="mt-4 grid gap-4">
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Shipping cost
-                    <input
-                      className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={formatCurrencyInput(request.quote.shippingCostCents)}
-                      inputMode="decimal"
-                      name="shippingCost"
-                      placeholder="Billed at actual or 125.00"
-                    />
-                  </label>
+                  {isSubmittedToCustomer ? (
+                    <dl className="grid gap-3 rounded-md border border-[#b8eee8] bg-[#f4fbfa] p-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div>
+                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Shipping</dt>
+                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{latestCustomerQuote?.shipping || formatCurrency(request.quote.shippingCostCents)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Estimated delivery date</dt>
+                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate(request.quote.estimatedDeliveryDate || null)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Quote created date</dt>
+                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate((latestCustomerQuote?.quoteDate ?? request.quote.quoteCreatedDate) || null)}</dd>
+                        </div>
+                        <div>
+                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Quote valid until</dt>
+                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate((latestCustomerQuote?.validUntil ?? request.quote.quoteValidUntil) || null)}</dd>
+                        </div>
+                      </div>
+                      <div>
+                        <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Quote notes</dt>
+                        <dd className="mt-1 whitespace-pre-wrap text-[14px] leading-6 text-[#202020]">{latestCustomerQuote?.notes || request.quote.summary || "No customer notes saved."}</dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <>
+                      <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                        Shipping cost
+                        <input
+                          className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                          defaultValue={formatCurrencyInput(request.quote.shippingCostCents)}
+                          inputMode="decimal"
+                          name="shippingCost"
+                          placeholder="Billed at actual or 125.00"
+                        />
+                      </label>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Shipping method
-                      <select
-                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.shippingMethod}
-                        name="shippingMethod"
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                          Shipping method
+                          <select
+                            className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={request.quote.shippingMethod}
+                            name="shippingMethod"
+                          >
+                            <option value="">Select method</option>
+                            <option value="International">International</option>
+                            <option value="Domestic">Domestic</option>
+                          </select>
+                        </label>
+
+                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                          Shipping terms
+                          <select
+                            className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={request.quote.shippingTerms}
+                            name="shippingTerms"
+                          >
+                            <option value="">Select terms</option>
+                            <option value="EXW">EXW</option>
+                            <option value="DDP">DDP</option>
+                            <option value="Determined at Checkout">Determined at Checkout</option>
+                            <option value="DAP">DAP</option>
+                            <option value="FOB">FOB</option>
+                          </select>
+                        </label>
+                      </div>
+
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                          Estimated delivery date
+                          <input
+                            className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={request.quote.estimatedDeliveryDate}
+                            name="estimatedDeliveryDate"
+                            type="date"
+                          />
+                        </label>
+
+                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                          Quote Created Date
+                          <input
+                            className="h-11 rounded-md border border-[#d9d9d9] bg-[#f8fafc] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            name="quoteCreatedDate"
+                            readOnly
+                            type="date"
+                            value={quoteCreatedDate}
+                          />
+                        </label>
+                      </div>
+
+                      <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                        Quote Valid Until
+                        <input
+                          className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                          name="quoteValidUntil"
+                          onChange={(event) => setQuoteValidUntil(event.target.value)}
+                          type="date"
+                          value={quoteValidUntil}
+                        />
+                      </label>
+
+                      <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                        Quote notes
+                        <textarea
+                          className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
+                          defaultValue={request.quote.summary}
+                          name="quoteSummary"
+                          placeholder="What should the customer know about price, lead time, shipping, exclusions, or assumptions?"
+                        />
+                      </label>
+
+                      <button
+                        className="h-10 rounded-md bg-[#262626] px-4 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
+                        disabled={!updateStatusAction}
+                        type="submit"
                       >
-                        <option value="">Select method</option>
-                        <option value="International">International</option>
-                        <option value="Domestic">Domestic</option>
-                      </select>
-                    </label>
-
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Shipping terms
-                      <select
-                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.shippingTerms}
-                        name="shippingTerms"
-                      >
-                        <option value="">Select terms</option>
-                        <option value="EXW">EXW</option>
-                        <option value="DDP">DDP</option>
-                        <option value="Determined at Checkout">Determined at Checkout</option>
-                        <option value="DAP">DAP</option>
-                        <option value="FOB">FOB</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Estimated delivery date
-                      <input
-                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.estimatedDeliveryDate}
-                        name="estimatedDeliveryDate"
-                        type="date"
-                      />
-                    </label>
-
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Quote Created Date
-                      <input
-                        className="h-11 rounded-md border border-[#d9d9d9] bg-[#f8fafc] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        name="quoteCreatedDate"
-                        readOnly
-                        type="date"
-                        value={quoteCreatedDate}
-                      />
-                    </label>
-                  </div>
-
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Quote Valid Until
-                    <input
-                      className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      name="quoteValidUntil"
-                      onChange={(event) => setQuoteValidUntil(event.target.value)}
-                      type="date"
-                      value={quoteValidUntil}
-                    />
-                  </label>
-
-                  <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                    Quote notes
-                    <textarea
-                      className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
-                      defaultValue={request.quote.summary}
-                      name="quoteSummary"
-                      placeholder="What should the customer know about price, lead time, shipping, exclusions, or assumptions?"
-                    />
-                  </label>
-
-                  <button
-                    className="h-10 rounded-md bg-[#262626] px-4 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
-                    disabled={!updateStatusAction}
-                    type="submit"
-                  >
-                    Submit Quote to Customer
-                  </button>
+                        Submit Quote to Customer
+                      </button>
+                    </>
+                  )}
                 </div>
               </section>
             </div>
@@ -708,12 +796,16 @@ export function AdminQuoteManagement({
   const readyForIssueCount = activeQuoteRequests.filter((request) => request.status === "QUOTED" || request.quote.estimatedPriceCents !== null).length;
 
   useEffect(() => {
-    if (!deepLinkedRequestId) {
-      setDetailRequest(null);
-      return;
-    }
+    const timeoutId = window.setTimeout(() => {
+      if (!deepLinkedRequestId) {
+        setDetailRequest(null);
+        return;
+      }
 
-    setDetailRequest(quoteRequests.find((request) => request.id === deepLinkedRequestId) ?? null);
+      setDetailRequest(quoteRequests.find((request) => request.id === deepLinkedRequestId) ?? null);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [deepLinkedRequestId, quoteRequests]);
 
   const filteredRequests = useMemo(() => {

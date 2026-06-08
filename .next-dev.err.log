@@ -1,0 +1,2872 @@
+Prisma is unavailable; using local request fallback data. Error [PrismaClientKnownRequestError]: 
+Invalid `client.request.findUnique()` invocation in
+/Users/willsclaw/lattice/.next/dev/server/chunks/ssr/[root-of-the-server]__074xs~t._.js:2368:45
+
+  2365 }
+  2366 return withDemoFallback(async ()=>{
+  2367     const client = await prisma();
+→ 2368     const stored = await client.request.findUnique(
+
+    at <unknown> (src/lib/request-repository.ts:132:43)
+    at async (src/lib/request-repository.ts:132:22)
+    at async withDemoFallback (src/lib/request-repository.ts:48:12)
+    at async AdminOrderDetailPage (src/app/admin/orders/[requestId]/page.tsx:10:17)
+  130 |     async () => {
+  131 |       const client = await prisma();
+> 132 |       const stored = await client.request.findUnique({
+      |                                           ^
+  133 |         where: { id },
+  134 |         include: storedRequestInclude,
+  135 |       }); {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Request' },
+  clientVersion: '7.8.0'
+}
+Prisma is unavailable; using local request fallback data. Error [PrismaClientKnownRequestError]: 
+Invalid `client.request.findMany()` invocation in
+/Users/willsclaw/lattice/.next/dev/server/chunks/ssr/[root-of-the-server]__074xs~t._.js:2380:53
+
+  2377 async function listBuyerQuotes() {
+  2378     return withDemoFallback(async ()=>{
+  2379         const client = await prisma();
+→ 2380         const storedRequests = await client.request.findMany(
+
+    at <unknown> (src/lib/request-repository.ts:147:51)
+    at async (src/lib/request-repository.ts:147:30)
+    at async withDemoFallback (src/lib/request-repository.ts:48:12)
+    at async QuotesPage (src/app/quotes/page.tsx:9:18)
+  145 | ...nc () => {
+  146 | ...onst client = await prisma();
+> 147 | ...onst storedRequests = await client.request.findMany({
+      |                                               ^
+  148 | ... where: {
+  149 | ...   status: {
+  150 | ...     in: ["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLO... {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Request' },
+  clientVersion: '7.8.0'
+}
+Prisma is unavailable; using local request fallback data. Error [PrismaClientKnownRequestError]: 
+Invalid `client.request.findUnique()` invocation in
+/Users/willsclaw/lattice/.next/dev/server/chunks/[root-of-the-server]__0cglsnj._.js:1026:45
+
+  1023 }
+  1024 return withDemoFallback(async ()=>{
+  1025     const client = await prisma();
+→ 1026     const stored = await client.request.findUnique(
+
+    at <unknown> (src/lib/request-repository.ts:132:43)
+    at async (src/lib/request-repository.ts:132:22)
+    at async withDemoFallback (src/lib/request-repository.ts:48:12)
+    at async addSupplierQuoteFile (src/lib/request-repository.ts:422:19)
+    at async POST (src/app/api/supplier-quote-files/route.ts:53:3)
+  130 |     async () => {
+  131 |       const client = await prisma();
+> 132 |       const stored = await client.request.findUnique({
+      |                                           ^
+  133 |         where: { id },
+  134 |         include: storedRequestInclude,
+  135 |       }); {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Request' },
+  clientVersion: '7.8.0'
+}
+Prisma supplier quote file save is unavailable; saving supplier quote file locally. Error [PrismaClientKnownRequestError]: 
+Invalid `client.request.update()` invocation in
+/Users/willsclaw/lattice/.next/dev/server/chunks/[root-of-the-server]__0cglsnj._.js:1294:45
+
+  1291 }
+  1292 try {
+  1293     const client = await prisma();
+→ 1294     const stored = await client.request.update(
+
+    at <unknown> (src/lib/request-repository.ts:434:41)
+    at async addSupplierQuoteFile (src/lib/request-repository.ts:434:20)
+    at async POST (src/app/api/supplier-quote-files/route.ts:53:3)
+  432 |   try {
+  433 |     const client = await prisma();
+> 434 |     const stored = await client.request.update({
+      |                                         ^
+  435 |       where: { id: requestId },
+  436 |       data: {
+  437 |         supplierQuoteFiles: { {
+  code: 'ECONNREFUSED',
+  meta: { modelName: 'Request' },
+  clientVersion: '7.8.0'
+}
+Prisma is unavailable; using local request fallback data. Error [PrismaClientKnownRequestError]: 
+Invalid `client.request.findUnique()` invocation in
+/Users/willsclaw/lattice/.next/dev/server/chunks/ssr/[root-of-the-server]__074xs~t._.js:2368:45
+
+  2365 }
+  2366 return withDemoFallback(async ()=>{
+  2367     const client = await prisma();
+→ 2368     const stored = await client.request.findUnique(
+The column `Request.requesterEmail` does not exist in the current database.
+    at <unknown> (src/lib/request-repository.ts:132:43)
+    at async (src/lib/request-repository.ts:132:22)
+    at async withDemoFallback (src/lib/request-repository.ts:48:12)
+    at async AdminOrderDetailPage (src/app/admin/orders/[requestId]/page.tsx:10:17)
+  130 |     async () => {
+  131 |       const client = await prisma();
+> 132 |       const stored = await client.request.findUnique({
+      |                                           ^
+  133 |         where: { id },
+  134 |         include: storedRequestInclude,
+  135 |       }); {
+  code: 'P2022',
+  meta: {
+    modelName: 'Request',
+    driverAdapterError: Error [DriverAdapterError]: ColumnNotFound
+        at ignore-listed frames {
+      [cause]: [Object]
+    }
+  },
+  clientVersion: '7.8.0'
+}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+Prisma delete is unavailable; deleting local fallback request if present. Error [PrismaClientKnownRequestError]: 
+Invalid `client.request.delete()` invocation in
+/Users/willsclaw/lattice/.next/dev/server/chunks/ssr/[root-of-the-server]__074xs~t._.js:2416:36
+
+  2413 async function deleteBuyerQuote(id) {
+  2414     try {
+  2415         const client = await prisma();
+→ 2416         await client.request.delete(
+An operation failed because it depends on one or more records that were required but not found. No record was found for a delete.
+    at <unknown> (src/lib/request-repository.ts:172:32)
+    at async deleteBuyerQuote (src/lib/request-repository.ts:172:5)
+    at async deleteBuyerQuoteAction (src/app/quotes/actions.ts:14:19)
+  170 |   try {
+  171 |     const client = await prisma();
+> 172 |     await client.request.delete({
+      |                                ^
+  173 |       where: { id },
+  174 |     });
+  175 | {
+  code: 'P2025',
+  meta: { modelName: 'Request', operation: 'a delete' },
+  clientVersion: '7.8.0'
+}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:636:9)
+    at <unknown> (src/components/request-form.tsx:1676:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:1675:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  634 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  635 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 636 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+      |         ^
+  637 |           Line item {index + 1}
+  638 |         </p>
+  639 |       </div>
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1066:9)
+    at <unknown> (src/components/request-form.tsx:2102:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2101:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1064 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1065 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1066 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1067 |           Line item {index + 1}
+  1068 |         </p>
+  1069 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1060:9)
+    at <unknown> (src/components/request-form.tsx:2096:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2095:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1058 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1059 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1060 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1061 |           Line item {index + 1}
+  1062 |         </p>
+  1063 |       </div>
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1060:9)
+    at <unknown> (src/components/request-form.tsx:2096:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2095:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1058 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1059 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1060 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1061 |           Line item {index + 1}
+  1062 |         </p>
+  1063 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1060:9)
+    at <unknown> (src/components/request-form.tsx:2096:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2095:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1058 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1059 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1060 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1061 |           Line item {index + 1}
+  1062 |         </p>
+  1063 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1212:9)
+    at <unknown> (src/components/request-form.tsx:2240:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2239:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1210 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1211 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1212 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1213 |           Line item {index + 1}
+  1214 |         </p>
+  1215 |       </div>
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={true} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1226:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1224 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1225 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1226 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1227 |           Line item {index + 1}
+  1228 |         </p>
+  1229 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1226:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1224 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1225 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1226 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1227 |           Line item {index + 1}
+  1228 |         </p>
+  1229 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1226:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1224 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1225 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1226 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1227 |           Line item {index + 1}
+  1228 |         </p>
+  1229 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1226:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1224 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1225 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1226 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1227 |           Line item {index + 1}
+  1228 |         </p>
+  1229 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1226:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1224 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1225 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1226 |         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+       |         ^
+  1227 |           Line item {index + 1}
+  1228 |         </p>
+  1229 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1227:9)
+    at <unknown> (src/components/request-form.tsx:2252:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2251:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1225 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1226 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1227 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1228 |           {lineItemHeader}
+  1229 |         </p>
+  1230 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1227:9)
+    at <unknown> (src/components/request-form.tsx:2249:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2248:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1225 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1226 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1227 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1228 |           {lineItemHeader}
+  1229 |         </p>
+  1230 |       </div>
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1227:9)
+    at <unknown> (src/components/request-form.tsx:2249:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2248:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1225 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1226 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1227 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1228 |           {lineItemHeader}
+  1229 |         </p>
+  1230 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1227:9)
+    at <unknown> (src/components/request-form.tsx:2249:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2248:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1225 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1226 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1227 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1228 |           {lineItemHeader}
+  1229 |         </p>
+  1230 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1227:9)
+    at <unknown> (src/components/request-form.tsx:2249:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2248:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1225 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1226 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1227 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1228 |           {lineItemHeader}
+  1229 |         </p>
+  1230 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1232:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1230 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1231 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1232 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1233 |           {lineItemHeader}
+  1234 |         </p>
+  1235 |       </div>
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1232:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1230 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1231 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1232 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1233 |           {lineItemHeader}
+  1234 |         </p>
+  1235 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1232:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1230 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1231 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1232 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1233 |           {lineItemHeader}
+  1234 |         </p>
+  1235 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1232:9)
+    at <unknown> (src/components/request-form.tsx:2254:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1230 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1231 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1232 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1233 |           {lineItemHeader}
+  1234 |         </p>
+  1235 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1232:9)
+    at <unknown> (src/components/request-form.tsx:2247:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2246:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1230 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1231 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1232 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1233 |           {lineItemHeader}
+  1234 |         </p>
+  1235 |       </div>
+[browser] Uncaught ReferenceError: removeTechnicalDrawing is not defined
+    at LineItemConfigurationCard (src/components/request-form.tsx:1411:34)
+    at Set.forEach (<anonymous>)
+    at <unknown> (src/components/request-form.tsx:2253:85)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2253:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1409 |                 lineItem={lineItem}
+  1410 |                 onDrawingSelected={onDrawingSelected}
+> 1411 |                 onRemoveDrawing={removeTechnicalDrawing}
+       |                                  ^
+  1412 |                 onReviewDrawing={onReviewDrawing}
+  1413 |               />
+  1414 |               {needsDrawingUpload ? (
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <RenderFromTemplateContext>
+      <ScrollAndMaybeFocusHandler cacheNode={{rsc:{...}, ...}}>
+        <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:{...}, ...}}>
+          <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+            <LoadingBoundary name="quotes/" loading={null}>
+              <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+                <RedirectBoundary>
+                  <RedirectErrorBoundary router={{...}}>
+                    <InnerLayoutRouter url="/quotes" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                      <SegmentViewNode type="page" pagePath="quotes/pag...">
+                        <SegmentTrieNode>
+                        <QuotesPage>
+                          <div className="mx-auto ma...">
+                            <section>
+                            <section>
+                            <BuyerQuotes requests={[...]}>
++                             <div className="space-y-5">
+-                             <section
+-                               className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center"
+-                             >
+                      ...
+                    ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at div (<anonymous>)
+    at BuyerQuotes (src/components/buyer-quotes.tsx:383:5)
+    at QuotesPage (src/app/quotes/page.tsx:61:7)
+  381 |
+  382 |   return (
+> 383 |     <div className="space-y-5">
+      |     ^
+  384 |       <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
+  385 |         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+  386 |           <label className="relative block xl:w-[360px]">
+[browser] Uncaught ReferenceError: removeTechnicalDrawing is not defined
+    at LineItemConfigurationCard (src/components/request-form.tsx:1411:34)
+    at <unknown> (src/components/request-form.tsx:2371:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2370:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1409 |                 lineItem={lineItem}
+  1410 |                 onDrawingSelected={onDrawingSelected}
+> 1411 |                 onRemoveDrawing={removeTechnicalDrawing}
+       |                                  ^
+  1412 |                 onReviewDrawing={onReviewDrawing}
+  1413 |               />
+  1414 |               {needsDrawingUpload ? (
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <RenderFromTemplateContext>
+      <ScrollAndMaybeFocusHandler cacheNode={{rsc:{...}, ...}}>
+        <InnerScrollAndFocusHandlerOld focusAndScrollRef={{scrollRef:null, ...}} cacheNode={{rsc:{...}, ...}}>
+          <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+            <LoadingBoundary name="quotes/" loading={null}>
+              <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+                <RedirectBoundary>
+                  <RedirectErrorBoundary router={{...}}>
+                    <InnerLayoutRouter url="/quotes" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                      <SegmentViewNode type="page" pagePath="quotes/pag...">
+                        <SegmentTrieNode>
+                        <QuotesPage>
+                          <div className="mx-auto ma...">
+                            <section>
+                            <section>
+                            <BuyerQuotes requests={[...]}>
++                             <div className="space-y-5">
+-                             <section
+-                               className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center"
+-                             >
+                      ...
+                    ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at div (<anonymous>)
+    at BuyerQuotes (src/components/buyer-quotes.tsx:383:5)
+    at QuotesPage (src/app/quotes/page.tsx:61:7)
+  381 |
+  382 |   return (
+> 383 |     <div className="space-y-5">
+      |     ^
+  384 |       <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
+  385 |         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+  386 |           <label className="relative block xl:w-[360px]">
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1388:9)
+    at <unknown> (src/components/request-form.tsx:2373:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2372:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1386 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1387 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1388 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1389 |           {lineItemHeader}
+  1390 |         </p>
+  1391 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1388:9)
+    at <unknown> (src/components/request-form.tsx:2373:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2372:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1386 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1387 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1388 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1389 |           {lineItemHeader}
+  1390 |         </p>
+  1391 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2380:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2379:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2380:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2379:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2380:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2379:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <section>
+                        <div>
+                          <form onSubmit={function handleSubmit} className="space-y-6 ...">
+                            <section>
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2380:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2379:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <form onSubmit={function handleSubmit} className="space-y-6">
+                          <section>
+                          <section className="space-y-6 ...">
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2371:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2370:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <form onSubmit={function handleSubmit} className="space-y-6">
+                          <section>
+                          <section className="space-y-6 ...">
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2362:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2361:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <ErrorBoundary errorComponent={undefined} errorStyles={undefined} errorScripts={undefined}>
+      <LoadingBoundary name="new/" loading={null}>
+        <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+                <SegmentViewNode type="page" pagePath="requests/n...">
+                  <SegmentTrieNode>
+                  <NewRequestPage>
+                    <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                      <div className="space-y-6">
+                        <form onSubmit={function handleSubmit} className="space-y-6">
+                          <section>
+                          <section className="space-y-6 ...">
+                            <div>
+                            <LineItemConfigurationCard index={0} lineItem={{id:"line-1", ...}} canRemove={false} ...>
+                              <section
++                               className="overflow-hidden rounded-lg border border-slate-200 bg-white"
+-                               className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-cent..."
+                              >
+                                <div
++                                 className="border-b border-slate-100 bg-slate-50 px-6 py-4"
+-                                 className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border bord..."
+                                >
++                                 <p
++                                   className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-slate-500"
++                                 >
+-                                 ^
+                                ...
+                            ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at p (<anonymous>)
+    at LineItemConfigurationCard (src/components/request-form.tsx:1395:9)
+    at <unknown> (src/components/request-form.tsx:2362:13)
+    at Array.map (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2361:32)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  1393 |     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  1394 |       <div className="border-b border-slate-100 bg-slate-50 px-6 py-4">
+> 1395 |         <p className="break-all text-sm font-semibold uppercase tracking-[0.18em] text-s...
+       |         ^
+  1396 |           {lineItemHeader}
+  1397 |         </p>
+  1398 |       </div>
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="new/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="requests/n...">
+                <SegmentTrieNode>
+                <NewRequestPage>
+                  <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                    <div className="space-y-6">
+                      <form onSubmit={function handleSubmit} className="space-y-6">
+                        <section>
+                        <section className="space-y-6 ...">
+                          <div className="border-b b...">
+                            <div className="max-w-2xl">
+                              <div className="grid gap-2...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="min-h-12 rounded-md border border-transparent px-0 py-2 text-left text-2x..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                          ...
+              ...
+            ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2405:19)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2403 |                   </div>
+  2404 |                 ) : (
+> 2405 |                   <button
+       |                   ^
+  2406 |                     aria-label="Quote name"
+  2407 |                     className="min-h-12 rounded-md border border-transparent px-0 py-2 t...
+  2408 |                     onDoubleClick={startQuoteNameEdit}
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="new/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="requests/n...">
+                <SegmentTrieNode>
+                <NewRequestPage>
+                  <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                    <div className="space-y-6">
+                      <form onSubmit={function handleSubmit} className="space-y-6">
+                        <section>
+                        <section className="space-y-6 ...">
+                          <div className="border-b b...">
+                            <div className="max-w-2xl">
+                              <div className="grid gap-2...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="min-h-12 rounded-md border border-transparent px-0 py-2 text-left text-2x..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                          ...
+              ...
+            ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2405:19)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2403 |                   </div>
+  2404 |                 ) : (
+> 2405 |                   <button
+       |                   ^
+  2406 |                     aria-label="Quote name"
+  2407 |                     className="min-h-12 rounded-md border border-transparent px-0 py-2 t...
+  2408 |                     onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="new/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="requests/n...">
+                <SegmentTrieNode>
+                <NewRequestPage>
+                  <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                    <div className="space-y-6">
+                      <form onSubmit={function handleSubmit} className="space-y-6">
+                        <section>
+                        <section className="space-y-6 ...">
+                          <div className="border-b b...">
+                            <div className="max-w-2xl">
+                              <div className="grid gap-2...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="min-h-12 rounded-md border border-transparent px-0 py-2 text-left text-2x..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                          ...
+              ...
+            ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2405:19)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2403 |                   </div>
+  2404 |                 ) : (
+> 2405 |                   <button
+       |                   ^
+  2406 |                     aria-label="Quote name"
+  2407 |                     className="min-h-12 rounded-md border border-transparent px-0 py-2 t...
+  2408 |                     onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="new/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="requests/n...">
+                <SegmentTrieNode>
+                <NewRequestPage>
+                  <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                    <div className="space-y-6">
+                      <form onSubmit={function handleSubmit} className="space-y-6">
+                        <section>
+                        <section className="space-y-6 ...">
+                          <div className="border-b b...">
+                            <div className="max-w-2xl">
+                              <div className="grid gap-2...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="min-h-12 rounded-md border border-transparent px-0 py-2 text-left text-2x..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                          ...
+              ...
+            ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2405:19)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2403 |                   </div>
+  2404 |                 ) : (
+> 2405 |                   <button
+       |                   ^
+  2406 |                     aria-label="Quote name"
+  2407 |                     className="min-h-12 rounded-md border border-transparent px-0 py-2 t...
+  2408 |                     onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="new/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="requests/n...">
+                <SegmentTrieNode>
+                <NewRequestPage>
+                  <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                    <div className="space-y-6">
+                      <form onSubmit={function handleSubmit} className="space-y-6">
+                        <section>
+                        <section className="space-y-6 ...">
+                          <div className="border-b b...">
+                            <div className="max-w-2xl">
+                              <div className="grid gap-2...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="min-h-12 rounded-md border border-transparent px-0 py-2 text-left text-2x..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                          ...
+              ...
+            ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2405:19)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2403 |                   </div>
+  2404 |                 ) : (
+> 2405 |                   <button
+       |                   ^
+  2406 |                     aria-label="Quote name"
+  2407 |                     className="min-h-12 rounded-md border border-transparent px-0 py-2 t...
+  2408 |                     onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="new/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+        <RedirectBoundary>
+          <RedirectErrorBoundary router={{...}}>
+            <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+              <SegmentViewNode type="page" pagePath="requests/n...">
+                <SegmentTrieNode>
+                <NewRequestPage>
+                  <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                    <div className="space-y-6">
+                      <form onSubmit={function handleSubmit} className="space-y-6">
+                        <section>
+                        <section className="space-y-6 ...">
+                          <div className="border-b b...">
+                            <div className="max-w-2xl">
+                              <div className="grid gap-2...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="min-h-12 rounded-md border border-transparent px-0 py-2 text-left text-2x..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                          ...
+              ...
+            ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2405:19)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2403 |                   </div>
+  2404 |                 ) : (
+> 2405 |                   <button
+       |                   ^
+  2406 |                     aria-label="Quote name"
+  2407 |                     className="min-h-12 rounded-md border border-transparent px-0 py-2 t...
+  2408 |                     onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="leading-6 ...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2409:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2407 |                   <p className="leading-6 text-slate-600">
+  2408 |                     <span>Quote name: </span>
+> 2409 |                     <button
+       |                     ^
+  2410 |                       aria-label="Quote name"
+  2411 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2412 |                       onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="leading-6 ...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2409:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2407 |                   <p className="leading-6 text-slate-600">
+  2408 |                     <span>Quote name: </span>
+> 2409 |                     <button
+       |                     ^
+  2410 |                       aria-label="Quote name"
+  2411 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2412 |                       onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="leading-6 ...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2453:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2451 |                   <p className="leading-6 text-slate-600">
+  2452 |                     <span>Quote name: </span>
+> 2453 |                     <button
+       |                     ^
+  2454 |                       aria-label="Quote name"
+  2455 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2456 |                       onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url="/requests/..." tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="text-2xl l...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2453:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2451 |                   <p className="text-2xl leading-8 text-slate-600">
+  2452 |                     <span>Quote name: </span>
+> 2453 |                     <button
+       |                     ^
+  2454 |                       aria-label="Quote name"
+  2455 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2456 |                       onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="text-2xl l...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2453:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2451 |                   <p className="text-2xl leading-8 text-slate-600">
+  2452 |                     <span>Quote name: </span>
+> 2453 |                     <button
+       |                     ^
+  2454 |                       aria-label="Quote name"
+  2455 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2456 |                       onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="text-2xl l...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2453:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2451 |                   <p className="text-2xl leading-8 text-slate-600">
+  2452 |                     <span>Quote name: </span>
+> 2453 |                     <button
+       |                     ^
+  2454 |                       aria-label="Quote name"
+  2455 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2456 |                       onDoubleClick={startQuoteNameEdit}
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] getCdnRedirectUrl is deprecated and will be removed soon (https://developer.api.autodesk.com/modelderivative/v2/viewers/7.108.0/viewer3D.min.js:30:444164)
+[browser] Uncaught Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HTTPAccessFallbackBoundary notFound={undefined} forbidden={undefined} unauthorized={undefined}>
+      <RedirectBoundary>
+        <RedirectErrorBoundary router={{...}}>
+          <InnerLayoutRouter url={"/request..."} tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} ...>
+            <SegmentViewNode type="page" pagePath="requests/n...">
+              <SegmentTrieNode>
+              <NewRequestPage>
+                <RequestForm defaultBuyerCompany="Amogy" localDraftId="local_draf...">
+                  <div className="space-y-6">
+                    <form onSubmit={function handleSubmit} className="space-y-6">
+                      <section>
+                      <section className="space-y-6 ...">
+                        <div className="border-b b...">
+                          <div className="max-w-2xl">
+                            <div className="text-sm fo...">
+                              <p className="text-2xl l...">
+                                <span>
+                                <button
+                                  aria-label="Quote name"
+                                  className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 fo..."
+                                  onDoubleClick={function startQuoteNameEdit}
+                                  onKeyDown={function onKeyDown}
+                                  title="Double-click to edit"
+                                  type="button"
+                                >
++                                 Aluminum Plate
+-                                 Untitled quote
+                        ...
+            ...
+          ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at button (<anonymous>)
+    at RequestForm (src/components/request-form.tsx:2453:21)
+    at NewRequestPage (src/app/requests/new/page.tsx:254:5)
+  2451 |                   <p className="text-2xl leading-8 text-slate-600">
+  2452 |                     <span>Quote name: </span>
+> 2453 |                     <button
+       |                     ^
+  2454 |                       aria-label="Quote name"
+  2455 |                       className="rounded-sm font-semibold text-slate-950 transition hove...
+  2456 |                       onDoubleClick={startQuoteNameEdit}

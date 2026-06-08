@@ -6,12 +6,28 @@ import { authorizedUser, createSessionToken, SESSION_COOKIE_NAME, verifySessionT
 
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 
-export async function createSession() {
+type SessionUserInput = {
+  email?: string;
+  id: string;
+  name?: string;
+  provider?: "google" | "password";
+};
+
+export function createSessionCookie(user: SessionUserInput) {
   const expires = new Date(Date.now() + sessionDurationMs);
   const token = createSessionToken({
+    email: user.email,
     exp: expires.getTime(),
-    userId: authorizedUser.id,
+    name: user.name,
+    provider: user.provider,
+    userId: user.id,
   });
+
+  return { expires, token };
+}
+
+export async function createSessionForUser(user: SessionUserInput) {
+  const { expires, token } = createSessionCookie(user);
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
@@ -20,6 +36,15 @@ export async function createSession() {
     path: "/",
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+  });
+}
+
+export async function createSession() {
+  await createSessionForUser({
+    email: authorizedUser.email,
+    id: authorizedUser.id,
+    name: authorizedUser.name,
+    provider: "password",
   });
 }
 
@@ -32,15 +57,15 @@ export async function getCurrentSession() {
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   const session = verifySessionToken(token);
 
-  if (!session || session.userId !== authorizedUser.id) {
+  if (!session) {
     return null;
   }
 
   return {
     user: {
-      email: authorizedUser.email,
-      id: authorizedUser.id,
-      name: authorizedUser.name,
+      email: session.email ?? authorizedUser.email,
+      id: session.userId,
+      name: session.name ?? authorizedUser.name,
     },
   };
 }

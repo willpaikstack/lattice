@@ -3,9 +3,10 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import zlib from "node:zlib";
 
+import { bundledFilesByLineItem, manufacturingReleaseDescriptionForRequestLine } from "./document-line-item-details";
 import { formatUsd, lineItemTotal, quoteSubtotal, type CustomerQuoteInput } from "./quote-file";
 import { addDaysIso, buildStandardQuoteNotes } from "./quote-notes";
-import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type UploadedFile } from "./request-model";
+import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem } from "./request-model";
 
 type QuotePdfOptions = {
   pricingPending?: boolean;
@@ -245,25 +246,6 @@ function termsCompanyText(value: string) {
   return value
     .replace(/\bLattice OS\b/gi, sellerDisplayName)
     .replace(/\bLattice\b/g, "Nexus");
-}
-
-function isDrawingFile(file: UploadedFile) {
-  return /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type);
-}
-
-function isCadFile(file: UploadedFile) {
-  return /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type);
-}
-
-function bundledFilesByLineItem(request: LatticeRequest) {
-  const cadFiles = request.files.filter(isCadFile);
-  const drawingFiles = request.files.filter(isDrawingFile);
-
-  return request.lineItems.map((lineItem, index) => ({
-    cadFile: cadFiles[index] ?? null,
-    drawingFile: drawingFiles[index] ?? null,
-    lineItem,
-  }));
 }
 
 function quoteReference(request: LatticeRequest) {
@@ -523,16 +505,7 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
 
   bundledFilesByLineItem(request).forEach(({ cadFile, drawingFile, lineItem }, index) => {
     const fileName = cadFile?.name || lineItem.partName;
-    const drawingName = drawingFile ? `Drawing: ${drawingFile.name}` : "";
-    const detailLines = [
-      fileName,
-      drawingName,
-      `Process: ${request.process}`,
-      `Material: ${lineItem.material}`,
-      `Finish: ${lineItem.surfaceFinish || "As machined / not specified"}`,
-      lineItem.qualityDocumentation?.length ? `Inspection: ${lineItem.qualityDocumentation.join(", ")}` : "",
-    ].filter(Boolean);
-    const detailsText = detailLines.join("\n");
+    const detailsText = manufacturingReleaseDescriptionForRequestLine(request, lineItem, drawingFile);
 
     doc.font(regularFont).fontSize(8.7);
     const rowHeight = Math.max(66, doc.heightOfString(detailsText, { lineGap: 2, width: columns.details.width }) + 16);
@@ -544,7 +517,7 @@ export function buildRequestQuotePdf(request: LatticeRequest) {
 
     const rowTop = y;
     doc.font(regularFont).fontSize(8.7).fillColor(quoteTextColor).text(String(index + 1), columns.index.x, rowTop, { width: columns.index.width });
-    doc.font(boldFont).fontSize(8.9).text(safeText(lineItem.partName), columns.details.x, rowTop, { width: columns.details.width });
+    doc.font(boldFont).fontSize(8.9).text(safeText(fileName), columns.details.x, rowTop, { width: columns.details.width });
     doc.font(regularFont).fontSize(8.4).text(detailsText, columns.details.x, rowTop + 13, { lineGap: 2, width: columns.details.width });
     doc.font(regularFont).fontSize(8.7).text(productionRegion(request), columns.production.x, rowTop, { width: columns.production.width });
     doc.text(String(lineItem.quantity), columns.quantity.x, rowTop, { align: "right", width: columns.quantity.width });

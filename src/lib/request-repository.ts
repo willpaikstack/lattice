@@ -1,9 +1,20 @@
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
-import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput } from "./request-model";
+import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput, UploadedFileInput } from "./request-model";
 import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
+
+export type PurchaseQuoteDeliveryInput = {
+  shipToAddress1?: string;
+  shipToAddress2?: string;
+  shipToCity?: string;
+  shipToCompany?: string;
+  shipToName?: string;
+  shipToPhone?: string;
+  shipToState?: string;
+  shipToZipCode?: string;
+};
 
 function isArtificialRequestId(id: string) {
   return id.startsWith("demo_") || id.startsWith("fixture_");
@@ -28,6 +39,10 @@ async function prisma() {
   };
 }
 
+function makeLocalId(prefix: string) {
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => T | Promise<T>) {
   try {
     return await operation();
@@ -41,6 +56,10 @@ async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => 
 
 function optionalDate(value: string) {
   return value ? new Date(`${value}T00:00:00.000Z`) : null;
+}
+
+function cleanText(value: string | null | undefined) {
+  return String(value ?? "").trim();
 }
 
 export async function createSubmittedRequest(input: DraftRequestInput) {
@@ -268,6 +287,10 @@ export async function saveCustomerQuoteForRequest(
     throw new Error("Only active RFQs can receive customer quotes");
   }
 
+  if (current.status === "QUOTED" && current.customerQuotes.length > 0) {
+    throw new Error("Customer-submitted quotes are immutable");
+  }
+
   const nextStatus = "QUOTED" as const;
 
   try {
@@ -395,7 +418,78 @@ export async function saveCustomerQuoteForRequest(
   }
 }
 
-export async function purchaseQuote(id: string) {
+export async function addSupplierQuoteFile(requestId: string, file: UploadedFileInput) {
+  const current = await getRequestById(requestId);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.status === "DRAFT" || current.status === "CLOSED") {
+    throw new Error("Supplier quote files can only be attached to active RFQs or orders");
+  }
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: requestId },
+      data: {
+        supplierQuoteFiles: {
+          create: {
+            name: file.name,
+            sizeBytes: file.sizeBytes,
+            type: file.type,
+            storageKey: file.storageKey,
+          },
+        },
+        statusEvents: {
+          create: {
+            from: current.status,
+            to: current.status,
+            actor: "operator",
+          },
+        },
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma supplier quote file save is unavailable; saving supplier quote file locally.", error);
+      const timestamp = new Date().toISOString();
+      return saveLocalRequest({
+        ...current,
+        supplierQuoteFiles: [
+          ...(current.supplierQuoteFiles ?? []),
+          {
+            id: makeLocalId("supplier_quote_file"),
+            name: file.name,
+            sizeBytes: file.sizeBytes,
+            type: file.type,
+            storageKey: file.storageKey,
+            uploadedAt: timestamp,
+          },
+        ],
+        statusEvents: [
+          ...current.statusEvents,
+          {
+            id: makeLocalId("event"),
+            from: current.status,
+            to: current.status,
+            actor: "operator" as const,
+            at: timestamp,
+          },
+        ],
+        updatedAt: timestamp,
+      });
+    }
+
+    throw error;
+  }
+}
+
+export async function purchaseQuote(id: string, deliveryInput: PurchaseQuoteDeliveryInput = {}) {
   const current = await getRequestById(id);
 
   if (!current) {
@@ -406,23 +500,60 @@ export async function purchaseQuote(id: string) {
     throw new Error("Only priced quotes can be converted to orders");
   }
 
-  const client = await prisma();
-  const stored = await client.request.update({
-    where: { id },
-    data: {
-      status: "PURCHASED",
-      statusEvents: {
-        create: {
-          from: current.status,
-          to: "PURCHASED",
-          actor: "buyer",
+  const delivery = {
+    shipToAddress1: cleanText(deliveryInput.shipToAddress1) || current.shipToAddress1,
+    shipToAddress2: deliveryInput.shipToAddress2 === undefined ? current.shipToAddress2 : cleanText(deliveryInput.shipToAddress2),
+    shipToCity: cleanText(deliveryInput.shipToCity) || current.shipToCity,
+    shipToCompany: cleanText(deliveryInput.shipToCompany) || current.shipToCompany || current.buyerCompany,
+    shipToName: cleanText(deliveryInput.shipToName) || current.shipToName || current.requesterName,
+    shipToPhone: cleanText(deliveryInput.shipToPhone) || current.shipToPhone || current.requesterPhone,
+    shipToState: cleanText(deliveryInput.shipToState) || current.shipToState,
+    shipToZipCode: cleanText(deliveryInput.shipToZipCode) || current.shipToZipCode,
+  };
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id },
+      data: {
+        ...delivery,
+        status: "PURCHASED",
+        statusEvents: {
+          create: {
+            from: current.status,
+            to: "PURCHASED",
+            actor: "buyer",
+          },
         },
       },
-    },
-    include: storedRequestInclude,
-  });
+      include: storedRequestInclude,
+    });
 
-  return mapStoredRequest(stored);
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma purchase is unavailable; saving purchased request locally.", error);
+      const timestamp = new Date().toISOString();
+      return saveLocalRequest({
+        ...current,
+        ...delivery,
+        status: "PURCHASED",
+        statusEvents: [
+          ...current.statusEvents,
+          {
+            id: `event_${Date.now()}`,
+            from: current.status,
+            to: "PURCHASED",
+            actor: "buyer" as const,
+            at: timestamp,
+          },
+        ],
+        updatedAt: timestamp,
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function listBuyerOrders() {
@@ -443,6 +574,63 @@ export async function listBuyerOrders() {
     },
     async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
   );
+}
+
+export async function listAdminOrders() {
+  return withDemoFallback(
+    async () => {
+      const client = await prisma();
+      const storedRequests = await client.request.findMany({
+        where: {
+          isArchived: false,
+          status: "PURCHASED",
+        },
+        include: storedRequestInclude,
+        orderBy: {
+          updatedAt: "desc",
+        },
+      });
+
+      return realRequestsOnly(storedRequests).map(mapStoredRequest);
+    },
+    async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED" && !request.isArchived)),
+  );
+}
+
+export async function archiveOrder(requestId: string) {
+  const current = await getRequestById(requestId);
+
+  if (!current) {
+    throw new Error("Order not found");
+  }
+
+  if (current.status !== "PURCHASED") {
+    throw new Error("Only placed orders can be archived");
+  }
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: requestId },
+      data: {
+        isArchived: true,
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma order archive is unavailable; archiving order locally.", error);
+      return saveLocalRequest({
+        ...current,
+        isArchived: true,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function listSupplierOrders() {

@@ -1,9 +1,12 @@
 "use client";
 
+import { Archive } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
+
+type ArchiveOrderAction = (formData: FormData) => void | Promise<void>;
 
 const supplierStatusCopy: Record<SupplierOrderStatus, { label: string; tone: string; nextAction: string }> = {
   AWAITING_ACKNOWLEDGMENT: { label: "Awaiting acknowledgment", nextAction: "Confirm supplier start", tone: "border-blue-100 bg-blue-50 text-blue-700" },
@@ -52,7 +55,13 @@ function selectedSupplierQuote(order: LatticeRequest) {
   return order.supplierQuotes.find((quote) => quote.isSelected) ?? order.supplierQuotes.find((quote) => quote.status === "SELECTED");
 }
 
-export function AdminOrderManagement({ orders }: { orders: LatticeRequest[] }) {
+export function AdminOrderManagement({
+  archiveAction,
+  orders,
+}: {
+  archiveAction?: ArchiveOrderAction;
+  orders: LatticeRequest[];
+}) {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
 
@@ -154,13 +163,14 @@ export function AdminOrderManagement({ orders }: { orders: LatticeRequest[] }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-[1.14fr_0.72fr_0.72fr_0.58fr_0.58fr_0.78fr] gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
+          <div className="grid grid-cols-[1.14fr_0.72fr_0.72fr_0.58fr_0.58fr_0.78fr_auto] gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
             <span>Order</span>
             <span>Customer</span>
             <span>Shop</span>
             <span>Value</span>
             <span>Docs</span>
             <span>Status</span>
+            <span>Actions</span>
           </div>
 
           <div className="divide-y divide-[#eeeeee]">
@@ -170,13 +180,16 @@ export function AdminOrderManagement({ orders }: { orders: LatticeRequest[] }) {
               const status = supplierStatusCopy[order.supplierOrder.status];
 
               return (
-                <Link
-                  aria-label={`Manage order for ${order.title}`}
-                  className="grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.14fr_0.72fr_0.72fr_0.58fr_0.58fr_0.78fr] xl:items-center"
-                  href={`/supplier/orders/${order.id}`}
+                <article
+                  className="group relative grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-within:bg-[#fafafa] xl:grid-cols-[1.14fr_0.72fr_0.72fr_0.58fr_0.58fr_0.78fr_auto] xl:items-center"
                   key={order.id}
                 >
-                  <div className="min-w-0">
+                  <Link
+                    aria-label={`Manage order for ${order.title}`}
+                    className="absolute inset-0 z-0 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F]"
+                    href={`/admin/orders/${order.id}`}
+                  />
+                  <div className="relative z-10 min-w-0 pointer-events-none">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{orderReference(order)}</span>
                       <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
@@ -187,36 +200,49 @@ export function AdminOrderManagement({ orders }: { orders: LatticeRequest[] }) {
                     </p>
                   </div>
 
-                  <div>
+                  <div className="relative z-10 pointer-events-none">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
                     <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{order.buyerCompany}</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{order.requesterName}</p>
                   </div>
 
-                  <div>
+                  <div className="relative z-10 pointer-events-none">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Shop</p>
                     <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{order.supplierOrder.shopName || "Shop pending"}</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{selectedQuote?.country ?? order.supplierOrder.contactName ?? "Contact pending"}</p>
                   </div>
 
-                  <div>
+                  <div className="relative z-10 pointer-events-none">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Value</p>
                     <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{formatCurrency(order.quote.estimatedPriceCents)}</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{order.quote.leadTimeDays ? `${order.quote.leadTimeDays} days` : "Lead pending"}</p>
                   </div>
 
-                  <div>
+                  <div className="relative z-10 pointer-events-none">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Docs</p>
                     <p className="mt-1 text-[14px] text-[#4b525b] xl:mt-0">{order.supplierOrder.documents.length} uploaded</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">{order.supplierOrder.trackingNumber || "No tracking"}</p>
                   </div>
 
-                  <div>
+                  <div className="relative z-10 pointer-events-none">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Status</p>
                     <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{status.nextAction}</p>
                     <p className="mt-1 text-[12px] text-[#8a8f98]">Updated {formatUpdatedAt(order.updatedAt)}</p>
                   </div>
-                </Link>
+
+                  <form action={archiveAction} className="relative z-10 flex xl:justify-end">
+                    <input name="requestId" type="hidden" value={order.id} />
+                    <button
+                      aria-label={`Archive order for ${order.title}`}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md border border-[#ffd1d4] bg-white px-3 text-[12px] font-semibold text-[#767676] transition hover:border-[#FF5A5F] hover:bg-[#fff1f2] hover:text-[#FF5A5F] disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={!archiveAction}
+                      type="submit"
+                    >
+                      <Archive aria-hidden="true" className="h-3.5 w-3.5" />
+                      Archive
+                    </button>
+                  </form>
+                </article>
               );
             })}
 

@@ -2,6 +2,7 @@ import { vendorEquipment } from "./vendor-equipment";
 import type { LatticeRequest, SupplierQuote, SupplierQuoteStatus } from "./request-model";
 
 export type OverseasVendorStatus = "Active" | "Quoting" | "Invited" | "Needs review";
+export type OverseasVendorOnboardingStatus = "Onboarded" | "Pilot active" | "Docs pending" | "Needs intake";
 
 export type OverseasVendor = {
   id: string;
@@ -10,8 +11,14 @@ export type OverseasVendor = {
   city: string;
   region: string;
   status: OverseasVendorStatus;
+  onboardingStatus: OverseasVendorOnboardingStatus;
+  vendorCode: string;
+  website: string;
   relationshipOwner: string;
   primaryContact: string;
+  primaryEmail: string;
+  phoneNumber: string;
+  wechatId: string;
   primaryCapability: string;
   capabilities: string[];
   materials: string[];
@@ -20,6 +27,13 @@ export type OverseasVendor = {
   communicationWindow: string;
   shippingLane: string;
   paymentTerms: string;
+  vendorDocs: string[];
+  vendorType: string[];
+  nonFabOfferings: string[];
+  fabCapabilities: string[];
+  qmsStandard: string;
+  defectRate: string;
+  onTimeDeliveryRate: string;
   quoteCount: number;
   receivedQuoteCount: number;
   selectedOrderCount: number;
@@ -61,8 +75,14 @@ const overseasVendorDirectory: VendorDirectoryEntry[] = [
     country: "China",
     city: "Shenzhen",
     region: "Greater Bay Area",
+    onboardingStatus: "Onboarded",
+    vendorCode: "VND-924",
+    website: "https://example.com/shenzhen-precision",
     relationshipOwner: "Adam",
     primaryContact: "Li Wei",
+    primaryEmail: "li.wei@szprecision.cn",
+    phoneNumber: "+86-755-8821-1208",
+    wechatId: "sz_precision_li",
     primaryCapability: "Precision CNC machining",
     capabilities: ["5-axis CNC milling", "CNC turning", "Dimensional inspection", "Aluminum fixtures"],
     materials: ["6061-T6 aluminum", "7075 aluminum", "Stainless steel", "Engineering plastics"],
@@ -71,24 +91,44 @@ const overseasVendorDirectory: VendorDirectoryEntry[] = [
     communicationWindow: "7:00 PM - 11:00 PM ET",
     shippingLane: "Shenzhen/Hong Kong to US air freight",
     paymentTerms: "50% deposit / balance before shipment",
+    vendorDocs: ["Equipment_List.pdf", "ISO9001_Certificate.pdf", "QC_Process.pdf"],
+    vendorType: ["Machine Shop", "Prototype Supplier"],
+    nonFabOfferings: ["Material Sourcing", "Assembly"],
+    fabCapabilities: ["5-axis CNC Milling", "CNC Turning", "Wire EDM"],
+    qmsStandard: "ISO 9001 aligned; last audit pending Lattice review",
+    defectRate: "0.7% DPMO",
+    onTimeDeliveryRate: "96.1% (last 8 POs)",
     notes: "Reliable prototype-to-low-volume CNC partner with strong response history on Lattice RFQs.",
   },
   {
     id: "dongguan-axis-cnc",
-    name: "Dongguan Axis CNC",
+    name: "Dongguan Axis CNC Co., Ltd.",
     country: "China",
     city: "Dongguan",
-    region: "Greater Bay Area",
+    region: "Guangdong",
+    onboardingStatus: "Onboarded",
+    vendorCode: "VND-924",
+    website: "",
     relationshipOwner: "Maya",
-    primaryContact: "Chen Rui",
+    primaryContact: "Liang Wei",
+    primaryEmail: "liang.wei@axiscnc.cn",
+    phoneNumber: "+86-769-8821-3340",
+    wechatId: "axis_cnc_liang",
     primaryCapability: "Fast-turn CNC production",
     capabilities: ["3-axis milling", "4-axis machining", "CNC turning", "Basic finishing"],
-    materials: ["Aluminum", "Stainless steel", "Brass", "Delrin"],
-    certifications: ["Material certs on request", "Outgoing QC photos"],
+    materials: ["Al 6061-T6", "SS 316L", "Titanium", "Delrin (POM)", "PEEK"],
+    certifications: ["ISO 9001:2015", "RoHS Compliant", "REACH Compliant"],
     qualitySystem: "Shop-floor inspection with Lattice review before shipment.",
-    communicationWindow: "8:00 PM - 12:00 AM ET",
+    communicationWindow: "08:00-18:00 CST (UTC+8)",
     shippingLane: "Dongguan to Hong Kong consolidation",
-    paymentTerms: "Net on approved repeat work",
+    paymentTerms: "Net 45 - Wire (USD)",
+    vendorDocs: ["Axis_Equipment_List.pdf", "ISO9001_Certificate.pdf", "QMS_Manual_v2.pdf"],
+    vendorType: ["Machine Shop", "Custom Parts"],
+    nonFabOfferings: ["Material Sourcing", "Assembly"],
+    fabCapabilities: ["CNC Milling (3 & 5 axis)", "CNC Turning", "Sheet Metal Fabrication", "Wire EDM"],
+    qmsStandard: "ISO 9001:2015 (last audit Dec 2025)",
+    defectRate: "0.8% DPMO",
+    onTimeDeliveryRate: "94.2% (last 5 POs)",
     notes: "Good fit when speed matters and tolerances are moderate.",
   },
   {
@@ -97,8 +137,14 @@ const overseasVendorDirectory: VendorDirectoryEntry[] = [
     country: "Taiwan",
     city: "Tainan",
     region: "Southern Taiwan",
+    onboardingStatus: "Docs pending",
+    vendorCode: "VND-913",
+    website: "https://example.com/tainan-advanced",
     relationshipOwner: "Adam",
     primaryContact: "Mei Lin",
+    primaryEmail: "mei.lin@tainanadvanced.tw",
+    phoneNumber: "+886-6-8821-4402",
+    wechatId: "tainan_advanced_mei",
     primaryCapability: "High-mix precision machining",
     capabilities: ["CNC milling", "CNC turning", "Small batch production", "Tight tolerance review"],
     materials: ["Aluminum", "Stainless steel", "Tool steel"],
@@ -107,6 +153,13 @@ const overseasVendorDirectory: VendorDirectoryEntry[] = [
     communicationWindow: "7:00 PM - 10:00 PM ET",
     shippingLane: "Taiwan air freight to US",
     paymentTerms: "Deposit required until repeat program is established",
+    vendorDocs: ["Capability_Profile.pdf", "Inspection_Template.xlsx"],
+    vendorType: ["Machine Shop", "Precision Supplier"],
+    nonFabOfferings: ["Tolerance Review", "Material Sourcing"],
+    fabCapabilities: ["CNC Milling", "CNC Turning", "Tight Tolerance Review"],
+    qmsStandard: "Inspection package scoped per RFQ",
+    defectRate: "Pending",
+    onTimeDeliveryRate: "Pending",
     notes: "Still building response history; keep in the invited pool for precision opportunities.",
   },
   {
@@ -115,8 +168,14 @@ const overseasVendorDirectory: VendorDirectoryEntry[] = [
     country: "China",
     city: "China",
     region: "Overseas manufacturing network",
+    onboardingStatus: "Needs intake",
+    vendorCode: "VND-901",
+    website: "https://zintilon.com",
     relationshipOwner: "William",
     primaryContact: "Vendor operations",
+    primaryEmail: "ops@zintilon.com",
+    phoneNumber: "+86-[pending]",
+    wechatId: "[pending]",
     primaryCapability: "CNC, sheet metal, inspection, and finishing capacity",
     capabilities: [...new Set(vendorEquipment.map((equipment) => equipment.section))],
     materials: ["Aluminum", "Stainless steel", "Sheet metal alloys", "Production hardware"],
@@ -125,6 +184,13 @@ const overseasVendorDirectory: VendorDirectoryEntry[] = [
     communicationWindow: "Evening ET overlap",
     shippingLane: "China export lanes by program",
     paymentTerms: "Program specific",
+    vendorDocs: ["Zintilon_General_Materials_List.xlsx", "QC_Equipment_List.pdf", "Catalogue.pdf"],
+    vendorType: ["Supplier Network", "Manufacturing Partner"],
+    nonFabOfferings: ["Material Sourcing", "Inspection Coordination", "Export Support"],
+    fabCapabilities: ["CNC Milling", "CNC Lathe", "QC & Inspection"],
+    qmsStandard: "Equipment-backed capability review; calibration documentation tracked separately.",
+    defectRate: "Pending",
+    onTimeDeliveryRate: "Pending",
     notes: "Documented vendor capacity source for the equipment catalog and supplier-matching work.",
   },
 ];
@@ -294,4 +360,8 @@ export function buildOverseasVendors(requests: LatticeRequest[]): OverseasVendor
 
       return statusWeight[left.status] - statusWeight[right.status] || right.quoteCount - left.quoteCount || left.name.localeCompare(right.name);
     });
+}
+
+export function findOverseasVendor(vendors: OverseasVendor[], vendorId: string) {
+  return vendors.find((vendor) => vendor.id === vendorId) ?? null;
 }

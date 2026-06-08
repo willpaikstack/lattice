@@ -83,6 +83,7 @@ function quoteTemplateRequest(): LatticeRequest {
         surfaceFinish: "No finish (as machined)",
       },
     ],
+    isArchived: false,
     operatorReview: {
       assignedOwner: "William Paik",
       completeness: "READY_FOR_REVIEW",
@@ -126,6 +127,7 @@ function quoteTemplateRequest(): LatticeRequest {
       trackingNumber: "",
       updates: [],
     },
+    supplierQuoteFiles: [],
     supplierQuotes: [],
     title: "Customer quote template",
     updatedAt: `${quoteDate}T12:00:00.000Z`,

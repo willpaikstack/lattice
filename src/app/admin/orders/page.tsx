@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { archiveOrderAction } from "@/app/admin/orders/actions";
 import { AdminOrderManagement } from "@/components/admin-order-management";
-import { listBuyerOrders } from "@/lib/request-repository";
+import { listAdminOrders } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminOrdersPage() {
-  const orders = await listBuyerOrders();
+  const orders = await listAdminOrders();
 
   return (
     <div className="space-y-5">
@@ -25,7 +26,7 @@ export default async function AdminOrdersPage() {
         </div>
       </section>
 
-      <AdminOrderManagement orders={orders} />
+      <AdminOrderManagement archiveAction={archiveOrderAction} orders={orders} />
     </div>
   );
 }

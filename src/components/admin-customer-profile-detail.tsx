@@ -32,7 +32,7 @@ function statusLabel(status: RequestStatus) {
 }
 
 function requestHref(request: LatticeRequest) {
-  return request.status === "PURCHASED" ? `/orders/${request.id}` : `/operator/requests/${request.id}`;
+  return request.status === "PURCHASED" ? `/admin/orders/${request.id}` : `/admin/quotes?requestId=${encodeURIComponent(request.id)}`;
 }
 
 function Field({

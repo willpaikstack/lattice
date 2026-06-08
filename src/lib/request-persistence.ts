@@ -5,6 +5,11 @@ export const storedRequestInclude = {
   buyerCompany: true,
   lineItems: true,
   files: true,
+  supplierQuoteFiles: {
+    orderBy: {
+      createdAt: "asc",
+    },
+  },
   supplierDocuments: {
     orderBy: {
       createdAt: "asc",
@@ -68,6 +73,7 @@ export type StoredRequest = {
   quoteCreatedDate: Date | null;
   quoteValidUntil: Date | null;
   quoteSummary: string;
+  isArchived?: boolean;
   revisionOfRequestId?: string | null;
   revisionNumber?: number;
   revisionChangeLog?: string[];
@@ -94,6 +100,14 @@ export type StoredRequest = {
     sizeBytes: number;
     type: string;
     category: LatticeRequest["supplierOrder"]["documents"][number]["category"];
+    createdAt: Date;
+  }>;
+  supplierQuoteFiles?: Array<{
+    id: string;
+    name: string;
+    sizeBytes: number;
+    type: string;
+    storageKey: string | null;
     createdAt: Date;
   }>;
   supplierUpdates?: Array<{
@@ -229,6 +243,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     quoteCreatedDate: toOptionalDate(submitted.quote.quoteCreatedDate),
     quoteValidUntil: toOptionalDate(submitted.quote.quoteValidUntil),
     quoteSummary: submitted.quote.summary,
+    isArchived: submitted.isArchived,
     revisionOfRequestId: submitted.revisionOfRequestId,
     revisionNumber: submitted.revisionNumber,
     revisionChangeLog: submitted.revisionChangeLog,
@@ -330,6 +345,14 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
         createdAt: update.createdAt.toISOString(),
       })),
     },
+    supplierQuoteFiles: (stored.supplierQuoteFiles ?? []).map((file) => ({
+      id: file.id,
+      name: file.name,
+      sizeBytes: file.sizeBytes,
+      type: file.type,
+      storageKey: file.storageKey ?? undefined,
+      uploadedAt: file.createdAt.toISOString(),
+    })),
     supplierQuotes: (stored.supplierQuotes ?? []).map((quote) => ({
       id: quote.id,
       shopName: quote.shopName,
@@ -364,6 +387,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       markdown: quote.markdown,
       issuedAt: quote.issuedAt.toISOString(),
     })),
+    isArchived: stored.isArchived ?? false,
     quote: {
       estimatedPriceCents: stored.estimatedPriceCents,
       leadTimeDays: stored.leadTimeDays,

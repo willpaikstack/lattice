@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarDays, CheckCircle2, FileText, Landmark, MapPin, ShieldCheck, Truck } from "lucide-react";
 import type { ReactNode } from "react";
 
+import type { AccountAddress } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
 
 function formatPrice(cents: number | null) {
@@ -44,6 +45,10 @@ function deliveryDate(request: LatticeRequest) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+function trimText(value: string | null | undefined) {
+  return String(value ?? "").trim();
 }
 
 function FieldLabel({ children }: { children: ReactNode }) {
@@ -90,9 +95,13 @@ function CheckoutSection({
 export function BuyerQuoteCheckout({
   placeOrderAction,
   request,
+  receivingPhone,
+  shippingAddress,
 }: {
-  placeOrderAction: () => void | Promise<void>;
+  placeOrderAction: (formData: FormData) => void | Promise<void>;
+  receivingPhone?: string;
   request: LatticeRequest;
+  shippingAddress?: AccountAddress;
 }) {
   const quoteId = quoteReference(request);
   const subtotalCents = request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
@@ -100,6 +109,14 @@ export function BuyerQuoteCheckout({
   const taxCents = subtotalCents === null ? null : Math.round(subtotalCents * 0.08875);
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const latestQuote = request.customerQuotes.at(-1);
+  const deliveryCompany = trimText(shippingAddress?.company) || request.shipToCompany || request.buyerCompany;
+  const deliveryContact = trimText(shippingAddress?.name) || request.shipToName || request.requesterName;
+  const deliveryAddress1 = trimText(shippingAddress?.address1) || request.shipToAddress1;
+  const deliveryAddress2 = trimText(shippingAddress?.address2) || request.shipToAddress2;
+  const deliveryCity = trimText(shippingAddress?.city) || request.shipToCity;
+  const deliveryState = trimText(shippingAddress?.state) || request.shipToState;
+  const deliveryZipCode = trimText(shippingAddress?.zipCode) || request.shipToZipCode;
+  const defaultReceivingPhone = trimText(receivingPhone) || request.shipToPhone || request.requesterPhone;
 
   return (
     <form action={placeOrderAction}>
@@ -125,22 +142,47 @@ export function BuyerQuoteCheckout({
           <main className="space-y-5 xl:col-span-8">
             <CheckoutSection icon={<MapPin aria-hidden="true" className="h-4 w-4" />} kicker="Step 1" title="Delivery address">
               <div className="rounded-md border border-[#dfe8f7] bg-[#f7fbff] p-4">
-                <label className="flex items-start gap-3">
-                  <input className="mt-1 accent-[#171717]" defaultChecked name="deliveryAddress" type="radio" value="primary" />
-                  <span>
-                    <span className="block text-[14px] font-semibold text-[#202020]">{request.buyerCompany}</span>
-                    <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">123 Main Street, Brooklyn, NY 11201<br />Attn: {request.requesterName}</span>
-                  </span>
+                <label className="inline-flex items-center gap-3">
+                  <input className="accent-[#171717]" defaultChecked name="deliveryAddress" type="radio" value="primary" />
+                  <span className="text-[14px] font-semibold text-[#202020]">Use this delivery address</span>
                 </label>
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <FieldLabel>Company</FieldLabel>
+                    <TextInput defaultValue={deliveryCompany} name="shipToCompany" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FieldLabel>Address line 1</FieldLabel>
+                    <TextInput defaultValue={deliveryAddress1} name="shipToAddress1" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <FieldLabel>Address line 2</FieldLabel>
+                    <TextInput defaultValue={deliveryAddress2} name="shipToAddress2" placeholder="Suite, building, dock, or floor" />
+                  </div>
+                  <div>
+                    <FieldLabel>City</FieldLabel>
+                    <TextInput defaultValue={deliveryCity} name="shipToCity" />
+                  </div>
+                  <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3">
+                    <div>
+                      <FieldLabel>State</FieldLabel>
+                      <TextInput defaultValue={deliveryState} name="shipToState" />
+                    </div>
+                    <div>
+                      <FieldLabel>ZIP</FieldLabel>
+                      <TextInput defaultValue={deliveryZipCode} name="shipToZipCode" />
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <div>
                   <FieldLabel>Receiving contact</FieldLabel>
-                  <TextInput defaultValue={request.requesterName} name="receivingContact" />
+                  <TextInput defaultValue={deliveryContact} name="shipToName" />
                 </div>
                 <div>
                   <FieldLabel>Receiving phone</FieldLabel>
-                  <TextInput name="receivingPhone" placeholder="Phone number" type="tel" />
+                  <TextInput defaultValue={defaultReceivingPhone} name="shipToPhone" placeholder="Phone number" type="tel" />
                 </div>
               </div>
             </CheckoutSection>

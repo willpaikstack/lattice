@@ -63,6 +63,21 @@ See `docs/autodesk-aps-cad-preview.md` for setup, bucket naming, and secret-rota
 
 After setting the variables and restarting the server, visit `/api/cad-previews/configuration` to verify that the server can authenticate with Autodesk without exposing any secrets.
 
+## Google Workspace SSO setup
+
+Create a Google OAuth web client and add the local redirect URI:
+
+- `http://localhost:3000/api/auth/google/callback`
+
+Set these values in `.env.local`:
+
+- `GOOGLE_SSO_CLIENT_ID`
+- `GOOGLE_SSO_CLIENT_SECRET`
+- `GOOGLE_SSO_ALLOWED_DOMAINS` (comma-separated Google Workspace domains)
+- `GOOGLE_SSO_REDIRECT_URI`
+
+For production, register the production callback URL and set the same variables in Vercel.
+
 ## Real RFQ data
 
 The quote workflow is now commissioned for real submitted RFQs. Avoid seeding artificial RFQ records into the quote database or local fallback store. Use `.data/requests.json` only as the local development fallback when Prisma/Postgres is unavailable, and keep real customer/vendor CAD files out of Git.

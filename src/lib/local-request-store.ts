@@ -22,6 +22,8 @@ function normalizeLocalRequest(request: LatticeRequest): LatticeRequest {
     revisionOfRequestId: request.revisionOfRequestId ?? null,
     revisionNumber: request.revisionNumber ?? 1,
     revisionChangeLog: request.revisionChangeLog ?? [],
+    isArchived: request.isArchived ?? false,
+    supplierQuoteFiles: request.supplierQuoteFiles ?? [],
   };
 }
 

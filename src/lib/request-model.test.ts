@@ -41,6 +41,7 @@ describe("request model", () => {
     });
 
     expect(draft.status).toBe("DRAFT");
+    expect(draft.isArchived).toBe(false);
     expect(draft.lineItems).toHaveLength(1);
     expect(draft.files).toHaveLength(1);
     expect(draft.lineItems[0].partName).toBe("Bracket A");

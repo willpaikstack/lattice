@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { contactSnapshotFromAccountSettings, getAccountSettings } from "@/lib/account-settings";
-import { saveLocalUpload } from "@/lib/local-file-storage";
+import { copyLocalUpload, isDraftUploadStorageKey, readLocalUpload, saveLocalUpload } from "@/lib/local-file-storage";
 import { createSubmittedRequest, listOperatorRequests } from "@/lib/request-repository";
-import type { DraftRequestInput } from "@/lib/request-model";
+import type { DraftRequestInput, UploadedFileInput } from "@/lib/request-model";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +41,7 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
 
   if (!contentType.includes("multipart/form-data")) {
     const input = (await request.json()) as DraftRequestInput;
-    assertStoredFileReferences(input);
+    await assertStoredFileReferences(input);
     return input;
   }
 
@@ -60,7 +60,7 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
 
       if (!(uploadedFile instanceof File)) {
         if (fileMetadata.storageKey) {
-          return fileMetadata;
+          return await normalizeStoredFileReference(fileMetadata);
         }
 
         throw new Error(`${fileMetadata.name} must be uploaded again before submitting.`);
@@ -85,10 +85,44 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
   return input;
 }
 
-function assertStoredFileReferences(input: DraftRequestInput) {
+async function normalizeStoredFileReference(fileMetadata: UploadedFileInput) {
+  if (!fileMetadata.storageKey) {
+    throw new Error(`${fileMetadata.name} must be uploaded again before submitting.`);
+  }
+
+  if (isDraftUploadStorageKey(fileMetadata.storageKey)) {
+    const stored = await copyLocalUpload(fileMetadata.storageKey, fileMetadata);
+
+    if (!stored.storageKey) {
+      throw new Error(`${fileMetadata.name} could not be copied into permanent RFQ storage.`);
+    }
+
+    return {
+      ...fileMetadata,
+      sizeBytes: stored.sizeBytes,
+      type: stored.type || fileMetadata.type,
+      storageKey: stored.storageKey,
+    };
+  }
+
+  const stored = await readLocalUpload(fileMetadata.storageKey);
+
+  return {
+    ...fileMetadata,
+    sizeBytes: fileMetadata.sizeBytes > 0 ? fileMetadata.sizeBytes : stored.sizeBytes,
+  };
+}
+
+async function assertStoredFileReferences(input: DraftRequestInput) {
   const missingFileBytes = input.files.find((file) => !file.storageKey && file.sizeBytes <= 0);
 
   if (missingFileBytes) {
     throw new Error(`${missingFileBytes.name} must be uploaded again before submitting.`);
   }
+
+  input.files = await Promise.all(
+    input.files.map((file) =>
+      file.storageKey ? normalizeStoredFileReference(file) : Promise.resolve(file),
+    ),
+  );
 }

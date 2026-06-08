@@ -57,11 +57,7 @@ export function CadUploadPreview({
 
   if (state.status === "ready") {
     return (
-      <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5 text-left">
-        <div className="mb-4 flex flex-col gap-1">
-          <p className="text-sm font-semibold text-slate-950">3D preview ready</p>
-          <p className="text-xs text-slate-500">{state.fileName}</p>
-        </div>
+      <div className="mt-4 text-left">
         <AutodeskModelViewer urn={state.urn} />
       </div>
     );

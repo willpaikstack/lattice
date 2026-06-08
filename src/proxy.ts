@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME, authorizedUser, verifySessionToken } from "@/lib/auth-crypto";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth-crypto";
 
 const protectedPrefixes = [
   "/account",
@@ -28,7 +28,7 @@ export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = verifySessionToken(token);
-  const isAuthenticated = session?.userId === authorizedUser.id;
+  const isAuthenticated = Boolean(session?.userId);
 
   if (isProtectedPath(pathname) && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);

@@ -32,6 +32,7 @@ export type AccountSettingsSnapshot = {
   billing: BillingContact;
   billingAddress: AccountAddress;
   cards: PaymentCard[];
+  companyName: string;
   email: string;
   mfaEnabled: boolean;
   name: string;
@@ -84,6 +85,7 @@ export function defaultAccountSettings(): AccountSettingsSnapshot {
     billing: initialBillingContact,
     billingAddress: initialBillingAddress,
     cards: initialCards,
+    companyName: "Amogy",
     email: "william.paik@amogy.co",
     mfaEnabled: true,
     name: "William Paik",

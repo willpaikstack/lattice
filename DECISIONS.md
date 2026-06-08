@@ -2,6 +2,151 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-06 - Promote Draft Uploads Into Submitted RFQ Storage
+
+Decision: when a submitted RFQ references CAD or drawing files saved under `rfq-drafts/...`, `/api/requests` copies those files into the permanent `rfq/...` upload namespace before persisting the request.
+
+Reason: incomplete draft storage is useful for reopening a browser draft, but submitted quote packages must not depend on a draft-only file location. CAD files and technical drawings should follow the submitted RFQ record as durable uploaded files.
+
+Implications:
+
+- New draft uploads still save immediately under `.data/uploads/rfq-drafts/<date>/...` for local draft recovery.
+- Submission promotes any draft-backed CAD/PDF metadata into `.data/uploads/rfq/<date>/...` and persists the promoted `storageKey`.
+- Older filename-only drafts still cannot recover missing file bytes and require a replacement upload.
+- Production still needs Cloudflare R2 or another S3-compatible storage backend to replace the current local upload bridge.
+
+## 2026-06-06 - Archive Admin Orders Without Changing Purchase Status
+
+Decision: archive placed orders with `Request.isArchived` instead of changing `status` away from `PURCHASED`.
+
+Reason: archiving is an internal admin list-management action, while purchased status still drives invoice rendering, buyer/supplier order semantics, and order history.
+
+Implications:
+
+- `/admin/orders` lists purchased orders where `isArchived` is false.
+- The archive action hides an order from the active admin order table without deleting it.
+- Buyer and supplier order lifecycle status remains intact.
+- Local and production databases need `npm run db:push` after Postgres is reachable to apply `Request.isArchived`.
+
+## 2026-06-05 - Attach Received Supplier Quote Files To RFQs And Orders
+
+Decision: store the quote file received from a Chinese/overseas machine shop as an internal supplier quote attachment on the request/order record.
+
+Reason: operators need traceability between the customer quote/order and the underlying overseas supplier quote used for pricing, lead time, and supplier selection.
+
+Implications:
+
+- `LatticeRequest.supplierQuoteFiles` tracks attached received supplier quote files.
+- Prisma now has `SupplierQuoteAttachment`, related to `Request`, with file metadata and optional local storage key.
+- Supplier quote uploads post through the multipart route handler at `/api/supplier-quote-files` so the uploaded bytes and request metadata persist across reloads.
+- Development uploads save bytes under `.data/uploads/supplier-quotes` and continue to use the existing `/api/local-files/[...storageKey]` download route.
+- The upload/list surface appears in the admin quote drawer and quote/order detail pages so the attachment follows the RFQ into the order lifecycle.
+- Local and production databases need `npm run db:push` after Postgres is reachable.
+
+## 2026-06-05 - Make Buyer Company An Editable Account Default
+
+Decision: store the default RFQ buyer company in account settings as `companyName` instead of hardcoding `Amogy Manufacturing` in the RFQ form.
+
+Reason: users need to control the company name that appears on future RFQs, quotes, and order records without editing code or patching submitted request data.
+
+Implications:
+
+- `/account/settings` exposes a Buyer company edit row in Account Settings.
+- New `/requests/new` RFQs default the Company Name field from saved account settings.
+- Revisions, reorders, and reopened drafts preserve the source request's company for audit continuity.
+- `AccountDefaults.companyName` must be applied to local/production databases with Prisma where Postgres is available.
+
+## 2026-06-05 - Render Invoices Only For Purchased Orders
+
+Decision: customer invoice PDFs can be rendered and downloaded for `PURCHASED` orders from buyer, admin, and supplier order invoice routes, using the accepted quote/order snapshot as the source.
+
+Reason: operators and order participants need invoice artifacts once a quote has been placed as an order, but repeated preview/download requests should not accidentally issue new accounting records.
+
+Implications:
+
+- `/orders/[requestId]/invoice.pdf`, `/admin/orders/[requestId]/invoice.pdf`, and `/supplier/orders/[requestId]/invoice.pdf` return PDFs only when the request status is `PURCHASED`.
+- `?preview=1` serves the same PDF inline; the default response downloads it as an attachment.
+- The current order-backed invoice renderer uses stable order-derived invoice references for repeatable rendering.
+- Future accounting work should connect these order invoice routes to durable issued `Invoice` records and annual `INV-YYYY-000001` invoice numbers without creating duplicate invoices on repeated downloads.
+
+## 2026-06-05 - Retire DOC-001 From Admin Resources
+
+Decision: remove DOC-001, the standalone customer quote Excel template, from `/admin/resources` and delete `/admin/resources/customer-quote-template`.
+
+Reason: the active customer quote reference is now DOC-004 Rev 1, and keeping DOC-001 in the resource library creates a redundant quote-template choice.
+
+Implications:
+
+- `/admin/resources` now lists DOC-002, DOC-003, and DOC-004 only.
+- The historical workbook file can remain as source material for `/admin/quotes/[requestId]/quote-template.xlsx` until that export path is replaced or explicitly retired.
+- Future quote-template work should treat DOC-004 as the active resource-library quote template unless William revives an editable workbook resource.
+
+## 2026-06-05 - Add Google Workspace SSO To The Existing Session Gate
+
+Decision: add Google Workspace SSO using Google OAuth 2.0 / OpenID Connect route handlers while retaining the interim local password login as a fallback.
+
+Reason: Lattice needs to move away from the single-account credential gate toward durable multi-user authentication. Google Workspace SSO gives a practical first production auth path for controlled company access without introducing a large auth dependency yet.
+
+Implications:
+
+- `/login` now offers "Continue with Google Workspace" and preserves safe `next` redirects for both SSO and password login.
+- `/api/auth/google` starts the OAuth flow with signed state and nonce cookies.
+- `/api/auth/google/callback` exchanges the authorization code, verifies the Google ID token signature and claims, checks verified email, and enforces configured Workspace domains through the `hd` claim.
+- `GOOGLE_SSO_CLIENT_ID`, `GOOGLE_SSO_CLIENT_SECRET`, `GOOGLE_SSO_ALLOWED_DOMAINS`, and `GOOGLE_SSO_REDIRECT_URI` configure the integration.
+- The signed session cookie can now represent Google-backed users as well as the original password user.
+
+## 2026-06-05 - Use Database-Backed Customer IDs
+
+Decision: customer-facing customer IDs should use a durable global sequence in the format `CUST-000001`, stored on `Company.customerId`.
+
+Reason: Prisma `Company.id` is an internal implementation identifier. Customer IDs appear on invoices and customer-facing documents, so they need to be stable, short, human-readable, unique, and decoupled from database internals.
+
+Implications:
+
+- `CustomerSequence` stores the next global customer number.
+- `Company.customerId` stores the customer-facing ID once assigned.
+- `ensureCustomerIdForCompany` returns an existing customer ID or assigns the next one transactionally.
+- Customer IDs do not reset yearly; they remain continuous across the lifetime of the customer base.
+
+## 2026-06-05 - Use Database-Backed Annual Invoice IDs
+
+Decision: issued customer invoices should receive a durable sequential invoice ID in the format `INV-YYYY-000001`, allocated inside a database transaction.
+
+Reason: invoice IDs are accounting records, not visual-template placeholders. They need to be unique, human-readable, stable across PDF re-downloads, and safe against two invoices being issued at the same time.
+
+Implications:
+
+- `InvoiceSequence` stores the next number for each calendar year.
+- `Invoice` stores the issued invoice record, customer/order snapshot, totals, status, and generated invoice ID.
+- `issueInvoiceForRequest` allocates the next annual sequence and creates the invoice record in one transaction.
+- The DOC-003 template preview keeps placeholder `INV-[######]` and must not allocate a real invoice ID.
+
+## 2026-06-05 - Make DOC-002 A PDF-First Supplier PO Template
+
+Decision: DOC-002 should operate as a generated supplier-facing purchase order PDF, visible in the `/admin/resources` PDF viewer, instead of the supplier PO workbook being the primary release artifact.
+
+Reason: supplier POs should behave like quote and invoice PDFs: app-owned accepted-order, supplier, file-release, inspection, pricing, and logistics data should produce a controlled release document. Excel can remain as an internal scaffold/reference, but the supplier-facing output should be PDF-first for layout consistency, version control, and release reliability.
+
+Implications:
+
+- `/admin/resources/supplier-purchase-order-template` now returns `nexus-supplier-purchase-order-template.pdf`, with `?preview=1` serving the same PDF inline.
+- DOC-002 has a supplier purchase order face and a supplier PO terms/release-checklist page in the generated PDF.
+- Future supplier PO generation should connect accepted order and awarded supplier data into the PDF renderer rather than asking operators to edit an Excel file as the source of truth.
+- The previous two-sheet supplier PO workbook remains available in code as a reference scaffold if useful, but is no longer the operational DOC-002 output.
+
+## 2026-06-05 - Make DOC-003 A PDF-First Invoice Template
+
+Decision: DOC-003 should operate as a generated customer-facing invoice PDF, visible in the `/admin/resources` PDF viewer, instead of the invoice workbook being the primary operational artifact.
+
+Reason: invoices should behave like quote PDFs: app-owned order, PO, tax, payment, and remittance data should produce a controlled customer document. Excel remains useful as an internal scaffold/reference, but the customer-facing output should be PDF-first for layout consistency, version control, and billing reliability.
+
+Implications:
+
+- `/admin/resources/domestic-invoice-template` now returns `nexus-domestic-invoice-template.pdf`, with `?preview=1` serving the same PDF inline.
+- DOC-003 has an invoice face and remittance-instructions page in the generated PDF.
+- Future invoice generation should connect accepted order data into the PDF renderer rather than asking operators to edit an Excel file as the source of truth.
+- The 2026-06-04 three-sheet invoice workbook decision is superseded for operational DOC-003 output; the workbook structure can remain as a reference scaffold if useful.
+
 ## 2026-06-04 - Use A Three-Sheet Domestic Invoice Packet
 
 Decision: DOC-003 should be a three-sheet workbook: customer-facing invoice, remittance instructions, and invoice terms.
@@ -56,6 +201,8 @@ Implications:
 ## 2026-06-04 - Use DOC-001 Excel As Quote Source Of Truth
 
 Decision: use `resources/admin/lattice-os-zintilon-quote-template.xlsx` as the source of truth for customer quote workbooks and Excel-derived PDFs instead of recreating the quote layout in code.
+
+Status: superseded for the admin resource library by the 2026-06-05 DOC-001 retirement decision. The workbook may still serve request-specific quote workbook generation until that path is replaced.
 
 Reason: the hand-built PDF approximation missed too much of the written content in the template, especially manufacturing assumptions and the full general terms. The app should fill the live quote values into DOC-001 while preserving the template's styling, merged cells, formulas, assumptions, and terms text.
 
@@ -133,11 +280,13 @@ Decision: connect the customer quote Excel template to `/admin/quotes` by genera
 
 Status: DOC-001 was later changed on 2026-06-03 to use the Zintilon/Hubs-inspired single-tab customer quote template for manual PDF export. The request-specific `/admin/quotes/[requestId]/quote-template.xlsx` route still generates a data-connected workbook from live RFQ data.
 
+Current status: the standalone DOC-001 resource was retired on 2026-06-05 and removed from `/admin/resources`.
+
 Reason: the quote template should remain useful as an editable Excel/PDF-export tool, but customer, file, line-item, pricing, lead-time, and shipping values already live in Lattice. Prefilling them reduces transcription errors and keeps quote artifacts tied to the durable RFQ record.
 
 Implications:
 
-- Keep DOC-001 as a single-tab customer quote reference/source template for one continuous Excel-to-PDF export.
+- Do not show DOC-001 as an active `/admin/resources` template unless William explicitly revives it.
 - Use `/admin/quotes/[requestId]/quote-template.xlsx` for data-connected quote workbooks.
 - Keep generated workbooks dependency-light and server-side so the route works in the existing Next.js app without browser spreadsheet tooling.
 - Treat the admin app as the primary data-entry surface; generated workbooks are exports/reference artifacts.
@@ -376,6 +525,18 @@ Implications:
 - Keep the page table-first and property-driven, using Notion Databases as the UX reference for views, filters, scannable rows, and side-panel details.
 - Derive current demo metrics from request supplier quotes and selected supplier orders until durable vendor records exist.
 - Later supplier/vendor persistence should feed this page rather than replacing it with a competing admin surface.
+
+## 2026-06-05 - Persist Vendor Detail Edits Locally Until Supplier Tables Exist
+
+Decision: save editable `/admin/vendors/[vendorId]` fields and purchase-history rows to a gitignored local override file at `.data/admin-vendor-overrides.json`.
+
+Reason: operators need vendor detail edits to survive page reloads now, but the durable supplier/vendor database model is still a future schema step.
+
+Implications:
+
+- Keep RFQ/order performance metrics derived from real request data, then overlay only manually edited vendor-directory fields.
+- Treat the local override file as a development bridge, not the final supplier system of record.
+- When supplier/vendor tables are added, migrate these override fields into Prisma-backed records and retire the JSON bridge.
 
 ## 2026-05-27 - Keep Buyer RFQ Intake Upload-First
 

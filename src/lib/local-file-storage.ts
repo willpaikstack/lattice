@@ -48,23 +48,31 @@ export function localUploadPath(storageKey: string) {
   return fullPath;
 }
 
-export async function saveLocalUpload(file: File): Promise<StoredLocalUpload> {
+export async function saveLocalUpload(file: File, folder = "rfq"): Promise<StoredLocalUpload> {
   const metadata = {
     name: file.name,
     sizeBytes: file.size,
     type: file.type || "application/octet-stream",
   };
 
+  return saveLocalUploadBytes(metadata, Buffer.from(await file.arrayBuffer()), folder);
+}
+
+async function saveLocalUploadBytes(
+  metadata: Omit<StoredLocalUpload, "storageKey">,
+  contents: Buffer,
+  folder = "rfq",
+): Promise<StoredLocalUpload> {
   if (!localStorageEnabled()) {
     return metadata;
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const storageKey = path.posix.join("rfq", today, `${randomUUID()}-${safeFileName(file.name)}`);
+  const storageKey = path.posix.join(folder, today, `${randomUUID()}-${safeFileName(metadata.name)}`);
   const destination = localUploadPath(storageKey);
 
   await mkdir(path.dirname(destination), { recursive: true });
-  await writeFile(destination, Buffer.from(await file.arrayBuffer()));
+  await writeFile(destination, contents);
 
   return {
     ...metadata,
@@ -80,4 +88,26 @@ export async function readLocalUpload(storageKey: string) {
     contents,
     sizeBytes: fileStat.size,
   };
+}
+
+export function isDraftUploadStorageKey(storageKey: string) {
+  return storageKey.startsWith("rfq-drafts/");
+}
+
+export async function copyLocalUpload(
+  storageKey: string,
+  metadata: Pick<StoredLocalUpload, "name" | "type">,
+  folder = "rfq",
+): Promise<StoredLocalUpload> {
+  const { contents, sizeBytes } = await readLocalUpload(storageKey);
+
+  return saveLocalUploadBytes(
+    {
+      name: metadata.name,
+      sizeBytes,
+      type: metadata.type || "application/octet-stream",
+    },
+    contents,
+    folder,
+  );
 }

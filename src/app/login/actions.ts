@@ -13,11 +13,20 @@ function getString(formData: FormData, key: string) {
 export async function loginAction(formData: FormData) {
   const email = getString(formData, "email");
   const password = getString(formData, "password");
+  const next = safePath(getString(formData, "next"));
 
   if (!verifyPassword(email, password)) {
     redirect("/login?error=invalid-credentials");
   }
 
   await createSession();
-  redirect("/dashboard");
+  redirect(next);
+}
+
+function safePath(path: string) {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return "/dashboard";
+  }
+
+  return path;
 }

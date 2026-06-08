@@ -3,7 +3,10 @@ import { createHmac, scryptSync, timingSafeEqual } from "node:crypto";
 export const SESSION_COOKIE_NAME = "lattice_session";
 
 export type SessionPayload = {
+  email?: string;
   exp: number;
+  name?: string;
+  provider?: "google" | "password";
   userId: string;
 };
 

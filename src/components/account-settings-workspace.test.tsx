@@ -34,6 +34,32 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
   });
 
+  it("edits the default buyer company for new RFQs", () => {
+    render(<AccountSettingsWorkspace />);
+
+    expect(screen.getByText("Used as the default company name on new RFQs.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit company" }));
+    fireEvent.change(screen.getByLabelText("Buyer company"), { target: { value: "Amogy" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getAllByText("Amogy").length).toBeGreaterThan(0);
+    expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
+  });
+
+  it("keeps the saved buyer company after the settings page remounts", async () => {
+    const { unmount } = render(<AccountSettingsWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit company" }));
+    fireEvent.change(screen.getByLabelText("Buyer company"), { target: { value: "Amogy Operations" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    unmount();
+    render(<AccountSettingsWorkspace />);
+
+    expect((await screen.findAllByText("Amogy Operations")).length).toBeGreaterThan(0);
+  });
+
   it("accepts only phone digits and formats the saved phone number", () => {
     render(<AccountSettingsWorkspace />);
 

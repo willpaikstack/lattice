@@ -1,11 +1,79 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RequestForm } from "./request-form";
 
+const configurationRequiredPreview = {
+  status: "configuration_required",
+  message: "Add APS credentials to enable live previews.",
+};
+
+function mockRequestFormFetch({
+  preview = configurationRequiredPreview,
+  request = {
+    id: "req_submitted",
+    title: "Bracket",
+    status: "SUBMITTED",
+  },
+}: {
+  preview?: Record<string, string>;
+  request?: Record<string, string>;
+} = {}) {
+  const fetchMock = vi.mocked(fetch);
+
+  fetchMock.mockImplementation(async (input, init) => {
+    const url = typeof input === "string" ? input : "url" in input ? input.url : String(input);
+
+    if (url.includes("/api/request-draft-files")) {
+      const file = init?.body instanceof FormData ? init.body.get("file") : null;
+
+      if (file instanceof File) {
+        return new Response(
+          JSON.stringify({
+            file: {
+              name: file.name,
+              sizeBytes: file.size,
+              storageKey: `rfq-drafts/test/${file.name}`,
+              type: file.type || "application/octet-stream",
+            },
+          }),
+          { status: 201 },
+        );
+      }
+
+      return new Response(JSON.stringify({ error: "missing file" }), { status: 400 });
+    }
+
+    if (url.includes("/api/cad-previews")) {
+      return new Response(JSON.stringify({ preview }), {
+        status: preview.status === "configuration_required" ? 501 : preview.status === "processing" ? 202 : 200,
+      });
+    }
+
+    if (url.includes("/api/requests")) {
+      return new Response(JSON.stringify({ request }), { status: 201 });
+    }
+
+    return new Response(JSON.stringify({}), { status: 200 });
+  });
+
+  return fetchMock;
+}
+
 describe("RequestForm", () => {
   beforeEach(() => {
+    const storage = new Map<string, string>();
+
     vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("localStorage", {
+      getItem: vi.fn((key: string) => storage.get(key) ?? null),
+      removeItem: vi.fn((key: string) => {
+        storage.delete(key);
+      }),
+      setItem: vi.fn((key: string, value: string) => {
+        storage.set(key, value);
+      }),
+    });
     vi.stubGlobal("URL", {
       createObjectURL: vi.fn(() => "blob:technical-drawing-preview"),
       revokeObjectURL: vi.fn(),
@@ -13,6 +81,8 @@ describe("RequestForm", () => {
   });
 
   afterEach(() => {
+    cleanup();
+    window.localStorage?.removeItem?.("lattice.incompleteRfqs.v1");
     vi.unstubAllGlobals();
   });
 
@@ -32,22 +102,12 @@ describe("RequestForm", () => {
     expect(screen.queryByText("yes(No quote line items)")).not.toBeInTheDocument();
     expect(screen.queryByText("3D preview")).not.toBeInTheDocument();
     expect(screen.queryByText(/Select a CAD file to generate an interactive model preview/)).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Quote name")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quote name" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Quote name" })).not.toBeInTheDocument();
   });
 
   it("reveals quote configuration fields after a CAD file is selected", async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          preview: {
-            status: "configuration_required",
-            message: "Add APS credentials to enable live previews.",
-          },
-        }),
-        { status: 501 },
-      ),
-    );
+    mockRequestFormFetch();
 
     render(<RequestForm />);
 
@@ -56,18 +116,27 @@ describe("RequestForm", () => {
       target: { files: [file] },
     });
 
-    await screen.findByText("Line item 1");
-    expect(screen.getByRole("heading", { name: "Bracket" })).toBeInTheDocument();
+    await screen.findByText("Line item 1: bracket");
+    expect(screen.queryByRole("heading", { name: "Bracket" })).not.toBeInTheDocument();
     expect(screen.getByText("CAD file preview")).toBeInTheDocument();
     expect(screen.getByText("Autodesk preview setup needed")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Inspections & Certificates" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Technical drawing/)).toBeInTheDocument();
     expect(screen.getByLabelText("Customer PO#")).toBeInTheDocument();
     expect(screen.getByLabelText("Company Name")).toBeInTheDocument();
-    expect(screen.getByLabelText("Quote name")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quote name" })).toHaveTextContent("Bracket");
+    expect(screen.queryByRole("textbox", { name: "Quote name" })).not.toBeInTheDocument();
+    const collapseLineItemButton = screen.getByRole("button", { name: "Collapse Line item 1: bracket" });
+    fireEvent.click(collapseLineItemButton);
+    expect(screen.getByRole("button", { name: "Expand Line item 1: bracket" })).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(screen.getByRole("button", { name: "Expand Line item 1: bracket" }));
+    expect(screen.getByRole("button", { name: "Collapse Line item 1: bracket" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("SS 304");
     fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
-    fireEvent.change(screen.getByPlaceholderText("Search options..."), {
+    expect(screen.getByRole("button", { name: /Aluminum/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Stainless Steel/i })).toBeInTheDocument();
+    expect(screen.getByText("300 series austenitic")).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText("Search grade, alloy, or family..."), {
       target: { value: "Ultem 2300" },
     });
     const ultemOptions = screen.getAllByRole("option", { name: /ULTEM 2300/ });
@@ -77,7 +146,14 @@ describe("RequestForm", () => {
     expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("ISO 2768 Medium (m)");
     expect(screen.getByLabelText("Surface Finish")).toHaveDisplayValue("As machined (Ra 3.2 um / Ra 126 uin)");
     expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue("Standard Inspection");
-    expect(screen.getByLabelText(/File reference/)).toHaveDisplayValue("bracket.step");
+    fireEvent.click(screen.getByRole("button", { name: "Quality documentation dropdown" }));
+    fireEvent.click(screen.getByRole("option", { name: "Material Test Report (MTR)" }));
+    expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue(
+      "Standard Inspection, Material Test Report (MTR)",
+    );
+    expect(screen.getByRole("button", { name: "Remove Material Test Report (MTR)" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Part / line item name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("File reference")).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Part Markings/)).not.toBeChecked();
     expect(screen.getByText("Linear Tolerance Tighter Than General Tolerance")).toBeInTheDocument();
 
@@ -125,9 +201,25 @@ describe("RequestForm", () => {
     expect(screen.getByText("Reorder draft prepared from PO-DEMO_PUR.")).toBeInTheDocument();
     expect(screen.getByLabelText("Upload another CAD file")).toBeInTheDocument();
     expect(screen.getByLabelText("Company Name")).toHaveDisplayValue("Apex Fluidics");
-    expect(screen.getByLabelText("Quote name")).toHaveDisplayValue("Valve manifold order reorder");
-    expect(screen.getByLabelText("Part / line item name")).toHaveDisplayValue("Mounting bracket");
-    expect(screen.getByLabelText("File reference")).toHaveDisplayValue("mounting-bracket.step");
+    expect(screen.getByRole("button", { name: "Quote name" })).toHaveTextContent("Valve manifold order reorder");
+    expect(screen.queryByRole("textbox", { name: "Quote name" })).not.toBeInTheDocument();
+    fireEvent.doubleClick(screen.getByRole("button", { name: "Quote name" }));
+    expect(screen.getByRole("textbox", { name: "Quote name" })).toHaveDisplayValue("Valve manifold order reorder");
+    fireEvent.change(screen.getByRole("textbox", { name: "Quote name" }), {
+      target: { value: "Valve manifold quote update" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Quote name" })).toHaveTextContent("Valve manifold order reorder");
+    fireEvent.doubleClick(screen.getByRole("button", { name: "Quote name" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Quote name" }), {
+      target: { value: "Valve manifold quote update" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getByRole("button", { name: "Quote name" })).toHaveTextContent("Valve manifold quote update");
+    expect(screen.getByText("Line item 1: mounting-bracket")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Part / line item name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("File reference")).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Mounting bracket" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("6061-T6 Aluminum");
     expect(screen.getByLabelText("Quantity")).toHaveDisplayValue("24");
     expect(screen.getByLabelText("Manufacturing notes")).toHaveDisplayValue("Reorder from PO-DEMO_PUR / LQ-DEMO_PUR.");
@@ -178,48 +270,24 @@ describe("RequestForm", () => {
     );
 
     expect(screen.getByText("Quote revision draft prepared from LQ-MPYTWFRU.")).toBeInTheDocument();
-    expect(screen.getByText("Line item 1")).toBeInTheDocument();
-    expect(screen.getByText("Line item 2")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Aluminum Plate" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Tubesheet Retainer Plate" })).toBeInTheDocument();
-    expect(screen.getAllByLabelText("Part / line item name").map((input) => (input as HTMLInputElement).value)).toEqual([
-      "Aluminum Plate",
-      "Tubesheet Retainer Plate",
-    ]);
-    expect(screen.getAllByLabelText("File reference").map((input) => (input as HTMLInputElement).value)).toEqual([
-      "Aluminum Plate.STEP",
-      "Tubesheet Retainer Plate.STEP",
-    ]);
+    expect(screen.getByText("Line item 1: Aluminum Plate")).toBeInTheDocument();
+    expect(screen.getByText("Line item 2: Tubesheet Retainer Plate")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Aluminum Plate" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Tubesheet Retainer Plate" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Part / line item name")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("File reference")).not.toBeInTheDocument();
     expect(screen.getAllByText(/This is only a saved filename/)).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
   });
 
   it("requires reopened reference-only RFQs to upload CAD bytes before submitting", async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            preview: {
-              status: "configuration_required",
-              message: "Add APS credentials to enable live previews.",
-            },
-          }),
-          { status: 501 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            request: {
-              id: "req_resubmitted",
-              title: "Valve manifold order reorder",
-              status: "SUBMITTED",
-            },
-          }),
-          { status: 201 },
-        ),
-      );
+    const fetchMock = mockRequestFormFetch({
+      request: {
+        id: "req_resubmitted",
+        title: "Valve manifold order reorder",
+        status: "SUBMITTED",
+      },
+    });
 
     render(
       <RequestForm
@@ -260,6 +328,10 @@ describe("RequestForm", () => {
 
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
 
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/request-draft-files"))).toHaveLength(2),
+    );
+
     fireEvent.click(screen.getByRole("button", { name: "Request Quote" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith("/api/requests", expect.objectContaining({ method: "POST" })));
@@ -267,27 +339,21 @@ describe("RequestForm", () => {
     const submitted = JSON.parse(String(submittedForm.get("request")));
 
     expect(submitted.files).toMatchObject([
-      { name: "mounting-bracket.step", sizeBytes: replacement.size, type: "model/step" },
-      { name: "mounting-bracket-drawing.pdf", sizeBytes: drawing.size, type: "application/pdf" },
+      { name: "mounting-bracket.step", sizeBytes: replacement.size, storageKey: "rfq-drafts/test/mounting-bracket.step", type: "model/step" },
+      { name: "mounting-bracket-drawing.pdf", sizeBytes: drawing.size, storageKey: "rfq-drafts/test/mounting-bracket-drawing.pdf", type: "application/pdf" },
     ]);
-    expect(submittedForm.get("file-0")).toBe(replacement);
-    expect(submittedForm.get("file-1")).toBe(drawing);
+    expect(submittedForm.get("file-0")).toBeNull();
+    expect(submittedForm.get("file-1")).toBeNull();
   });
 
   it("lets a revision resubmit saved CAD and drawing files without reuploading them", async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          request: {
-            id: "req_revision",
-            title: "Tubesheet Retainer Plate revision",
-            status: "SUBMITTED",
-          },
-        }),
-        { status: 201 },
-      ),
-    );
+    const fetchMock = mockRequestFormFetch({
+      request: {
+        id: "req_revision",
+        title: "Tubesheet Retainer Plate revision",
+        status: "SUBMITTED",
+      },
+    });
 
     render(
       <RequestForm
@@ -377,24 +443,19 @@ describe("RequestForm", () => {
       />,
     );
 
-    expect(screen.getByText("3D preview ready")).toBeInTheDocument();
+    expect(screen.queryByText("3D preview ready")).not.toBeInTheDocument();
+    expect(screen.queryByText("mounting-bracket.step")).not.toBeInTheDocument();
     expect(screen.getByText("Loading interactive CAD preview...")).toBeInTheDocument();
     expect(screen.queryByText("CAD file reference only")).not.toBeInTheDocument();
   });
 
   it("starts a CAD preview translation when a file is selected", async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          preview: {
-            status: "processing",
-            urn: "translated-model-urn",
-          },
-        }),
-        { status: 202 },
-      ),
-    );
+    const fetchMock = mockRequestFormFetch({
+      preview: {
+        status: "processing",
+        urn: "translated-model-urn",
+      },
+    });
 
     render(<RequestForm />);
 
@@ -405,23 +466,73 @@ describe("RequestForm", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/cad-previews", expect.objectContaining({ method: "POST" })));
     expect(screen.getByText("Preparing 3D preview")).toBeInTheDocument();
-    expect(screen.getAllByText("bracket.step").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Line item 1: bracket")).toBeInTheDocument();
+    expect(screen.getByText("bracket.step")).toBeInTheDocument();
     expect(screen.getByText(/Progress: queued/)).toBeInTheDocument();
   });
 
+  it("restores local draft CAD and drawing storage without requiring reupload", async () => {
+    const fetchMock = mockRequestFormFetch({
+      request: {
+        id: "req_from_local_draft",
+        title: "Bracket",
+        status: "SUBMITTED",
+      },
+    });
+    const { unmount } = render(<RequestForm />);
+
+    const cadFile = new File(["solid"], "bracket.step", { type: "model/step" });
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: { files: [cadFile] },
+    });
+
+    await screen.findByText("Line item 1: bracket");
+
+    const drawing = new File(["drawing"], "bracket-drawing.pdf", { type: "application/pdf" });
+    fireEvent.change(screen.getByLabelText(/Technical drawing/), {
+      target: { files: [drawing] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    const storedDraft = await waitFor(() => {
+      const drafts = JSON.parse(window.localStorage.getItem("lattice.incompleteRfqs.v1") ?? "[]");
+      const draft = drafts[0];
+
+      expect(draft.initialState.lineItems[0].fileStorageKey).toBe("rfq-drafts/test/bracket.step");
+      expect(draft.initialState.lineItems[0].technicalDrawingStorageKey).toBe("rfq-drafts/test/bracket-drawing.pdf");
+
+      return draft;
+    });
+
+    unmount();
+    render(<RequestForm localDraftId={storedDraft.id} />);
+
+    expect(screen.getByText("Line item 1: bracket")).toBeInTheDocument();
+    expect(screen.queryByText(/This is only a saved filename/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/This is only a saved drawing filename/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Request Quote" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenLastCalledWith("/api/requests", expect.objectContaining({ method: "POST" })));
+    const submittedForm = fetchMock.mock.calls.at(-1)?.[1]?.body as FormData;
+    const submitted = JSON.parse(String(submittedForm.get("request")));
+
+    expect(submitted.files).toMatchObject([
+      { name: "bracket.step", storageKey: "rfq-drafts/test/bracket.step" },
+      { name: "bracket-drawing.pdf", storageKey: "rfq-drafts/test/bracket-drawing.pdf" },
+    ]);
+    expect(submittedForm.get("file-0")).toBeNull();
+    expect(submittedForm.get("file-1")).toBeNull();
+  });
+
   it("shows the CAD preview configuration state when Autodesk credentials are missing", async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          preview: {
-            status: "configuration_required",
-            message: "Add APS_CLIENT_ID, APS_CLIENT_SECRET, and APS_BUCKET_KEY to enable live CAD translation previews.",
-          },
-        }),
-        { status: 501 },
-      ),
-    );
+    mockRequestFormFetch({
+      preview: {
+        status: "configuration_required",
+        message: "Add APS_CLIENT_ID, APS_CLIENT_SECRET, and APS_BUCKET_KEY to enable live CAD translation previews.",
+      },
+    });
 
     render(<RequestForm />);
 
@@ -431,47 +542,19 @@ describe("RequestForm", () => {
     });
 
     await screen.findByText("Autodesk preview setup needed");
-    expect(screen.getAllByText("fixture.sldprt").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Line item 1: fixture")).toBeInTheDocument();
+    expect(screen.getByText("fixture.sldprt")).toBeInTheDocument();
     expect(screen.getByText(/Add APS_CLIENT_ID/)).toBeInTheDocument();
   });
 
   it("adds a second configurable line item from the upload another CAD file drop zone", async () => {
-    const fetchMock = vi.mocked(fetch);
-    fetchMock
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            preview: {
-              status: "configuration_required",
-              message: "Add APS credentials to enable live previews.",
-            },
-          }),
-          { status: 501 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            preview: {
-              status: "configuration_required",
-              message: "Add APS credentials to enable live previews.",
-            },
-          }),
-          { status: 501 },
-        ),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            request: {
-              id: "req_multi",
-              title: "Bracket",
-              status: "SUBMITTED",
-            },
-          }),
-          { status: 201 },
-        ),
-      );
+    const fetchMock = mockRequestFormFetch({
+      request: {
+        id: "req_multi",
+        title: "Bracket",
+        status: "SUBMITTED",
+      },
+    });
 
     render(<RequestForm />);
 
@@ -479,20 +562,30 @@ describe("RequestForm", () => {
       target: { files: [new File(["solid"], "bracket.step", { type: "model/step" })] },
     });
 
-    await screen.findByText("Line item 1");
+    await screen.findByText("Line item 1: bracket");
 
     fireEvent.change(screen.getByLabelText("Upload another CAD file"), {
       target: { files: [new File(["solid"], "housing.step", { type: "model/step" })] },
     });
 
-    await screen.findByText("Line item 2");
-    expect(screen.getByRole("heading", { name: "Housing" })).toBeInTheDocument();
+    await screen.findByText("Line item 2: housing");
+    expect(screen.getByText("Line item 2: housing")).toBeInTheDocument();
     expect(screen.getAllByLabelText("Material")).toHaveLength(2);
     expect(screen.getAllByLabelText("Quantity")).toHaveLength(2);
 
     fireEvent.change(screen.getAllByLabelText("Quantity")[1], {
       target: { value: "3" },
     });
+    fireEvent.click(screen.getAllByRole("button", { name: "Quality documentation dropdown" })[0]);
+    fireEvent.click(screen.getByRole("option", { name: "Material Test Report (MTR)" }));
+    expect(screen.getAllByLabelText("Quality documentation")[0]).toHaveDisplayValue(
+      "Standard Inspection, Material Test Report (MTR)",
+    );
+    expect(screen.getByRole("button", { name: "Remove Material Test Report (MTR)" })).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/request-draft-files"))).toHaveLength(2),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Request Quote" }));
 
@@ -501,11 +594,19 @@ describe("RequestForm", () => {
     const submitted = JSON.parse(String(submittedForm.get("request")));
 
     expect(submitted.lineItems).toMatchObject([
-      { partName: "Bracket", quantity: 1, material: "SS 304" },
+      {
+        partName: "Bracket",
+        quantity: 1,
+        material: "SS 304",
+        qualityDocumentation: ["Standard Inspection", "Material Test Report (MTR)"],
+      },
       { partName: "Housing", quantity: 3, material: "SS 304" },
     ]);
-    expect(submitted.files).toMatchObject([{ name: "bracket.step" }, { name: "housing.step" }]);
-    expect(submittedForm.get("file-0")).toBeInstanceOf(File);
-    expect(submittedForm.get("file-1")).toBeInstanceOf(File);
+    expect(submitted.files).toMatchObject([
+      { name: "bracket.step", storageKey: "rfq-drafts/test/bracket.step" },
+      { name: "housing.step", storageKey: "rfq-drafts/test/housing.step" },
+    ]);
+    expect(submittedForm.get("file-0")).toBeNull();
+    expect(submittedForm.get("file-1")).toBeNull();
   });
 });

@@ -191,22 +191,6 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  async function exploreModel() {
-    if (!containerRef.current) {
-      return;
-    }
-
-    if (document.fullscreenElement) {
-      await document.exitFullscreen();
-    } else {
-      await containerRef.current.requestFullscreen();
-    }
-
-    await waitForNextFrame();
-    viewerRef.current?.resize();
-    viewerRef.current?.fitToView();
-  }
-
   useEffect(() => {
     let isMounted = true;
 
@@ -294,16 +278,6 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
 
   return (
     <div className="lattice-cad-viewer relative h-80 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" ref={containerRef}>
-      {!isLoading ? (
-        <button
-          aria-label="Explore model in full screen"
-          className="absolute right-3 top-3 z-10 rounded-md bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
-          onClick={() => void exploreModel()}
-          type="button"
-        >
-          Explore Model
-        </button>
-      ) : null}
       {isLoading ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50 text-sm font-semibold text-slate-600">
           Loading interactive CAD preview...

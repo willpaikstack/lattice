@@ -7,6 +7,7 @@ import { loginAction } from "./actions";
 type LoginPageProps = {
   searchParams?: Promise<{
     error?: string;
+    next?: string;
   }>;
 };
 
@@ -27,8 +28,11 @@ function CheckIcon() {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const error = (await searchParams)?.error;
+  const params = await searchParams;
+  const error = params?.error;
+  const next = safePath(params?.next);
   const hasInvalidCredentials = error === "invalid-credentials";
+  const hasSsoError = error?.startsWith("sso-");
 
   return (
     <main className="min-h-screen bg-stone-50 font-sans text-stone-900 selection:bg-stone-200">
@@ -71,7 +75,27 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                     </div>
                   ) : null}
 
+                  {hasSsoError ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+                      Google Workspace sign-in is not available. Check the SSO configuration and allowed domain.
+                    </div>
+                  ) : null}
+
+                  <Link
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-3 font-medium text-stone-900 transition-all hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
+                    href={`/api/auth/google?next=${encodeURIComponent(next)}`}
+                  >
+                    Continue with Google Workspace
+                  </Link>
+
+                  <div className="flex items-center gap-3">
+                    <div className="h-px flex-1 bg-stone-200" />
+                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-400">or</span>
+                    <div className="h-px flex-1 bg-stone-200" />
+                  </div>
+
                   <form aria-label="Log in form" action={loginAction} className="space-y-5">
+                    <input name="next" type="hidden" value={next} />
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-stone-700" htmlFor="email">
                         Email
@@ -131,4 +155,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </section>
     </main>
   );
+}
+
+function safePath(path?: string) {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return "/dashboard";
+  }
+
+  return path;
 }
