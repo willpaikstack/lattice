@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { saveLocalUpload } from "@/lib/local-file-storage";
 import { addSupplierQuoteFile } from "@/lib/request-repository";
+import { getCurrentSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,12 +35,18 @@ function appendQueryParam(path: string, key: string, value: string) {
 }
 
 export async function POST(request: Request) {
+  const session = await getCurrentSession();
+
   const formData = await request.formData();
   const requestId = getString(formData, "requestId").trim();
   const returnTo = getString(formData, "returnTo").trim();
   const fallbackPath = requestId ? `/admin/quotes?requestId=${encodeURIComponent(requestId)}` : "/admin/quotes";
   const destination = safeReturnPath(returnTo, fallbackPath);
   const fileValue = formData.get("supplierQuoteFile");
+
+  if (session?.user.role !== "admin") {
+    redirect(appendQueryParam(destination, "supplierQuoteError", session ? "forbidden" : "auth"));
+  }
 
   if (!requestId) {
     redirect(appendQueryParam(destination, "supplierQuoteError", "missing-request"));

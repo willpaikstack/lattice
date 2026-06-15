@@ -25,6 +25,7 @@ export const storedRequestInclude = {
       createdAt: "asc",
     },
   },
+  customerPurchaseOrderAttachment: true,
   customerQuotes: {
     orderBy: {
       versionNumber: "asc",
@@ -43,6 +44,9 @@ export type StoredRequest = {
   process: string;
   dueDate: Date | null;
   status: LatticeRequest["status"];
+  requestOrigin?: LatticeRequest["requestOrigin"];
+  guestAccessTokenHash?: string;
+  guestAccessTokenExpiresAt?: Date | null;
   buyerCompany: { name: string } | null;
   requesterName: string;
   requesterEmail?: string;
@@ -73,6 +77,21 @@ export type StoredRequest = {
   quoteCreatedDate: Date | null;
   quoteValidUntil: Date | null;
   quoteSummary: string;
+  purchasePaymentMethod?: string;
+  purchasePaymentStatus?: string;
+  customerPoNumber?: string;
+  accountsPayableEmail?: string;
+  buyerCheckoutNotes?: string;
+  purchaseCardId?: string;
+  purchaseCardBrand?: string;
+  purchaseCardLast4?: string;
+  purchaseCardHolder?: string;
+  purchaseCardExpires?: string;
+  stripeCheckoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  stripeAmountCents?: number | null;
+  stripeCurrency?: string;
+  stripePaidAt?: Date | null;
   isArchived?: boolean;
   revisionOfRequestId?: string | null;
   revisionNumber?: number;
@@ -93,6 +112,7 @@ export type StoredRequest = {
     sizeBytes: number;
     type: string;
     storageKey: string | null;
+    cadPreviewUrn?: string | null;
   }>;
   supplierDocuments?: Array<{
     id: string;
@@ -110,6 +130,14 @@ export type StoredRequest = {
     storageKey: string | null;
     createdAt: Date;
   }>;
+  customerPurchaseOrderAttachment?: {
+    id: string;
+    name: string;
+    sizeBytes: number;
+    type: string;
+    storageKey: string | null;
+    createdAt: Date;
+  } | null;
   supplierUpdates?: Array<{
     id: string;
     status: LatticeRequest["supplierOrder"]["status"];
@@ -126,6 +154,7 @@ export type StoredRequest = {
     priceCents: number | null;
     leadTimeDays: number | null;
     notes: string;
+    lineItems?: unknown;
     quotedAt: Date | null;
     isSelected: boolean;
   }>;
@@ -206,6 +235,30 @@ function mapCustomerQuoteLineItems(lineItems: unknown): LatticeRequest["customer
   });
 }
 
+function mapSupplierQuoteLineItems(lineItems: unknown): LatticeRequest["supplierQuotes"][number]["lineItems"] {
+  if (!Array.isArray(lineItems)) {
+    return [];
+  }
+
+  return lineItems.map((item, index) => {
+    const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+
+    return {
+      id: typeof record.id === "string" ? record.id : `line-${index + 1}`,
+      description: typeof record.description === "string" ? record.description : "",
+      drawingRevision: typeof record.drawingRevision === "string" ? record.drawingRevision : "",
+      finish: typeof record.finish === "string" ? record.finish : "",
+      inspection: typeof record.inspection === "string" ? record.inspection : "",
+      leadTimeDays: typeof record.leadTimeDays === "number" ? record.leadTimeDays : null,
+      material: typeof record.material === "string" ? record.material : "",
+      process: typeof record.process === "string" ? record.process : "",
+      quantity: typeof record.quantity === "number" ? record.quantity : 0,
+      supplierNotes: typeof record.supplierNotes === "string" ? record.supplierNotes : "",
+      unitPrice: typeof record.unitPrice === "number" ? record.unitPrice : 0,
+    };
+  });
+}
+
 export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
   const submitted = submitDraftRequest(buildDraftRequest(input));
 
@@ -214,6 +267,9 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     process: submitted.process,
     dueDate: toDueDate(submitted.dueDate),
     status: submitted.status,
+    requestOrigin: submitted.requestOrigin,
+    guestAccessTokenHash: submitted.guestAccessTokenHash,
+    guestAccessTokenExpiresAt: submitted.guestAccessTokenExpiresAt ? new Date(submitted.guestAccessTokenExpiresAt) : null,
     requesterName: submitted.requesterName,
     requesterEmail: submitted.requesterEmail,
     requesterPhone: submitted.requesterPhone,
@@ -243,6 +299,21 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     quoteCreatedDate: toOptionalDate(submitted.quote.quoteCreatedDate),
     quoteValidUntil: toOptionalDate(submitted.quote.quoteValidUntil),
     quoteSummary: submitted.quote.summary,
+    purchasePaymentMethod: submitted.purchasePayment.method ?? "",
+    purchasePaymentStatus: submitted.purchasePayment.status ?? "",
+    customerPoNumber: submitted.purchasePayment.customerPoNumber,
+    accountsPayableEmail: submitted.purchasePayment.accountsPayableEmail,
+    buyerCheckoutNotes: submitted.purchasePayment.buyerCheckoutNotes,
+    purchaseCardId: submitted.purchasePayment.card?.id ?? "",
+    purchaseCardBrand: submitted.purchasePayment.card?.brand ?? "",
+    purchaseCardLast4: submitted.purchasePayment.card?.last4 ?? "",
+    purchaseCardHolder: submitted.purchasePayment.card?.holder ?? "",
+    purchaseCardExpires: submitted.purchasePayment.card?.expires ?? "",
+    stripeCheckoutSessionId: submitted.purchasePayment.stripe.checkoutSessionId,
+    stripePaymentIntentId: submitted.purchasePayment.stripe.paymentIntentId,
+    stripeAmountCents: submitted.purchasePayment.stripe.amountCents,
+    stripeCurrency: submitted.purchasePayment.stripe.currency,
+    stripePaidAt: submitted.purchasePayment.stripe.paidAt ? new Date(submitted.purchasePayment.stripe.paidAt) : null,
     isArchived: submitted.isArchived,
     revisionOfRequestId: submitted.revisionOfRequestId,
     revisionNumber: submitted.revisionNumber,
@@ -269,6 +340,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
         sizeBytes: file.sizeBytes,
         type: file.type,
         storageKey: file.storageKey,
+        cadPreviewUrn: file.cadPreviewUrn,
       })),
     },
     statusEvents: {
@@ -285,6 +357,9 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
   return {
     id: stored.id,
     buyerCompany: stored.buyerCompany?.name ?? "Unknown buyer",
+    guestAccessTokenExpiresAt: stored.guestAccessTokenExpiresAt?.toISOString() ?? null,
+    guestAccessTokenHash: stored.guestAccessTokenHash ?? "",
+    requestOrigin: stored.requestOrigin ?? "ACCOUNT",
     requesterName: stored.requesterName,
     requesterEmail: stored.requesterEmail ?? "",
     requesterPhone: stored.requesterPhone ?? "",
@@ -316,6 +391,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       sizeBytes: file.sizeBytes,
       type: file.type,
       storageKey: file.storageKey ?? undefined,
+      cadPreviewUrn: file.cadPreviewUrn ?? undefined,
     })),
     operatorReview: {
       completeness: stored.operatorCompleteness,
@@ -353,6 +429,16 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       storageKey: file.storageKey ?? undefined,
       uploadedAt: file.createdAt.toISOString(),
     })),
+    customerPurchaseOrderAttachment: stored.customerPurchaseOrderAttachment
+      ? {
+          id: stored.customerPurchaseOrderAttachment.id,
+          name: stored.customerPurchaseOrderAttachment.name,
+          sizeBytes: stored.customerPurchaseOrderAttachment.sizeBytes,
+          type: stored.customerPurchaseOrderAttachment.type,
+          storageKey: stored.customerPurchaseOrderAttachment.storageKey ?? undefined,
+          uploadedAt: stored.customerPurchaseOrderAttachment.createdAt.toISOString(),
+        }
+      : null,
     supplierQuotes: (stored.supplierQuotes ?? []).map((quote) => ({
       id: quote.id,
       shopName: quote.shopName,
@@ -362,6 +448,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       priceCents: quote.priceCents,
       leadTimeDays: quote.leadTimeDays,
       notes: quote.notes,
+      lineItems: mapSupplierQuoteLineItems(quote.lineItems),
       quotedAt: quote.quotedAt?.toISOString() ?? null,
       isSelected: quote.isSelected,
     })),
@@ -398,6 +485,29 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       quoteCreatedDate: formatOptionalDate(stored.quoteCreatedDate),
       quoteValidUntil: formatOptionalDate(stored.quoteValidUntil),
       summary: stored.quoteSummary,
+    },
+    purchasePayment: {
+      method: stored.purchasePaymentMethod === "CARD" || stored.purchasePaymentMethod === "PURCHASE_ORDER" ? stored.purchasePaymentMethod : null,
+      status: stored.purchasePaymentStatus === "PENDING_REVIEW" || stored.purchasePaymentStatus === "PAYMENT_PENDING" || stored.purchasePaymentStatus === "PAID" || stored.purchasePaymentStatus === "PAYMENT_FAILED" ? stored.purchasePaymentStatus : null,
+      customerPoNumber: stored.customerPoNumber ?? "",
+      accountsPayableEmail: stored.accountsPayableEmail ?? "",
+      buyerCheckoutNotes: stored.buyerCheckoutNotes ?? "",
+      card: stored.purchaseCardId || stored.purchaseCardLast4
+        ? {
+            id: stored.purchaseCardId ?? "",
+            brand: stored.purchaseCardBrand ?? "",
+            last4: stored.purchaseCardLast4 ?? "",
+            holder: stored.purchaseCardHolder ?? "",
+            expires: stored.purchaseCardExpires ?? "",
+          }
+        : null,
+      stripe: {
+        amountCents: stored.stripeAmountCents ?? null,
+        checkoutSessionId: stored.stripeCheckoutSessionId ?? "",
+        currency: stored.stripeCurrency ?? "",
+        paidAt: stored.stripePaidAt ? stored.stripePaidAt.toISOString() : null,
+        paymentIntentId: stored.stripePaymentIntentId ?? "",
+      },
     },
     revisionOfRequestId: stored.revisionOfRequestId ?? null,
     revisionNumber: stored.revisionNumber ?? 1,

@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 
 import { deleteBuyerQuote } from "@/lib/request-repository";
+import { requireActionRole } from "@/lib/route-authorization";
 
 export async function deleteBuyerQuoteAction(requestId: string) {
+  await requireActionRole(["customer", "admin"]);
   const trimmedRequestId = requestId.trim();
 
   if (!trimmedRequestId) {

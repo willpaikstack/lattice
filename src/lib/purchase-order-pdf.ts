@@ -1,6 +1,7 @@
 import { createRequire } from "node:module";
 
 import { formatUsd } from "./quote-file";
+import { quotedLineForRequestItem, type LatticeRequest, type SupplierQuote } from "./request-model";
 
 const requireFromHere = createRequire(import.meta.url);
 const PDFDocument = requireFromHere("pdfkit") as typeof import("pdfkit");
@@ -46,6 +47,14 @@ type PurchaseOrderPdfInput = {
   supplierContactLines: string[];
   toolingAmount: number;
 };
+
+export function selectedStructuredSupplierQuote(order: LatticeRequest): SupplierQuote | null {
+  const selected = order.supplierQuotes.find((quote) => quote.isSelected) ?? order.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
+  const lineItems = selected?.lineItems ?? [];
+  const hasPricedLines = lineItems.length > 0 && lineItems.every((item) => item.quantity > 0 && item.unitPrice > 0);
+
+  return selected && hasPricedLines ? selected : null;
+}
 
 function createPdf(options: PDFKit.PDFDocumentOptions) {
   const doc = new PDFDocument(options);
@@ -129,6 +138,123 @@ function purchaseOrderTemplateInput(): PurchaseOrderPdfInput {
   };
 }
 
+function dateOnly(value: string | null | undefined) {
+  if (!value) {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString().slice(0, 10) : date.toISOString().slice(0, 10);
+}
+
+function orderReference(order: LatticeRequest) {
+  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function supplierPoNumber(order: LatticeRequest) {
+  return `LPO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function fileNamePart(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+function destinationLines(order: LatticeRequest) {
+  return [
+    order.shipToCompany || order.buyerCompany,
+    [order.shipToAddress1, order.shipToAddress2].filter(Boolean).join(", "),
+    [order.shipToCity, order.shipToState, order.shipToZipCode].filter(Boolean).join(", "),
+    `Contact: ${order.shipToName || order.requesterName}${order.shipToPhone ? ` / ${order.shipToPhone}` : ""}`,
+  ].filter(Boolean);
+}
+
+function requestItemForSupplierLine(order: LatticeRequest, lineId: string) {
+  return order.lineItems.find((item) => item.id === lineId) ?? null;
+}
+
+function supplierQuoteReference(supplierQuote: SupplierQuote, fallback: string) {
+  const candidates = [supplierQuote.id, supplierQuote.notes, supplierQuote.quotedAt ?? ""];
+  const reference = candidates
+    .map((value) => /\b(20\d{6})\b/.exec(value)?.[1] ?? null)
+    .find(Boolean);
+
+  return reference ?? fallback;
+}
+
+function supplierPaymentTerms(supplierQuote: SupplierQuote) {
+  if (/net\s*30/i.test(supplierQuote.notes)) {
+    return "Net 30";
+  }
+
+  return "Deposit / balance by wire after quality release";
+}
+
+export function supplierPurchaseOrderPdfFileName(order: LatticeRequest) {
+  return `nexus-supplier-po-${fileNamePart(orderReference(order)) || "order"}.pdf`;
+}
+
+export function buildRequestSupplierPurchaseOrderPdfInput(order: LatticeRequest): PurchaseOrderPdfInput | null {
+  const supplierQuote = selectedStructuredSupplierQuote(order);
+
+  if (!supplierQuote) {
+    return null;
+  }
+
+  const quoteNumber = order.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  const quoteLeadTimeDays = supplierQuote.leadTimeDays ?? order.quote.leadTimeDays ?? 15;
+  const quoteDate = dateOnly(supplierQuote.quotedAt ?? order.updatedAt);
+  const requiredShipDate = dateOnly(order.dueDate || order.quote.estimatedDeliveryDate || order.updatedAt);
+  const lineItems = supplierQuote.lineItems.map((line, index) => {
+    const requestItem = requestItemForSupplierLine(order, line.id);
+    const quotedLine = requestItem ? quotedLineForRequestItem(order.customerQuotes.at(-1)?.lineItems, requestItem) : null;
+    const quantity = line.quantity || requestItem?.quantity || quotedLine?.quantity || 1;
+    const unitPrice = line.unitPrice;
+
+    return {
+      amount: unitPrice * quantity,
+      description: requestItem?.notes || "Manufacture to released customer RFQ package and supplier quote.",
+      drawingRevision: line.drawingRevision || "Released package",
+      finish: line.finish || requestItem?.surfaceFinish || "Per released package",
+      inspection: line.inspection || requestItem?.qualityDocumentation?.join(", ") || "Standard inspection records",
+      item: line.description || requestItem?.partName || order.files[index]?.name || `Line ${index + 1}`,
+      leadTime: line.leadTimeDays ? `${line.leadTimeDays} business days` : `${quoteLeadTimeDays} business days`,
+      material: line.material || requestItem?.material || "Per released package",
+      process: line.process || order.process,
+      quantity,
+      supplierNotes: line.supplierNotes || "",
+      unitPrice,
+    };
+  });
+  const subtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
+  const selectedTotal = supplierQuote.priceCents === null ? null : supplierQuote.priceCents / 100;
+
+  return {
+    customerProject: order.title,
+    destinationLines: destinationLines(order),
+    incoterms: order.quote.shippingTerms || "FOB China / final terms per awarded supplier quote",
+    latticeContact: "William Paik / mfg@latticeos.co",
+    lineItems,
+    otherCharges: selectedTotal === null ? 0 : selectedTotal - subtotal,
+    paymentTerms: supplierPaymentTerms(supplierQuote),
+    poDate: quoteDate,
+    poNumber: supplierPoNumber(order),
+    relatedQuote: supplierQuoteReference(supplierQuote, quoteNumber),
+    releaseDate: quoteDate,
+    requiredShipDate,
+    supplierContactLines: [
+      supplierQuote.shopName || order.supplierOrder.shopName || "Selected Chinese machine shop",
+      supplierQuote.country ? `Country: ${supplierQuote.country}` : "Country: China",
+      supplierQuote.contactName ? `Attn: ${supplierQuote.contactName}` : order.supplierOrder.contactName ? `Attn: ${order.supplierOrder.contactName}` : "Attn: Supplier contact",
+    ],
+    toolingAmount: 0,
+  };
+}
+
 function metadataColumn(doc: PDFKit.PDFDocument, rows: Array<[string, string]>, x: number, y: number, width: number) {
   let cursorY = y;
 
@@ -160,6 +286,19 @@ function addressBlock(doc: PDFKit.PDFDocument, title: string, lines: string[], x
       .text(cleanLine || " ", x, cursorY, { width });
     cursorY += 13;
   });
+}
+
+function drawLineItemTableHeader(doc: PDFKit.PDFDocument, x: number, y: number, width: number, right: number) {
+  doc.rect(x, y, width, 28).fill(accentFill);
+  doc.font("Helvetica-Bold").fontSize(8).fillColor(textColor);
+  doc.text("#", x + 8, y + 10, { width: 20 });
+  doc.text("Part / file package", x + 34, y + 10, { width: 118 });
+  doc.text("Manufacturing release details", x + 160, y + 10, { width: 214 });
+  doc.text("Qty", right - 154, y + 10, { align: "right", width: 30 });
+  doc.text("Unit price", right - 114, y + 10, { align: "right", width: 56 });
+  doc.text("Subtotal", right - 50, y + 10, { align: "right", width: 50 });
+
+  return y + 42;
 }
 
 function drawTermsPage(doc: PDFKit.PDFDocument, purchaseOrder: PurchaseOrderPdfInput) {
@@ -202,8 +341,7 @@ function drawTermsPage(doc: PDFKit.PDFDocument, purchaseOrder: PurchaseOrderPdfI
   });
 }
 
-export function buildSupplierPurchaseOrderTemplatePdf() {
-  const purchaseOrder = purchaseOrderTemplateInput();
+export function buildSupplierPurchaseOrderPdf(purchaseOrder: PurchaseOrderPdfInput) {
   const subtotal = purchaseOrder.lineItems.reduce((sum, item) => sum + item.amount, 0);
   const total = subtotal + purchaseOrder.toolingAmount + purchaseOrder.otherCharges;
   const { doc, done } = createPdf({ compress: false, margin: 42, size: "LETTER" });
@@ -247,23 +385,13 @@ export function buildSupplierPurchaseOrderTemplatePdf() {
     [
       ["Lattice contact", purchaseOrder.latticeContact],
       ["Customer project", purchaseOrder.customerProject],
-      ["Incoterms / shipping terms", purchaseOrder.incoterms],
     ],
     left + 16,
     releaseY + 15,
     width - 32,
   );
 
-  let y = releaseY + 94;
-  doc.rect(left, y, width, 28).fill(accentFill);
-  doc.font("Helvetica-Bold").fontSize(8).fillColor(textColor);
-  doc.text("#", left + 8, y + 10, { width: 20 });
-  doc.text("Part / file package", left + 34, y + 10, { width: 118 });
-  doc.text("Manufacturing release details", left + 160, y + 10, { width: 214 });
-  doc.text("Qty", right - 154, y + 10, { align: "right", width: 30 });
-  doc.text("Unit price", right - 114, y + 10, { align: "right", width: 56 });
-  doc.text("Subtotal", right - 50, y + 10, { align: "right", width: 50 });
-  y += 42;
+  let y = drawLineItemTableHeader(doc, left, releaseY + 94, width, right);
 
   purchaseOrder.lineItems.forEach((item, index) => {
     const detail = [
@@ -272,8 +400,13 @@ export function buildSupplierPurchaseOrderTemplatePdf() {
       `Inspection/docs: ${item.inspection}`,
       item.description,
       item.supplierNotes,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
     const rowHeight = Math.max(76, doc.heightOfString(detail, { lineGap: 2, width: 214 }) + 18);
+
+    if (y + rowHeight + 18 > 650) {
+      doc.addPage();
+      y = drawLineItemTableHeader(doc, left, 54, width, right);
+    }
 
     doc.font("Helvetica").fontSize(8.8).fillColor(textColor).text(String(index + 1), left + 8, y, { width: 20 });
     doc.font("Helvetica-Bold").text(safeText(item.item), left + 34, y, { width: 118 });
@@ -287,11 +420,16 @@ export function buildSupplierPurchaseOrderTemplatePdf() {
   });
 
   const totalsX = right - 224;
-  y = Math.max(y, 608);
+  if (y > 560) {
+    doc.addPage();
+    y = 54;
+  } else {
+    y = Math.max(y, 608);
+  }
   [
     ["Part production subtotal", formatUsd(subtotal), false],
     ["Tooling / setup", formatUsd(purchaseOrder.toolingAmount), false],
-    ["Freight / documentation / other", formatUsd(purchaseOrder.otherCharges), false],
+    ["Shipping", formatUsd(purchaseOrder.otherCharges), false],
     ["Supplier PO total", formatUsd(total), true],
   ].forEach(([label, value, isTotal], index) => {
     const rowY = y + index * 23;
@@ -330,4 +468,18 @@ export function buildSupplierPurchaseOrderTemplatePdf() {
 
   doc.end();
   return done;
+}
+
+export function buildRequestSupplierPurchaseOrderPdf(order: LatticeRequest) {
+  const purchaseOrder = buildRequestSupplierPurchaseOrderPdfInput(order);
+
+  if (!purchaseOrder) {
+    return null;
+  }
+
+  return buildSupplierPurchaseOrderPdf(purchaseOrder);
+}
+
+export function buildSupplierPurchaseOrderTemplatePdf() {
+  return buildSupplierPurchaseOrderPdf(purchaseOrderTemplateInput());
 }

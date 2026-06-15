@@ -56,6 +56,12 @@ export default function LandingPage() {
               >
                 Request access
               </Link>
+              <Link
+                className="flex min-w-[220px] items-center justify-center gap-2 rounded-lg border border-white/20 bg-white/10 px-8 py-4 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+                href="/simple-quote"
+              >
+                Request a simple quote
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-6 pt-12 md:grid-cols-3">

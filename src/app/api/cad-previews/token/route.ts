@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { getViewerToken } from "@/lib/autodesk-platform-services";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const unauthorized = await requireRouteRole(["customer", "admin"]);
+    if (unauthorized) {
+      return unauthorized;
+    }
+
     const token = await getViewerToken();
 
     if (!token) {

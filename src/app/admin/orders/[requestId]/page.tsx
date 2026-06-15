@@ -23,6 +23,9 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
         invoiceHref: `/admin/orders/${order.id}/invoice.pdf`,
         invoicePreviewHref: `/admin/orders/${order.id}/invoice.pdf?preview=1`,
         reorderHref: null,
+        showSupplierQuoteFiles: true,
+        supplierPurchaseOrderHref: `/admin/orders/${order.id}/supplier-purchase-order.pdf`,
+        supplierPurchaseOrderPreviewHref: `/admin/orders/${order.id}/supplier-purchase-order.pdf?preview=1`,
         supplierQuoteReturnTo: `/admin/orders/${encodeURIComponent(order.id)}`,
       }}
     />

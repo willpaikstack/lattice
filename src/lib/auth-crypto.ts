@@ -2,11 +2,14 @@ import { createHmac, scryptSync, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE_NAME = "lattice_session";
 
+export type LatticeRole = "admin" | "customer" | "supplier";
+
 export type SessionPayload = {
   email?: string;
   exp: number;
   name?: string;
   provider?: "google" | "password";
+  role?: LatticeRole;
   userId: string;
 };
 
@@ -16,7 +19,78 @@ export const authorizedUser = {
   name: "William Paik",
   passwordHash: "d17dd65becbabd8c4eceb855cfbe862d2bb9ccc3f2250693fec1e006a86d1804c003b55f7cce0717d9f930fdbf1b1ca01e62197c5c0d482222425f09a810e74c",
   passwordSalt: "lattice-os-local-v1",
+  role: "admin" as LatticeRole,
 };
+
+const adminPrefixes = ["/admin", "/analytics", "/operator", "/projects"];
+const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/shipped"];
+const sharedPrefixes = ["/account"];
+const supplierPrefixes = ["/supplier"];
+
+function splitEmailList(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function pathMatchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function pathMatchesAny(pathname: string, prefixes: string[]) {
+  return prefixes.some((prefix) => pathMatchesPrefix(pathname, prefix));
+}
+
+export function defaultHomeForRole(role: LatticeRole) {
+  if (role === "admin") {
+    return "/admin";
+  }
+
+  if (role === "supplier") {
+    return "/supplier/orders";
+  }
+
+  return "/dashboard";
+}
+
+export function resolveRoleForEmail(email?: string): LatticeRole {
+  const normalizedEmail = email?.trim().toLowerCase();
+
+  if (normalizedEmail && normalizedEmail === authorizedUser.email) {
+    return authorizedUser.role;
+  }
+
+  if (normalizedEmail && splitEmailList(process.env.LATTICE_ADMIN_EMAILS ?? process.env.GOOGLE_SSO_ADMIN_EMAILS).includes(normalizedEmail)) {
+    return "admin";
+  }
+
+  if (normalizedEmail && splitEmailList(process.env.LATTICE_SUPPLIER_EMAILS ?? process.env.GOOGLE_SSO_SUPPLIER_EMAILS).includes(normalizedEmail)) {
+    return "supplier";
+  }
+
+  return "customer";
+}
+
+export function roleForSession(session: SessionPayload): LatticeRole {
+  return session.role ?? resolveRoleForEmail(session.email);
+}
+
+export function canRoleAccessPath(role: LatticeRole, pathname: string) {
+  if (pathMatchesAny(pathname, sharedPrefixes)) {
+    return true;
+  }
+
+  if (role === "admin") {
+    return pathMatchesAny(pathname, [...adminPrefixes, ...customerPrefixes]);
+  }
+
+  if (role === "supplier") {
+    return pathMatchesAny(pathname, supplierPrefixes);
+  }
+
+  return pathMatchesAny(pathname, customerPrefixes);
+}
 
 function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");

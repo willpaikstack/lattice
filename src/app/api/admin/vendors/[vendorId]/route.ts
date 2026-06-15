@@ -15,6 +15,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ vendo
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Admin access required." }, { status: 403 });
+    }
+
     const { vendorId } = await context.params;
     const requests = await listAdminRequests();
     const vendors = await applyOverseasVendorOverrides(buildOverseasVendors(requests));

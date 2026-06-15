@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createSession } from "@/lib/session";
-import { verifyPassword } from "@/lib/auth-crypto";
+import { authorizedUser, canRoleAccessPath, defaultHomeForRole, verifyPassword } from "@/lib/auth-crypto";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -20,7 +20,7 @@ export async function loginAction(formData: FormData) {
   }
 
   await createSession();
-  redirect(next);
+  redirect(canRoleAccessPath(authorizedUser.role, next) ? next : defaultHomeForRole(authorizedUser.role));
 }
 
 function safePath(path: string) {

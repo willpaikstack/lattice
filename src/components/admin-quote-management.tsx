@@ -3,10 +3,10 @@
 import { ClipboardCheck, ExternalLink, FileText, PackageCheck, ReceiptText, Search, Truck, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import { quotedLineForRequestItem, type LatticeRequest, type SupplierQuoteStatus } from "@/lib/request-model";
+import { quotedLineForRequestItem, type LatticeRequest } from "@/lib/request-model";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
@@ -19,21 +19,23 @@ const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string
   CLOSED: { label: "Closed", nextAction: "No active quote work", tone: "border-slate-200 bg-slate-50 text-slate-700" },
 };
 
-const supplierQuoteLabels: Record<SupplierQuoteStatus, string> = {
-  DECLINED: "Declined",
-  INVITED: "Invited",
-  QUOTE_RECEIVED: "Received",
-  SELECTED: "Selected",
+type AdminQuoteStatusGroup = "QUOTE_REQUESTED" | "QUOTE_RECEIVED" | "ARCHIVED";
+type AdminQuoteStatusFilter = "ALL" | AdminQuoteStatusGroup;
+
+const customerQuoteStatusCopy: Record<AdminQuoteStatusGroup, { label: string; tone: string }> = {
+  QUOTE_REQUESTED: { label: "Quote Requested", tone: "border-[#b8d4ff] bg-[#eef5ff] text-[#0f5fb8]" },
+  QUOTE_RECEIVED: { label: "Quote Received", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
+  ARCHIVED: { label: "Archived", tone: "border-slate-200 bg-slate-50 text-slate-700" },
 };
 
-const statusFilters: Array<{ label: string; value: "ALL" | LatticeRequest["status"] }> = [
+const statusFilters: Array<{ label: string; value: AdminQuoteStatusFilter }> = [
   { label: "All", value: "ALL" },
-  { label: "Submitted", value: "SUBMITTED" },
-  { label: "Needs info", value: "NEEDS_INFO" },
-  { label: "Supplier ready", value: "READY_FOR_SUPPLIER_RFQ" },
-  { label: "Quote received", value: "QUOTED" },
-  { label: "Closed", value: "CLOSED" },
+  { label: "Quote Requested", value: "QUOTE_REQUESTED" },
+  { label: "Quote Received", value: "QUOTE_RECEIVED" },
+  { label: "Archived", value: "ARCHIVED" },
 ];
+
+const statusGroupOrder: AdminQuoteStatusGroup[] = ["QUOTE_REQUESTED", "QUOTE_RECEIVED", "ARCHIVED"];
 
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
@@ -57,6 +59,19 @@ function formatCurrency(cents: number | null) {
   }).format(cents / 100);
 }
 
+function formatCurrencyPrecise(cents: number | null | undefined) {
+  if (cents === null || cents === undefined || !Number.isFinite(cents)) {
+    return "Pending";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+    style: "currency",
+  }).format(cents / 100);
+}
+
 function formatDollarAmount(value: number | null | undefined) {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "Pending";
@@ -74,16 +89,21 @@ function formatCurrencyInput(cents: number | null) {
   return cents === null || !Number.isFinite(cents) ? "" : (cents / 100).toFixed(2);
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null | undefined) {
   if (!value) {
     return "Pending";
   }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = dateOnlyMatch
+    ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
+    : new Date(value);
 
   return new Intl.DateTimeFormat("en", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function formatDateTime(value: string) {
@@ -122,18 +142,6 @@ function defaultQuoteValidUntil(request: LatticeRequest, quoteCreatedDate: strin
   return addDaysIso(quoteCreatedDate, 30);
 }
 
-function formatFileSize(sizeBytes: number) {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-
-  if (sizeBytes < 1024 * 1024) {
-    return `${Math.round(sizeBytes / 1024)} KB`;
-  }
-
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function fileDownloadHref(file: LatticeRequest["files"][number]) {
   return file.storageKey
     ? `/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`
@@ -169,35 +177,35 @@ function receivedSupplierQuotes(request: LatticeRequest) {
 }
 
 function selectedSupplierQuote(request: LatticeRequest) {
-  return request.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? receivedSupplierQuotes(request).at(-1) ?? null;
+  return request.supplierQuotes.find((quote) => quote.isSelected) ?? request.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
 }
 
-function supplierSummary(request: LatticeRequest) {
-  if (request.supplierQuotes.length === 0) {
-    return "No shop outreach";
+function adminQuoteStatusGroup(request: LatticeRequest): AdminQuoteStatusGroup {
+  if (request.isArchived || request.status === "CLOSED") {
+    return "ARCHIVED";
   }
 
-  const counts = request.supplierQuotes.reduce<Record<SupplierQuoteStatus, number>>(
-    (summary, quote) => ({ ...summary, [quote.status]: summary[quote.status] + 1 }),
-    { DECLINED: 0, INVITED: 0, QUOTE_RECEIVED: 0, SELECTED: 0 },
-  );
+  if (request.status === "QUOTED") {
+    return "QUOTE_RECEIVED";
+  }
 
-  return (Object.entries(counts) as Array<[SupplierQuoteStatus, number]>)
-    .filter(([, count]) => count > 0)
-    .map(([status, count]) => `${count} ${supplierQuoteLabels[status]}`)
-    .join(" / ");
+  return "QUOTE_REQUESTED";
 }
 
-function nextActionForRequest(request: LatticeRequest) {
-  if (request.status === "QUOTED" && request.customerQuotes.at(-1)) {
-    return "Follow buyer decision";
+function adminQuoteStatusNote(request: LatticeRequest) {
+  if (request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ") {
+    return statusCopy[request.status].label;
   }
 
-  return statusCopy[request.status].nextAction;
+  return null;
 }
 
 function draftEditHref(request: LatticeRequest) {
   return `/requests/new?draft=${encodeURIComponent(request.id)}`;
+}
+
+function quoteDetailHref(request: LatticeRequest) {
+  return `/admin/quotes?requestId=${encodeURIComponent(request.id)}`;
 }
 
 function customerProfileHref(companyName: string, customerProfileHrefs: Record<string, string>) {
@@ -214,7 +222,7 @@ function CustomerProfileShortcut({
   return (
     <Link
       aria-label={`Open customer page for ${companyName}`}
-      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#ffd1d4] bg-white text-[#767676] transition hover:border-[#FF5A5F] hover:bg-[#fff1f2] hover:text-[#FF5A5F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A5F]"
+      className="pointer-events-auto relative z-20 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-[#ffd1d4] bg-white text-[#767676] transition hover:border-[#FF5A5F] hover:bg-[#fff1f2] hover:text-[#FF5A5F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A5F]"
       href={customerProfileHref(companyName, customerProfileHrefs)}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
@@ -319,6 +327,73 @@ function lineItemLeadTimeDisplay(request: LatticeRequest, lineItem: LatticeReque
   return leadTimeDays ? `${leadTimeDays} business days` : "Pending";
 }
 
+function supplierQuoteLineForRequestItem(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  return (selectedSupplierQuote(request)?.lineItems ?? []).find((line) => line.id === lineItem.id || line.description === lineItem.partName) ?? null;
+}
+
+function supplierUnitPriceInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  const supplierLine = supplierQuoteLineForRequestItem(request, lineItem);
+  return supplierLine ? formatDollarAmount(supplierLine.unitPrice) : "";
+}
+
+function supplierLeadTimeInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  return supplierQuoteLineForRequestItem(request, lineItem)?.leadTimeDays ?? "";
+}
+
+function supplierDrawingRevisionInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  return supplierQuoteLineForRequestItem(request, lineItem)?.drawingRevision || "Released package";
+}
+
+function supplierNotesInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
+  return supplierQuoteLineForRequestItem(request, lineItem)?.supplierNotes ?? "";
+}
+
+function StaticField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid gap-1">
+      <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#8a8f98]">{label}</p>
+      <p className="min-h-11 rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-3 text-[14px] font-semibold text-[#202020]">{value || "Pending"}</p>
+    </div>
+  );
+}
+
+function StepHeading({ children, number, summary }: { children: string; number: number; summary?: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#fff1f2] text-[13px] font-semibold text-[#FF5A5F]">
+        {number}
+      </span>
+      <div>
+        <h3 className="text-[16px] font-semibold text-[#171717]">{children}</h3>
+        {summary ? <p className="mt-1 text-[13px] leading-5 text-[#6f737a]">{summary}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function DownloadFileLink({ file }: { file: LatticeRequest["files"][number] }) {
+  const href = fileDownloadHref(file);
+
+  if (!href) {
+    return (
+      <span className="inline-flex min-w-0 items-center text-[12px] font-medium text-[#9a5a2f]" title={`${fileKindLabel(file)} unavailable`}>
+        <span className="truncate">{file.name} unavailable</span>
+      </span>
+    );
+  }
+
+  return (
+    <a
+      className="inline-flex min-w-0 items-center text-[13px] font-semibold text-[#315a94] underline-offset-2 hover:underline"
+      download={file.name}
+      href={href}
+      title={`${fileKindLabel(file)}: ${file.name}`}
+    >
+      <span className="truncate">{file.name}</span>
+    </a>
+  );
+}
+
 function AdminQuoteDetailDrawer({
   onClose,
   request,
@@ -330,36 +405,53 @@ function AdminQuoteDetailDrawer({
 }) {
   const status = statusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
-  const isSubmittedToCustomer = request.status === "QUOTED" && Boolean(latestCustomerQuote);
+  const selectedShopQuote = selectedSupplierQuote(request);
+  const isIssuedQuote = request.status === "QUOTED" && Boolean(latestCustomerQuote);
+  const [isEditingIssuedQuote, setIsEditingIssuedQuote] = useState(false);
+  const isReadOnlyIssuedQuote = isIssuedQuote && !isEditingIssuedQuote;
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
   const quoteCreatedDate = defaultQuoteCreatedDate(request);
   const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
+  const totalQuantity = request.lineItems.reduce((sum, lineItem) => sum + lineItem.quantity, 0);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1f2937]/45 px-4 py-6" onClick={onClose} role="presentation">
       <div
         aria-modal="true"
-        className="mx-auto max-w-[1180px] overflow-hidden rounded-md border border-[#e2d6ca] bg-white shadow-2xl"
+        className="mx-auto max-w-[1120px] overflow-hidden rounded-md bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
       >
-        <div className="sticky top-0 z-10 border-b border-[#e8d2bf] bg-white">
-          <div className="flex flex-col gap-4 px-5 py-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="sticky top-0 z-10 border-b border-[#eeeeee] bg-white">
+          <div className="flex flex-col gap-4 px-6 py-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#767676]">Quote review</p>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#767676]">RFQ response</p>
                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
               </div>
               <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{request.title}</h2>
               <p className="mt-1 text-[14px] text-[#64748b]">
-                {quoteReference(request)} - {request.buyerCompany} - {request.process}
+                {quoteReference(request)} - {request.buyerCompany} - {request.process} - {request.lineItems.length} part
+                {request.lineItems.length === 1 ? "" : "s"} - Qty {totalQuantity} - {request.files.length} file
+                {request.files.length === 1 ? "" : "s"}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {isIssuedQuote ? (
+                <button
+                  className="inline-flex h-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
+                  onClick={() => setIsEditingIssuedQuote((current) => !current)}
+                  type="button"
+                >
+                  {isEditingIssuedQuote ? "Cancel edit" : "Edit quote"}
+                </button>
+              ) : null}
               {latestCustomerQuote ? (
                 <a
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
                   href={`/admin/quotes/${request.id}/quote.pdf`}
+                  rel="noreferrer"
+                  target="_blank"
                   title="Opens the last saved customer quote PDF for review."
                 >
                   <FileText aria-hidden="true" size={16} />
@@ -378,381 +470,359 @@ function AdminQuoteDetailDrawer({
           </div>
         </div>
 
-        <div className="space-y-5 p-5">
+        <div className="px-6 py-6">
           <SupplierQuoteFiles
+            readOnly={isReadOnlyIssuedQuote}
+            removeHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files/remove"}
             request={request}
             returnTo={`/admin/quotes?requestId=${encodeURIComponent(request.id)}`}
-            uploadHref="/api/supplier-quote-files"
+            stepNumber={1}
+            uploadHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files"}
             variant="admin"
           />
 
-          <form action={updateStatusAction} className="space-y-5">
+          <form action={updateStatusAction}>
             <input name="requestId" type="hidden" value={request.id} />
             <input name="status" type="hidden" value="QUOTED" />
             <input name="assignedOwner" type="hidden" value={request.operatorReview.assignedOwner ?? ""} />
             <input name="supplierPackageNotes" type="hidden" value={request.operatorReview.supplierPackageNotes} />
             <input name="internalNotes" type="hidden" value={request.operatorReview.internalNotes} />
+            <input name="quoteCreatedDate" type="hidden" value={quoteCreatedDate} />
 
-            <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-              <h3 className="text-[18px] font-semibold text-[#171717]">Quote line items</h3>
-              {isSubmittedToCustomer ? (
-                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">This quote has been submitted to the customer. Pricing and lead times are locked for auditability.</p>
-              ) : null}
+            <section className="border-t border-[#eeeeee] py-6">
+              <StepHeading
+                number={2}
+                summary="Capture the selected Chinese shop quote as structured data so the supplier PO can match the shop quote line by line."
+              >
+                Selected Chinese shop quote
+              </StepHeading>
+              <div className="mt-4 grid gap-4 lg:grid-cols-4">
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                  Shop name
+                  <input
+                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    defaultValue={selectedShopQuote?.shopName || request.supplierOrder.shopName || "China supplier team"}
+                    name="supplierQuoteShop"
+                    placeholder="Shenzhen Precision Manufacturing"
+                  />
+                </label>
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                  Country
+                  <input
+                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    defaultValue={selectedShopQuote?.country || "China"}
+                    name="supplierQuoteCountry"
+                    placeholder="China"
+                  />
+                </label>
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                  Supplier contact
+                  <input
+                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    defaultValue={selectedShopQuote?.contactName || request.supplierOrder.contactName}
+                    name="supplierQuoteContact"
+                    placeholder="Contact name"
+                  />
+                </label>
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                  Supplier quote total
+                  <input
+                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    defaultValue={formatCurrencyInput(selectedShopQuote?.priceCents ?? null)}
+                    inputMode="decimal"
+                    name="supplierQuoteTotal"
+                    placeholder="0.00"
+                  />
+                </label>
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                  Overall lead time days
+                  <input
+                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    defaultValue={selectedShopQuote?.leadTimeDays ?? ""}
+                    inputMode="numeric"
+                    name="supplierQuoteLeadTime"
+                    placeholder="Days"
+                  />
+                </label>
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a] lg:col-span-3">
+                  Supplier quote notes
+                  <input
+                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    defaultValue={selectedShopQuote?.notes ?? ""}
+                    name="supplierQuoteNotes"
+                    placeholder="Setup, tooling, freight, or shop quote assumptions"
+                  />
+                </label>
+              </div>
               <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
-                <div className="min-w-[980px]">
-                  <div className="grid grid-cols-[minmax(190px,0.9fr)_minmax(320px,1.35fr)_64px_150px_150px] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
-                    <span>Part name</span>
-                    <span>Files</span>
+                <div className="min-w-[1220px]">
+                  <div className="grid grid-cols-[minmax(190px,0.85fr)_64px_150px_150px_170px_minmax(240px,1fr)] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
+                    <span>Part</span>
                     <span className="text-center">Qty</span>
-                    <span>Unit price</span>
-                    <span>Lead time</span>
+                    <span>Supplier unit price</span>
+                    <span>Supplier lead time</span>
+                    <span>Drawing / revision</span>
+                    <span>Supplier notes</span>
                   </div>
                   <div className="divide-y divide-[#eeeeee]">
-                    {bundles.map(({ files, lineItem }) => {
-                      const cadFile = files.find(isCadFile);
-                      const drawingFile = files.find(isDrawingFile);
-                      const cadHref = cadFile ? fileDownloadHref(cadFile) : null;
-                      const drawingHref = drawingFile ? fileDownloadHref(drawingFile) : null;
-
-                      return (
-                        <div className="grid grid-cols-[minmax(190px,0.9fr)_minmax(320px,1.35fr)_64px_150px_150px] items-center gap-4 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
-                          <p className="min-w-0 break-words font-semibold text-[#202020]">{lineItem.partName}</p>
-                          <div className="grid min-w-0 gap-2">
-                            {cadFile && cadHref ? (
-                              <a
-                                className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[#315a94] underline-offset-2 hover:underline"
-                                download={cadFile.name}
-                                href={cadHref}
-                                title={`Download ${cadFile.name}`}
-                              >
-                                <span className="shrink-0 rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#767676]">CAD</span>
-                                <span className="min-w-0 truncate">{cadFile.name}</span>
-                              </a>
-                            ) : (
-                              <span
-                                aria-label={`CAD file unavailable for ${lineItem.partName}`}
-                                className="text-[12px] font-medium text-[#9ca3af]"
-                                title="CAD file unavailable"
-                              >
-                                CAD file unavailable
-                              </span>
-                            )}
-                            {drawingFile && drawingHref ? (
-                              <a
-                                className="flex min-w-0 items-center gap-2 text-[13px] font-semibold text-[#315a94] underline-offset-2 hover:underline"
-                                download={drawingFile.name}
-                                href={drawingHref}
-                                title={`Download ${drawingFile.name}`}
-                              >
-                                <span className="shrink-0 rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#767676]">Drawing</span>
-                                <span className="min-w-0 truncate">{drawingFile.name}</span>
-                              </a>
-                            ) : (
-                              <span
-                                aria-label={`Drawing unavailable for ${lineItem.partName}`}
-                                className="text-[12px] font-medium text-[#9ca3af]"
-                                title="Drawing unavailable"
-                              >
-                                Drawing unavailable
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
-                          {isSubmittedToCustomer ? (
-                            <>
-                              <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2 text-[14px] font-semibold text-[#202020]">{lineItemUnitPriceDisplay(request, lineItem)}</p>
-                              <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2 text-[14px] font-semibold text-[#202020]">{lineItemLeadTimeDisplay(request, lineItem)}</p>
-                            </>
-                          ) : (
-                            <>
-                              <label className="grid gap-1">
-                                <span className="sr-only">Unit price - {lineItem.partName}</span>
-                                <input
-                                  className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                                  defaultValue={lineItemUnitPriceInput(request, lineItem)}
-                                  inputMode="decimal"
-                                  name={`unitPrice:${lineItem.id}`}
-                                  placeholder="0.00"
-                                />
-                              </label>
-                              <label className="grid gap-1">
-                                <span className="sr-only">Lead time days - {lineItem.partName}</span>
-                                <input
-                                  className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                                  defaultValue={lineItemLeadTimeInput(request, lineItem)}
-                                  inputMode="numeric"
-                                  name={`leadTimeDays:${lineItem.id}`}
-                                  placeholder="Days"
-                                />
-                              </label>
-                            </>
-                          )}
+                    {request.lineItems.map((lineItem) => (
+                      <div className="grid grid-cols-[minmax(190px,0.85fr)_64px_150px_150px_170px_minmax(240px,1fr)] items-center gap-4 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-[#202020]">{lineItem.partName}</p>
+                          <p className="mt-1 truncate text-[12px] text-[#64748b]">{lineItem.material}</p>
                         </div>
-                      );
-                    })}
+                        <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
+                        <label className="grid gap-1">
+                          <span className="sr-only">Supplier unit price - {lineItem.partName}</span>
+                          <input
+                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={supplierUnitPriceInput(request, lineItem)}
+                            inputMode="decimal"
+                            name={`supplierUnitPrice:${lineItem.id}`}
+                            placeholder="0.00"
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="sr-only">Supplier lead time days - {lineItem.partName}</span>
+                          <input
+                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={supplierLeadTimeInput(request, lineItem)}
+                            inputMode="numeric"
+                            name={`supplierLeadTimeDays:${lineItem.id}`}
+                            placeholder="Days"
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="sr-only">Supplier drawing revision - {lineItem.partName}</span>
+                          <input
+                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={supplierDrawingRevisionInput(request, lineItem)}
+                            name={`supplierDrawingRevision:${lineItem.id}`}
+                          />
+                        </label>
+                        <label className="grid gap-1">
+                          <span className="sr-only">Supplier notes - {lineItem.partName}</span>
+                          <input
+                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                            defaultValue={supplierNotesInput(request, lineItem)}
+                            name={`supplierNotes:${lineItem.id}`}
+                            placeholder="Shop quote note"
+                          />
+                        </label>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </section>
 
-            <div className="grid gap-5 xl:grid-cols-[1fr_0.72fr]">
-              <div className="space-y-5">
-                <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                  <div className="flex items-center gap-2">
-                    <FileText aria-hidden="true" className="text-[#767676]" size={18} />
-                    <h3 className="text-[18px] font-semibold text-[#171717]">Uploaded files</h3>
+            <section className="border-t border-[#eeeeee] py-6">
+              <StepHeading
+                number={3}
+                summary={isReadOnlyIssuedQuote ? "Saved part pricing and lead times from the issued customer quote." : "Review each part package, then enter the supplier-backed price and lead time."}
+              >
+                {isReadOnlyIssuedQuote ? "Issued pricing and lead time" : "Enter pricing and lead time"}
+              </StepHeading>
+              {isReadOnlyIssuedQuote ? (
+                <p className="mt-3 rounded-md bg-[#f4fbfa] px-3 py-2 text-[13px] leading-5 text-[#315a94]">
+                  This quote has already been issued to the customer. Values below show the latest saved customer quote version.
+                </p>
+              ) : isIssuedQuote ? (
+                <p className="mt-3 rounded-md bg-[#fff7f7] px-3 py-2 text-[13px] leading-5 text-[#8a3a3d]">
+                  Editing this issued quote will save a new customer quote version and update the buyer-facing quote.
+                </p>
+              ) : null}
+              <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
+                <div className="min-w-[1180px]">
+                  <div className="grid grid-cols-[minmax(190px,0.8fr)_minmax(230px,1fr)_minmax(260px,1.1fr)_64px_150px_150px] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
+                    <span>Part</span>
+                    <span>Specs</span>
+                    <span>Uploaded files</span>
+                    <span className="text-center">Qty</span>
+                    <span>Unit price</span>
+                    <span>Lead time</span>
                   </div>
-                  <div className="mt-4 space-y-3">
+                  <div className="divide-y divide-[#eeeeee]">
                     {bundles.map(({ files, lineItem }) => (
-                      <article className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={lineItem.id}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <h4 className="text-[14px] font-semibold text-[#202020]">Files for {lineItem.partName}</h4>
-                          <span className="rounded-md bg-white px-2 py-1 text-[12px] font-semibold text-[#4b5563]">Qty {lineItem.quantity}</span>
+                      <div className="grid grid-cols-[minmax(190px,0.8fr)_minmax(230px,1fr)_minmax(260px,1.1fr)_64px_150px_150px] items-center gap-4 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
+                        <p className="min-w-0 truncate font-semibold text-[#202020]">{lineItem.partName}</p>
+                        <dl className="grid gap-1.5 text-[12px] leading-5 text-[#64748b]">
+                          <div>
+                            <dt className="inline font-semibold text-[#30343a]">Material: </dt>
+                            <dd className="inline">{lineItem.material}</dd>
+                          </div>
+                          <div>
+                            <dt className="inline font-semibold text-[#30343a]">Finish: </dt>
+                            <dd className="inline">{lineItem.surfaceFinish || "Not specified"}</dd>
+                          </div>
+                          <div>
+                            <dt className="inline font-semibold text-[#30343a]">Tolerance: </dt>
+                            <dd className="inline">{lineItem.generalTolerance || "Not specified"}</dd>
+                          </div>
+                        </dl>
+                        <div className="grid min-w-0 content-start gap-2">
+                          {files.length ? (
+                            files.map((file) => <DownloadFileLink file={file} key={file.id} />)
+                          ) : (
+                            <span className="text-[12px] font-medium text-[#9ca3af]">No matched files</span>
+                          )}
                         </div>
-                        <div className="mt-3 space-y-2">
-                          {files.length > 0 ? (
-                            files.map((file) => {
-                              const href = fileDownloadHref(file);
-
-                            return (
-                              <div className="flex flex-col gap-3 rounded-md border border-[#e6e6e6] bg-white p-3 sm:flex-row sm:items-center sm:justify-between" key={file.id}>
-                                <div className="min-w-0">
-                                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                    <span className="rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#767676]">
-                                      {fileKindLabel(file)}
-                                    </span>
-                                    <p className="truncate text-[14px] font-semibold text-[#202020]">{file.name}</p>
-                                  </div>
-                                  <p className="mt-1 text-[12px] text-[#8a8f98]">
-                                    {file.type || "Uploaded file"} - {formatFileSize(file.sizeBytes)}
-                                  </p>
-                                </div>
-                                {href ? (
-                                  <a className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]" href={href}>
-                                    Download
-                                  </a>
-                                ) : (
-                                  <span className="text-[12px] font-medium text-[#9a5a2f]">Reference only - ask buyer to re-upload</span>
-                                )}
-                              </div>
-                            );
-                          })
+                        <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
+                        {isReadOnlyIssuedQuote ? (
+                          <>
+                            <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2 text-[14px] font-semibold text-[#202020]">{lineItemUnitPriceDisplay(request, lineItem)}</p>
+                            <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-2 text-[14px] font-semibold text-[#202020]">{lineItemLeadTimeDisplay(request, lineItem)}</p>
+                          </>
                         ) : (
-                          <p className="rounded-md border border-dashed border-[#d7d7d7] bg-white p-3 text-[12px] text-[#7b8088]">No uploaded files matched to this part.</p>
+                          <>
+                            <label className="grid gap-1">
+                              <span className="sr-only">Unit price - {lineItem.partName}</span>
+                              <input
+                                className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                                defaultValue={lineItemUnitPriceInput(request, lineItem)}
+                                inputMode="decimal"
+                                name={`unitPrice:${lineItem.id}`}
+                                placeholder="0.00"
+                              />
+                            </label>
+                            <label className="grid gap-1">
+                              <span className="sr-only">Lead time days - {lineItem.partName}</span>
+                              <input
+                                className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                                defaultValue={lineItemLeadTimeInput(request, lineItem)}
+                                inputMode="numeric"
+                                name={`leadTimeDays:${lineItem.id}`}
+                                placeholder="Days"
+                              />
+                            </label>
+                          </>
                         )}
                       </div>
-                    </article>
-                  ))}
-                  {unassignedFiles.length > 0 ? (
-                    <article className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">
-                      <h4 className="text-[14px] font-semibold text-[#202020]">Unassigned files</h4>
-                      <div className="mt-3 space-y-2">
-                        {unassignedFiles.map((file) => {
-                          const href = fileDownloadHref(file);
-
-                          return (
-                            <div className="flex flex-col gap-3 rounded-md border border-[#e6e6e6] bg-white p-3 sm:flex-row sm:items-center sm:justify-between" key={file.id}>
-                              <div className="min-w-0">
-                                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                  <span className="rounded-md border border-[#ffd1d4] bg-white px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#767676]">
-                                    {fileKindLabel(file)}
-                                  </span>
-                                  <p className="truncate text-[14px] font-semibold text-[#202020]">{file.name}</p>
-                                </div>
-                                <p className="mt-1 text-[12px] text-[#8a8f98]">
-                                  {file.type || "Uploaded file"} - {formatFileSize(file.sizeBytes)}
-                                </p>
-                              </div>
-                              {href ? (
-                                <a className="inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]" href={href}>
-                                  Download
-                                </a>
-                              ) : (
-                                <span className="text-[12px] font-medium text-[#9a5a2f]">Reference only - ask buyer to re-upload</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </article>
-                  ) : null}
+                    ))}
+                  </div>
                 </div>
-              </section>
-
-              <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <div className="flex items-center gap-2">
-                  <PackageCheck aria-hidden="true" className="text-[#767676]" size={18} />
-                  <h3 className="text-[18px] font-semibold text-[#171717]">Configured parts</h3>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {request.lineItems.map((lineItem, index) => (
-                    <article className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={`${lineItem.partName}-${index}`}>
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-semibold text-[#202020]">{lineItem.partName}</p>
-                        <span className="rounded-md bg-white px-2 py-1 text-[12px] font-semibold text-[#4b5563]">Qty {lineItem.quantity}</span>
-                      </div>
-                      <dl className="mt-3 grid gap-3 text-[13px] sm:grid-cols-2">
-                        <div>
-                          <dt className="font-semibold text-[#6f737a]">Material</dt>
-                          <dd className="mt-1 text-[#202020]">{lineItem.material}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-semibold text-[#6f737a]">Process</dt>
-                          <dd className="mt-1 text-[#202020]">{request.process}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-semibold text-[#6f737a]">Tolerance</dt>
-                          <dd className="mt-1 text-[#202020]">{lineItem.generalTolerance || "Not specified"}</dd>
-                        </div>
-                        <div>
-                          <dt className="font-semibold text-[#6f737a]">Finish</dt>
-                          <dd className="mt-1 text-[#202020]">{lineItem.surfaceFinish || "Not specified"}</dd>
-                        </div>
-                      </dl>
-                      {(lineItem.qualityDocumentation?.length ?? 0) > 0 ? (
-                        <p className="mt-3 text-[12px] font-semibold text-[#4b5563]">Quality docs: {lineItem.qualityDocumentation?.join(", ")}</p>
-                      ) : null}
-                      {lineItem.notes ? <p className="mt-3 text-[13px] leading-5 text-[#64748b]">{lineItem.notes}</p> : null}
-                    </article>
+              </div>
+              {unassignedFiles.length ? (
+                <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
+                  <span className="font-semibold text-[#30343a]">Other files:</span>
+                  {unassignedFiles.map((file) => (
+                    <DownloadFileLink file={file} key={file.id} />
                   ))}
                 </div>
-              </section>
-            </div>
+              ) : null}
+            </section>
 
-            <div className="space-y-5">
-              <section className="rounded-md border border-[#e6e6e6] bg-white p-4">
-                <h3 className="text-[18px] font-semibold text-[#171717]">Quote feedback</h3>
-                <p className="mt-1 text-[13px] leading-5 text-[#64748b]">
-                  {isSubmittedToCustomer ? "Customer-submitted quote details are locked. Create a new RFQ revision if the commercial terms need to change." : "Enter the critical numbers needed to respond to the customer."}
+            <section className="border-t border-[#eeeeee] pt-6">
+              <StepHeading
+                number={4}
+                summary={isReadOnlyIssuedQuote ? "Saved shipping, validity, and customer-facing note from the issued quote." : "Set shipping and quote validity, then send the customer-facing quote."}
+              >
+                {isReadOnlyIssuedQuote ? "Issued customer quote" : "Issue customer quote"}
+              </StepHeading>
+              {isReadOnlyIssuedQuote ? (
+                <p className="mt-3 rounded-md bg-[#f4fbfa] px-3 py-2 text-[13px] leading-5 text-[#315a94]">
+                  Latest saved version: customer quote v{latestCustomerQuote?.versionNumber}.
                 </p>
-
-                <div className="mt-4 grid gap-4">
-                  {isSubmittedToCustomer ? (
-                    <dl className="grid gap-3 rounded-md border border-[#b8eee8] bg-[#f4fbfa] p-4">
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
-                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Shipping</dt>
-                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{latestCustomerQuote?.shipping || formatCurrency(request.quote.shippingCostCents)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Estimated delivery date</dt>
-                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate(request.quote.estimatedDeliveryDate || null)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Quote created date</dt>
-                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate((latestCustomerQuote?.quoteDate ?? request.quote.quoteCreatedDate) || null)}</dd>
-                        </div>
-                        <div>
-                          <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Quote valid until</dt>
-                          <dd className="mt-1 text-[14px] font-semibold text-[#202020]">{formatDate((latestCustomerQuote?.validUntil ?? request.quote.quoteValidUntil) || null)}</dd>
-                        </div>
-                      </div>
-                      <div>
-                        <dt className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#6f737a]">Quote notes</dt>
-                        <dd className="mt-1 whitespace-pre-wrap text-[14px] leading-6 text-[#202020]">{latestCustomerQuote?.notes || request.quote.summary || "No customer notes saved."}</dd>
-                      </div>
-                    </dl>
-                  ) : (
-                    <>
-                      <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                        Shipping cost
-                        <input
-                          className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                          defaultValue={formatCurrencyInput(request.quote.shippingCostCents)}
-                          inputMode="decimal"
-                          name="shippingCost"
-                          placeholder="Billed at actual or 125.00"
-                        />
-                      </label>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                          Shipping method
-                          <select
-                            className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={request.quote.shippingMethod}
-                            name="shippingMethod"
-                          >
-                            <option value="">Select method</option>
-                            <option value="International">International</option>
-                            <option value="Domestic">Domestic</option>
-                          </select>
-                        </label>
-
-                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                          Shipping terms
-                          <select
-                            className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={request.quote.shippingTerms}
-                            name="shippingTerms"
-                          >
-                            <option value="">Select terms</option>
-                            <option value="EXW">EXW</option>
-                            <option value="DDP">DDP</option>
-                            <option value="Determined at Checkout">Determined at Checkout</option>
-                            <option value="DAP">DAP</option>
-                            <option value="FOB">FOB</option>
-                          </select>
-                        </label>
-                      </div>
-
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                          Estimated delivery date
-                          <input
-                            className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={request.quote.estimatedDeliveryDate}
-                            name="estimatedDeliveryDate"
-                            type="date"
-                          />
-                        </label>
-
-                        <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                          Quote Created Date
-                          <input
-                            className="h-11 rounded-md border border-[#d9d9d9] bg-[#f8fafc] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            name="quoteCreatedDate"
-                            readOnly
-                            type="date"
-                            value={quoteCreatedDate}
-                          />
-                        </label>
-                      </div>
-
-                      <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                        Quote Valid Until
-                        <input
-                          className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                          name="quoteValidUntil"
-                          onChange={(event) => setQuoteValidUntil(event.target.value)}
-                          type="date"
-                          value={quoteValidUntil}
-                        />
-                      </label>
-
-                      <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                        Quote notes
-                        <textarea
-                          className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
-                          defaultValue={request.quote.summary}
-                          name="quoteSummary"
-                          placeholder="What should the customer know about price, lead time, shipping, exclusions, or assumptions?"
-                        />
-                      </label>
-
-                      <button
-                        className="h-10 rounded-md bg-[#262626] px-4 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
-                        disabled={!updateStatusAction}
-                        type="submit"
-                      >
-                        Submit Quote to Customer
-                      </button>
-                    </>
-                  )}
+              ) : isIssuedQuote ? (
+                <p className="mt-3 rounded-md bg-[#fff7f7] px-3 py-2 text-[13px] leading-5 text-[#8a3a3d]">
+                  Latest saved version: customer quote v{latestCustomerQuote?.versionNumber}. Saving creates v{(latestCustomerQuote?.versionNumber ?? 0) + 1}.
+                </p>
+              ) : null}
+              {isReadOnlyIssuedQuote ? (
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <StaticField label="Shipping cost" value={formatCurrencyPrecise(request.quote.shippingCostCents)} />
+                  <StaticField label="Shipping speed" value={request.quote.shippingMethod || "Pending"} />
+                  <StaticField label="Shipping terms" value={request.quote.shippingTerms || "Pending"} />
+                  <StaticField label="Estimated delivery date" value={formatDate(request.quote.estimatedDeliveryDate)} />
+                  <StaticField label="Quote valid until" value={formatDate(latestCustomerQuote?.validUntil ?? request.quote.quoteValidUntil)} />
+                  <div className="grid gap-1 lg:row-span-2">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#8a8f98]">Customer note</p>
+                    <p className="min-h-28 rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-3 text-[14px] leading-6 text-[#202020]">
+                      {latestCustomerQuote?.notes || request.quote.summary || "Pending"}
+                    </p>
+                  </div>
                 </div>
-              </section>
-            </div>
-          </div>
+              ) : (
+                <>
+                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Shipping cost
+                      <input
+                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={formatCurrencyInput(request.quote.shippingCostCents)}
+                        inputMode="decimal"
+                        name="shippingCost"
+                        placeholder="Billed at actual or 125.00"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Shipping speed
+                      <select
+                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.shippingMethod}
+                        name="shippingMethod"
+                      >
+                        <option value="">Select speed</option>
+                        <option value="International">International</option>
+                        <option value="Domestic">Domestic</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Shipping terms
+                      <select
+                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.shippingTerms}
+                        name="shippingTerms"
+                      >
+                        <option value="">Select terms</option>
+                        <option value="EXW">EXW</option>
+                        <option value="DDP">DDP</option>
+                        <option value="Determined at Checkout">Determined at Checkout</option>
+                        <option value="DAP">DAP</option>
+                        <option value="FOB">FOB</option>
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Estimated delivery date
+                      <input
+                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={request.quote.estimatedDeliveryDate}
+                        name="estimatedDeliveryDate"
+                        type="date"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                      Quote valid until
+                      <input
+                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        name="quoteValidUntil"
+                        onChange={(event) => setQuoteValidUntil(event.target.value)}
+                        type="date"
+                        value={quoteValidUntil}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a] lg:row-span-2">
+                      Customer note
+                      <textarea
+                        className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
+                        defaultValue={latestCustomerQuote?.notes || request.quote.summary}
+                        name="quoteSummary"
+                        placeholder="Add exclusions, assumptions, shipping notes, or pricing context."
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-5 flex justify-end">
+                    <button
+                      className="h-11 rounded-md bg-[#262626] px-5 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
+                      disabled={!updateStatusAction}
+                      type="submit"
+                    >
+                      {isIssuedQuote ? "Save updated quote" : "Issue customer quote"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </section>
           </form>
         </div>
       </div>
@@ -773,7 +843,7 @@ export function AdminQuoteManagement({
   const searchParams = useSearchParams();
   const deepLinkedRequestId = searchParams.get("requestId");
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
+  const [statusFilter, setStatusFilter] = useState<AdminQuoteStatusFilter>("ALL");
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
   const [localDraftRequests, setLocalDraftRequests] = useState<LatticeRequest[]>([]);
 
@@ -802,18 +872,25 @@ export function AdminQuoteManagement({
         return;
       }
 
-      setDetailRequest(quoteRequests.find((request) => request.id === deepLinkedRequestId) ?? null);
+      const matchingRequest = quoteRequests.find((request) => request.id === deepLinkedRequestId) ?? null;
+
+      setDetailRequest(matchingRequest);
+
+      if (!matchingRequest) {
+        router.replace("/admin/quotes", { scroll: false });
+      }
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [deepLinkedRequestId, quoteRequests]);
+  }, [deepLinkedRequestId, quoteRequests, router]);
 
   const filteredRequests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return quoteRequests.filter((request) => {
+    return sortByUpdatedAtNewest(quoteRequests.filter((request) => {
       const primaryLine = request.lineItems[0];
-      const matchesStatus = statusFilter === "ALL" || request.status === statusFilter;
+      const statusGroup = adminQuoteStatusGroup(request);
+      const matchesStatus = statusFilter === "ALL" ? statusGroup !== "ARCHIVED" : statusGroup === statusFilter;
       const searchable = [
         request.title,
         request.process,
@@ -830,8 +907,19 @@ export function AdminQuoteManagement({
         .toLowerCase();
 
       return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
-    });
+    }));
   }, [query, quoteRequests, statusFilter]);
+
+  const groupedRequests = useMemo(() => {
+    const visibleGroups = statusGroupOrder.filter((group) => (statusFilter === "ALL" ? group !== "ARCHIVED" : group === statusFilter));
+
+    return visibleGroups
+      .map((group) => ({
+        group,
+        requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === group),
+      }))
+      .filter(({ requests }) => requests.length > 0);
+  }, [filteredRequests, statusFilter]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -841,13 +929,17 @@ export function AdminQuoteManagement({
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-  function openDetail(request: LatticeRequest) {
-    setDetailRequest(request);
-
-    if (deepLinkedRequestId !== request.id) {
-      router.push(`/admin/quotes?requestId=${encodeURIComponent(request.id)}`, { scroll: false });
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted && window.location.pathname === "/admin/quotes") {
+        window.location.reload();
+      }
     }
-  }
+
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   function closeDetail() {
     setDetailRequest(null);
@@ -857,13 +949,17 @@ export function AdminQuoteManagement({
     }
   }
 
-  function openDetailFromKey(event: KeyboardEvent<HTMLElement>, request: LatticeRequest) {
-    if (event.key !== "Enter" && event.key !== " ") {
+  function openDetail(event: MouseEvent<HTMLAnchorElement>, request: LatticeRequest) {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
     }
 
     event.preventDefault();
-    openDetail(request);
+    setDetailRequest(request);
+
+    if (deepLinkedRequestId !== request.id) {
+      router.push(quoteDetailHref(request), { scroll: false });
+    }
   }
 
   function openDraftFromKey(event: KeyboardEvent<HTMLElement>, request: LatticeRequest) {
@@ -1032,105 +1128,100 @@ export function AdminQuoteManagement({
             </div>
           </div>
 
-          <div className="grid grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] gap-4 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#767676] max-xl:hidden">
-            <span>RFQ package</span>
-            <span>Customer</span>
-            <span>Requested</span>
-            <span>Files and parts</span>
-            <span>Supplier basis</span>
-            <span>Commercials</span>
-            <span>Next step</span>
-          </div>
-
           <div className="divide-y divide-[#eeeeee]">
-            {filteredRequests.map((request) => {
-              const primaryLine = request.lineItems[0];
-              const status = statusCopy[request.status];
-              const latestCustomerQuote = request.customerQuotes.at(-1);
-              const selectedQuote = selectedSupplierQuote(request);
-              const requestCadFiles = cadFiles(request);
-              const requestDrawingFiles = drawingFiles(request);
+            {groupedRequests.map(({ group, requests: groupRequests }) => {
+              const groupCopy = customerQuoteStatusCopy[group];
 
               return (
-                <article
-                  aria-label={`Manage quote submission for ${request.title}`}
-                  className="grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.1fr_0.66fr_0.64fr_0.72fr_0.7fr_0.6fr_0.72fr] xl:items-center"
-                  key={request.id}
-                  onClick={() => openDetail(request)}
-                  onKeyDown={(event) => openDetailFromKey(event, request)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{quoteReference(request)}</span>
-                      <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
-                    </div>
-                    <button
-                      className="mt-2 block max-w-full truncate text-left text-[15px] font-semibold text-[#202020] transition hover:text-[#FF5A5F]"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        openDetail(request);
-                      }}
-                      type="button"
-                    >
-                      {request.title}
-                    </button>
-                    <p className="mt-1 truncate text-[13px] text-[#69707a]">
-                      {primaryLine?.partName ?? "No line item"} - {request.process}
+                <div key={group}>
+                  <div className="flex flex-col gap-1 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h3 className="text-[14px] font-semibold text-[#202020]">{groupCopy.label}</h3>
+                    <p className="text-[12px] text-[#777d86]">
+                      {groupRequests.length} {groupRequests.length === 1 ? "quote" : "quotes"}
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
-                    <div className="mt-1 flex min-w-0 items-center gap-2 xl:mt-0">
-                      <p className="min-w-0 truncate text-[14px] font-medium text-[#30343a]">{request.buyerCompany}</p>
-                      <CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} />
-                    </div>
-                    <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
+                  <div className="grid grid-cols-[1.25fr_0.72fr_0.78fr_0.92fr_0.72fr] gap-4 border-b border-[#eeeeee] bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#767676] max-xl:hidden">
+                    <span>RFQ details</span>
+                    <span>Customer</span>
+                    <span>Last edited</span>
+                    <span>Package</span>
+                    <span>Quote status</span>
                   </div>
 
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Requested</p>
-                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{formatDateTime(request.createdAt)}</p>
-                  </div>
+                  <div className="divide-y divide-[#eeeeee]">
+                    {groupRequests.map((request) => {
+                      const primaryLine = request.lineItems[0];
+                      const requestCadFiles = cadFiles(request);
+                      const requestDrawingFiles = drawingFiles(request);
+                      const totalQuantity = request.lineItems.reduce((sum, item) => sum + item.quantity, 0);
+                      const statusGroup = adminQuoteStatusGroup(request);
+                      const status = customerQuoteStatusCopy[statusGroup];
+                      const statusNote = adminQuoteStatusNote(request);
+                      const detailHref = quoteDetailHref(request);
 
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Files and parts</p>
-                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
-                      {request.lineItems.length} part(s), {request.files.length} file(s)
-                    </p>
-                    <p className="mt-1 text-[12px] text-[#8a8f98]">
-                      {requestCadFiles.length} CAD / {requestDrawingFiles.length} drawing
-                    </p>
-                  </div>
+                      return (
+                        <article
+                          className="group relative grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] xl:grid-cols-[1.25fr_0.72fr_0.78fr_0.92fr_0.72fr] xl:items-center"
+                          key={request.id}
+                        >
+                          <Link
+                            aria-label={`Manage quote submission for ${request.title}`}
+                            className="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F]"
+                            href={detailHref}
+                            onClick={(event) => openDetail(event, request)}
+                            scroll={false}
+                          />
+                          <div className="pointer-events-none relative z-10 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{quoteReference(request)}</span>
+                            </div>
+                            <p className="mt-2 block max-w-full truncate text-left text-[15px] font-semibold text-[#202020] transition group-hover:text-[#FF5A5F]">
+                              {request.title}
+                            </p>
+                            <p className="mt-1 truncate text-[13px] text-[#69707a]">
+                              {primaryLine?.partName ?? "No line item"} - {request.process}
+                            </p>
+                          </div>
 
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Supplier basis</p>
-                    <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{selectedQuote?.shopName ?? supplierSummary(request)}</p>
-                    <p className="mt-1 text-[12px] text-[#8a8f98]">
-                      {selectedQuote ? `${formatCurrency(selectedQuote.priceCents)} / ${selectedQuote.leadTimeDays ?? "?"} days` : `${request.supplierQuotes.length} shop(s) contacted`}
-                    </p>
-                  </div>
+                          <div className="pointer-events-none relative z-10">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
+                            <div className="mt-1 flex min-w-0 items-center gap-2 xl:mt-0">
+                              <p className="min-w-0 truncate text-[14px] font-medium text-[#30343a]">{request.buyerCompany}</p>
+                              <CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} />
+                            </div>
+                            <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
+                          </div>
 
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Commercials</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{formatCurrency(latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents)}</p>
-                    <p className="mt-1 text-[12px] text-[#8a8f98]">
-                      {latestCustomerQuote ? `Customer v${latestCustomerQuote.versionNumber}` : request.quote.leadTimeDays ? `${request.quote.leadTimeDays} day lead time` : "Lead time pending"}
-                    </p>
-                  </div>
+                          <div className="pointer-events-none relative z-10">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Last edited</p>
+                            <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{formatDateTime(request.updatedAt)}</p>
+                          </div>
 
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Next step</p>
-                    <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{nextActionForRequest(request)}</p>
-                    <p className="mt-1 text-[12px] text-[#8a8f98]">{formatDate(request.dueDate)}</p>
+                          <div className="pointer-events-none relative z-10">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Package</p>
+                            <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
+                              {request.lineItems.length} part{request.lineItems.length === 1 ? "" : "s"} / Qty {totalQuantity || "Pending"}
+                            </p>
+                            <p className="mt-1 text-[12px] text-[#8a8f98]">
+                              {request.files.length} file{request.files.length === 1 ? "" : "s"} - {requestCadFiles.length} CAD / {requestDrawingFiles.length} drawing
+                            </p>
+                          </div>
+
+                          <div className="pointer-events-none relative z-10">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Quote status</p>
+                            <span className={`mt-1 inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold xl:mt-0 ${status.tone}`}>{status.label}</span>
+                            {statusNote ? <p className="mt-1 text-[12px] text-[#8a8f98]">{statusNote}</p> : null}
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
-                </article>
+                </div>
               );
             })}
 
-            {filteredRequests.length === 0 ? (
+            {groupedRequests.length === 0 ? (
               <div className="p-8 text-center">
                 <h2 className="text-[18px] font-semibold text-[#202020]">No quote submissions match this view.</h2>
                 <p className="mt-2 text-[14px] text-[#6f737a]">Clear the search or choose a different status filter.</p>

@@ -10,9 +10,10 @@ export {
   initialShippingAddress,
   initialTeamMembers,
 } from "./account-settings-shared";
-import { defaultAccountSettings, type AccountAddress, type AccountSettingsSnapshot } from "./account-settings-shared";
+import { defaultAccountSettings, type AccountAddress, type AccountSettingsSnapshot, type PaymentCard } from "./account-settings-shared";
 import { getPrismaClient } from "./prisma";
 import type { RequestContactSnapshot } from "./request-model";
+import { getStripeClient, isStripeConfigured, stripePaymentMethodCardSnapshot } from "./stripe";
 export type { AccountAddress, AccountSettingsSnapshot, BillingContact, PaymentCard, TeamMember } from "./account-settings-shared";
 
 type StoredAccountDefaults = {
@@ -32,6 +33,7 @@ type StoredAccountDefaults = {
   name: string;
   passwordChangedAt: string;
   phone: string;
+  stripeCustomerId?: string;
   shippingAddress1: string;
   shippingAddress2: string;
   shippingCity: string;
@@ -75,6 +77,7 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     passwordChangedAt: text(settings.passwordChangedAt),
     phone: text(settings.phone),
     shipping: normalizeAddress(settings.shipping),
+    stripeCustomerId: text(settings.stripeCustomerId),
     teamMembers: settings.teamMembers,
   };
 }
@@ -103,6 +106,7 @@ function fromStoredAccountDefaults(stored: StoredAccountDefaults): AccountSettin
     name: stored.name,
     passwordChangedAt: stored.passwordChangedAt,
     phone: stored.phone,
+    stripeCustomerId: stored.stripeCustomerId ?? "",
     shipping: {
       address1: stored.shippingAddress1,
       address2: stored.shippingAddress2,
@@ -135,6 +139,7 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
     name: normalized.name,
     passwordChangedAt: normalized.passwordChangedAt,
     phone: normalized.phone,
+    stripeCustomerId: normalized.stripeCustomerId,
     shippingAddress1: normalized.shipping.address1,
     shippingAddress2: normalized.shipping.address2,
     shippingCity: normalized.shipping.city,
@@ -201,6 +206,44 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
   }
 
   return normalized;
+}
+
+export async function ensureStripeCustomerForAccount() {
+  const settings = await getAccountSettings();
+
+  if (settings.stripeCustomerId) {
+    return { customerId: settings.stripeCustomerId, settings };
+  }
+
+  const stripe = getStripeClient();
+  const customer = await stripe.customers.create({
+    email: settings.email || undefined,
+    name: settings.companyName || settings.name || undefined,
+    metadata: {
+      accountDefaultsId,
+      companyName: settings.companyName,
+    },
+  });
+  const nextSettings = await saveAccountSettings({ ...settings, stripeCustomerId: customer.id });
+
+  return { customerId: customer.id, settings: nextSettings };
+}
+
+export async function listStripePaymentCards(): Promise<PaymentCard[]> {
+  if (!isStripeConfigured()) {
+    return [];
+  }
+
+  const { customerId } = await ensureStripeCustomerForAccount();
+  const stripe = getStripeClient();
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: customerId,
+    type: "card",
+  });
+
+  return paymentMethods.data
+    .map(stripePaymentMethodCardSnapshot)
+    .filter((card): card is PaymentCard => Boolean(card));
 }
 
 export function contactSnapshotFromAccountSettings(settings: AccountSettingsSnapshot): RequestContactSnapshot {

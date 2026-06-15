@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { createGuestQuoteAccess, guestQuoteHref, isGuestSimpleQuoteRequest } from "@/lib/guest-quote-access";
+import { sendGuestQuoteReadyEmail } from "@/lib/guest-quote-email";
 import { buildCustomerQuoteMarkdown, type CustomerQuoteInput, type CustomerQuoteLineItem } from "@/lib/quote-file";
 import type { OperatorStatusUpdateInput } from "@/lib/request-model";
-import { getRequestById, saveCustomerQuoteForRequest } from "@/lib/request-repository";
+import { getRequestById, saveCustomerQuoteForRequest, updateGuestQuoteAccess, type SelectedSupplierQuoteInput } from "@/lib/request-repository";
+import { requireActionRole } from "@/lib/route-authorization";
 
 const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
   "SUBMITTED",
@@ -55,6 +58,16 @@ function getOptionalPriceDollars(formData: FormData, key: string) {
 
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getOptionalPriceCentsFromDollars(formData: FormData, key: string) {
+  const value = getString(formData, key).trim();
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
 }
 
 function addDaysIso(dateValue: string, days: number) {
@@ -124,7 +137,23 @@ function parseQuotePayload(formData: FormData): CustomerQuoteInput {
   };
 }
 
+async function sendGuestQuoteReadyLinkIfNeeded(request: Awaited<ReturnType<typeof saveCustomerQuoteForRequest>>) {
+  if (!isGuestSimpleQuoteRequest(request)) {
+    return;
+  }
+
+  const access = createGuestQuoteAccess();
+  const updated = await updateGuestQuoteAccess(request.id, {
+    expiresAt: access.expiresAt,
+    tokenHash: access.tokenHash,
+  });
+
+  await sendGuestQuoteReadyEmail(updated, guestQuoteHref(updated.id, access.token));
+  revalidatePath(`/simple-quote/${request.id}`);
+}
+
 export async function saveCustomerQuoteAction(formData: FormData) {
+  await requireActionRole(["admin"]);
   const requestId = getString(formData, "requestId").trim();
 
   if (!requestId) {
@@ -135,13 +164,14 @@ export async function saveCustomerQuoteAction(formData: FormData) {
   const quoteSummary = getString(formData, "quoteSummary").trim();
   const quote = parseQuotePayload(formData);
 
-  await saveCustomerQuoteForRequest(requestId, {
+  const savedQuoteRequest = await saveCustomerQuoteForRequest(requestId, {
     ...quote,
     estimatedPriceCents: getInteger(formData, "quoteTotalCents"),
     leadTimeDays: parseLeadTimeDays(getString(formData, "leadTime")),
     markdown: quoteMarkdown,
     quoteSummary: quoteSummary || quoteMarkdown,
   });
+  await sendGuestQuoteReadyLinkIfNeeded(savedQuoteRequest);
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
@@ -152,6 +182,7 @@ export async function saveCustomerQuoteAction(formData: FormData) {
 }
 
 export async function updateAdminQuoteStatusAction(formData: FormData) {
+  await requireActionRole(["admin"]);
   const requestId = getString(formData, "requestId").trim();
   const status = getString(formData, "status") as OperatorStatusUpdateInput["status"];
 
@@ -173,14 +204,10 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     throw new Error("Request not found");
   }
 
-  if (current.status === "QUOTED" && current.customerQuotes.length > 0) {
-    throw new Error("Customer-submitted quotes are immutable");
-  }
-
   const shippingCostCents = getOptionalPriceCents(formData, "shippingCost");
   const shippingMethod = getString(formData, "shippingMethod");
   const shippingTerms = getString(formData, "shippingTerms");
-  const quoteCreatedDate = new Date().toISOString().slice(0, 10);
+  const quoteCreatedDate = getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10);
   const quoteValidUntil = getString(formData, "quoteValidUntil") || addDaysIso(quoteCreatedDate, 30);
   const quoteSummary = getString(formData, "quoteSummary").trim();
   const lineItems = current.lineItems.map((item) => ({
@@ -193,6 +220,33 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     leadTimeDays: getOptionalInteger(formData, `leadTimeDays:${item.id}`),
     unitPrice: getOptionalPriceDollars(formData, `unitPrice:${item.id}`),
   }));
+  const supplierLineItems = current.lineItems.map((item) => ({
+    id: item.id,
+    description: item.partName,
+    drawingRevision: getString(formData, `supplierDrawingRevision:${item.id}`).trim() || "Released package",
+    finish: item.surfaceFinish ?? "",
+    inspection: (item.qualityDocumentation ?? []).join(", ") || "Standard inspection",
+    leadTimeDays: getOptionalInteger(formData, `supplierLeadTimeDays:${item.id}`),
+    material: item.material,
+    process: current.process,
+    quantity: item.quantity,
+    supplierNotes: getString(formData, `supplierNotes:${item.id}`).trim(),
+    unitPrice: getOptionalPriceDollars(formData, `supplierUnitPrice:${item.id}`),
+  }));
+  const supplierLineLeadTimes = supplierLineItems
+    .map((item) => item.leadTimeDays)
+    .filter((value): value is number => typeof value === "number");
+  const selectedSupplierQuote: SelectedSupplierQuoteInput = {
+    contactName: getString(formData, "supplierQuoteContact").trim(),
+    country: getString(formData, "supplierQuoteCountry").trim() || "China",
+    leadTimeDays: getOptionalInteger(formData, "supplierQuoteLeadTime") ?? (supplierLineLeadTimes.length ? Math.max(...supplierLineLeadTimes) : null),
+    lineItems: supplierLineItems,
+    notes: getString(formData, "supplierQuoteNotes").trim(),
+    priceCents:
+      getOptionalPriceCentsFromDollars(formData, "supplierQuoteTotal") ??
+      supplierLineItems.reduce((sum, item) => sum + Math.round(item.unitPrice * item.quantity * 100), 0),
+    shopName: getString(formData, "supplierQuoteShop").trim() || current.supplierOrder.shopName || "China supplier team",
+  };
   const lineLeadTimes = lineItems
     .map((item) => item.leadTimeDays)
     .filter((value): value is number => typeof value === "number");
@@ -221,17 +275,19 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     validUntil: quoteValidUntil,
   };
 
-  await saveCustomerQuoteForRequest(requestId, {
+  const savedQuoteRequest = await saveCustomerQuoteForRequest(requestId, {
     ...quote,
     estimatedDeliveryDate: getString(formData, "estimatedDeliveryDate"),
     estimatedPriceCents,
     leadTimeDays,
     markdown: buildCustomerQuoteMarkdown(quote),
     quoteSummary,
+    selectedSupplierQuote,
     shippingCostCents,
     shippingMethod,
     shippingTerms,
   });
+  await sendGuestQuoteReadyLinkIfNeeded(savedQuoteRequest);
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");

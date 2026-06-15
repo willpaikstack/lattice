@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { checkCadPreviewConfiguration } from "@/lib/autodesk-platform-services";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const unauthorized = await requireRouteRole(["customer", "admin"]);
+    if (unauthorized) {
+      return unauthorized;
+    }
+
     const configuration = await checkCadPreviewConfiguration();
     const status = configuration.status === "configured" ? 200 : 501;
 

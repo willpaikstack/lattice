@@ -304,3 +304,39 @@ export async function getViewerToken() {
 
   return token;
 }
+
+export async function getCadPreviewThumbnail(urn: string, size = 400) {
+  const token = await getApsToken(["data:read"]);
+
+  if (!token) {
+    return null;
+  }
+
+  const boundedSize = Math.min(400, Math.max(100, Math.round(size)));
+  const thumbnailUrl = new URL(`${APS_BASE_URL}/modelderivative/v2/designdata/${encodeURIComponent(urn)}/thumbnail`);
+  thumbnailUrl.searchParams.set("width", String(boundedSize));
+  thumbnailUrl.searchParams.set("height", String(boundedSize));
+
+  const response = await fetch(thumbnailUrl, {
+    headers: {
+      Authorization: `Bearer ${token.access_token}`,
+      Accept: "image/png,image/jpeg,image/*,*/*",
+    },
+  });
+
+  if (response.status === 404 || response.status === 202) {
+    return { status: "pending" as const };
+  }
+
+  if (!response.ok) {
+    throw new Error(`Unable to fetch Autodesk thumbnail (${response.status})`);
+  }
+
+  const bytes = await response.arrayBuffer();
+
+  return {
+    status: "ready" as const,
+    bytes,
+    contentType: response.headers.get("content-type") || "image/png",
+  };
+}

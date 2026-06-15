@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { OperatorStatusUpdateInput } from "@/lib/request-model";
 import { updateOperatorRequestStatus } from "@/lib/request-repository";
+import { requireActionRole } from "@/lib/route-authorization";
 
 const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
   "SUBMITTED",
@@ -37,6 +38,7 @@ function getOptionalPriceCents(formData: FormData, key: string) {
 }
 
 export async function updateOperatorRequestStatusAction(requestId: string, formData: FormData) {
+  await requireActionRole(["admin"]);
   const status = getString(formData, "status") as OperatorStatusUpdateInput["status"];
 
   if (!allowedStatuses.has(status)) {

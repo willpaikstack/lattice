@@ -1,6 +1,15 @@
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
-import type { CustomerQuoteLineItemSnapshot, DraftRequestInput, OperatorStatusUpdateInput, SupplierOrderUpdateInput, UploadedFileInput } from "./request-model";
+import type {
+  CustomerQuoteLineItemSnapshot,
+  DraftRequestInput,
+  LatticeRequest,
+  OperatorStatusUpdateInput,
+  PurchasePaymentMethod,
+  SupplierQuoteLineItemSnapshot,
+  SupplierOrderUpdateInput,
+  UploadedFileInput,
+} from "./request-model";
 import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
@@ -16,6 +25,31 @@ export type PurchaseQuoteDeliveryInput = {
   shipToZipCode?: string;
 };
 
+export type PurchaseQuoteInput = PurchaseQuoteDeliveryInput & {
+  accountsPayableEmail?: string;
+  buyerCheckoutNotes?: string;
+  customerPoNumber?: string;
+  paymentMethod?: "card" | "purchase-order";
+  poAttachment?: UploadedFileInput | null;
+  selectedCard?: {
+    id?: string;
+    brand?: string;
+    last4?: string;
+    holder?: string;
+    expires?: string;
+  } | null;
+};
+
+export type SelectedSupplierQuoteInput = {
+  contactName: string;
+  country: string;
+  leadTimeDays: number | null;
+  lineItems: SupplierQuoteLineItemSnapshot[];
+  notes: string;
+  priceCents: number | null;
+  shopName: string;
+};
+
 function isArtificialRequestId(id: string) {
   return id.startsWith("demo_") || id.startsWith("fixture_");
 }
@@ -24,11 +58,23 @@ function realRequestsOnly<T extends { id: string }>(requests: T[]) {
   return requests.filter((request) => !isArtificialRequestId(request.id));
 }
 
+async function includeLocalDevelopmentRequests(requests: LatticeRequest[]) {
+  if (process.env.NODE_ENV !== "development") {
+    return requests;
+  }
+
+  const seen = new Set(requests.map((request) => request.id));
+  const localOnly = realRequestsOnly(await listLocalRequests()).filter((request) => !seen.has(request.id));
+
+  return sortRequestsNewestFirst([...requests, ...localOnly]);
+}
+
 async function prisma() {
   return (await getPrismaClient()) as {
     request: {
       create: (args: unknown) => Promise<StoredRequest>;
       delete: (args: unknown) => Promise<StoredRequest>;
+      findFirst: (args: unknown) => Promise<StoredRequest | null>;
       findMany: (args: unknown) => Promise<StoredRequest[]>;
       findUnique: (args: unknown) => Promise<StoredRequest | null>;
       update: (args: unknown) => Promise<StoredRequest>;
@@ -62,6 +108,32 @@ function cleanText(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
 
+function checkoutAmountCents(request: LatticeRequest) {
+  const subtotalCents = request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
+
+  if (subtotalCents === null) {
+    throw new Error("This quote does not have a payable amount");
+  }
+
+  return subtotalCents + (request.quote.shippingCostCents ?? 0);
+}
+
+function normalizePaymentMethod(value: string | null | undefined): PurchasePaymentMethod {
+  if (value === "card") {
+    return "CARD";
+  }
+
+  if (value === "purchase-order") {
+    return "PURCHASE_ORDER";
+  }
+
+  throw new Error("Choose a supported payment method");
+}
+
+export function quoteCheckoutAmountCents(request: LatticeRequest) {
+  return checkoutAmountCents(request);
+}
+
 export async function createSubmittedRequest(input: DraftRequestInput) {
   try {
     const client = await prisma();
@@ -75,6 +147,50 @@ export async function createSubmittedRequest(input: DraftRequestInput) {
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma is unavailable; saving submitted request locally.", error);
       return saveLocalRequest(submitDraftRequest(buildDraftRequest(input)));
+    }
+
+    throw error;
+  }
+}
+
+export async function updateGuestQuoteAccess(
+  id: string,
+  input: {
+    expiresAt: string;
+    tokenHash: string;
+  },
+) {
+  const current = await getRequestById(id);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.requestOrigin !== "GUEST_SIMPLE_QUOTE") {
+    return current;
+  }
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id },
+      data: {
+        guestAccessTokenExpiresAt: new Date(input.expiresAt),
+        guestAccessTokenHash: input.tokenHash,
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma guest quote access update is unavailable; saving locally.", error);
+      return saveLocalRequest({
+        ...current,
+        guestAccessTokenExpiresAt: input.expiresAt,
+        guestAccessTokenHash: input.tokenHash,
+        updatedAt: new Date().toISOString(),
+      });
     }
 
     throw error;
@@ -98,7 +214,7 @@ export async function listOperatorRequests() {
         },
       });
 
-      return getOperatorQueueRequests(realRequestsOnly(storedRequests).map(mapStoredRequest));
+      return getOperatorQueueRequests(await includeLocalDevelopmentRequests(realRequestsOnly(storedRequests).map(mapStoredRequest)));
     },
     async () => getOperatorQueueRequests(sortRequestsNewestFirst(await listLocalRequests())),
   );
@@ -115,7 +231,7 @@ export async function listAdminRequests() {
         },
       });
 
-      return realRequestsOnly(storedRequests).map(mapStoredRequest);
+      return includeLocalDevelopmentRequests(realRequestsOnly(storedRequests).map(mapStoredRequest));
     },
     async () => sortRequestsNewestFirst(await listLocalRequests()),
   );
@@ -134,7 +250,11 @@ export async function getRequestById(id: string) {
         include: storedRequestInclude,
       });
 
-      return stored ? mapStoredRequest(stored) : null;
+      if (stored) {
+        return mapStoredRequest(stored);
+      }
+
+      return process.env.NODE_ENV === "development" ? getLocalRequestById(id) : null;
     },
     async () => getLocalRequestById(id),
   );
@@ -157,7 +277,8 @@ export async function listBuyerQuotes() {
         },
       });
 
-      return realRequestsOnly(storedRequests).map(mapStoredRequest);
+      const requests = await includeLocalDevelopmentRequests(realRequestsOnly(storedRequests).map(mapStoredRequest));
+      return requests.filter((request) => request.status !== "PURCHASED");
     },
     async () =>
       sortRequestsNewestFirst(
@@ -275,6 +396,7 @@ export async function saveCustomerQuoteForRequest(
     estimatedDeliveryDate?: string;
     markdown: string;
     quoteSummary: string;
+    selectedSupplierQuote?: SelectedSupplierQuoteInput | null;
   },
 ) {
   const current = await getRequestById(id);
@@ -285,10 +407,6 @@ export async function saveCustomerQuoteForRequest(
 
   if (current.status === "DRAFT" || current.status === "PURCHASED" || current.status === "CLOSED") {
     throw new Error("Only active RFQs can receive customer quotes");
-  }
-
-  if (current.status === "QUOTED" && current.customerQuotes.length > 0) {
-    throw new Error("Customer-submitted quotes are immutable");
   }
 
   const nextStatus = "QUOTED" as const;
@@ -310,6 +428,29 @@ export async function saveCustomerQuoteForRequest(
         quoteCreatedDate: optionalDate(input.quoteDate),
         quoteValidUntil: optionalDate(input.validUntil),
         quoteSummary: input.quoteSummary.trim(),
+        ...(input.selectedSupplierQuote?.shopName || input.selectedSupplierQuote?.lineItems.length
+          ? {
+              supplierShopName: input.selectedSupplierQuote.shopName.trim() || current.supplierOrder.shopName,
+              supplierContactName: input.selectedSupplierQuote.contactName.trim() || current.supplierOrder.contactName,
+              supplierQuotes: {
+                deleteMany: {
+                  isSelected: true,
+                },
+                create: {
+                  shopName: input.selectedSupplierQuote.shopName.trim() || "Selected Chinese machine shop",
+                  country: input.selectedSupplierQuote.country.trim() || "China",
+                  contactName: input.selectedSupplierQuote.contactName.trim(),
+                  status: "SELECTED",
+                  priceCents: input.selectedSupplierQuote.priceCents,
+                  leadTimeDays: input.selectedSupplierQuote.leadTimeDays,
+                  notes: input.selectedSupplierQuote.notes.trim(),
+                  lineItems: input.selectedSupplierQuote.lineItems,
+                  quotedAt: new Date(),
+                  isSelected: true,
+                },
+              },
+            }
+          : {}),
         customerQuotes: {
           create: {
             versionNumber,
@@ -371,6 +512,31 @@ export async function saveCustomerQuoteForRequest(
           quoteValidUntil: input.validUntil,
           summary: input.quoteSummary.trim(),
         },
+        ...(input.selectedSupplierQuote?.shopName || input.selectedSupplierQuote?.lineItems.length
+          ? {
+              supplierOrder: {
+                ...current.supplierOrder,
+                shopName: input.selectedSupplierQuote.shopName.trim() || current.supplierOrder.shopName,
+                contactName: input.selectedSupplierQuote.contactName.trim() || current.supplierOrder.contactName,
+              },
+              supplierQuotes: [
+                ...current.supplierQuotes.filter((quote) => !quote.isSelected),
+                {
+                  id: makeLocalId("supplier_quote"),
+                  shopName: input.selectedSupplierQuote.shopName.trim() || "Selected Chinese machine shop",
+                  country: input.selectedSupplierQuote.country.trim() || "China",
+                  contactName: input.selectedSupplierQuote.contactName.trim(),
+                  status: "SELECTED" as const,
+                  priceCents: input.selectedSupplierQuote.priceCents,
+                  leadTimeDays: input.selectedSupplierQuote.leadTimeDays,
+                  notes: input.selectedSupplierQuote.notes.trim(),
+                  lineItems: input.selectedSupplierQuote.lineItems,
+                  quotedAt: timestamp,
+                  isSelected: true,
+                },
+              ],
+            }
+          : {}),
         customerQuotes: [
           ...current.customerQuotes,
           {
@@ -489,7 +655,69 @@ export async function addSupplierQuoteFile(requestId: string, file: UploadedFile
   }
 }
 
-export async function purchaseQuote(id: string, deliveryInput: PurchaseQuoteDeliveryInput = {}) {
+export async function removeSupplierQuoteFile(requestId: string, fileId: string) {
+  const current = await getRequestById(requestId);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.status === "DRAFT" || current.status === "CLOSED") {
+    throw new Error("Supplier quote files can only be removed from active RFQs or orders");
+  }
+
+  if (!current.supplierQuoteFiles.some((file) => file.id === fileId)) {
+    throw new Error("Supplier quote file not found");
+  }
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: requestId },
+      data: {
+        supplierQuoteFiles: {
+          deleteMany: {
+            id: fileId,
+          },
+        },
+        statusEvents: {
+          create: {
+            from: current.status,
+            to: current.status,
+            actor: "operator",
+          },
+        },
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma supplier quote file removal is unavailable; removing supplier quote file locally.", error);
+      const timestamp = new Date().toISOString();
+      return saveLocalRequest({
+        ...current,
+        supplierQuoteFiles: current.supplierQuoteFiles.filter((file) => file.id !== fileId),
+        statusEvents: [
+          ...current.statusEvents,
+          {
+            id: makeLocalId("event"),
+            from: current.status,
+            to: current.status,
+            actor: "operator" as const,
+            at: timestamp,
+          },
+        ],
+        updatedAt: timestamp,
+      });
+    }
+
+    throw error;
+  }
+}
+
+export async function purchaseQuote(id: string, input: PurchaseQuoteInput = {}) {
   const current = await getRequestById(id);
 
   if (!current) {
@@ -501,14 +729,54 @@ export async function purchaseQuote(id: string, deliveryInput: PurchaseQuoteDeli
   }
 
   const delivery = {
-    shipToAddress1: cleanText(deliveryInput.shipToAddress1) || current.shipToAddress1,
-    shipToAddress2: deliveryInput.shipToAddress2 === undefined ? current.shipToAddress2 : cleanText(deliveryInput.shipToAddress2),
-    shipToCity: cleanText(deliveryInput.shipToCity) || current.shipToCity,
-    shipToCompany: cleanText(deliveryInput.shipToCompany) || current.shipToCompany || current.buyerCompany,
-    shipToName: cleanText(deliveryInput.shipToName) || current.shipToName || current.requesterName,
-    shipToPhone: cleanText(deliveryInput.shipToPhone) || current.shipToPhone || current.requesterPhone,
-    shipToState: cleanText(deliveryInput.shipToState) || current.shipToState,
-    shipToZipCode: cleanText(deliveryInput.shipToZipCode) || current.shipToZipCode,
+    shipToAddress1: cleanText(input.shipToAddress1) || current.shipToAddress1,
+    shipToAddress2: input.shipToAddress2 === undefined ? current.shipToAddress2 : cleanText(input.shipToAddress2),
+    shipToCity: cleanText(input.shipToCity) || current.shipToCity,
+    shipToCompany: cleanText(input.shipToCompany) || current.shipToCompany || current.buyerCompany,
+    shipToName: cleanText(input.shipToName) || current.shipToName || current.requesterName,
+    shipToPhone: cleanText(input.shipToPhone) || current.shipToPhone || current.requesterPhone,
+    shipToState: cleanText(input.shipToState) || current.shipToState,
+    shipToZipCode: cleanText(input.shipToZipCode) || current.shipToZipCode,
+  };
+  const paymentMethod = normalizePaymentMethod(input.paymentMethod);
+
+  if (paymentMethod === "CARD") {
+    throw new Error("Card checkout must be completed through Stripe.");
+  }
+
+  const customerPoNumber = cleanText(input.customerPoNumber);
+  const accountsPayableEmail = cleanText(input.accountsPayableEmail);
+  const buyerCheckoutNotes = cleanText(input.buyerCheckoutNotes);
+  const cardSnapshot = null;
+
+  if (paymentMethod === "PURCHASE_ORDER") {
+    if (!customerPoNumber) {
+      throw new Error("PO number is required for purchase order checkout");
+    }
+
+    if (!accountsPayableEmail) {
+      throw new Error("Accounts payable email is required for purchase order checkout");
+    }
+
+    if (!input.poAttachment?.name || !input.poAttachment.sizeBytes) {
+      throw new Error("Upload the purchase order file before placing the order");
+    }
+  }
+
+  const purchasePayment = {
+    method: paymentMethod,
+    status: "PENDING_REVIEW" as const,
+    customerPoNumber: paymentMethod === "PURCHASE_ORDER" ? customerPoNumber : "",
+    accountsPayableEmail: paymentMethod === "PURCHASE_ORDER" ? accountsPayableEmail : "",
+    buyerCheckoutNotes,
+    card: cardSnapshot,
+    stripe: {
+      amountCents: null,
+      checkoutSessionId: "",
+      currency: "",
+      paidAt: null,
+      paymentIntentId: "",
+    },
   };
 
   try {
@@ -518,6 +786,28 @@ export async function purchaseQuote(id: string, deliveryInput: PurchaseQuoteDeli
       data: {
         ...delivery,
         status: "PURCHASED",
+        purchasePaymentMethod: purchasePayment.method,
+        purchasePaymentStatus: purchasePayment.status,
+        customerPoNumber: purchasePayment.customerPoNumber,
+        accountsPayableEmail: purchasePayment.accountsPayableEmail,
+        buyerCheckoutNotes: purchasePayment.buyerCheckoutNotes,
+        purchaseCardId: "",
+        purchaseCardBrand: "",
+        purchaseCardLast4: "",
+        purchaseCardHolder: "",
+        purchaseCardExpires: "",
+        ...(paymentMethod === "PURCHASE_ORDER" && input.poAttachment
+          ? {
+              customerPurchaseOrderAttachment: {
+                create: {
+                  name: input.poAttachment.name,
+                  sizeBytes: input.poAttachment.sizeBytes,
+                  type: input.poAttachment.type,
+                  storageKey: input.poAttachment.storageKey,
+                },
+              },
+            }
+          : {}),
         statusEvents: {
           create: {
             from: current.status,
@@ -538,6 +828,17 @@ export async function purchaseQuote(id: string, deliveryInput: PurchaseQuoteDeli
         ...current,
         ...delivery,
         status: "PURCHASED",
+        purchasePayment,
+        customerPurchaseOrderAttachment: paymentMethod === "PURCHASE_ORDER" && input.poAttachment
+          ? {
+              id: makeLocalId("customer_po_file"),
+              name: input.poAttachment.name,
+              sizeBytes: input.poAttachment.sizeBytes,
+              type: input.poAttachment.type,
+              storageKey: input.poAttachment.storageKey,
+              uploadedAt: timestamp,
+            }
+          : null,
         statusEvents: [
           ...current.statusEvents,
           {
@@ -549,6 +850,226 @@ export async function purchaseQuote(id: string, deliveryInput: PurchaseQuoteDeli
           },
         ],
         updatedAt: timestamp,
+      });
+    }
+
+    throw error;
+  }
+}
+
+export async function recordStripeCheckoutSession(
+  id: string,
+  input: PurchaseQuoteDeliveryInput & {
+    amountCents: number;
+    checkoutSessionId: string;
+    currency: string;
+  },
+) {
+  const current = await getRequestById(id);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.status !== "QUOTED") {
+    throw new Error("Only priced quotes can start card checkout");
+  }
+
+  const delivery = {
+    shipToAddress1: cleanText(input.shipToAddress1) || current.shipToAddress1,
+    shipToAddress2: input.shipToAddress2 === undefined ? current.shipToAddress2 : cleanText(input.shipToAddress2),
+    shipToCity: cleanText(input.shipToCity) || current.shipToCity,
+    shipToCompany: cleanText(input.shipToCompany) || current.shipToCompany || current.buyerCompany,
+    shipToName: cleanText(input.shipToName) || current.shipToName || current.requesterName,
+    shipToPhone: cleanText(input.shipToPhone) || current.shipToPhone || current.requesterPhone,
+    shipToState: cleanText(input.shipToState) || current.shipToState,
+    shipToZipCode: cleanText(input.shipToZipCode) || current.shipToZipCode,
+  };
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id },
+      data: {
+        ...delivery,
+        purchasePaymentMethod: "CARD",
+        purchasePaymentStatus: "PAYMENT_PENDING",
+        stripeCheckoutSessionId: input.checkoutSessionId,
+        stripeAmountCents: input.amountCents,
+        stripeCurrency: input.currency,
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma Stripe checkout session save is unavailable; saving locally.", error);
+      return saveLocalRequest({
+        ...current,
+        ...delivery,
+        purchasePayment: {
+          method: "CARD",
+          status: "PAYMENT_PENDING",
+          customerPoNumber: "",
+          accountsPayableEmail: "",
+          buyerCheckoutNotes: "",
+          card: null,
+          stripe: {
+            amountCents: input.amountCents,
+            checkoutSessionId: input.checkoutSessionId,
+            currency: input.currency,
+            paidAt: null,
+            paymentIntentId: "",
+          },
+        },
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    throw error;
+  }
+}
+
+export async function finalizeStripePaidQuote(input: {
+  amountCents: number | null;
+  card: NonNullable<LatticeRequest["purchasePayment"]["card"]> | null;
+  checkoutSessionId: string;
+  currency: string;
+  paidAt: string;
+  paymentIntentId: string;
+  requestId: string;
+}) {
+  const current = await getRequestById(input.requestId);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.status === "PURCHASED") {
+    return current;
+  }
+
+  if (current.status !== "QUOTED") {
+    throw new Error("Only priced quotes can be finalized from Stripe checkout");
+  }
+
+  const expectedAmount = current.purchasePayment.stripe.amountCents ?? checkoutAmountCents(current);
+
+  if (input.amountCents !== null && input.amountCents !== expectedAmount) {
+    throw new Error("Stripe amount does not match accepted quote total");
+  }
+
+  const timestamp = input.paidAt || new Date().toISOString();
+  const card = input.card;
+  const purchasePayment = {
+    method: "CARD" as const,
+    status: "PAID" as const,
+    customerPoNumber: "",
+    accountsPayableEmail: "",
+    buyerCheckoutNotes: current.purchasePayment.buyerCheckoutNotes,
+    card,
+    stripe: {
+      amountCents: expectedAmount,
+      checkoutSessionId: input.checkoutSessionId,
+      currency: input.currency,
+      paidAt: timestamp,
+      paymentIntentId: input.paymentIntentId,
+    },
+  };
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: input.requestId },
+      data: {
+        status: "PURCHASED",
+        purchasePaymentMethod: "CARD",
+        purchasePaymentStatus: "PAID",
+        purchaseCardId: card?.id ?? "",
+        purchaseCardBrand: card?.brand ?? "",
+        purchaseCardLast4: card?.last4 ?? "",
+        purchaseCardHolder: card?.holder ?? "",
+        purchaseCardExpires: card?.expires ?? "",
+        stripeCheckoutSessionId: input.checkoutSessionId,
+        stripePaymentIntentId: input.paymentIntentId,
+        stripeAmountCents: expectedAmount,
+        stripeCurrency: input.currency,
+        stripePaidAt: new Date(timestamp),
+        statusEvents: {
+          create: {
+            from: current.status,
+            to: "PURCHASED",
+            actor: "buyer",
+          },
+        },
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma Stripe paid checkout finalization is unavailable; saving locally.", error);
+      return saveLocalRequest({
+        ...current,
+        status: "PURCHASED",
+        purchasePayment,
+        statusEvents: [
+          ...current.statusEvents,
+          {
+            id: `event_${Date.now()}`,
+            from: current.status,
+            to: "PURCHASED",
+            actor: "buyer" as const,
+            at: timestamp,
+          },
+        ],
+        updatedAt: timestamp,
+      });
+    }
+
+    throw error;
+  }
+}
+
+export async function markStripeCheckoutSessionFailed(checkoutSessionId: string) {
+  try {
+    const client = await prisma();
+    const stored = await client.request.findFirst({
+      where: { stripeCheckoutSessionId: checkoutSessionId },
+      include: storedRequestInclude,
+    });
+
+    if (!stored || stored.status === "PURCHASED") {
+      return stored ? mapStoredRequest(stored) : null;
+    }
+
+    const updated = await client.request.update({
+      where: { id: stored.id },
+      data: {
+        purchasePaymentStatus: "PAYMENT_FAILED",
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(updated);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma Stripe failed checkout update is unavailable; saving locally.", error);
+      const request = (await listLocalRequests()).find((candidate) => candidate.purchasePayment.stripe.checkoutSessionId === checkoutSessionId) ?? null;
+
+      if (!request || request.status === "PURCHASED") {
+        return request;
+      }
+
+      return saveLocalRequest({
+        ...request,
+        purchasePayment: {
+          ...request.purchasePayment,
+          status: "PAYMENT_FAILED",
+        },
+        updatedAt: new Date().toISOString(),
       });
     }
 

@@ -2,6 +2,148 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-15 - Require Server-Side Guards On Sensitive Routes And Actions
+
+Decision: sensitive document route handlers, internal resource downloads, Autodesk CAD preview APIs, and role-specific mutation server actions must enforce session roles at the handler/action boundary instead of relying only on the Next.js proxy redirect layer.
+
+Reason: the proxy is an optimistic navigation guard and can intentionally skip API routes and dotted document URLs such as quote PDFs, invoice PDFs, supplier PO PDFs, and quote workbooks. Sensitive RFQ, quote, invoice, supplier, CAD-preview, and admin mutation paths need direct server-side authorization so unauthenticated users cannot retrieve artifacts or invoke mutations by URL.
+
+Implications:
+
+- `src/lib/route-authorization.ts` is the shared route/action authorization helper.
+- Account/customer document routes allow customer or admin roles; admin document/resource routes require admin; supplier document routes require supplier.
+- Public simple-quote quote access remains token-protected rather than account-protected.
+- The next hardening layer remains ownership-aware access checks so authenticated customers and suppliers only see records assigned to their company or shop.
+
+## 2026-06-15 - Add Account-Free Simple Quote Lane
+
+Decision: keep the main Lattice app invite-only while adding a public `/simple-quote` lane for one-off CAD-backed RFQs. Guest requests persist as normal `Request` records with `requestOrigin: GUEST_SIMPLE_QUOTE`, receive quote-ready magic links by email, and can pay only by credit card through Stripe.
+
+Reason: Lattice needs a lower-friction path for prospects who need a simple manufacturing quote but should not get workspace access, saved cards, purchase-order checkout, or account quote/order history.
+
+Implications:
+
+- Guest RFQs appear in the existing admin quote submissions workflow instead of a separate lead inbox.
+- Guest quote access is scoped to one request by a random token stored only as a hash with an expiry.
+- Admin quote issuance generates a fresh guest quote link and sends it through the Resend/local-outbox email path.
+- Guest checkout uses Stripe card PaymentIntents without requiring an account Stripe customer.
+- Protected portal routes remain account-only; public guest routes live under `/simple-quote`.
+
+## 2026-06-15 - Use Stripe Card Element For Operational Card Payments
+
+Decision: replace the fake saved-card quote checkout path with Stripe's inline card-only Element backed by a card-only PaymentIntent. Card orders collect card details on the Lattice checkout page through Stripe-managed fields and only convert from `QUOTED` to `PURCHASED` after Stripe confirms a successful card payment. Account payment-method setup uses Stripe Checkout setup mode, and local Lattice records keep only non-sensitive Stripe customer/payment metadata.
+
+Reason: Lattice needs operational card payment without storing raw card data, while the buyer checkout should stay in one dense B2B order form instead of adding a separate redirect step. The dynamic Stripe Payment Element exposed Bank and Klarna options that are not appropriate for the current quoted RFQ checkout, so quote checkout uses a card-only Element instead. PO checkout remains available for approved buyers.
+
+Implications:
+
+- Required runtime env vars: `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, and `APP_BASE_URL`.
+- Configure the Stripe webhook endpoint at `/api/stripe/webhook` for production and preview environments.
+- Quote checkout creates a Stripe PaymentIntent with `payment_method_types: ["card"]` and renders Stripe's `CardElement` inline, so Bank, Klarna, and other dynamic payment methods do not appear.
+- The older hosted Checkout redirect flow remains only as a server-side fallback path and should not be the primary buyer card UX.
+- Card checkout charges the full accepted quote total immediately; partial capture, authorization-only flows, and manual payment review are future decisions.
+- Webhook and success-route finalization must stay idempotent so Stripe retries cannot double-convert an order.
+- Lattice should continue storing only card brand/last4/holder/expiry snapshots plus Stripe IDs needed for reconciliation.
+
+## 2026-06-15 - Generate Supplier POs Only From Structured Selected Shop Quotes
+
+Decision: order-specific supplier purchase order PDFs should render from the accepted order plus the selected Chinese shop quote's structured line items, not from customer quote prices or an unstructured supplier quote attachment.
+
+Reason: supplier POs are release documents issued to the machine shop. They must use supplier-side unit costs, lead times, drawing/revision labels, inspection scope, and shop notes so Lattice does not accidentally expose customer markup or issue a misleading manufacturing instruction.
+
+Implications:
+
+- `SupplierQuote.lineItems` stores the selected shop quote line-item snapshot used for supplier PO generation.
+- The generic DOC-002 resource remains a sample/template preview at `/admin/resources/supplier-purchase-order-template`.
+- Purchased orders can render `/admin/orders/[requestId]/supplier-purchase-order.pdf` only when a selected supplier quote has structured line items.
+- Existing supplier quote PDF attachments remain backup/source evidence; they do not by themselves make the supplier PO ready.
+- Admin order detail shows a pending supplier PO message when structured supplier quote data is missing.
+
+## 2026-06-15 - Persist Checkout Payment Choice On Purchased Orders
+
+Decision: buyer quote checkout should let approved accounts place an order with either a saved credit card reference or a purchase order. The selected payment path is persisted on the purchased request/order, and purchase order checkout requires a PO number, AP email, and uploaded PO document.
+
+Reason: order, invoice, and admin review flows need the buyer's actual acceptance/payment context instead of treating checkout as a status-only conversion.
+
+Implications:
+
+- Card checkout stores only non-sensitive saved-card metadata such as card ID, brand, last four, holder, and expiry; no raw card details are collected.
+- Purchase order checkout stores the customer PO number, AP email, buyer notes, and a `CustomerPurchaseOrderAttachment` file metadata record.
+- Order invoice PDFs prefer the captured customer PO number when present.
+- Local development stores uploaded customer PO files under `.data/uploads/customer-purchase-orders`; production still needs the broader R2/S3 storage hardening.
+
+## 2026-06-12 - Show Issued Admin Quotes As Read-Only
+
+Decision: once a customer quote has been issued, the admin quote drawer should display the saved quote data as read-only by default instead of immediately rendering editable pricing, shipping, validity, and customer-note inputs. Operators can explicitly click `Edit quote` to enter a correction/reissue mode.
+
+Reason: issued quotes are customer-facing commercial records. Operators need to inspect exactly what was issued without the UI implying that the current detail drawer is an active edit form.
+
+Implications:
+
+- `QUOTED` RFQs with a saved customer quote version show static unit prices, lead times, shipping fields, quote validity, and customer notes in the admin drawer until an operator chooses to edit.
+- Supplier quote upload/removal controls are hidden in the default issued-quote view; existing supplier quote attachments remain visible and downloadable.
+- The explicit edit mode restores editable controls and should save a new customer quote version when submitted.
+
+## 2026-06-10 - Tag Every Quote With The Expanded Buyer Lifecycle
+
+Decision: buyer-facing quote lifecycle tags are `Draft`, `Quote Requested`, `Quote Received`, `In Production`, `Shipping`, `Delivered`, and `Archived`.
+
+Reason: quote surfaces need a visible customer-facing status on every row, including RFQs that have been submitted but not yet priced. The previous four-status vocabulary left submitted/internal-review rows visually untagged and did not cover the post-purchase lifecycle language buyers expect.
+
+Implications:
+
+- `Draft` means the customer has not clicked Request Quote yet.
+- `Quote Requested` covers submitted RFQs, needs-info RFQs, and RFQs ready for supplier quoting while Lattice is still working toward a customer quote.
+- `Quote Received` means price and lead time have been issued and the customer decision is pending.
+- `In Production` applies to purchased work before shipment, including supplier acknowledgment, production, QC, document upload, and ready-to-ship states.
+- `Shipping` applies when the supplier order is marked shipped.
+- `Delivered` is reserved until Lattice stores a durable delivery-confirmation event or supplier/order status.
+- `Archived` applies to archived or closed quote/order records.
+
+## 2026-06-09 - Make Customer RFQ Intake Batch-Part Friendly
+
+Decision: `/requests/new` should treat each uploaded CAD file as a separate configurable RFQ line item, including when buyers drag/drop or select multiple CAD files at once, and the buyer material picker should use broad Hubs/Protolabs Network-style material families instead of nested metallurgy subgroups.
+
+Reason: customers need a clean quote-configuration experience where every part file becomes a visible configuration card and common material families are easy to scan. Hubs-style grouping keeps Aluminum 2014, Aluminum 2017A, and similar grades under a familiar Aluminum family without forcing buyers through series-level taxonomy.
+
+Implications:
+
+- The CAD upload box accepts drag/drop and multi-file selection for supported CAD extensions.
+- The first CAD file fills the current quote line item and additional CAD files create additional line-item configuration cards.
+- Draft RFQ storage starts as soon as CAD files are selected and stores each line item's uploaded file reference when local draft upload storage is available.
+- The material selector remains searchable, but its browse groups are broad customer-facing families such as Aluminum, Alloy steel, Mild steel, Stainless steel, Tool steel, Brass, Copper, Titanium, Bronze, Inconel, Other Metals, and plastics families.
+- Submitted RFQs continue flowing through `/api/requests` so the admin quote-submissions app receives the same customer-configured line items and uploaded file records.
+
+## 2026-06-08 - Isolate Customer, Admin, And Supplier App Spaces
+
+Decision: customer, admin, and supplier experiences should be treated as isolated app spaces, with data shared through server-side workflow and repositories rather than accidental cross-app navigation. During active development, admin sessions may also operate the customer app so operators/developers can test buyer workflows without switching accounts.
+
+Reason: Lattice should behave more like Xometry, where customers manage their own RFQs/orders in a customer portal while employees/account managers use a separate internal console to manage orders, vendors, supplier quotes, and customer relationships.
+
+Implications:
+
+- Signed sessions now carry a role: `admin`, `customer`, or `supplier`.
+- Route protection redirects customer and supplier users to their role home when they attempt to enter another app family.
+- Admin users land on `/admin`, customers on `/dashboard`, and suppliers on `/supplier/orders`.
+- Admin users can also access customer routes such as `/dashboard`, `/requests/new`, `/quotes`, and `/orders` for development and customer-support simulation; they cannot access supplier routes unless separately modeled.
+- The admin shell exposes a deliberate `Customer workspace` bridge for development. When an admin session is operating customer routes, the customer shell exposes an `Admin workspace` bridge back to `/admin`; customer-role sessions do not see this shortcut.
+- Admin pages should link only to admin-native destinations such as `/admin/quotes`, `/admin/orders`, `/admin/customers`, and `/admin/vendors`.
+- Customer RFQ submission and draft-upload APIs accept customer or admin roles; internal request listing, supplier quote upload, and admin vendor edits require an admin role.
+- The next hardening step is durable multi-user role assignment and ownership-aware data access for customer/company and supplier/vendor records.
+
+## 2026-06-08 - Allow Admins To Issue Updated Customer Quote Versions
+
+Decision: admins can edit a customer quote after it has already been submitted to the customer, and submitting the edited commercial terms creates the next customer quote version for that RFQ.
+
+Reason: operators need a direct correction path when pricing, lead time, shipping, or notes change after the first customer quote is sent. Requiring a new RFQ revision for operator-side quote corrections is too heavy for commercial quote maintenance.
+
+Implications:
+
+- Submitted `QUOTED` RFQs keep editable quote line item and quote feedback controls in the admin quote drawer.
+- Saving edited terms appends a new `CustomerQuoteVersion` while updating the buyer-facing quote summary fields on the request.
+- Purchased and closed requests remain blocked from new customer quote issuance.
+- The quote PDF link continues to point at the latest saved customer quote.
+
 ## 2026-06-06 - Promote Draft Uploads Into Submitted RFQ Storage
 
 Decision: when a submitted RFQ references CAD or drawing files saved under `rfq-drafts/...`, `/api/requests` copies those files into the permanent `rfq/...` upload namespace before persisting the request.
@@ -387,7 +529,7 @@ Implications:
 
 ## 2026-06-02 - Customer Quote Statuses Are Draft, Quote Received, Ordered, Closed
 
-Decision: customer-facing quote status vocabulary is limited to `Draft`, `Quote received`, `Ordered`, and `Closed`.
+Decision: customer-facing quote status vocabulary was limited to `Draft`, `Quote received`, `Ordered`, and `Closed`. Superseded by the 2026-06-10 expanded buyer lifecycle.
 
 Reason: buyers need a simple commercial quote lifecycle, while admins still need more granular internal RFQ workflow states such as submitted, needs-info, and supplier-ready.
 
@@ -433,8 +575,8 @@ Reason: customers need a simple quote-state model even though the internal RFQ w
 
 Implications:
 
-- Use the 2026-06-02 four-status taxonomy: `Draft`, `Quote received`, `Ordered`, and `Closed`.
-- Keep submitted, needs-info, and supplier-review as internal RFQ workflow states, not quote statuses.
+- Use the 2026-06-10 buyer lifecycle taxonomy: `Draft`, `Quote Requested`, `Quote Received`, `In Production`, `Shipping`, `Delivered`, and `Archived`.
+- Keep submitted, needs-info, and supplier-review as internal RFQ workflow states, but expose them to buyers through the grouped `Quote Requested` lifecycle tag.
 - Per the 2026-06-02 purchased-quotes decision, purchased records leave buyer quote surfaces and live in Orders.
 - Keep granular internal statuses available for admin/operator workflows, notifications, and routing logic, but avoid exposing them as customer quote statuses on quote pages.
 

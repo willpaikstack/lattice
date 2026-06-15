@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, ClipboardList, Factory, FileSearch, FileText, Inbox, Layers, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
+import { ArrowLeft, ClipboardList, Factory, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { currentUser, initialsForName } from "@/lib/current-user";
+import type { LatticeRole } from "@/lib/auth-crypto";
 
 type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources";
 
@@ -24,6 +25,7 @@ type NavSection = {
 type PageTransitionPhase = "idle" | "exit" | "enter";
 
 type NavigationHandler = (event: React.MouseEvent<HTMLAnchorElement>, href: string) => void;
+type ReorderHandler = (sectionTitle: string, draggedHref: string, targetHref: string) => void;
 
 const pageTransition = {
   duration: 0.32,
@@ -65,6 +67,7 @@ const adminNavSections: NavSection[] = [
 
 const adminRoutePrefixes = ["/admin", "/analytics", "/projects", "/operator"];
 const publicRoutes = new Set(["/", "/login", "/forgot-password", "/waiting-list"]);
+const navOrderStoragePrefix = "lattice:sidebar-nav-order";
 const iconByName: Record<IconName, LucideIcon> = {
   admin: Settings,
   analytics: Layers,
@@ -89,6 +92,48 @@ function isNavItemActive(pathname: string, href: string) {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function moveItem(items: string[], fromIndex: number, toIndex: number) {
+  const nextItems = [...items];
+  const [movedItem] = nextItems.splice(fromIndex, 1);
+  nextItems.splice(toIndex, 0, movedItem);
+  return nextItems;
+}
+
+function applyStoredOrder(section: NavSection, orderedHrefs: string[] | undefined): NavSection {
+  if (!orderedHrefs?.length) {
+    return section;
+  }
+
+  const itemByHref = new Map(section.items.map((item) => [item.href, item]));
+  const orderedItems = orderedHrefs
+    .map((href) => itemByHref.get(href))
+    .filter((item): item is NavItem => Boolean(item));
+  const orderedHrefSet = new Set(orderedItems.map((item) => item.href));
+  const remainingItems = section.items.filter((item) => !orderedHrefSet.has(item.href));
+
+  return {
+    ...section,
+    items: [...orderedItems, ...remainingItems],
+  };
+}
+
+function navOrderStorageKey(tone: "customer" | "admin") {
+  return `${navOrderStoragePrefix}:${currentUser.email}:${tone}`;
+}
+
+function readStoredNavOrder(tone: "customer" | "admin") {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const savedOrder = window.localStorage.getItem(navOrderStorageKey(tone));
+    return savedOrder ? JSON.parse(savedOrder) : {};
+  } catch {
+    return {};
+  }
 }
 
 function SidebarIcon({ name }: { name: IconName }) {
@@ -116,7 +161,19 @@ function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: Navigatio
   );
 }
 
-function DesktopNavSection({ onNavigate, section, pathname, tone }: { onNavigate: NavigationHandler; section: NavSection; pathname: string; tone: "customer" | "admin" }) {
+function DesktopNavSection({
+  onNavigate,
+  onReorder,
+  section,
+  pathname,
+  tone,
+}: {
+  onNavigate: NavigationHandler;
+  onReorder: ReorderHandler;
+  section: NavSection;
+  pathname: string;
+  tone: "customer" | "admin";
+}) {
   return (
     <section className="space-y-2">
       <p className={`px-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === "admin" ? "text-[#767676]" : "text-[#8c8f94]"}`}>{section.title}</p>
@@ -138,11 +195,25 @@ function DesktopNavSection({ onNavigate, section, pathname, tone }: { onNavigate
           return (
             <Link
               className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 text-[14px] transition duration-150 active:scale-[0.99] ${hoverClass} ${isActive ? activeClass : inactiveClass}`}
+              draggable
               href={item.href}
               key={`${section.title}-${item.label}`}
               aria-current={isActive ? "page" : undefined}
+              onDragOver={(event) => event.preventDefault()}
+              onDragStart={(event) => {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", item.href);
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const draggedHref = event.dataTransfer.getData("text/plain");
+                onReorder(section.title, draggedHref, item.href);
+              }}
               onClick={(event) => onNavigate(event, item.href)}
             >
+              <span aria-hidden="true" className="flex h-7 w-3 shrink-0 items-center justify-center text-[#c7a4a7] opacity-0 transition group-hover:opacity-100" title="Drag to reorder">
+                <GripVertical aria-hidden="true" size={14} strokeWidth={2} />
+              </span>
               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${isActive && tone !== "admin" ? "text-stone-900" : "text-stone-400 group-hover:text-current"}`}>
                 <SidebarIcon name={item.icon} />
               </span>
@@ -187,13 +258,14 @@ function CompactNavItem({ item, onNavigate, pathname, tone }: { item: NavItem; o
 function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" }: NavItem & { detail: string; onNavigate: NavigationHandler; tone?: "customer" | "admin" }) {
   return (
     <Link
+      aria-label={label}
       className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
         tone === "admin" ? "border-[#ffd1d4] bg-[#fff1f2] hover:bg-[#ffe3e5]" : "border-[#e4e1dc] bg-[#fbfaf8] hover:bg-white"
       }`}
       href={href}
       onClick={(event) => onNavigate(event, href)}
     >
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone === "admin" ? "bg-[#fff1f2] text-[#484848]" : "bg-white text-[#6b7280] shadow-sm"}`}>
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone === "admin" ? "bg-white text-[#FF5A5F]" : "bg-white text-[#6b7280] shadow-sm"}`}>
         <SidebarIcon name={icon} />
       </span>
       <span className="min-w-0">
@@ -281,16 +353,25 @@ function PageTransition({
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, sessionRole }: { children: React.ReactNode; sessionRole?: LatticeRole }) {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [pageTransitionPhase, setPageTransitionPhase] = useState<PageTransitionPhase>("idle");
   const isPublicRoute = publicRoutes.has(pathname);
   const inAdminExperience = isAdminRoute(pathname);
+  const navTone = inAdminExperience ? "admin" : "customer";
+  const [storedNavOrdersByTone, setStoredNavOrdersByTone] = useState<Record<"admin" | "customer", Record<string, string[]>>>(() => ({
+    admin: readStoredNavOrder("admin"),
+    customer: readStoredNavOrder("customer"),
+  }));
+  const canUseAdminWorkspace = sessionRole === "admin";
+  const isPublicSimpleQuoteRoute = pathname === "/simple-quote" || pathname.startsWith("/simple-quote/");
   const activeNavPathname = pendingHref ?? pathname;
   const isRequestQuoteRoute = activeNavPathname === "/requests/new" || activeNavPathname.startsWith("/requests/new/");
-  const navSections = inAdminExperience ? adminNavSections : customerNavSections;
+  const baseNavSections = inAdminExperience ? adminNavSections : customerNavSections;
+  const storedNavOrders = storedNavOrdersByTone[navTone];
+  const navSections = baseNavSections.map((section) => applyStoredOrder(section, storedNavOrders[section.title]));
 
   useEffect(() => {
     if (!pendingHref || pathname !== pendingHref) {
@@ -305,6 +386,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.cancelAnimationFrame(frame);
   }, [pathname, pendingHref]);
 
+  function handleReorderNavItem(sectionTitle: string, draggedHref: string, targetHref: string) {
+    if (!draggedHref || draggedHref === targetHref) {
+      return;
+    }
+
+    const section = navSections.find((section) => section.title === sectionTitle);
+    if (!section) {
+      return;
+    }
+
+    const currentOrder = section.items.map((item) => item.href);
+    const fromIndex = currentOrder.indexOf(draggedHref);
+    const toIndex = currentOrder.indexOf(targetHref);
+
+    if (fromIndex === -1 || toIndex === -1) {
+      return;
+    }
+
+    const nextSectionOrder = moveItem(currentOrder, fromIndex, toIndex);
+    const nextStoredOrders = {
+      ...storedNavOrders,
+      [sectionTitle]: nextSectionOrder,
+    };
+
+    setStoredNavOrdersByTone((currentOrders) => ({
+      ...currentOrders,
+      [navTone]: nextStoredOrders,
+    }));
+
+    try {
+      window.localStorage.setItem(navOrderStorageKey(navTone), JSON.stringify(nextStoredOrders));
+    } catch {
+      // Local personalization should not block navigation if storage is unavailable.
+    }
+  }
+
   function handleNavigate(event: React.MouseEvent<HTMLAnchorElement>, href: string) {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
       return;
@@ -312,6 +429,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
     event.preventDefault();
     if (pathname === href) {
+      if (window.location.search) {
+        router.replace(href, { scroll: false });
+      }
       return;
     }
 
@@ -335,7 +455,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  if (isPublicRoute) {
+  if (isPublicRoute || isPublicSimpleQuoteRoute) {
     return <>{children}</>;
   }
 
@@ -382,7 +502,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   onNavigate={handleNavigate}
                   pathname={activeNavPathname}
                   section={section}
-                  tone={inAdminExperience ? "admin" : "customer"}
+                  onReorder={handleReorderNavItem}
+                  tone={navTone}
                 />
               ))}
             </nav>
@@ -390,10 +511,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="mt-auto space-y-4 pt-4">
             {inAdminExperience ? (
-              <UtilityLink detail="Return to the customer workspace." href="/dashboard" icon="back" label="Customer App" onNavigate={handleNavigate} tone="admin" />
-            ) : (
-              <UtilityLink detail="Open internal controls." href="/admin" icon="admin" label="Admin" onNavigate={handleNavigate} />
-            )}
+              <UtilityLink detail="Use the customer portal for development." href="/dashboard" icon="back" label="Customer workspace" onNavigate={handleNavigate} tone="admin" />
+            ) : null}
+            {!inAdminExperience && canUseAdminWorkspace ? (
+              <UtilityLink detail="Return to internal controls." href="/admin" icon="admin" label="Admin workspace" onNavigate={handleNavigate} />
+            ) : null}
             <ProfileMenu />
           </div>
         </aside>
@@ -406,13 +528,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <div className="flex items-center justify-between gap-4">
               <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
-              <Link
-                className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#fff1f2] text-[#484848]" : "bg-[#858585] text-[#ffffff]"}`}
-                href={inAdminExperience ? "/dashboard" : "/admin"}
-                onClick={(event) => handleNavigate(event, inAdminExperience ? "/dashboard" : "/admin")}
-              >
-                {inAdminExperience ? "Customer App" : "Admin"}
-              </Link>
+              {!inAdminExperience && canUseAdminWorkspace ? (
+                <Link
+                  className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-semibold text-white"
+                  href="/admin"
+                  onClick={(event) => handleNavigate(event, "/admin")}
+                >
+                  Admin
+                </Link>
+              ) : (
+                <span className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#fff1f2] text-[#484848]" : "bg-[#ffffff] text-[#303036]"}`}>
+                  {inAdminExperience ? "Admin" : "Customer"}
+                </span>
+              )}
             </div>
             <nav aria-label="Compact navigation" className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {navSections.flatMap((section) => section.items).map((item) => (
@@ -421,7 +549,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   key={`mobile-${item.href}`}
                   onNavigate={handleNavigate}
                   pathname={activeNavPathname}
-                  tone={inAdminExperience ? "admin" : "customer"}
+                  tone={navTone}
                 />
               ))}
             </nav>

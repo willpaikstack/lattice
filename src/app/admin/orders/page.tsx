@@ -20,8 +20,8 @@ export default async function AdminOrdersPage() {
               Track accepted customer quotes through overseas fabrication, documents, production status, and shipment readiness.
             </p>
           </div>
-          <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/supplier/orders">
-            Supplier Orders
+          <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/admin/vendors">
+            Vendor Directory
           </Link>
         </div>
       </section>

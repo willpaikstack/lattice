@@ -2,11 +2,17 @@ import { notFound } from "next/navigation";
 
 import { buildCustomerQuoteXlsx, customerQuoteXlsxFileName } from "@/lib/quote-xlsx";
 import { getRequestById } from "@/lib/request-repository";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ requestId: string }> }) {
+  const unauthorized = await requireRouteRole(["admin"]);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const { requestId } = await params;
   const request = await getRequestById(requestId);
 

@@ -41,6 +41,7 @@ describe("request model", () => {
     });
 
     expect(draft.status).toBe("DRAFT");
+    expect(draft.requestOrigin).toBe("ACCOUNT");
     expect(draft.isArchived).toBe(false);
     expect(draft.lineItems).toHaveLength(1);
     expect(draft.files).toHaveLength(1);
@@ -51,6 +52,36 @@ describe("request model", () => {
     expect(draft.lineItems[0].generalTolerance).toBe("ISO 2768 Medium (m)");
     expect(draft.lineItems[0].surfaceFinish).toBe("As machined (Ra 3.2 µm / Ra 126 µin)");
     expect(draft.lineItems[0].qualityDocumentation).toEqual(["Standard Inspection"]);
+  });
+
+  it("stores guest simple quote access metadata on draft requests", () => {
+    const draft = buildDraftRequest({
+      buyerCompany: "Acme Machining",
+      guestAccessTokenExpiresAt: "2026-07-30T00:00:00.000Z",
+      guestAccessTokenHash: "abc123",
+      requesterName: "Guest Buyer",
+      requestOrigin: "GUEST_SIMPLE_QUOTE",
+      title: "One-off bracket quote",
+      process: "CNC machining",
+      dueDate: "2026-06-25",
+      contact: {
+        requesterEmail: "buyer@example.com",
+        requesterPhone: "555-0100",
+      },
+      lineItems: [
+        {
+          partName: "Bracket",
+          quantity: 4,
+          material: "6061-T6 Aluminum",
+        },
+      ],
+      files: [{ name: "bracket.step", sizeBytes: 2048, type: "model/step" }],
+    });
+
+    expect(draft.requestOrigin).toBe("GUEST_SIMPLE_QUOTE");
+    expect(draft.guestAccessTokenHash).toBe("abc123");
+    expect(draft.guestAccessTokenExpiresAt).toBe("2026-07-30T00:00:00.000Z");
+    expect(draft.requesterEmail).toBe("buyer@example.com");
   });
 
   it("submits a complete draft into the operator review queue", () => {

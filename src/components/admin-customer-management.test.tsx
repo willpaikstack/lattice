@@ -89,6 +89,6 @@ describe("AdminCustomerManagement", () => {
     expect(screen.getByText("Robot arm bracket RFQ")).toBeInTheDocument();
     expect(screen.getByText("Arm bracket")).toBeInTheDocument();
     expect(screen.getByText("arm-bracket.step")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open record" })).toHaveAttribute("href", `/operator/requests/${request.id}`);
+    expect(screen.getByRole("link", { name: "Open record" })).toHaveAttribute("href", `/admin/quotes?requestId=${request.id}`);
   });
 });

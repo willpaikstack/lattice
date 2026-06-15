@@ -47,8 +47,8 @@ describe("AdminActivityDashboard", () => {
     expect(screen.getByRole("link", { name: /Assign owner and review/ })).toHaveAttribute("href", "/admin/quotes?requestId=req_submitted");
     expect(screen.getByRole("link", { name: /Resolve missing buyer info/ })).toHaveAttribute("href", "/admin/quotes?requestId=req_needs_info");
     expect(screen.getByRole("link", { name: /Send supplier RFQ package/ })).toHaveAttribute("href", "/admin/quotes?requestId=req_ready");
-    expect(screen.getByRole("heading", { name: "Quote pipeline" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Recent quote requests" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Quote pipeline" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Recent quote requests" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Customers" })).not.toBeInTheDocument();
     expect(screen.queryByText("Orders in flight")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Activity by status" })).not.toBeInTheDocument();

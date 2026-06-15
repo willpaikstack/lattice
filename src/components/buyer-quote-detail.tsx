@@ -1,8 +1,12 @@
-import Link from "next/link";
-import { ArrowLeft, Download, FileText, Mail, Phone, User } from "lucide-react";
+"use client";
 
-import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
-import { SupplierQuoteFiles } from "./supplier-quote-files";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowDownUp, ArrowLeft, Download, Info, Mail, Phone, Upload, User, X } from "lucide-react";
+
+import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
+import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
@@ -73,6 +77,22 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
+function formatDateTime(value: string | null) {
+  const date = localDate(value);
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
 function formatPrice(cents: number | null) {
   if (cents === null) {
     return "Pending";
@@ -83,6 +103,61 @@ function formatPrice(cents: number | null) {
     minimumFractionDigits: 2,
     style: "currency",
   }).format(cents / 100);
+}
+
+function formatSummaryPrice(cents: number | null) {
+  return cents === null ? "-" : formatPrice(cents);
+}
+
+function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {
+  const labels: Record<LatticeRequest["statusEvents"][number]["actor"], string> = {
+    buyer: "Buyer",
+    operator: "Lattice",
+    supplier: "Supplier",
+    system: "System",
+  };
+
+  return labels[actor];
+}
+
+function activityEventTitle(event: LatticeRequest["statusEvents"][number]) {
+  if (event.from === null && event.to === "DRAFT") {
+    return "Draft created";
+  }
+
+  if (event.from === "DRAFT" && event.to === "SUBMITTED") {
+    return "RFQ submitted for review";
+  }
+
+  if (event.to === "NEEDS_INFO") {
+    return "More information requested";
+  }
+
+  if (event.to === "READY_FOR_SUPPLIER_RFQ") {
+    return "Supplier pricing started";
+  }
+
+  if (event.to === "QUOTED") {
+    return "Quote issued";
+  }
+
+  if (event.to === "PURCHASED") {
+    return "Quote accepted";
+  }
+
+  if (event.to === "CLOSED") {
+    return "Quote closed";
+  }
+
+  return quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle;
+}
+
+function activityEventDetail(event: LatticeRequest["statusEvents"][number]) {
+  if (event.from === null) {
+    return `${actorLabel(event.actor)} opened the RFQ workspace.`;
+  }
+
+  return `${actorLabel(event.actor)} moved the quote from ${quoteStatusCopy[event.from].label ?? quoteStatusCopy[event.from].requestTitle} to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle}.`;
 }
 
 function quoteReference(request: LatticeRequest) {
@@ -111,52 +186,67 @@ function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
   return null;
 }
 
-function configurationText(request: LatticeRequest, item: RequestLineItem) {
-  return [request.process, item.material, item.generalTolerance, item.surfaceFinish || "No finish (as machined)", ...(item.qualityDocumentation ?? [])].filter(Boolean).join(" / ");
-}
-
-function productionRegion(request: LatticeRequest) {
-  if (request.quote.shippingMethod === "Domestic") {
-    return "Domestic";
-  }
-
-  return "Overseas";
-}
-
 function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][number] | undefined; index: number }) {
   const faceTone = index % 2 === 0 ? "bg-[#d8e5f3]" : "bg-[#dfe7dd]";
   const sideTone = index % 2 === 0 ? "bg-[#b8cbe1]" : "bg-[#c2d1bf]";
   const topTone = index % 2 === 0 ? "bg-[#edf3fa]" : "bg-[#eef4ec]";
+  const thumbnailHref = file?.cadPreviewUrn
+    ? `/api/cad-previews/thumbnail?urn=${encodeURIComponent(file.cadPreviewUrn)}&size=320`
+    : null;
 
   return (
-    <div className="w-full shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-[#f7f8fa] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.7)] sm:w-32">
-      <div className="relative h-24 bg-[linear-gradient(90deg,rgba(17,24,39,0.06)_1px,transparent_1px),linear-gradient(0deg,rgba(17,24,39,0.06)_1px,transparent_1px)] bg-[size:12px_12px]">
-        <div className={`absolute left-7 top-8 h-10 w-14 -skew-y-6 rounded-sm border border-[#8f9ba8] ${faceTone}`} />
-        <div className={`absolute left-11 top-5 h-10 w-14 skew-y-[20deg] rounded-sm border border-[#9aa6b2] ${topTone}`} />
-        <div className={`absolute left-[4.35rem] top-9 h-10 w-9 skew-y-[20deg] rounded-sm border border-[#8f9ba8] ${sideTone}`} />
-        <span className="absolute bottom-2 left-2 rounded bg-white/85 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-[#69717c]">CAD render</span>
+    <div className="w-20 shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.75)]">
+      <div className="relative h-16 bg-[linear-gradient(90deg,rgba(17,24,39,0.06)_1px,transparent_1px),linear-gradient(0deg,rgba(17,24,39,0.06)_1px,transparent_1px)] bg-[size:10px_10px]">
+        {thumbnailHref ? (
+          <Image
+            alt={file?.name ? `CAD preview for ${file.name}` : "CAD preview"}
+            className="h-full w-full object-cover"
+            height={64}
+            src={thumbnailHref}
+            unoptimized
+            width={80}
+          />
+        ) : (
+          <>
+            <div className={`absolute left-5 top-7 h-7 w-10 -skew-y-6 rounded-sm border border-[#8f9ba8] ${faceTone}`} />
+            <div className={`absolute left-7 top-4 h-8 w-10 skew-y-[20deg] rounded-sm border border-[#9aa6b2] ${topTone}`} />
+            <div className={`absolute left-[3.35rem] top-7 h-8 w-6 skew-y-[20deg] rounded-sm border border-[#8f9ba8] ${sideTone}`} />
+            <span className="absolute bottom-1 left-1 rounded bg-white/85 px-1 py-0.5 text-[8px] font-semibold uppercase text-[#69717c]">Preview pending</span>
+          </>
+        )}
       </div>
-      <p className="truncate border-t border-[#e4e6ea] px-2 py-1.5 text-[10px] font-medium text-[#6f737a]">{file?.name ?? "Render pending"}</p>
+      <p className="border-t border-[#e4e6ea] px-2 py-1 text-center text-[12px] font-semibold text-[#5f6670]">Rev 1</p>
     </div>
   );
 }
 
-function reviewedFilesLabel(request: LatticeRequest) {
-  const latestQuote = request.customerQuotes.at(-1);
-
-  if (latestQuote?.filesReviewed) {
-    return latestQuote.filesReviewed;
-  }
-
-  return request.files.map((file) => file.name).join(", ") || "No files attached";
+function sortIndicator() {
+  return <ArrowDownUp aria-hidden="true" className="ml-1 inline h-3.5 w-3.5 text-[#b7bcc4]" />;
 }
 
-function canEditRequest(request: LatticeRequest) {
-  return request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ" || request.status === "QUOTED";
+function customerFacingFileName(fileName: string | undefined, fallback: string) {
+  return fileName?.trim() || fallback;
 }
 
-function editRequestLabel(request: LatticeRequest) {
-  return request.status === "QUOTED" ? "Edit and resubmit quote" : "Edit and resubmit request";
+function fileDownloadHref(file: LatticeRequest["files"][number] | undefined) {
+  return file?.storageKey
+    ? `/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`
+    : null;
+}
+
+function quoteShippingAddressLines(request: LatticeRequest) {
+  const lines = requestShipToLines({
+    shipToAddress1: request.shipToAddress1,
+    shipToAddress2: request.shipToAddress2,
+    shipToCity: request.shipToCity,
+    shipToCompany: request.shipToCompany || request.buyerCompany,
+    shipToName: request.shipToName,
+    shipToPhone: request.shipToPhone,
+    shipToState: request.shipToState,
+    shipToZipCode: request.shipToZipCode,
+  });
+
+  return lines.length ? lines : [request.buyerCompany, "Shipping address pending"];
 }
 
 export function BuyerQuoteDetail({
@@ -168,15 +258,46 @@ export function BuyerQuoteDetail({
 }) {
   const canPurchase = request.status === "QUOTED";
   const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
-  const canReviseQuote = canEditRequest(request);
   const status = quoteStatusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
-  const selectedSupplierQuote = request.supplierQuotes.find((quote) => quote.isSelected || quote.status === "SELECTED");
   const subtotalCents = latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents;
   const shippingCents = request.quote.shippingCostCents;
   const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
+  const reviseHref = `/requests/new?revise=${request.id}`;
+  const shippingAddressLines = quoteShippingAddressLines(request);
+  const lineItemFiles = bundledFilesByLineItem(request);
+  const lineItemIds = useMemo(() => request.lineItems.map((item) => item.id), [request.lineItems]);
+  const [selectedLineItemIds, setSelectedLineItemIds] = useState<Set<string>>(() => new Set());
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const selectedCount = selectedLineItemIds.size;
+  const allLineItemsSelected = lineItemIds.length > 0 && selectedCount === lineItemIds.length;
+  const someLineItemsSelected = selectedCount > 0 && !allLineItemsSelected;
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someLineItemsSelected;
+    }
+  }, [someLineItemsSelected]);
+
+  function toggleAllLineItems(checked: boolean) {
+    setSelectedLineItemIds(checked ? new Set(lineItemIds) : new Set());
+  }
+
+  function toggleLineItem(lineItemId: string, checked: boolean) {
+    setSelectedLineItemIds((current) => {
+      const next = new Set(current);
+
+      if (checked) {
+        next.add(lineItemId);
+      } else {
+        next.delete(lineItemId);
+      }
+
+      return next;
+    });
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-2 pb-10">
@@ -226,116 +347,107 @@ export function BuyerQuoteDetail({
             </section>
           ) : null}
 
-          <div className="flex flex-wrap items-center gap-3 text-[13px]">
-            <button className="font-semibold text-[#2f73c8] transition hover:text-[#171717]" type="button">
-              Select files or drag and drop here to upload
-            </button>
-            <span className="text-[#d5d8dd]">|</span>
-            <button className="text-[#555b64] transition hover:text-[#171717]" type="button">
-              Configure as drawing
-            </button>
-            <span className="text-[#d5d8dd]">|</span>
-            <button className="text-[#555b64] transition hover:text-[#171717]" type="button">
-              Select all
-            </button>
-          </div>
-
           <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-col gap-3 bg-[#f3f3f3] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-[20px] font-semibold uppercase tracking-normal text-[#111111]">Summary of order</h2>
-              <p className="text-[20px] font-semibold uppercase tracking-normal text-[#111111]">Order total {formatPrice(totalCents)}</p>
+            <div className="border-b border-[#d8dce2] px-5 py-4">
+              <div className="flex flex-wrap gap-3">
+                <Link className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#d5d9df] bg-white px-4 text-[14px] font-medium text-[#30343a] transition hover:border-[#aeb6c2] hover:bg-[#f8fafc]" href={reviseHref}>
+                  <Upload aria-hidden="true" className="h-4 w-4" />
+                  Select files or drag and drop here to upload
+                </Link>
+              </div>
+              <h2 className="sr-only">Summary of order</h2>
             </div>
 
-            <div className="hidden grid-cols-[42px_minmax(260px,1fr)_52px_96px_104px] gap-4 border-b-4 border-[#111111] px-5 py-4 text-[12px] font-semibold text-[#111111] min-[1200px]:grid">
-              <span>#</span>
-              <span>Part details</span>
-              <span className="text-right">Qty</span>
-              <span className="text-right">Unit price</span>
-              <span className="text-right">Subtotal</span>
-            </div>
+            <div className="overflow-x-auto" data-testid="quote-line-items-scroll">
+              <div className="min-w-[1044px]">
+                <div className="grid grid-cols-[40px_minmax(360px,1.45fr)_minmax(250px,1fr)_120px_126px] items-center gap-5 bg-[#fbfbfc] py-4 pl-5 pr-12 text-[15px] font-semibold text-[#262a30] shadow-[inset_0_-1px_0_#d8dce2]">
+                  <span className="flex justify-start">
+                    <input
+                      aria-label="Select all line items"
+                      checked={allLineItemsSelected}
+                      className="h-5 w-5 rounded border-[#d2d7de]"
+                      onChange={(event) => toggleAllLineItems(event.currentTarget.checked)}
+                      ref={selectAllRef}
+                      type="checkbox"
+                    />
+                  </span>
+                  <span>Name {sortIndicator()}</span>
+                  <span>Configuration {sortIndicator()}</span>
+                  <span className="flex items-center justify-end gap-1">
+                    Quantity
+                    <Info aria-hidden="true" className="h-4 w-4 text-[#5d86ff]" />
+                    {sortIndicator()}
+                  </span>
+                  <span className="text-right">Price {sortIndicator()}</span>
+                </div>
 
-            <div className="divide-y divide-[#b8b8b8]">
-              {request.lineItems.map((item, index) => {
-                const total = lineItemTotalCents(item, request);
-                const unit = lineItemUnitCents(item, total);
-                const file = request.files[index] ?? request.files[0];
+                <div className="divide-y divide-[#e2e5e9]">
+                  {request.lineItems.map((item, index) => {
+                    const total = lineItemTotalCents(item, request);
+                    const unit = lineItemUnitCents(item, total);
+                    const files = lineItemFiles[index];
+                    const file = files?.cadFile ?? request.files[index] ?? request.files[0];
+                    const drawingFile = files?.drawingFile;
+                    const fileName = customerFacingFileName(file?.name, item.partName);
+                    const downloadHref = fileDownloadHref(file);
 
-                return (
-                  <article className="grid gap-4 px-5 py-6 min-[1200px]:grid-cols-[42px_minmax(260px,1fr)_52px_96px_104px] min-[1200px]:gap-4" key={item.id}>
-                    <p className="text-[14px] text-[#111111]">
-                      <span className="font-semibold min-[1200px]:hidden"># </span>
-                      {index + 1}
-                    </p>
-                    <div className="min-w-0 sm:flex sm:gap-4">
-                      <CadRenderPreview file={file} index={index} />
-                      <div className="mt-3 min-w-0 sm:mt-0">
-                        <p className="break-words text-[15px] font-semibold leading-5 text-[#111111]">{file?.name ? `[Rev 1] ${file.name}` : `[Rev 1] ${item.partName}`}</p>
-                        <p className="mt-1 break-words text-[15px] font-semibold leading-5 text-[#111111]">{item.partName}</p>
-                        <p className="mt-1 break-words text-[14px] leading-5 text-[#111111]">{configurationText(request, item)}</p>
-                        <p className="mt-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-[#6f737a]">Production region: {productionRegion(request)}</p>
-                        {item.notes ? <p className="mt-1 text-[13px] font-semibold leading-5 text-[#111111]">{item.notes}</p> : null}
-                      </div>
-                    </div>
-                    <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
-                      <span className="font-semibold min-[1200px]:hidden">Qty: </span>
-                      {item.quantity}
-                    </p>
-                    <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
-                      <span className="font-semibold min-[1200px]:hidden">Unit price: </span>
-                      {formatPrice(unit)}
-                    </p>
-                    <p className="text-[14px] text-[#111111] min-[1200px]:text-right">
-                      <span className="font-semibold min-[1200px]:hidden">Subtotal: </span>
-                      {formatPrice(total)}
-                    </p>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-
-          <section id="files" className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-md border border-[#e7e7e7] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Files reviewed</p>
-              <div className="mt-4 space-y-3">
-                {request.files.map((file) => (
-                  <div className="flex items-center gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={file.id}>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-[#7b8088]">
-                      <FileText aria-hidden="true" className="h-4 w-4" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-[#202020]">{file.name}</p>
-                      <p className="text-[11px] uppercase tracking-[0.1em] text-[#8a8f98]">{file.type || "CAD file"}</p>
-                    </div>
-                  </div>
-                ))}
+                    return (
+                      <article className="grid grid-cols-[40px_minmax(360px,1.45fr)_minmax(250px,1fr)_120px_126px] items-start gap-5 py-7 pl-5 pr-12" key={item.id}>
+                        <div className="flex justify-start">
+                          <input
+                            aria-label={`Select ${item.partName}`}
+                            checked={selectedLineItemIds.has(item.id)}
+                            className="mt-1 h-5 w-5 rounded border-[#d2d7de]"
+                            onChange={(event) => toggleLineItem(item.id, event.currentTarget.checked)}
+                            type="checkbox"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-start gap-4">
+                            <CadRenderPreview file={file} index={index} />
+                            <div className="min-w-0">
+                              {downloadHref ? (
+                                <a className="block truncate text-[15px] font-semibold text-[#4f7cff] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
+                                  {fileName}
+                                </a>
+                              ) : (
+                                <p className="truncate text-[15px] font-semibold text-[#4f7cff]">{fileName}</p>
+                              )}
+                              {drawingFile ? (
+                                <span className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[13px] font-medium text-[#4f7cff]">
+                                  <span className="truncate">{drawingFile.name}</span>
+                                  <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-[14px] leading-5 text-[#30343a]">
+                          <p className="font-semibold">{request.process || "CNC"}</p>
+                          <p className="font-semibold text-[#5f6670]">{item.material}</p>
+                          <p className="text-[#5f6670]">{item.surfaceFinish || "No finish (As machined)"}</p>
+                          {(item.qualityDocumentation ?? []).length > 0 ? (
+                            <p className="text-[#5f6670]">{(item.qualityDocumentation ?? []).join(", ")}</p>
+                          ) : null}
+                          <Link className="mt-2 inline-flex font-semibold text-[#4f7cff] transition hover:text-[#244bc7]" href={reviseHref}>
+                            Edit configuration
+                          </Link>
+                        </div>
+                        <div className="flex min-h-11 items-center px-4 text-[16px] font-semibold text-[#262a30]" aria-label={`Quantity for ${item.partName}`}>
+                          {item.quantity}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[18px] font-semibold text-[#262a30]">{formatSummaryPrice(total)}</p>
+                          <p className="mt-1 text-[14px] text-[#5f6670]">{unit === null ? "-" : `${formatPrice(unit)}/ea`}</p>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-
-            <div className="rounded-md border border-[#e7e7e7] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Quote basis</p>
-              <dl className="mt-4 space-y-3 text-[13px]">
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#6f737a]">Supplier basis</dt>
-                  <dd className="text-right font-semibold text-[#202020]">{selectedSupplierQuote?.shopName ?? "Pending"}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#6f737a]">Files</dt>
-                  <dd className="text-right font-semibold text-[#202020]">{reviewedFilesLabel(request)}</dd>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <dt className="text-[#6f737a]">Assumptions</dt>
-                  <dd className="text-right font-semibold text-[#202020]">{latestCustomerQuote?.assumptions || request.operatorReview.supplierPackageNotes || "CAD is latest revision"}</dd>
-                </div>
-              </dl>
-            </div>
           </section>
 
-          <SupplierQuoteFiles
-            request={request}
-            returnTo={`/quotes/${encodeURIComponent(request.id)}`}
-            uploadHref="/api/supplier-quote-files"
-          />
         </main>
 
         <aside className="space-y-5 xl:col-span-4">
@@ -347,23 +459,23 @@ export function BuyerQuoteDetail({
               <dl className="space-y-3 text-[13px]">
                 <div className="flex justify-between gap-4">
                   <dt className="font-semibold text-[#202020]">Part production</dt>
-                  <dd className="font-semibold text-[#202020]">{formatPrice(subtotalCents)}</dd>
+                  <dd className="font-semibold text-[#202020]">{formatSummaryPrice(subtotalCents)}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="font-semibold text-[#202020]">
                     Shipping {request.quote.shippingMethod ? `(${request.quote.shippingMethod})` : ""}
                   </dt>
-                  <dd className="font-semibold text-[#202020]">{shippingCents === null ? "Billed at actual" : formatPrice(shippingCents)}</dd>
+                  <dd className="font-semibold text-[#202020]">{formatSummaryPrice(shippingCents)}</dd>
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="font-semibold text-[#202020]">Tax</dt>
-                  <dd className="font-semibold text-[#202020]">{formatPrice(taxCents)}</dd>
+                  <dd className="font-semibold text-[#202020]">{formatSummaryPrice(taxCents)}</dd>
                 </div>
               </dl>
               <div className="border-t border-[#eeeeee] pt-4">
                 <div className="flex justify-between gap-4">
                   <p className="text-[14px] font-semibold text-[#202020]">Total</p>
-                  <p className="text-[22px] font-semibold text-[#171717]">{formatPrice(totalCents)}</p>
+                  <p className="text-[22px] font-semibold text-[#171717]">{formatSummaryPrice(totalCents)}</p>
                 </div>
               </div>
 
@@ -386,14 +498,6 @@ export function BuyerQuoteDetail({
                   {canPurchase ? "Accept quote" : status.buyerAction}
                 </button>
               )}
-              {canReviseQuote ? (
-                <Link
-                  className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
-                  href={`/requests/new?revise=${request.id}`}
-                >
-                  {editRequestLabel(request)}
-                </Link>
-              ) : null}
               {canDownloadQuote ? (
                 <a
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
@@ -408,15 +512,19 @@ export function BuyerQuoteDetail({
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Shipping address</p>
-              <p className="mt-3 text-[13px] font-semibold text-[#202020]">{request.buyerCompany}</p>
-              <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">
-                123 Main Street
-                <br />
-                Brooklyn, NY 11201
-              </p>
-              <button className="mt-3 text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]" type="button">
+              <p className="mt-3 text-[13px] font-semibold text-[#202020]">{shippingAddressLines[0]}</p>
+              {shippingAddressLines.length > 1 ? (
+                <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">
+                  {shippingAddressLines.slice(1).map((line) => (
+                    <span className="block" key={line}>
+                      {line}
+                    </span>
+                  ))}
+                </p>
+              ) : null}
+              <Link className="mt-3 inline-flex text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]" href="/account/settings?edit=shipping">
                 Change
-              </button>
+              </Link>
             </div>
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
@@ -426,16 +534,16 @@ export function BuyerQuoteDetail({
                   <User aria-hidden="true" className="h-4 w-4" />
                 </span>
                 <div>
-                  <p className="text-[13px] font-semibold text-[#202020]">Erik Mast</p>
+                  <p className="text-[13px] font-semibold text-[#202020]">William Paik</p>
                   <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Account manager, including quoting assistance and help.</p>
                   <div className="mt-2 space-y-1 text-[12px] text-[#2f73c8]">
                     <p className="flex items-center gap-2">
                       <Mail aria-hidden="true" className="h-3.5 w-3.5" />
-                      erik.mast@latticeos.com
+                      will@latticeos.co
                     </p>
                     <p className="flex items-center gap-2">
                       <Phone aria-hidden="true" className="h-3.5 w-3.5" />
-                      415-237-8791
+                      +1 (929) 585-9892
                     </p>
                   </div>
                 </div>
@@ -444,16 +552,34 @@ export function BuyerQuoteDetail({
           </section>
 
           <section className="rounded-md border border-[#e7e7e7] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Quote activity</p>
-            <div className="mt-4 space-y-3">
-              {request.statusEvents.map((event) => (
-                <div className="rounded-md bg-[#fafafa] p-3" key={event.id}>
-                  <p className="text-[13px] font-semibold text-[#202020]">{quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle}</p>
-                  <p className="mt-1 text-[12px] text-[#7b8088]">
-                    {formatDate(event.at)} by {event.actor}
-                  </p>
-                </div>
-              ))}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Quote activity</p>
+                <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Event log for this RFQ.</p>
+              </div>
+              <span className="rounded-full bg-[#f4f6f8] px-2 py-1 text-[11px] font-semibold text-[#6f737a]">{request.statusEvents.length}</span>
+            </div>
+            <div className="mt-5">
+              {request.statusEvents.map((event, index) => {
+                const isLast = index === request.statusEvents.length - 1;
+
+                return (
+                  <div className="relative grid grid-cols-[18px_minmax(0,1fr)] gap-3 pb-5 last:pb-0" key={event.id}>
+                    {!isLast ? <span className="absolute left-[8px] top-5 h-[calc(100%-1rem)] w-px bg-[#dfe3e8]" aria-hidden="true" /> : null}
+                    <span className="relative z-10 mt-1 flex h-[18px] w-[18px] items-center justify-center rounded-full border border-[#9fb8ff] bg-white">
+                      <span className="h-2 w-2 rounded-full bg-[#4f7cff]" />
+                    </span>
+                    <div>
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                        <p className="text-[13px] font-semibold text-[#202020]">{activityEventTitle(event)}</p>
+                        <time className="text-[11px] font-medium text-[#8a8f98]" dateTime={event.at}>{formatDateTime(event.at)}</time>
+                      </div>
+                      <p className="mt-1 text-[12px] leading-5 text-[#5f6670]">{activityEventDetail(event)}</p>
+                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9aa0a9]">{actorLabel(event.actor)}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </aside>

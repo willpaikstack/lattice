@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ProfilePictureEditor } from "@/components/profile-picture-editor";
 import {
   accountSettingsStorageKey,
@@ -107,6 +108,7 @@ function getInitialAccountSettings(serverInitialSettings?: AccountSettingsSnapsh
     passwordChangedAt: storedString(stored, "passwordChangedAt") ?? defaults.passwordChangedAt,
     phone: storedString(stored, "phone") ?? defaults.phone,
     shipping: storedAddress(stored.shipping, defaults.shipping),
+    stripeCustomerId: storedString(stored, "stripeCustomerId") ?? defaults.stripeCustomerId,
     teamMembers: Array.isArray(storedTeamMembers) ? (storedTeamMembers as TeamMember[]) : defaults.teamMembers,
   };
 }
@@ -254,16 +256,30 @@ function CardBrand({ brand }: { brand: string }) {
 }
 
 export function AccountSettingsWorkspace({
+  createCardSetupAction,
+  detachCardAction,
   initialSettings: serverInitialSettings,
   saveSettingsAction,
 }: {
+  createCardSetupAction?: () => void | Promise<void>;
+  detachCardAction?: (formData: FormData) => void | Promise<void>;
   initialSettings?: AccountSettingsSnapshot;
   saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<void>;
 }) {
+  const searchParams = useSearchParams();
   const [initialSettings] = useState(() => getInitialAccountSettings(serverInitialSettings));
+  const [initialEditTarget] = useState<EditableField>(() => (searchParams.get("edit") === "shipping" ? "shipping" : null));
   const [activeTab, setActiveTab] = useState<ActiveTab>("account");
-  const [editing, setEditing] = useState<EditableField>(null);
-  const [notice, setNotice] = useState("Account settings changes are stored for this demo session.");
+  const [editing, setEditing] = useState<EditableField>(initialEditTarget);
+  const [notice, setNotice] = useState(
+    searchParams.get("payment_method") === "added"
+      ? "Payment method added in Stripe."
+      : searchParams.get("payment_method") === "canceled"
+        ? "Stripe card setup was canceled."
+        : initialEditTarget === "shipping"
+      ? "Make a change, then save or cancel."
+      : "Account settings changes are stored for this demo session.",
+  );
   const [error, setError] = useState("");
   const [name, setName] = useState(initialSettings.name);
   const [phone, setPhone] = useState(initialSettings.phone);
@@ -274,15 +290,15 @@ export function AccountSettingsWorkspace({
   const [shipping, setShipping] = useState<Address>(initialSettings.shipping);
   const [billingAddress, setBillingAddress] = useState<Address>(initialSettings.billingAddress);
   const [billing, setBilling] = useState<BillingContact>(initialSettings.billing);
-  const [cards, setCards] = useState(initialSettings.cards);
+  const [cards] = useState(initialSettings.cards);
   const [teamMembers, setTeamMembers] = useState(initialSettings.teamMembers);
   const [draftValue, setDraftValue] = useState("");
   const [passwordDraft, setPasswordDraft] = useState({ confirm: "", next: "" });
-  const [isAddingCard, setIsAddingCard] = useState(false);
-  const [cardDraft, setCardDraft] = useState({ expires: "", holder: "", last4: "" });
   const [memberDraft, setMemberDraft] = useState<TeamMember>({ email: "", name: "", role: "Buyer", status: "Invited" });
   const [managedMemberEmail, setManagedMemberEmail] = useState<string | null>(null);
-  const [addressDraft, setAddressDraft] = useState<Address>(initialShippingAddress);
+  const [addressDraft, setAddressDraft] = useState<Address>(() =>
+    initialEditTarget === "shipping" ? initialSettings.shipping : initialShippingAddress,
+  );
   const [billingDraft, setBillingDraft] = useState<BillingContact>(initialBillingContact);
 
   const managedMember = useMemo(() => teamMembers.find((member) => member.email === managedMemberEmail) ?? null, [managedMemberEmail, teamMembers]);
@@ -307,6 +323,7 @@ export function AccountSettingsWorkspace({
       passwordChangedAt,
       phone,
       shipping,
+      stripeCustomerId: initialSettings.stripeCustomerId,
       teamMembers,
       ...overrides,
     };
@@ -441,45 +458,6 @@ export function AccountSettingsWorkspace({
       persistSettings({ email: trimmed });
     }
     finishEdit("Account setting updated for this demo session.");
-  }
-
-  function addCard() {
-    if (!/^\d{4}$/.test(cardDraft.last4.trim())) {
-      setError("Card ending must be exactly 4 digits.");
-      return;
-    }
-    if (!/^(0[1-9]|1[0-2])\/20\d{2}$/.test(cardDraft.expires.trim())) {
-      setError("Use an expiration date like 09/2028.");
-      return;
-    }
-    if (!cardDraft.holder.trim()) {
-      setError("Add the card holder name.");
-      return;
-    }
-    const last4 = cardDraft.last4.trim();
-    const nextCards = [
-      ...cards,
-      { brand: "Visa", expires: cardDraft.expires.trim(), holder: cardDraft.holder.trim(), id: `card-${last4}`, last4 },
-    ];
-    setCards(nextCards);
-    persistSettings({ cards: nextCards });
-    setCardDraft({ expires: "", holder: "", last4: "" });
-    setIsAddingCard(false);
-    finishEdit("Payment method added for this demo session.");
-  }
-
-  function cancelAddCard() {
-    setCardDraft({ expires: "", holder: "", last4: "" });
-    setError("");
-    setIsAddingCard(false);
-    setNotice("Card add canceled.");
-  }
-
-  function removeCard(card: PaymentCard) {
-    const nextCards = cards.filter((item) => item.id !== card.id);
-    setCards(nextCards);
-    persistSettings({ cards: nextCards });
-    setNotice(`Card ending in ${card.last4} was removed for this demo session.`);
   }
 
   function addTeamMember() {
@@ -642,15 +620,12 @@ export function AccountSettingsWorkspace({
               <CardTitle
                 action={
                   <button
-                    aria-expanded={isAddingCard}
                     aria-label="Add credit card"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#d7dce2] bg-white text-[#253040] transition hover:border-[#9aa4b2] hover:bg-[#f8fafc]"
-                    onClick={() => {
-                      setIsAddingCard((current) => !current);
-                      setError("");
-                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#d7dce2] bg-white text-[#253040] transition hover:border-[#9aa4b2] hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!createCardSetupAction}
+                    form="stripe-setup-form"
                     title="Add credit card"
-                    type="button"
+                    type="submit"
                   >
                     <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24">
                       <rect fill="none" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="18" x="3" y="6" />
@@ -667,30 +642,15 @@ export function AccountSettingsWorkspace({
                 <span>Holder</span>
                 <span>Action</span>
               </div>
+              {createCardSetupAction ? <form action={createCardSetupAction} id="stripe-setup-form" /> : null}
               {cards.map((card) => (
-                <PaymentMethod card={card} key={card.id} removeCard={removeCard} />
+                <PaymentMethod card={card} detachCardAction={detachCardAction} key={card.id} />
               ))}
-              {cards.length === 0 ? <p className="px-6 py-5 text-[14px] font-medium text-[#737b86]">No cards are available for checkout.</p> : null}
-              {isAddingCard ? (
-                <div className="border-t border-[#e5e8ec] px-6 py-5">
-                  <div className="grid gap-3 lg:grid-cols-[1fr_0.9fr_auto] lg:items-end">
-                    <TextField label="Card holder" name="card-holder" onChange={(holder) => setCardDraft((current) => ({ ...current, holder }))} value={cardDraft.holder} />
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <TextField label="Ending digits" name="card-last4" onChange={(last4) => setCardDraft((current) => ({ ...current, last4 }))} value={cardDraft.last4} />
-                      <TextField label="Expires" name="card-expires" onChange={(expires) => setCardDraft((current) => ({ ...current, expires }))} value={cardDraft.expires} />
-                    </div>
-                    <div className="flex flex-wrap gap-2 lg:justify-end">
-                      <button className="h-fit rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white" onClick={addCard} type="button">
-                        Add card
-                      </button>
-                      <button className="h-fit rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626]" onClick={cancelAddCard} type="button">
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                  {error ? <p className="mt-3 text-[13px] font-semibold text-[#b42318]">{error}</p> : null}
-                  <p className="mt-4 max-w-xl text-[13px] leading-5 text-[#737b86]">
-                    Card payments are encrypted and tokenized by the payment processor. Lattice does not store raw credit card information.
+              {cards.length === 0 ? (
+                <div className="px-6 py-5">
+                  <p className="text-[14px] font-medium text-[#737b86]">No Stripe cards are available for checkout.</p>
+                  <p className="mt-2 max-w-xl text-[13px] leading-5 text-[#737b86]">
+                    Add a card through Stripe Checkout. Card payments are encrypted and tokenized by Stripe; Lattice does not store raw credit card information.
                   </p>
                 </div>
               ) : null}
@@ -973,7 +933,7 @@ function Permission({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-function PaymentMethod({ card, removeCard }: { card: PaymentCard; removeCard: (card: PaymentCard) => void }) {
+function PaymentMethod({ card, detachCardAction }: { card: PaymentCard; detachCardAction?: (formData: FormData) => void | Promise<void> }) {
   return (
     <div className="grid gap-3 border-b border-[#e5e8ec] px-6 py-4 last:border-b-0 md:grid-cols-[0.26fr_1fr_0.45fr_auto] md:items-center">
       <div className="flex items-center gap-2">
@@ -985,9 +945,14 @@ function PaymentMethod({ card, removeCard }: { card: PaymentCard; removeCard: (c
         <p className="mt-1 text-[13px] text-[#737b86]">Expires {card.expires}</p>
       </div>
       <p className="text-[13px] font-medium text-[#303846]">{card.holder}</p>
-      <button className="w-fit text-[13px] font-semibold text-[#3b5bdb] hover:text-[#263c97]" onClick={() => removeCard(card)} type="button">
-        Remove card {card.last4}
-      </button>
+      {detachCardAction ? (
+        <form action={detachCardAction}>
+          <input name="paymentMethodId" type="hidden" value={card.id} />
+          <button className="w-fit text-[13px] font-semibold text-[#3b5bdb] hover:text-[#263c97]" type="submit">
+            Remove card {card.last4}
+          </button>
+        </form>
+      ) : null}
     </div>
   );
 }

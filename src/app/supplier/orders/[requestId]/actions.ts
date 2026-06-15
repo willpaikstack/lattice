@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { SupplierDocumentCategory, SupplierOrderStatus } from "@/lib/request-model";
 import { updateSupplierOrder } from "@/lib/request-repository";
+import { requireActionRole } from "@/lib/route-authorization";
 
 const allowedStatuses = new Set<SupplierOrderStatus>([
   "AWAITING_ACKNOWLEDGMENT",
@@ -42,6 +43,7 @@ function getFiles(formData: FormData, key: string, category: SupplierDocumentCat
 }
 
 export async function updateSupplierOrderAction(requestId: string, formData: FormData) {
+  await requireActionRole(["supplier"]);
   const status = getString(formData, "status") as SupplierOrderStatus;
   const documentCategory = getString(formData, "documentCategory") as SupplierDocumentCategory;
 

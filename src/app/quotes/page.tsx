@@ -1,29 +1,10 @@
 import { BuyerQuotes } from "@/components/buyer-quotes";
 import { listBuyerQuotes } from "@/lib/request-repository";
 
-import { FilePenLine, Inbox } from "lucide-react";
-
 export const dynamic = "force-dynamic";
 
 export default async function QuotesPage() {
   const quotes = await listBuyerQuotes();
-  const configuringQuoteCount = quotes.filter((quote) => quote.status !== "QUOTED").length;
-  const quoteReceivedCount = quotes.filter((quote) => quote.status === "QUOTED").length;
-
-  const metrics = [
-    {
-      detail: "Drafts and RFQs still moving toward pricing",
-      icon: FilePenLine,
-      label: "In Progress",
-      value: configuringQuoteCount,
-    },
-    {
-      detail: "Priced quotes ready for review",
-      icon: Inbox,
-      label: "Quote Received",
-      value: quoteReceivedCount,
-    },
-  ];
 
   return (
     <div className="mx-auto max-w-[1180px] space-y-6">
@@ -37,25 +18,6 @@ export default async function QuotesPage() {
             </p>
           </div>
         </div>
-      </section>
-
-      <section aria-label="Quote summary" className="grid gap-3 md:grid-cols-2">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
-
-          return (
-            <article className="relative rounded-lg border border-[#e7e7e7] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]" key={metric.label}>
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-[13px] font-medium text-[#686d75]">{metric.label}</p>
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[#ececec] bg-[#fafafa] text-[#8b919a]">
-                  <Icon aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
-                </span>
-              </div>
-              <p className="mt-4 text-[30px] font-semibold leading-none text-[#202020]">{metric.value}</p>
-              <p className="mt-2 text-[12px] text-[#8a8f98]">{metric.detail}</p>
-            </article>
-          );
-        })}
       </section>
 
       <BuyerQuotes requests={quotes} />

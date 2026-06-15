@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 
 import { startCadPreviewTranslation } from "@/lib/autodesk-platform-services";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    const unauthorized = await requireRouteRole(["customer", "admin"]);
+    if (unauthorized) {
+      return unauthorized;
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 

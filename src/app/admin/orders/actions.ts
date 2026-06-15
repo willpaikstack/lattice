@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { archiveOrder } from "@/lib/request-repository";
+import { requireActionRole } from "@/lib/route-authorization";
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -11,6 +12,7 @@ function getString(formData: FormData, key: string) {
 }
 
 export async function archiveOrderAction(formData: FormData) {
+  await requireActionRole(["admin"]);
   const requestId = getString(formData, "requestId").trim();
 
   if (!requestId) {

@@ -11,6 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronDown,
@@ -22,12 +23,12 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { CadRenderThumbnail } from "@/components/cad-file-preview";
 import {
   CadUploadPreview,
   type CadUploadPreviewState,
 } from "@/components/cad-upload-preview";
 import { CustomSelect } from "@/components/custom-select";
-import { customerMaterialCatalog } from "@/lib/customer-material-catalog";
 import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
   generalToleranceOptions,
@@ -98,10 +99,12 @@ type RequestFormProps = {
   initialState?: RequestFormInitialState;
   localDraftId?: string;
   prefillNotice?: string;
+  resumeRequests?: LatticeRequest[];
 };
 
 const cadFileTypes = "STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT";
 const cadAccept = ".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt";
+const cadFileExtensions = cadAccept.split(",").map((extension) => extension.trim().toLowerCase());
 const drawingAccept = ".pdf,.dxf,.dwg,.png,.jpg,.jpeg";
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
@@ -170,6 +173,20 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   cadPreview: { status: "empty" },
 });
 
+function makeCadLineItem(id: string, file: File): LineItemState {
+  const fileName = file.name;
+
+  return {
+    ...makeLineItemInitialState(id),
+    selectedFile: file,
+    fileName,
+    fileSizeBytes: file.size,
+    fileType: file.type,
+    partName: suggestedNameFromFile(fileName),
+    cadPreview: { status: "uploading", fileName },
+  };
+}
+
 function Field({
   label,
   children,
@@ -208,6 +225,18 @@ function displayNameFromFile(fileName: string) {
   return fileName.trim().replace(/\.[^.]+$/, "");
 }
 
+function quoteNameFromFileNames(fileNames: string[]) {
+  const displayNames = fileNames
+    .map(suggestedNameFromFile)
+    .filter((name) => name.trim());
+
+  if (displayNames.length <= 3) {
+    return displayNames.join(", ");
+  }
+
+  return `${displayNames.slice(0, 2).join(", ")}, +${displayNames.length - 2} more`;
+}
+
 function drawingCanPreview(file: File | null) {
   if (!file) {
     return false;
@@ -224,57 +253,275 @@ function lineItemHasDrawingBytes(lineItem: LineItemState) {
   return !lineItem.technicalDrawingName.trim() || Boolean((lineItem.selectedDrawingFile && lineItem.selectedDrawingFile.size > 0) || lineItem.technicalDrawingStorageKey);
 }
 
+function cadPreviewUrnForLineItem(lineItem: LineItemState) {
+  if (
+    (lineItem.cadPreview.status === "processing" || lineItem.cadPreview.status === "ready") &&
+    lineItem.cadPreview.fileName === lineItem.fileName
+  ) {
+    return lineItem.cadPreview.urn;
+  }
+
+  return undefined;
+}
+
+function lineItemRequiresDrawing(lineItem: LineItemState) {
+  return (
+    lineItem.partMarkings ||
+    lineItem.tightLinearTolerance ||
+    lineItem.threads ||
+    lineItem.engineeringFits ||
+    lineItem.sharpInternalCorners
+  );
+}
+
+function lineItemHasRequiredDrawing(lineItem: LineItemState) {
+  return (
+    !lineItemRequiresDrawing(lineItem) ||
+    (Boolean(lineItem.technicalDrawingName.trim()) && lineItemHasDrawingBytes(lineItem))
+  );
+}
+
+function lineItemsHaveMissingRequiredDrawing(lineItems: LineItemState[]) {
+  return lineItems.some(
+    (lineItem) =>
+      lineItemRequiresDrawing(lineItem) &&
+      !lineItem.technicalDrawingName.trim(),
+  );
+}
+
+function resumeStatusLabel(status: LatticeRequest["status"]) {
+  if (status === "DRAFT") {
+    return "Draft";
+  }
+
+  return "Quote Requested";
+}
+
+function resumeStatusTone(status: LatticeRequest["status"]) {
+  if (status === "DRAFT") {
+    return "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]";
+  }
+
+  return "border-[#c9ddff] bg-[#f2f7ff] text-[#2d5f9a]";
+}
+
+function resumeRequestHref(request: LatticeRequest) {
+  return request.status === "DRAFT"
+    ? `/requests/new?draft=${request.id}`
+    : `/quotes/${request.id}`;
+}
+
+function resumeRequestActionLabel(request: LatticeRequest) {
+  return request.status === "DRAFT" ? "Resume draft" : "View status";
+}
+
+function formatResumeDueDate(value: string) {
+  if (!value) {
+    return "Pending";
+  }
+
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const date = dateOnlyMatch
+    ? new Date(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+      )
+    : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatResumeLastEdited(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function resumeQuoteReference(request: LatticeRequest, index: number) {
+  if (request.status === "DRAFT") {
+    return "Draft";
+  }
+
+  return `LQ-${String(1001 + index).padStart(4, "0")}`;
+}
+
+function requiredDrawingErrorMessage(lineItem: LineItemState) {
+  const partLabel =
+    lineItem.partName.trim() ||
+    displayNameFromFile(lineItem.fileName) ||
+    "This line item";
+
+  return `${partLabel} has specifications marked as drawing required. Upload a technical drawing before requesting a quote.`;
+}
+
+function isRequiredDrawingError(message: string | null) {
+  return Boolean(
+    message?.includes("has specifications marked as drawing required"),
+  );
+}
+
 function localFileHref(storageKey: string, name: string, type: string) {
   return `/api/local-files/${storageKey}?name=${encodeURIComponent(name)}&type=${encodeURIComponent(type)}`;
 }
 
-function normalizedMaterialName(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+function isCadUploadFile(file: File) {
+  const fileName = file.name.toLowerCase();
+
+  return cadFileExtensions.some((extension) => fileName.endsWith(extension));
 }
 
-function buildMaterialSelectGroups() {
-  const optionByName = new Map(
-    rfqMaterialOptions.map((option) => [
-      normalizedMaterialName(option.label),
-      option,
-    ]),
-  );
-  const usedOptionValues = new Set<string>();
-  const groups: MaterialSelectGroup[] = customerMaterialCatalog
-    .map((category) => {
-      const subgroups = category.materialGroups
-        .map((subgroup) => {
-          const options = subgroup.grades
-            .map((grade) => optionByName.get(normalizedMaterialName(grade)))
-            .filter((option): option is RfqOption => Boolean(option))
-            .filter((option) => {
-              if (usedOptionValues.has(option.value)) {
-                return false;
-              }
+function makeLineItemId() {
+  return `line-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
-              usedOptionValues.add(option.value);
-              return true;
-            })
-            .map((option) => ({
-              ...option,
-              category: category.name,
-              subgroup: subgroup.name,
-            }));
+type MaterialFamilyDefinition = {
+  name: string;
+  matches: (option: RfqOption) => boolean;
+};
+
+function optionFamily(option: RfqOption) {
+  return String(option.metadata?.family ?? "");
+}
+
+function optionLabelText(option: RfqOption) {
+  return option.label.toLowerCase();
+}
+
+const hubsStyleMaterialFamilies: MaterialFamilyDefinition[] = [
+  {
+    name: "Aluminum",
+    matches: (option) => optionFamily(option) === "Aluminum",
+  },
+  {
+    name: "Alloy steel",
+    matches: (option) =>
+      optionFamily(option) === "Steel" &&
+      /(alloy|4130|4140|4340|52100|8620|42crmo|1\.7131|1\.7225)/i.test(option.label),
+  },
+  {
+    name: "Mild steel",
+    matches: (option) =>
+      optionFamily(option) === "Steel" &&
+      /(mild|carbon|1018|1020|1045|a36|s235|s275|s355|c35|c40|c45)/i.test(option.label),
+  },
+  {
+    name: "Stainless steel",
+    matches: (option) => optionFamily(option) === "Stainless steel",
+  },
+  {
+    name: "Tool steel",
+    matches: (option) => optionFamily(option) === "Tool steel",
+  },
+  {
+    name: "Brass",
+    matches: (option) =>
+      optionFamily(option) === "Copper / brass / bronze" && optionLabelText(option).includes("brass"),
+  },
+  {
+    name: "Copper",
+    matches: (option) =>
+      optionFamily(option) === "Copper / brass / bronze" &&
+      /(copper|c101|c110|cu-etp|cu-dhp)/i.test(option.label),
+  },
+  {
+    name: "Titanium",
+    matches: (option) => optionFamily(option) === "Titanium",
+  },
+  {
+    name: "Bronze",
+    matches: (option) =>
+      optionFamily(option) === "Copper / brass / bronze" &&
+      /(bronze|c932|c954|cusn|phosphor)/i.test(option.label),
+  },
+  {
+    name: "Inconel",
+    matches: (option) => /inconel/i.test(option.label),
+  },
+  {
+    name: "Other Metals",
+    matches: (option) =>
+      [
+        "Nickel / precision alloy",
+        "Cast iron",
+        "Magnesium / zinc",
+      ].includes(optionFamily(option)) || optionFamily(option) === "Steel",
+  },
+  {
+    name: "Polyethylene",
+    matches: (option) => /(polyethylene|hdpe|uhmw)/i.test(option.label),
+  },
+  {
+    name: "Polypropylene",
+    matches: (option) => /(polypropylene|\bpp\b)/i.test(option.label),
+  },
+  {
+    name: "POM (Delrin/Acetal)",
+    matches: (option) => /(pom|delrin|acetal)/i.test(option.label),
+  },
+  {
+    name: "Nylon",
+    matches: (option) => /nylon/i.test(option.label),
+  },
+  {
+    name: "PEI",
+    matches: (option) => /(pei|ultem)/i.test(option.label),
+  },
+  {
+    name: "PEEK",
+    matches: (option) => /peek/i.test(option.label),
+  },
+  {
+    name: "Other Plastics",
+    matches: (option) =>
+      ["Plastic / polymer", "Composite"].includes(optionFamily(option)),
+  },
+];
+
+function buildMaterialSelectGroups(): MaterialSelectGroup[] {
+  const usedOptionValues = new Set<string>();
+  const groups = hubsStyleMaterialFamilies
+    .map((family) => {
+      const options = rfqMaterialOptions
+        .filter((option) => !usedOptionValues.has(option.value))
+        .filter(family.matches)
+        .map((option) => {
+          usedOptionValues.add(option.value);
 
           return {
-            name: subgroup.name,
-            options,
+            ...option,
+            category: family.name,
+            subgroup: optionFamily(option) || family.name,
           };
-        })
-        .filter((subgroup) => subgroup.options.length > 0);
+        });
 
       return {
-        name: category.name,
-        subgroups,
-        optionCount: subgroups.reduce(
-          (count, subgroup) => count + subgroup.options.length,
-          0,
-        ),
+        name: family.name,
+        subgroups: [
+          {
+            name: family.name,
+            options,
+          },
+        ],
+        optionCount: options.length,
       };
     })
     .filter((group) => group.optionCount > 0);
@@ -288,22 +535,9 @@ function buildMaterialSelectGroups() {
     }));
 
   if (remainingOptions.length > 0) {
-    const subgroupsByName = new Map<string, MaterialSelectOption[]>();
-
-    remainingOptions.forEach((option) => {
-      const subgroupOptions = subgroupsByName.get(option.subgroup) ?? [];
-      subgroupOptions.push(option);
-      subgroupsByName.set(option.subgroup, subgroupOptions);
-    });
-
-    const subgroups = [...subgroupsByName.entries()].map(([name, options]) => ({
-      name,
-      options,
-    }));
-
     groups.push({
-      name: "Other available materials",
-      subgroups,
+      name: "Custom Review required",
+      subgroups: [{ name: "Custom Review required", options: remainingOptions }],
       optionCount: remainingOptions.length,
     });
   }
@@ -430,6 +664,15 @@ function readIncompleteRfqs() {
   }
 }
 
+function readLocalIncompleteResumeRequests() {
+  return readIncompleteRfqs()
+    .map((draft) => draft.request)
+    .filter(
+      (request): request is LatticeRequest =>
+        Boolean(request?.id) && request.status === "DRAFT",
+    );
+}
+
 function writeIncompleteRfqs(drafts: StoredIncompleteRfq[]) {
   if (typeof window === "undefined" || !window.localStorage?.setItem) {
     return;
@@ -511,6 +754,7 @@ function TechnicalDrawingReviewModal({
   lineItem,
   drawingPreviewUrl,
   onClose,
+  onDrawingSelected,
   onRemove,
   updateLineItem,
   updateLineItemFlag,
@@ -518,6 +762,7 @@ function TechnicalDrawingReviewModal({
   lineItem: LineItemState;
   drawingPreviewUrl: string | null;
   onClose: () => void;
+  onDrawingSelected: (id: string, file: File | null) => void;
   onRemove: () => void;
   updateLineItem: (
     id: string,
@@ -526,10 +771,43 @@ function TechnicalDrawingReviewModal({
   ) => void;
   updateLineItemFlag: (id: string, field: LineItemFlag, value: boolean) => void;
 }) {
+  const [showMissingDrawingNotice, setShowMissingDrawingNotice] = useState(false);
   const drawingType = lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType;
+  const hasDrawing = Boolean(lineItem.technicalDrawingName.trim());
+  const drawingRequiredModalSelections = [
+    lineItem.tightLinearTolerance
+      ? "Linear tolerances tighter than the general tolerance"
+      : null,
+    lineItem.engineeringFits ? "Engineering Fits" : null,
+    lineItem.threads ? "Threads" : null,
+  ].filter((selection): selection is string => Boolean(selection));
+  const hasDrawingRequiredModalSelection =
+    drawingRequiredModalSelections.length > 0;
+  const mustAttachDrawingBeforeClosing =
+    hasDrawingRequiredModalSelection && !hasDrawing;
+  const drawingRequiredNotice =
+    drawingRequiredModalSelections.length === 1
+      ? drawingRequiredModalSelections[0]
+      : drawingRequiredModalSelections.length === 2
+        ? drawingRequiredModalSelections.join(" and ")
+        : `${drawingRequiredModalSelections.slice(0, -1).join(", ")}, and ${drawingRequiredModalSelections.at(-1)}`;
   const canRenderPreview =
     Boolean(drawingPreviewUrl) &&
     (drawingType === "application/pdf" || drawingType.startsWith("image/"));
+
+  function handleDrawingDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    onDrawingSelected(lineItem.id, event.dataTransfer.files[0] ?? null);
+  }
+
+  function handleDone() {
+    if (mustAttachDrawingBeforeClosing) {
+      setShowMissingDrawingNotice(true);
+      return;
+    }
+
+    onClose();
+  }
 
   return (
     <div
@@ -560,7 +838,7 @@ function TechnicalDrawingReviewModal({
                   src={drawingPreviewUrl}
                 />
               )
-            ) : (
+            ) : hasDrawing ? (
               <div className="max-w-md px-6 text-center">
                 <p className="text-lg font-semibold text-slate-950">
                   {lineItem.technicalDrawingName}
@@ -570,6 +848,34 @@ function TechnicalDrawingReviewModal({
                   it inline.
                 </p>
               </div>
+            ) : (
+              <label
+                className="flex h-full w-full cursor-pointer flex-col items-center justify-center bg-slate-50 px-6 text-center transition hover:bg-blue-50/30"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={handleDrawingDrop}
+              >
+                <span className="flex h-14 w-14 items-center justify-center rounded-lg text-slate-400">
+                  <Upload className="h-10 w-10" strokeWidth={1.7} />
+                </span>
+                <span className="mt-6 block text-lg font-semibold text-slate-950">
+                  Upload a technical drawing
+                </span>
+                <span className="mt-2 block text-sm leading-6 text-slate-500">
+                  Click to browse, or drag and drop a PDF, DXF, DWG, PNG, or JPG.
+                </span>
+                <input
+                  accept={drawingAccept}
+                  aria-label="Upload replacement technical drawing"
+                  className="sr-only"
+                  type="file"
+                  onChange={(event) =>
+                    onDrawingSelected(
+                      lineItem.id,
+                      event.target.files?.[0] ?? null,
+                    )
+                  }
+                />
+              </label>
             )}
           </div>
         </div>
@@ -583,9 +889,11 @@ function TechnicalDrawingReviewModal({
               Avoid delays and get an accurate price by selecting specifications
               shown on your technical drawing.
             </p>
-            <p className="mt-3 break-all text-xs font-medium text-slate-400">
-              {lineItem.technicalDrawingName}
-            </p>
+            {hasDrawing ? (
+              <p className="mt-3 break-all text-xs font-medium text-slate-400">
+                {lineItem.technicalDrawingName}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex-1 space-y-6 overflow-y-auto p-6">
@@ -614,6 +922,7 @@ function TechnicalDrawingReviewModal({
                   type="checkbox"
                 />
                 <span>Yes</span>
+                <span className="text-slate-500">(drawing required)</span>
               </span>
             </label>
 
@@ -636,6 +945,7 @@ function TechnicalDrawingReviewModal({
                   type="checkbox"
                 />
                 <span>Yes</span>
+                <span className="text-slate-500">(drawing required)</span>
               </span>
             </label>
 
@@ -655,25 +965,36 @@ function TechnicalDrawingReviewModal({
                   type="checkbox"
                 />
                 <span>Yes</span>
+                <span className="text-slate-500">(drawing required)</span>
               </span>
             </label>
           </div>
 
-          <div className="flex justify-end gap-3 border-t border-slate-200 p-5">
-            <button
-              className="rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              onClick={onRemove}
-              type="button"
-            >
-              Remove Drawing
-            </button>
-            <button
-              className="rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-              onClick={onClose}
-              type="button"
-            >
-              Done
-            </button>
+          <div className="flex flex-col items-end gap-3 border-t border-slate-200 p-5">
+            {showMissingDrawingNotice && mustAttachDrawingBeforeClosing ? (
+              <p className="max-w-[300px] rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-right text-xs font-medium leading-5 text-amber-900">
+                Add a technical drawing, or uncheck {drawingRequiredNotice}, to
+                finish these specifications.
+              </p>
+            ) : null}
+            <div className="flex justify-end gap-3">
+              {hasDrawing ? (
+                <button
+                  className="rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  onClick={onRemove}
+                  type="button"
+                >
+                  Remove Drawing
+                </button>
+              ) : null}
+              <button
+                className="rounded-md border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                onClick={handleDone}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </aside>
       </div>
@@ -684,19 +1005,20 @@ function TechnicalDrawingReviewModal({
 function UploadCadDropZone({
   compact = false,
   label,
-  onFileSelected,
+  onFilesSelected,
 }: {
   compact?: boolean;
   label: string;
-  onFileSelected: (file: File | null) => void;
+  onFilesSelected: (files: File[]) => void;
 }) {
   function handleDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
-    onFileSelected(event.dataTransfer.files[0] ?? null);
+    onFilesSelected(Array.from(event.dataTransfer.files).filter(isCadUploadFile));
   }
 
   return (
     <section
+      aria-label={compact ? "Additional CAD upload drop zone" : "CAD upload drop zone"}
       className={`rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-center transition ${compact ? "py-16" : "py-24"}`}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
@@ -717,9 +1039,137 @@ function UploadCadDropZone({
           className="sr-only"
           type="file"
           accept={cadAccept}
-          onChange={(event) => onFileSelected(event.target.files?.[0] ?? null)}
+          multiple
+          onChange={(event) =>
+            onFilesSelected(Array.from(event.target.files ?? []).filter(isCadUploadFile))
+          }
         />
       </label>
+    </section>
+  );
+}
+
+function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
+  if (!requests.length) {
+    return null;
+  }
+
+  return (
+    <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
+      <div className="border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3">
+        <h2 className="text-[15px] font-semibold text-[#202020]">
+          Resume an open quote
+        </h2>
+        <p className="mt-1 text-[13px] leading-5 text-[#6f737a]">
+          Pick up an incomplete draft or check an RFQ already in progress
+          before starting a new request.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-[2fr_0.95fr_0.8fr_1.15fr_88px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
+        <span>RFQ details</span>
+        <span>Process &amp; Qty</span>
+        <span>Last edited</span>
+        <span>Quote Status</span>
+        <span className="text-right">Actions</span>
+      </div>
+
+      <div className="divide-y divide-[#eeeeee]">
+        {requests.map((request, index) => {
+          const primaryLineItem = request.lineItems[0];
+          const totalQuantity = request.lineItems.reduce(
+            (sum, lineItem) => sum + (Number(lineItem.quantity) || 0),
+            0,
+          );
+          const actionLabel = resumeRequestActionLabel(request);
+          const href = resumeRequestHref(request);
+          const statusLabel = resumeStatusLabel(request.status);
+
+          return (
+            <div
+              className="grid gap-5 px-4 py-4 transition hover:bg-[#fbfbfb] xl:grid-cols-[2fr_0.95fr_0.8fr_1.15fr_88px] xl:items-center"
+              key={request.id}
+            >
+              <a
+                aria-label={`Open resume option for ${request.title}`}
+                className="flex min-w-0 gap-4 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+                href={href}
+              >
+                <CadRenderThumbnail
+                  className="h-[72px] w-[72px] shrink-0 border-[#cbd5df] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                  file={request.files[0]}
+                  label={primaryLineItem?.partName ?? request.title}
+                />
+                <div className="min-w-0">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">
+                    {resumeQuoteReference(request, index)}
+                  </span>
+                  <h3 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">
+                    {request.title}
+                  </h3>
+                  <p className="mt-1 truncate text-[13px] text-[#69707a]">
+                    {primaryLineItem?.partName ?? "No line item"} -{" "}
+                    {primaryLineItem?.material ?? "Material pending"}
+                  </p>
+                </div>
+              </a>
+
+              <a
+                className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+                href={href}
+                tabIndex={-1}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">
+                  Process &amp; Qty
+                </p>
+                <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
+                  {request.process}
+                </p>
+                <p className="mt-1 text-[12px] text-[#8a8f98]">
+                  Qty {totalQuantity || "Pending"} - Due{" "}
+                  {formatResumeDueDate(request.dueDate)}
+                </p>
+              </a>
+
+              <a
+                className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+                href={href}
+                tabIndex={-1}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">
+                  Last edited
+                </p>
+                <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
+                  {formatResumeLastEdited(request.updatedAt || request.createdAt)}
+                </p>
+              </a>
+
+              <a
+                className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+                href={href}
+                tabIndex={-1}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">
+                  Quote Status
+                </p>
+                <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[12px] font-semibold ${resumeStatusTone(request.status)}`}>
+                  {statusLabel}
+                </span>
+              </a>
+
+              <div className="flex items-center justify-between gap-2 xl:justify-end">
+                <a
+                  aria-label={`${actionLabel} for ${request.title}`}
+                  className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa]"
+                  href={href}
+                >
+                  {request.status === "DRAFT" ? "Resume" : "Open"}
+                </a>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -776,18 +1226,18 @@ function TechnicalDrawingBucket({
   if (!hasDrawing) {
     return (
       <label
-        className="flex min-h-36 cursor-pointer flex-col gap-5 rounded-md border-2 border-dashed border-slate-200 bg-white px-6 py-7 text-left transition hover:border-blue-200 hover:bg-blue-50/30 sm:flex-row sm:items-center sm:gap-8 sm:px-8"
+        className="flex min-h-[72px] cursor-pointer flex-col gap-3 rounded-md border-2 border-dashed border-slate-200 bg-white px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/30 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleDrop}
       >
-        <span className="flex h-[90px] w-[90px] shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-          <Upload className="h-8 w-8" strokeWidth={2.4} />
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+          <Upload className="h-5 w-5" strokeWidth={2.4} />
         </span>
         <span className="min-w-0">
-          <span className="block text-2xl font-semibold leading-8 text-slate-950">
+          <span className="block text-lg font-semibold leading-6 text-slate-950">
             Upload a technical drawing
           </span>
-          <span className="mt-2 block text-[22px] font-semibold leading-7 text-slate-400">
+          <span className="mt-0.5 block text-sm font-semibold leading-5 text-slate-400">
             Required for some part specifications
           </span>
         </span>
@@ -885,6 +1335,7 @@ function MaterialSelect({
   const labelId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeOptionValue, setActiveOptionValue] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     const selected = materialSelectOptions.find((option) => option.value === value);
     return new Set(selected ? [selected.category] : [materialSelectGroups[0]?.name ?? ""]);
@@ -893,9 +1344,15 @@ function MaterialSelect({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const selectedOption = materialSelectOptions.find((option) => option.value === value);
   const normalizedQuery = searchQuery.trim().toLowerCase();
-  const searchResults = useMemo(() => {
-    if (!normalizedQuery) {
-      return [];
+  function materialOptionsFor(query: string, groups: Set<string>) {
+    const normalizedMaterialQuery = query.trim().toLowerCase();
+
+    if (!normalizedMaterialQuery) {
+      return materialSelectGroups.flatMap((group) =>
+        groups.has(group.name)
+          ? group.subgroups.flatMap((subgroup) => subgroup.options)
+          : [],
+      );
     }
 
     return materialSelectOptions.filter((option) =>
@@ -907,15 +1364,36 @@ function MaterialSelect({
       ]
         .join(" ")
         .toLowerCase()
-        .includes(normalizedQuery),
+        .includes(normalizedMaterialQuery),
     );
-  }, [normalizedQuery]);
+  }
+  const searchResults = useMemo(
+    () => (normalizedQuery ? materialOptionsFor(searchQuery, openGroups) : []),
+    [normalizedQuery, openGroups, searchQuery],
+  );
+  const visibleMaterialOptions = useMemo(() => {
+    return normalizedQuery ? searchResults : materialOptionsFor(searchQuery, openGroups);
+  }, [normalizedQuery, openGroups, searchQuery, searchResults]);
 
   useEffect(() => {
     if (isOpen) {
       searchInputRef.current?.focus();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !activeOptionValue) {
+      return;
+    }
+
+    const activeOptionElement = document.getElementById(
+      materialOptionId(labelId, activeOptionValue),
+    );
+
+    if (activeOptionElement?.scrollIntoView) {
+      activeOptionElement.scrollIntoView({ block: "nearest" });
+    }
+  }, [activeOptionValue, isOpen, labelId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -938,14 +1416,24 @@ function MaterialSelect({
   function closeMenu() {
     setIsOpen(false);
     setSearchQuery("");
+    setActiveOptionValue(null);
   }
 
   function openMenu() {
-    setIsOpen(true);
+    const nextOpenGroups = new Set(openGroups);
 
     if (selectedOption) {
-      setOpenGroups((current) => new Set([...current, selectedOption.category]));
+      nextOpenGroups.add(selectedOption.category);
     }
+
+    const nextVisibleOptions = materialOptionsFor(searchQuery, nextOpenGroups);
+    setIsOpen(true);
+    setOpenGroups(nextOpenGroups);
+    setActiveOptionValue(
+      nextVisibleOptions.find((option) => option.value === value)?.value ??
+        nextVisibleOptions[0]?.value ??
+        null,
+    );
   }
 
   function toggleMenu() {
@@ -958,22 +1446,98 @@ function MaterialSelect({
   }
 
   function toggleGroup(groupName: string) {
-    setOpenGroups((current) => {
-      const next = new Set(current);
+    const next = new Set(openGroups);
 
-      if (next.has(groupName)) {
-        next.delete(groupName);
-      } else {
-        next.add(groupName);
-      }
+    if (next.has(groupName)) {
+      next.delete(groupName);
+    } else {
+      next.add(groupName);
+    }
 
-      return next;
-    });
+    const nextVisibleOptions = materialOptionsFor(searchQuery, next);
+    setOpenGroups(next);
+    setActiveOptionValue((currentValue) =>
+      currentValue &&
+      nextVisibleOptions.some((option) => option.value === currentValue)
+        ? currentValue
+        : nextVisibleOptions.find((option) => option.value === value)?.value ??
+          nextVisibleOptions[0]?.value ??
+          null,
+    );
   }
 
   function selectMaterial(optionValue: string) {
     onChange(optionValue);
     closeMenu();
+  }
+
+  function handleSearchChange(nextSearchQuery: string) {
+    const nextVisibleOptions = materialOptionsFor(nextSearchQuery, openGroups);
+
+    setSearchQuery(nextSearchQuery);
+    setActiveOptionValue(
+      nextVisibleOptions.find((option) => option.value === value)?.value ??
+        nextVisibleOptions[0]?.value ??
+        null,
+    );
+  }
+
+  function moveActiveOption(direction: 1 | -1) {
+    if (visibleMaterialOptions.length === 0) {
+      return;
+    }
+
+    setActiveOptionValue((currentValue) => {
+      const currentIndex = visibleMaterialOptions.findIndex(
+        (option) => option.value === currentValue,
+      );
+      const nextIndex =
+        currentIndex === -1
+          ? direction === 1
+            ? 0
+            : visibleMaterialOptions.length - 1
+          : (currentIndex + direction + visibleMaterialOptions.length) %
+              visibleMaterialOptions.length;
+
+      return visibleMaterialOptions[nextIndex]?.value ?? null;
+    });
+  }
+
+  function handleMenuKeyDown(event: KeyboardEvent<HTMLInputElement | HTMLDivElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMenu();
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveActiveOption(1);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveActiveOption(-1);
+      return;
+    }
+
+    if (event.key === "Home" && visibleMaterialOptions.length > 0) {
+      event.preventDefault();
+      setActiveOptionValue(visibleMaterialOptions[0].value);
+      return;
+    }
+
+    if (event.key === "End" && visibleMaterialOptions.length > 0) {
+      event.preventDefault();
+      setActiveOptionValue(visibleMaterialOptions[visibleMaterialOptions.length - 1].value);
+      return;
+    }
+
+    if (event.key === "Enter" && activeOptionValue) {
+      event.preventDefault();
+      selectMaterial(activeOptionValue);
+    }
   }
 
   function handleButtonKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
@@ -1044,24 +1608,22 @@ function MaterialSelect({
         {isOpen ? (
           <div
             className="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-[#e4e8ee] bg-white shadow-[0_18px_34px_rgba(15,23,42,0.14)]"
+            aria-activedescendant={
+              activeOptionValue ? materialOptionId(labelId, activeOptionValue) : undefined
+            }
             id={`${labelId}-menu`}
+            onKeyDown={handleMenuKeyDown}
             role="listbox"
           >
-            <div className="border-b border-[#e4e8ee] bg-[#f8f9fa] p-3">
+            <div className="border-b border-[#e4e8ee] bg-white">
               <div className="relative">
                 <Search
                   aria-hidden="true"
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]"
+                  className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#1d73ff]"
                 />
                 <input
-                  className="h-10 w-full rounded-lg border border-[#dce4ee] bg-white pl-9 pr-3 text-[14px] font-medium text-[#020617] outline-none transition focus:border-[#1d73ff]"
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Escape") {
-                      event.preventDefault();
-                      closeMenu();
-                    }
-                  }}
+                  className="h-14 w-full border-0 bg-white pl-14 pr-5 text-[15px] font-semibold text-[#020617] outline-none placeholder:text-[#64748b]"
+                  onChange={(event) => handleSearchChange(event.target.value)}
                   placeholder="Search grade, alloy, or family..."
                   ref={searchInputRef}
                   type="text"
@@ -1082,9 +1644,12 @@ function MaterialSelect({
                   <div className="py-2">
                     {searchResults.map((option) => (
                       <MaterialOptionButton
+                        id={materialOptionId(labelId, option.value)}
+                        isActive={option.value === activeOptionValue}
                         isSelected={option.value === value}
                         key={option.value}
                         option={option}
+                        onHighlight={setActiveOptionValue}
                         onSelect={selectMaterial}
                       />
                     ))}
@@ -1126,23 +1691,33 @@ function MaterialSelect({
                       </button>
                       {isGroupOpen ? (
                         <div className="bg-white px-5 pb-4">
-                          {group.subgroups.map((subgroup) => (
-                            <div className="pt-3" key={`${group.name}-${subgroup.name}`}>
-                              <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#94a3b8]">
-                                {subgroup.name}
-                              </p>
-                              <div className="overflow-hidden rounded-md border border-[#edf0f4]">
-                                {subgroup.options.map((option) => (
-                                  <MaterialOptionButton
-                                    isSelected={option.value === value}
-                                    key={option.value}
-                                    option={option}
-                                    onSelect={selectMaterial}
-                                  />
-                                ))}
+                          {group.subgroups.map((subgroup) => {
+                            const showSubgroupHeading =
+                              group.subgroups.length > 1 && subgroup.name !== group.name;
+
+                            return (
+                              <div className="pt-3" key={`${group.name}-${subgroup.name}`}>
+                                {showSubgroupHeading ? (
+                                  <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#94a3b8]">
+                                    {subgroup.name}
+                                  </p>
+                                ) : null}
+                                <div>
+                                  {subgroup.options.map((option) => (
+                                    <MaterialOptionButton
+                                      id={materialOptionId(labelId, option.value)}
+                                      isActive={option.value === activeOptionValue}
+                                      isSelected={option.value === value}
+                                      key={option.value}
+                                      option={option}
+                                      onHighlight={setActiveOptionValue}
+                                      onSelect={selectMaterial}
+                                    />
+                                  ))}
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : null}
                     </section>
@@ -1157,13 +1732,23 @@ function MaterialSelect({
   );
 }
 
+function materialOptionId(labelId: string, optionValue: string) {
+  return `${labelId}-${optionValue}-option`;
+}
+
 function MaterialOptionButton({
+  id,
+  isActive,
   isSelected,
   option,
+  onHighlight,
   onSelect,
 }: {
+  id: string;
+  isActive: boolean;
   isSelected: boolean;
   option: MaterialSelectOption;
+  onHighlight: (value: string) => void;
   onSelect: (value: string) => void;
 }) {
   return (
@@ -1173,17 +1758,19 @@ function MaterialOptionButton({
         "w-full border-none px-4 py-3 text-left transition-colors duration-100",
         isSelected
           ? "bg-[#e8f2ff] text-[#020617]"
-          : "bg-white text-[#020617] hover:bg-[#f5f8fb]",
+          : isActive
+            ? "bg-[#f5f8fb] text-[#020617]"
+            : "bg-white text-[#020617] hover:bg-[#f5f8fb]",
       ].join(" ")}
+      id={id}
       onClick={() => onSelect(option.value)}
+      onFocus={() => onHighlight(option.value)}
+      onMouseEnter={() => onHighlight(option.value)}
       role="option"
       type="button"
     >
       <span className="block text-[14px] font-semibold leading-5">
         {option.label}
-      </span>
-      <span className="mt-1 block text-[12px] font-normal leading-4 text-[#64748b]">
-        {option.category} / {option.subgroup}
       </span>
     </button>
   );
@@ -1530,21 +2117,23 @@ function LineItemConfigurationCard({
                   required
                   showSearch
                 />
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
-                  <input
-                    checked={lineItem.partMarkings}
-                    onChange={(event) =>
-                      updateLineItemFlag(
-                        lineItem.id,
-                        "partMarkings",
-                        event.target.checked,
-                      )
-                    }
-                    type="checkbox"
-                  />
+                <label className="grid gap-2 text-sm font-medium text-slate-700">
                   <span>Part Markings</span>
-                  <span className="font-normal text-slate-500">
-                    Yes (drawing required)
+                  <span className="flex items-center gap-2">
+                    <input
+                      checked={lineItem.partMarkings}
+                      onChange={(event) =>
+                        updateLineItemFlag(
+                          lineItem.id,
+                          "partMarkings",
+                          event.target.checked,
+                        )
+                      }
+                      type="checkbox"
+                    />
+                    <span className="font-normal text-slate-600">
+                      Yes (drawing required)
+                    </span>
                   </span>
                 </label>
               </div>
@@ -1639,7 +2228,12 @@ export function RequestForm({
   initialState,
   localDraftId,
   prefillNotice,
+  resumeRequests = [],
 }: RequestFormProps = {}) {
+  const router = useRouter();
+  const [localResumeRequests] = useState<LatticeRequest[]>(
+    readLocalIncompleteResumeRequests,
+  );
   const localDraftInitialState =
     !initialState && localDraftId
       ? readIncompleteRfqs().find((draft) => draft.id === localDraftId)?.initialState
@@ -1663,6 +2257,9 @@ export function RequestForm({
   );
   const [isQuoteNameEditing, setIsQuoteNameEditing] = useState(false);
   const [draftQuoteName, setDraftQuoteName] = useState(projectForm.projectName);
+  const [isQuoteNameCustomized, setIsQuoteNameCustomized] = useState(
+    Boolean(resolvedInitialState?.projectName?.trim()),
+  );
   const quoteNameInputRef = useRef<HTMLInputElement | null>(null);
   const [collapsedLineItemIds, setCollapsedLineItemIds] = useState<Set<string>>(
     () => new Set(),
@@ -1673,6 +2270,30 @@ export function RequestForm({
   const activeDrawingLineItem =
     lineItems.find((lineItem) => lineItem.id === drawingReviewLineItemId) ??
     null;
+  const resumeChoices = useMemo(() => {
+    const localIds = new Set(localResumeRequests.map((request) => request.id));
+
+    return [
+      ...localResumeRequests,
+      ...resumeRequests.filter((request) => !localIds.has(request.id)),
+    ]
+      .filter((request) =>
+        request.status === "DRAFT" ||
+        request.status === "SUBMITTED" ||
+        request.status === "NEEDS_INFO" ||
+        request.status === "READY_FOR_SUPPLIER_RFQ",
+      )
+      .sort((a, b) => {
+        const aTime = new Date(a.updatedAt || a.createdAt).getTime();
+        const bTime = new Date(b.updatedAt || b.createdAt).getTime();
+
+        return (
+          (Number.isNaN(bTime) ? 0 : bTime) -
+          (Number.isNaN(aTime) ? 0 : aTime)
+        );
+      })
+      .slice(0, 5);
+  }, [localResumeRequests, resumeRequests]);
   const drawingPreviewUrl = useMemo(() => {
     if (!activeDrawingLineItem) {
       return null;
@@ -1708,6 +2329,11 @@ export function RequestForm({
     lineItem.fileName.trim(),
   );
   const hasCadFile = configuredLineItems.length > 0;
+  const shouldShowResumePanel =
+    !hasCadFile &&
+    !resolvedInitialState &&
+    !prefillNotice &&
+    resumeChoices.length > 0;
 
   const isReady = useMemo(
     () =>
@@ -1724,7 +2350,8 @@ export function RequestForm({
           Number(lineItem.quantity) > 0 &&
           lineItem.fileName.trim() &&
           lineItemHasCadBytes(lineItem) &&
-          lineItemHasDrawingBytes(lineItem),
+          lineItemHasDrawingBytes(lineItem) &&
+          lineItemHasRequiredDrawing(lineItem),
       ),
     [configuredLineItems, projectForm],
   );
@@ -1740,6 +2367,7 @@ export function RequestForm({
 
   function saveQuoteNameEdit() {
     updateProject("projectName", draftQuoteName.trim());
+    setIsQuoteNameCustomized(true);
     setIsQuoteNameEditing(false);
   }
 
@@ -1761,11 +2389,27 @@ export function RequestForm({
   }
 
   function updateLineItemFlag(id: string, field: LineItemFlag, value: boolean) {
-    setLineItems((current) =>
-      current.map((lineItem) =>
-        lineItem.id === id ? { ...lineItem, [field]: value } : lineItem,
-      ),
+    const currentLineItem = lineItems.find((lineItem) => lineItem.id === id);
+    const nextLineItems = lineItems.map((lineItem) =>
+      lineItem.id === id ? { ...lineItem, [field]: value } : lineItem,
     );
+
+    if (
+      value &&
+      currentLineItem &&
+      !currentLineItem.technicalDrawingName.trim()
+    ) {
+      setError(requiredDrawingErrorMessage({ ...currentLineItem, [field]: true }));
+      setDrawingReviewLineItemId(id);
+    }
+
+    if (!lineItemsHaveMissingRequiredDrawing(nextLineItems)) {
+      setError((currentError) =>
+        isRequiredDrawingError(currentError) ? null : currentError,
+      );
+    }
+
+    setLineItems(nextLineItems);
   }
 
   function toggleLineItemCollapsed(id: string) {
@@ -1893,6 +2537,7 @@ export function RequestForm({
           sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
           storageKey: lineItem.fileStorageKey,
           type: lineItem.selectedFile?.type || lineItem.fileType || "reference/name-only",
+          cadPreviewUrn: cadPreviewUrnForLineItem(lineItem),
         },
         ...(lineItem.technicalDrawingName
           ? [
@@ -1906,6 +2551,8 @@ export function RequestForm({
             ]
           : []),
       ]),
+      guestAccessTokenExpiresAt: null,
+      guestAccessTokenHash: "",
       isArchived: false,
       operatorReview: {
         completeness: "READY_FOR_REVIEW",
@@ -1923,8 +2570,24 @@ export function RequestForm({
         updates: [],
       },
       supplierQuoteFiles: [],
+      customerPurchaseOrderAttachment: null,
       supplierQuotes: [],
       customerQuotes: [],
+      purchasePayment: {
+        method: null,
+        status: null,
+        customerPoNumber: "",
+        accountsPayableEmail: "",
+        buyerCheckoutNotes: "",
+        card: null,
+        stripe: {
+          amountCents: null,
+          checkoutSessionId: "",
+          currency: "",
+          paidAt: null,
+          paymentIntentId: "",
+        },
+      },
       quote: {
         estimatedPriceCents: null,
         leadTimeDays: null,
@@ -1941,6 +2604,7 @@ export function RequestForm({
         : [],
       revisionNumber: resolvedInitialState?.revisionSourceRequestId ? (resolvedInitialState.revisionSourceRevisionNumber ?? 1) + 1 : 1,
       revisionOfRequestId: resolvedInitialState?.revisionSourceRequestId ?? null,
+      requestOrigin: "ACCOUNT",
       statusEvents: [
         {
           id: `${draftId}-event-draft`,
@@ -1961,7 +2625,7 @@ export function RequestForm({
     };
     const otherDrafts = readIncompleteRfqs().filter((draft) => draft.id !== draftId);
     writeIncompleteRfqs([nextDraft, ...otherDrafts].slice(0, 12));
-  }, [activeLocalDraftId, configuredLineItems, createdRequest, hasCadFile, projectForm]);
+  }, [activeLocalDraftId, configuredLineItems, createdRequest, hasCadFile, projectForm, resolvedInitialState]);
 
   useEffect(() => {
     if (isQuoteNameEditing) {
@@ -2064,7 +2728,11 @@ export function RequestForm({
     );
   }
 
-  function applyCadFileToLineItem(id: string, file: File | null) {
+  function applyCadFileToLineItem(
+    id: string,
+    file: File | null,
+    updateQuoteName = true,
+  ) {
     if (file) {
       ensureLocalDraftId();
     }
@@ -2093,11 +2761,17 @@ export function RequestForm({
       }),
     );
 
-    if (file?.name) {
+    if (file?.name && updateQuoteName) {
+      const nextFileNames = lineItems
+        .map((lineItem) => (lineItem.id === id ? file.name : lineItem.fileName))
+        .filter((fileName) => fileName.trim());
+
       setProjectForm((current) => ({
         ...current,
         projectName:
-          current.projectName.trim() || suggestedNameFromFile(file.name),
+          isQuoteNameCustomized
+            ? current.projectName
+            : quoteNameFromFileNames(nextFileNames),
       }));
     }
   }
@@ -2144,45 +2818,70 @@ export function RequestForm({
     }
   }
 
-  async function handleCadFileSelected(id: string, file: File | null) {
-    applyCadFileToLineItem(id, file);
-
-    if (!file) {
-      return;
-    }
-
-    void persistCadDraftUpload(id, file);
-    await startCadPreview(id, file);
-  }
-
-  function handleNewCadFileSelected(file: File | null) {
-    if (!file) {
-      return;
-    }
-
-    ensureLocalDraftId();
-    const id = `line-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const fileName = file.name;
-    const suggestedName = suggestedNameFromFile(fileName);
-    setLineItems((current) => [
-      ...current,
-      {
-        ...makeLineItemInitialState(id),
-        selectedFile: file,
-        fileName,
-        fileSizeBytes: file.size,
-        fileType: file.type,
-        partName: suggestedName,
-        cadPreview: { status: "uploading", fileName },
-      },
-    ]);
+  function persistCadFileAndPreview(id: string, file: File) {
     void persistCadDraftUpload(id, file);
     void startCadPreview(id, file);
+  }
+
+  function handleCadFileSelected(
+    id: string,
+    file: File | null,
+    updateQuoteName = true,
+  ) {
+    applyCadFileToLineItem(id, file, updateQuoteName);
+
+    if (!file) {
+      return;
+    }
+
+    persistCadFileAndPreview(id, file);
+  }
+
+  function appendCadLineItem(file: File, updateQuoteName = true) {
+    ensureLocalDraftId();
+    const id = makeLineItemId();
+    const nextFileNames = [
+      ...lineItems
+        .map((lineItem) => lineItem.fileName)
+        .filter((fileName) => fileName.trim()),
+      file.name,
+    ];
+
+    setLineItems((current) => [...current, makeCadLineItem(id, file)]);
+    if (updateQuoteName && !isQuoteNameCustomized) {
+      setProjectForm((current) => ({
+        ...current,
+        projectName: quoteNameFromFileNames(nextFileNames),
+      }));
+    }
+    persistCadFileAndPreview(id, file);
+  }
+
+  function handleCadFilesSelected(id: string, files: File[]) {
+    const [firstFile, ...additionalFiles] = files;
+
+    if (!firstFile) {
+      return;
+    }
+
+    if (!isQuoteNameCustomized) {
+      setProjectForm((current) => ({
+        ...current,
+        projectName: quoteNameFromFileNames(files.map((file) => file.name)),
+      }));
+    }
+    handleCadFileSelected(id, firstFile, files.length === 1);
+    additionalFiles.forEach((file) => appendCadLineItem(file, false));
+  }
+
+  function handleNewCadFilesSelected(files: File[]) {
+    files.forEach((file) => appendCadLineItem(file));
   }
 
   function handleTechnicalDrawingSelected(id: string, file: File | null) {
     if (file) {
       ensureLocalDraftId();
+      setError(null);
     }
 
     setLineItems((current) =>
@@ -2201,8 +2900,8 @@ export function RequestForm({
     );
     if (file) {
       void persistDrawingDraftUpload(id, file);
+      setDrawingReviewLineItemId(id);
     }
-    setDrawingReviewLineItemId(file ? id : null);
   }
 
   function removeTechnicalDrawing(id: string) {
@@ -2249,6 +2948,17 @@ export function RequestForm({
       setError(
         `${missingCadBytes.fileName} is only a saved filename. Upload the CAD file again before submitting so its bytes can be stored.`,
       );
+      return;
+    }
+
+    const missingRequiredDrawing = configuredLineItems.find(
+      (lineItem) =>
+        lineItemRequiresDrawing(lineItem) &&
+        !lineItem.technicalDrawingName.trim(),
+    );
+
+    if (missingRequiredDrawing) {
+      setError(requiredDrawingErrorMessage(missingRequiredDrawing));
       return;
     }
 
@@ -2310,6 +3020,7 @@ export function RequestForm({
           sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
           storageKey: lineItem.fileStorageKey,
           type: lineItem.selectedFile?.type || lineItem.fileType || "reference/name-only",
+          cadPreviewUrn: cadPreviewUrnForLineItem(lineItem),
         },
         ...(lineItem.technicalDrawingName
           ? [
@@ -2359,6 +3070,7 @@ export function RequestForm({
       setLineItems([makeLineItemInitialState("line-1")]);
       setCollapsedLineItemIds(new Set());
       setDrawingReviewLineItemId(null);
+      router.push(`/quotes/${payload.request.id}`);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Unable to submit request",
@@ -2387,95 +3099,102 @@ export function RequestForm({
           ) : null}
         </section>
 
+        {shouldShowResumePanel ? (
+          <ResumeQuotePanel requests={resumeChoices} />
+        ) : null}
+
         <section className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          {activeDrawingLineItem?.technicalDrawingName ? (
+          {activeDrawingLineItem ? (
             <TechnicalDrawingReviewModal
               lineItem={activeDrawingLineItem}
               drawingPreviewUrl={drawingPreviewUrl}
               onClose={() => setDrawingReviewLineItemId(null)}
+              onDrawingSelected={handleTechnicalDrawingSelected}
               onRemove={() => removeTechnicalDrawing(activeDrawingLineItem.id)}
               updateLineItem={updateLineItem}
               updateLineItemFlag={updateLineItemFlag}
             />
           ) : null}
 
-          <div className="border-b border-slate-100 pb-4">
-            <div className="max-w-2xl">
-              <div className="text-sm font-medium text-slate-700">
-                {isQuoteNameEditing ? (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <span className="shrink-0 text-slate-600">
-                      Quote name:
-                    </span>
-                    <input
-                      aria-label="Quote name"
-                      className={`${inputClass} min-w-0 flex-1`}
-                      placeholder="Aluminum plate reorder"
-                      ref={quoteNameInputRef}
-                      value={draftQuoteName}
-                      onChange={(event) =>
-                        setDraftQuoteName(event.target.value)
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          saveQuoteNameEdit();
+          {hasCadFile ? (
+            <div className="border-b border-slate-100 pb-4">
+              <div className="max-w-2xl">
+                <div className="text-sm font-medium text-slate-700">
+                  {isQuoteNameEditing ? (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <span className="shrink-0 text-slate-600">
+                        Quote name:
+                      </span>
+                      <input
+                        aria-label="Quote name"
+                        className={`${inputClass} min-w-0 flex-1`}
+                        placeholder="Aluminum plate reorder"
+                        ref={quoteNameInputRef}
+                        value={draftQuoteName}
+                        onChange={(event) =>
+                          setDraftQuoteName(event.target.value)
                         }
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            saveQuoteNameEdit();
+                          }
 
-                        if (event.key === "Escape") {
-                          event.preventDefault();
-                          cancelQuoteNameEdit();
-                        }
-                      }}
-                    />
-                    <div className="flex shrink-0 items-center gap-2">
-                      <button
-                        className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white transition hover:bg-blue-800"
-                        onClick={saveQuoteNameEdit}
-                        type="button"
-                      >
-                        <Check className="h-4 w-4" />
-                        <span>Save</span>
-                      </button>
-                      <button
-                        className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                        onClick={cancelQuoteNameEdit}
-                        type="button"
-                      >
-                        <X className="h-4 w-4" />
-                        <span>Cancel</span>
-                      </button>
+                          if (event.key === "Escape") {
+                            event.preventDefault();
+                            cancelQuoteNameEdit();
+                          }
+                        }}
+                      />
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+                          onClick={saveQuoteNameEdit}
+                          type="button"
+                        >
+                          <Check className="h-4 w-4" />
+                          <span>Save</span>
+                        </button>
+                        <button
+                          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                          onClick={cancelQuoteNameEdit}
+                          type="button"
+                        >
+                          <X className="h-4 w-4" />
+                          <span>Cancel</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-2xl leading-8 text-slate-600">
-                    <span>Quote name: </span>
-                    <button
-                      aria-label="Quote name"
-                      className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      onDoubleClick={startQuoteNameEdit}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          startQuoteNameEdit();
-                        }
-                      }}
-                      title="Double-click to edit"
-                      type="button"
-                    >
-                      {projectForm.projectName.trim() || "Untitled quote"}
-                    </button>
-                  </p>
-                )}
+                  ) : (
+                    <p className="text-2xl leading-8 text-slate-600">
+                      <span>Quote name: </span>
+                      <button
+                        aria-label="Quote name"
+                        className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        onDoubleClick={startQuoteNameEdit}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            startQuoteNameEdit();
+                          }
+                        }}
+                        title="Double-click to edit"
+                        type="button"
+                      >
+                        {projectForm.projectName.trim()}
+                      </button>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          ) : null}
 
           {!hasCadFile ? (
             <UploadCadDropZone
               label="Choose CAD file"
-              onFileSelected={(file) =>
-                void handleCadFileSelected(lineItems[0].id, file)
+              onFilesSelected={(files) =>
+                handleCadFilesSelected(lineItems[0].id, files)
               }
             />
           ) : null}
@@ -2493,7 +3212,7 @@ export function RequestForm({
               onRemove={removeLineItem}
               onCadStatus={updateCadPreview}
               onCadFileSelected={(id, file) =>
-                void handleCadFileSelected(id, file)
+                handleCadFileSelected(id, file)
               }
               onDrawingSelected={handleTechnicalDrawingSelected}
               onRemoveDrawing={removeTechnicalDrawing}
@@ -2505,63 +3224,8 @@ export function RequestForm({
             <UploadCadDropZone
               compact
               label="Upload another CAD file"
-              onFileSelected={handleNewCadFileSelected}
+              onFilesSelected={handleNewCadFilesSelected}
             />
-          ) : null}
-
-          {hasCadFile ? (
-            <section className="rounded-lg border border-slate-200 bg-white p-5">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-700">
-                Customer Details
-              </h3>
-              <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                <Field label="Customer PO#">
-                  <input
-                    className={inputClass}
-                    placeholder="PO-1047"
-                    value={projectForm.customerPo}
-                    onChange={(event) =>
-                      updateProject("customerPo", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Company Name">
-                  <input
-                    className={inputClass}
-                    value={projectForm.buyerCompany}
-                    onChange={(event) =>
-                      updateProject("buyerCompany", event.target.value)
-                    }
-                  />
-                </Field>
-                <Field label="Requester name">
-                  <input
-                    className={inputClass}
-                    value={projectForm.requesterName}
-                    onChange={(event) =>
-                      updateProject("requesterName", event.target.value)
-                    }
-                  />
-                </Field>
-                <CustomSelect
-                  label="Manufacturing process"
-                  value={projectForm.process}
-                  onChange={(value) => updateProject("process", value)}
-                  options={processOptions}
-                  required
-                />
-                <Field label="Needed by">
-                  <input
-                    className={inputClass}
-                    type="date"
-                    value={projectForm.dueDate}
-                    onChange={(event) =>
-                      updateProject("dueDate", event.target.value)
-                    }
-                  />
-                </Field>
-              </div>
-            </section>
           ) : null}
 
           {error ? (
@@ -2584,15 +3248,6 @@ export function RequestForm({
         </section>
       </form>
 
-      {createdRequest ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-6 text-sm text-emerald-900">
-          <p className="font-semibold">Submitted to queue</p>
-          <p className="mt-1">{createdRequest.title}</p>
-          <p className="mt-1 text-emerald-700">
-            Status: {createdRequest.status}
-          </p>
-        </div>
-      ) : null}
     </div>
   );
 }

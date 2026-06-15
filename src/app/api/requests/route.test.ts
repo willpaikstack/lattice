@@ -17,6 +17,17 @@ vi.mock("@/lib/account-settings", () => ({
   getAccountSettings: vi.fn(async () => ({})),
 }));
 
+vi.mock("@/lib/session", () => ({
+  getCurrentSession: vi.fn(async () => ({
+    user: {
+      email: "buyer@example.com",
+      id: "buyer_1",
+      name: "Buyer",
+      role: "customer",
+    },
+  })),
+}));
+
 const uploadsRoot = path.join(process.cwd(), ".data", "uploads");
 let promotedStorageKeys: string[] = [];
 
@@ -67,6 +78,7 @@ describe("requests API file persistence", () => {
           sizeBytes: 9,
           storageKey: "rfq-drafts/test-route/plate.step",
           type: "model/step",
+          cadPreviewUrn: "translated-plate-urn",
         },
         {
           name: "plate-drawing.pdf",
@@ -97,6 +109,7 @@ describe("requests API file persistence", () => {
         sizeBytes: 9,
         storageKey: expect.stringMatching(/^rfq\/\d{4}-\d{2}-\d{2}\/.+-plate\.step$/),
         type: "model/step",
+        cadPreviewUrn: "translated-plate-urn",
       }),
       expect.objectContaining({
         name: "plate-drawing.pdf",

@@ -1,5 +1,6 @@
 import { buildRequestQuotePdf } from "@/lib/quote-pdf";
 import type { LatticeRequest } from "@/lib/request-model";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -53,6 +54,7 @@ function quoteTemplateRequest(): LatticeRequest {
         versionNumber: 1,
       },
     ],
+    customerPurchaseOrderAttachment: null,
     dueDate: "2026-05-13",
     files: [
       { id: "file_template_1", name: "aluminum_plate.step", sizeBytes: 0, type: "application/octet-stream" },
@@ -60,6 +62,8 @@ function quoteTemplateRequest(): LatticeRequest {
       { id: "file_template_3", name: "tubesheet_retainer_plate.step", sizeBytes: 0, type: "application/octet-stream" },
       { id: "file_template_4", name: "Tubesheet Retainer Plate Threaded Hole Callout.pdf", sizeBytes: 0, type: "application/pdf" },
     ],
+    guestAccessTokenExpiresAt: null,
+    guestAccessTokenHash: "",
     id: "req_template",
     lineItems: [
       {
@@ -91,6 +95,21 @@ function quoteTemplateRequest(): LatticeRequest {
       supplierPackageNotes: "",
     },
     process: "CNC Milling",
+    purchasePayment: {
+      method: null,
+      status: null,
+      customerPoNumber: "",
+      accountsPayableEmail: "",
+      buyerCheckoutNotes: "",
+      card: null,
+      stripe: {
+        amountCents: null,
+        checkoutSessionId: "",
+        currency: "",
+        paidAt: null,
+        paymentIntentId: "",
+      },
+    },
     quote: {
       estimatedDeliveryDate: "2026-05-13",
       estimatedPriceCents: null,
@@ -105,6 +124,7 @@ function quoteTemplateRequest(): LatticeRequest {
     revisionChangeLog: [],
     revisionNumber: 1,
     revisionOfRequestId: null,
+    requestOrigin: "ACCOUNT",
     requesterEmail: "customer@example.com",
     requesterName: "Customer contact",
     requesterPhone: "+1 (555) 010-0000",
@@ -135,6 +155,11 @@ function quoteTemplateRequest(): LatticeRequest {
 }
 
 export async function GET(request: Request) {
+  const unauthorized = await requireRouteRole(["admin"]);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const preview = new URL(request.url).searchParams.get("preview") === "1";
   const pdf = await buildRequestQuotePdf(quoteTemplateRequest());
   const body = new ArrayBuffer(pdf.byteLength);

@@ -39,6 +39,7 @@ export type AccountSettingsSnapshot = {
   passwordChangedAt: string;
   phone: string;
   shipping: AccountAddress;
+  stripeCustomerId: string;
   teamMembers: TeamMember[];
 };
 
@@ -50,10 +51,7 @@ export const initialTeamMembers: TeamMember[] = [
   { email: "quality@amogy.co", name: "Quality Team", role: "Reviewer", status: "Invited" },
 ];
 
-export const initialCards: PaymentCard[] = [
-  { brand: "Visa", expires: "08/2028", holder: "William Paik", id: "card-7329", last4: "7329" },
-  { brand: "Visa", expires: "11/2027", holder: "Amogy Card", id: "card-9682", last4: "9682" },
-];
+export const initialCards: PaymentCard[] = [];
 
 export const initialShippingAddress: AccountAddress = {
   address1: "19 Morris Ave",
@@ -92,6 +90,7 @@ export function defaultAccountSettings(): AccountSettingsSnapshot {
     passwordChangedAt: "May 12, 2026",
     phone: "+1 (310) 617-4533",
     shipping: initialShippingAddress,
+    stripeCustomerId: "",
     teamMembers: initialTeamMembers,
   };
 }

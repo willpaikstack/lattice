@@ -22,6 +22,11 @@ enum OperatorCompleteness {
   COMPLETE
 }
 
+enum RequestOrigin {
+  ACCOUNT
+  GUEST_SIMPLE_QUOTE
+}
+
 enum SupplierOrderStatus {
   AWAITING_ACKNOWLEDGMENT
   IN_PRODUCTION
@@ -114,62 +119,95 @@ model AccountDefaults {
   billingZipCode             String   @default("")
   billingEmail               String   @default("")
   billingInvoiceRoutingNotes String   @default("")
+  stripeCustomerId           String   @default("")
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 }
 
 model Request {
-  id                     String                 @id @default(cuid())
-  title                  String
-  process                String
-  dueDate                DateTime?
-  status                 RequestStatus          @default(DRAFT)
-  buyerCompanyId         String?
-  buyerCompany           Company?               @relation(fields: [buyerCompanyId], references: [id])
-  requesterName          String
-  requesterEmail         String                 @default("")
-  requesterPhone         String                 @default("")
-  shipToName             String                 @default("")
-  shipToCompany          String                 @default("")
-  shipToAddress1         String                 @default("")
-  shipToAddress2         String                 @default("")
-  shipToCity             String                 @default("")
-  shipToState            String                 @default("")
-  shipToZipCode          String                 @default("")
-  shipToPhone            String                 @default("")
-  operatorCompleteness   OperatorCompleteness   @default(READY_FOR_REVIEW)
-  assignedOwner          String?
-  internalNotes          String                 @default("")
-  supplierPackageNotes   String                 @default("")
-  supplierOrderStatus    SupplierOrderStatus    @default(AWAITING_ACKNOWLEDGMENT)
-  supplierShopName       String                 @default("China supplier team")
-  supplierContactName    String                 @default("")
-  supplierNotes          String                 @default("")
-  supplierTrackingNumber String                 @default("")
-  estimatedPriceCents    Int?
-  leadTimeDays           Int?
-  shippingCostCents      Int?
-  shippingMethod         String                 @default("")
-  shippingTerms          String                 @default("")
-  estimatedDeliveryDate  DateTime?
-  quoteCreatedDate       DateTime?
-  quoteValidUntil        DateTime?
-  quoteSummary           String                 @default("")
-  isArchived             Boolean                @default(false)
-  revisionOfRequestId    String?
-  revisionNumber         Int                    @default(1)
-  revisionChangeLog      String[]               @default([])
-  lineItems              RequestLineItem[]
-  files                  UploadedFile[]
-  supplierQuoteFiles     SupplierQuoteAttachment[]
-  supplierDocuments      SupplierDocument[]
-  supplierUpdates        SupplierUpdate[]
-  supplierQuotes         SupplierQuote[]
-  customerQuotes         CustomerQuoteVersion[]
-  invoices               Invoice[]
-  statusEvents           StatusEvent[]
-  createdAt              DateTime               @default(now())
-  updatedAt              DateTime               @updatedAt
+  id                              String                           @id @default(cuid())
+  title                           String
+  process                         String
+  dueDate                         DateTime?
+  status                          RequestStatus                    @default(DRAFT)
+  requestOrigin                   RequestOrigin                     @default(ACCOUNT)
+  guestAccessTokenHash            String                           @default("")
+  guestAccessTokenExpiresAt       DateTime?
+  buyerCompanyId                  String?
+  buyerCompany                    Company?                         @relation(fields: [buyerCompanyId], references: [id])
+  requesterName                   String
+  requesterEmail                  String                           @default("")
+  requesterPhone                  String                           @default("")
+  shipToName                      String                           @default("")
+  shipToCompany                   String                           @default("")
+  shipToAddress1                  String                           @default("")
+  shipToAddress2                  String                           @default("")
+  shipToCity                      String                           @default("")
+  shipToState                     String                           @default("")
+  shipToZipCode                   String                           @default("")
+  shipToPhone                     String                           @default("")
+  operatorCompleteness            OperatorCompleteness             @default(READY_FOR_REVIEW)
+  assignedOwner                   String?
+  internalNotes                   String                           @default("")
+  supplierPackageNotes            String                           @default("")
+  supplierOrderStatus             SupplierOrderStatus              @default(AWAITING_ACKNOWLEDGMENT)
+  supplierShopName                String                           @default("China supplier team")
+  supplierContactName             String                           @default("")
+  supplierNotes                   String                           @default("")
+  supplierTrackingNumber          String                           @default("")
+  estimatedPriceCents             Int?
+  leadTimeDays                    Int?
+  shippingCostCents               Int?
+  shippingMethod                  String                           @default("")
+  shippingTerms                   String                           @default("")
+  estimatedDeliveryDate           DateTime?
+  quoteCreatedDate                DateTime?
+  quoteValidUntil                 DateTime?
+  quoteSummary                    String                           @default("")
+  purchasePaymentMethod           String                           @default("")
+  purchasePaymentStatus           String                           @default("")
+  customerPoNumber                String                           @default("")
+  accountsPayableEmail            String                           @default("")
+  buyerCheckoutNotes              String                           @default("")
+  purchaseCardId                  String                           @default("")
+  purchaseCardBrand               String                           @default("")
+  purchaseCardLast4               String                           @default("")
+  purchaseCardHolder              String                           @default("")
+  purchaseCardExpires             String                           @default("")
+  stripeCheckoutSessionId         String                           @default("")
+  stripePaymentIntentId           String                           @default("")
+  stripeAmountCents               Int?
+  stripeCurrency                  String                           @default("")
+  stripePaidAt                    DateTime?
+  isArchived                      Boolean                          @default(false)
+  revisionOfRequestId             String?
+  revisionNumber                  Int                              @default(1)
+  revisionChangeLog               String[]                         @default([])
+  lineItems                       RequestLineItem[]
+  files                           UploadedFile[]
+  supplierQuoteFiles              SupplierQuoteAttachment[]
+  supplierDocuments               SupplierDocument[]
+  supplierUpdates                 SupplierUpdate[]
+  supplierQuotes                  SupplierQuote[]
+  customerPurchaseOrderAttachment CustomerPurchaseOrderAttachment?
+  customerQuotes                  CustomerQuoteVersion[]
+  invoices                        Invoice[]
+  statusEvents                    StatusEvent[]
+  createdAt                       DateTime                         @default(now())
+  updatedAt                       DateTime                         @updatedAt
+}
+
+model CustomerPurchaseOrderAttachment {
+  id         String   @id @default(cuid())
+  requestId  String   @unique
+  request    Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name       String
+  sizeBytes  Int
+  type       String
+  storageKey String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model InvoiceSequence {
@@ -180,31 +218,31 @@ model InvoiceSequence {
 }
 
 model Invoice {
-  id                 String        @id @default(cuid())
-  invoiceNumber      String        @unique
-  sequenceYear       Int
-  sequenceValue      Int
-  status             InvoiceStatus @default(ISSUED)
-  requestId          String?
-  request            Request?      @relation(fields: [requestId], references: [id], onDelete: SetNull)
-  customerCompany    String        @default("")
-  customerContact    String        @default("")
-  customerPo         String        @default("")
-  quoteNumber        String        @default("")
-  paymentTerms       String        @default("100% Payment in Advance")
-  shippingTerms      String        @default("")
-  subtotalCents      Int           @default(0)
-  shippingCents      Int           @default(0)
-  salesTaxCents      Int           @default(0)
-  amountPaidCents    Int           @default(0)
-  amountDueCents     Int           @default(0)
-  issuedAt           DateTime      @default(now())
-  dueDate            DateTime?
-  billToSnapshot     Json?
-  shipToSnapshot     Json?
-  lineItemsSnapshot  Json
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  invoiceNumber     String        @unique
+  sequenceYear      Int
+  sequenceValue     Int
+  status            InvoiceStatus @default(ISSUED)
+  requestId         String?
+  request           Request?      @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  customerCompany   String        @default("")
+  customerContact   String        @default("")
+  customerPo        String        @default("")
+  quoteNumber       String        @default("")
+  paymentTerms      String        @default("100% Payment in Advance")
+  shippingTerms     String        @default("")
+  subtotalCents     Int           @default(0)
+  shippingCents     Int           @default(0)
+  salesTaxCents     Int           @default(0)
+  amountPaidCents   Int           @default(0)
+  amountDueCents    Int           @default(0)
+  issuedAt          DateTime      @default(now())
+  dueDate           DateTime?
+  billToSnapshot    Json?
+  shipToSnapshot    Json?
+  lineItemsSnapshot Json
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@unique([sequenceYear, sequenceValue])
   @@index([requestId, issuedAt])
@@ -258,6 +296,7 @@ model SupplierQuote {
   priceCents   Int?
   leadTimeDays Int?
   notes        String              @default("")
+  lineItems    Json?
   quotedAt     DateTime?
   isSelected   Boolean             @default(false)
   createdAt    DateTime            @default(now())
@@ -292,14 +331,15 @@ model RequestLineItem {
 }
 
 model UploadedFile {
-  id         String   @id @default(cuid())
-  requestId  String
-  request    Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  name       String
-  sizeBytes  Int
-  type       String
-  storageKey String?
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  requestId     String
+  request       Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  name          String
+  sizeBytes     Int
+  type          String
+  storageKey    String?
+  cadPreviewUrn String?
+  createdAt     DateTime @default(now())
 }
 
 model SupplierDocument {

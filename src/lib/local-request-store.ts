@@ -23,7 +23,27 @@ function normalizeLocalRequest(request: LatticeRequest): LatticeRequest {
     revisionNumber: request.revisionNumber ?? 1,
     revisionChangeLog: request.revisionChangeLog ?? [],
     isArchived: request.isArchived ?? false,
+    supplierQuotes: (request.supplierQuotes ?? []).map((quote) => ({
+      ...quote,
+      lineItems: quote.lineItems ?? [],
+    })),
     supplierQuoteFiles: request.supplierQuoteFiles ?? [],
+    customerPurchaseOrderAttachment: request.customerPurchaseOrderAttachment ?? null,
+    purchasePayment: {
+      method: request.purchasePayment?.method ?? null,
+      status: request.purchasePayment?.status ?? null,
+      customerPoNumber: request.purchasePayment?.customerPoNumber ?? "",
+      accountsPayableEmail: request.purchasePayment?.accountsPayableEmail ?? "",
+      buyerCheckoutNotes: request.purchasePayment?.buyerCheckoutNotes ?? "",
+      card: request.purchasePayment?.card ?? null,
+      stripe: {
+        amountCents: request.purchasePayment?.stripe?.amountCents ?? null,
+        checkoutSessionId: request.purchasePayment?.stripe?.checkoutSessionId ?? "",
+        currency: request.purchasePayment?.stripe?.currency ?? "",
+        paidAt: request.purchasePayment?.stripe?.paidAt ?? null,
+        paymentIntentId: request.purchasePayment?.stripe?.paymentIntentId ?? "",
+      },
+    },
   };
 }
 

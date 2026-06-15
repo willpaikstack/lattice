@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { exchangeGoogleCode, GOOGLE_SSO_STATE_COOKIE_NAME, googleSsoConfig, verifyGoogleIdToken, verifyGoogleSsoState } from "@/lib/google-sso";
-import { SESSION_COOKIE_NAME } from "@/lib/auth-crypto";
+import { canRoleAccessPath, defaultHomeForRole, resolveRoleForEmail, SESSION_COOKIE_NAME } from "@/lib/auth-crypto";
 import { createSessionCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -37,13 +37,16 @@ export async function GET(request: NextRequest) {
   try {
     const idToken = await exchangeGoogleCode(config, code);
     const claims = await verifyGoogleIdToken(config, idToken, state.nonce);
+    const role = resolveRoleForEmail(claims.email);
     const sessionCookie = createSessionCookie({
       email: claims.email,
       id: `google:${claims.sub}`,
       name: claims.name ?? claims.email,
       provider: "google",
+      role,
     });
-    const response = NextResponse.redirect(new URL(state.next, request.url));
+    const redirectPath = canRoleAccessPath(role, state.next) ? state.next : defaultHomeForRole(role);
+    const response = NextResponse.redirect(new URL(redirectPath, request.url));
     response.cookies.delete(GOOGLE_SSO_STATE_COOKIE_NAME);
     response.cookies.set(SESSION_COOKIE_NAME, sessionCookie.token, {
       expires: sessionCookie.expires,

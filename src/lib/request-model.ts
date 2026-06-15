@@ -1,5 +1,7 @@
 export type RequestStatus = "DRAFT" | "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED" | "PURCHASED" | "CLOSED";
 
+export type RequestOrigin = "ACCOUNT" | "GUEST_SIMPLE_QUOTE";
+
 export type OperatorCompleteness = "READY_FOR_REVIEW" | "MISSING_INFO" | "COMPLETE";
 
 export type SupplierOrderStatus =
@@ -33,6 +35,7 @@ export type UploadedFileInput = {
   sizeBytes: number;
   type: string;
   storageKey?: string;
+  cadPreviewUrn?: string;
 };
 
 export type RequestContactSnapshot = {
@@ -51,6 +54,9 @@ export type RequestContactSnapshot = {
 export type DraftRequestInput = {
   buyerCompany: string;
   contact?: Partial<RequestContactSnapshot>;
+  guestAccessTokenExpiresAt?: string | null;
+  guestAccessTokenHash?: string;
+  requestOrigin?: RequestOrigin;
   requesterName: string;
   title: string;
   process: string;
@@ -75,6 +81,36 @@ export type UploadedFile = UploadedFileInput & {
 
 export type SupplierQuoteAttachment = UploadedFile & {
   uploadedAt: string;
+};
+
+export type PurchasePaymentMethod = "CARD" | "PURCHASE_ORDER";
+
+export type PurchasePaymentStatus = "PENDING_REVIEW" | "PAYMENT_PENDING" | "PAID" | "PAYMENT_FAILED";
+
+export type CustomerPurchaseOrderAttachment = UploadedFile & {
+  uploadedAt: string;
+};
+
+export type PurchasePaymentSnapshot = {
+  method: PurchasePaymentMethod | null;
+  status: PurchasePaymentStatus | null;
+  customerPoNumber: string;
+  accountsPayableEmail: string;
+  buyerCheckoutNotes: string;
+  card: {
+    id: string;
+    brand: string;
+    last4: string;
+    holder: string;
+    expires: string;
+  } | null;
+  stripe: {
+    amountCents: number | null;
+    checkoutSessionId: string;
+    currency: string;
+    paidAt: string | null;
+    paymentIntentId: string;
+  };
 };
 
 export type SupplierDocument = {
@@ -106,6 +142,20 @@ export type SupplierOrder = {
 
 export type SupplierQuoteStatus = "INVITED" | "QUOTE_RECEIVED" | "DECLINED" | "SELECTED";
 
+export type SupplierQuoteLineItemSnapshot = {
+  id: string;
+  description: string;
+  drawingRevision: string;
+  finish: string;
+  inspection: string;
+  leadTimeDays: number | null;
+  material: string;
+  process: string;
+  quantity: number;
+  supplierNotes: string;
+  unitPrice: number;
+};
+
 export type SupplierQuote = {
   id: string;
   shopName: string;
@@ -117,6 +167,7 @@ export type SupplierQuote = {
   notes: string;
   quotedAt: string | null;
   isSelected: boolean;
+  lineItems: SupplierQuoteLineItemSnapshot[];
 };
 
 export type CustomerQuoteLineItemSnapshot = {
@@ -182,6 +233,9 @@ export type OperatorReview = {
 export type LatticeRequest = {
   id: string;
   buyerCompany: string;
+  guestAccessTokenExpiresAt: string | null;
+  guestAccessTokenHash: string;
+  requestOrigin: RequestOrigin;
   requesterEmail: string;
   requesterName: string;
   requesterPhone: string;
@@ -202,8 +256,10 @@ export type LatticeRequest = {
   operatorReview: OperatorReview;
   supplierOrder: SupplierOrder;
   supplierQuoteFiles: SupplierQuoteAttachment[];
+  customerPurchaseOrderAttachment: CustomerPurchaseOrderAttachment | null;
   supplierQuotes: SupplierQuote[];
   customerQuotes: CustomerQuoteVersion[];
+  purchasePayment: PurchasePaymentSnapshot;
   isArchived: boolean;
   quote: QuoteSummary;
   revisionOfRequestId: string | null;
@@ -292,6 +348,9 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
   const request: LatticeRequest = {
     id: makeId("req"),
     buyerCompany: input.buyerCompany.trim(),
+    guestAccessTokenExpiresAt: input.guestAccessTokenExpiresAt ?? null,
+    guestAccessTokenHash: input.guestAccessTokenHash?.trim() ?? "",
+    requestOrigin: input.requestOrigin ?? "ACCOUNT",
     requesterEmail: contact.requesterEmail,
     requesterName: input.requesterName.trim(),
     requesterPhone: contact.requesterPhone,
@@ -323,6 +382,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       sizeBytes: file.sizeBytes,
       type: file.type,
       storageKey: file.storageKey,
+      cadPreviewUrn: file.cadPreviewUrn,
     })),
     operatorReview: {
       completeness: "READY_FOR_REVIEW",
@@ -340,8 +400,24 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       updates: [],
     },
     supplierQuoteFiles: [],
+    customerPurchaseOrderAttachment: null,
     supplierQuotes: [],
     customerQuotes: [],
+    purchasePayment: {
+      method: null,
+      status: null,
+      customerPoNumber: "",
+      accountsPayableEmail: "",
+      buyerCheckoutNotes: "",
+      card: null,
+      stripe: {
+        amountCents: null,
+        checkoutSessionId: "",
+        currency: "",
+        paidAt: null,
+        paymentIntentId: "",
+      },
+    },
     isArchived: false,
     quote: {
       estimatedPriceCents: null,

@@ -24,8 +24,6 @@ const actionToneClasses: Record<AdminActionTone, string> = {
   neutral: "border-slate-200 bg-slate-50 text-slate-700",
 };
 
-const quotePipelineStatuses: RequestStatus[] = ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"];
-
 function formatCurrency(cents: number | null) {
   if (cents === null) {
     return "Pending";
@@ -47,13 +45,6 @@ function formatDate(value: string) {
     day: "numeric",
     month: "short",
   }).format(new Date(`${value}T00:00:00`));
-}
-
-function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-  }).format(new Date(value));
 }
 
 function quoteAgeDays(request: AdminCriticalQuoteRequest) {
@@ -139,10 +130,6 @@ function CriticalQueueItem({ request }: { request: AdminCriticalQuoteRequest }) 
   );
 }
 
-function adminQuoteHref(requestId: string) {
-  return `/admin/quotes?requestId=${encodeURIComponent(requestId)}`;
-}
-
 export function AdminActivityDashboard({ summary }: { summary: AdminActivitySummary }) {
   return (
     <div className="mx-auto max-w-[1240px] space-y-5">
@@ -188,49 +175,6 @@ export function AdminActivityDashboard({ summary }: { summary: AdminActivitySumm
         )}
       </article>
 
-      <section className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-        <article className="rounded-md border border-[#ffd1d4] bg-white">
-          <SectionHeader detail="Only active quote-request stages are counted here." title="Quote pipeline" />
-          <div className="divide-y divide-[#ffe1e3]">
-            {quotePipelineStatuses.map((status) => (
-              <div className="flex items-center justify-between gap-4 px-5 py-4" key={status}>
-                <span className="text-[14px] font-semibold text-[#484848]">{statusLabels[status]}</span>
-                <span className="text-[24px] font-semibold leading-none text-[#FF5A5F]">{summary.statusCounts[status]}</span>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-[#ffe1e3] bg-[#fff1f2] px-5 py-4 text-[13px] leading-5 text-[#767676]">
-            <span className="font-semibold text-[#484848]">{summary.metrics.unassignedRequests}</span> unassigned,{" "}
-            <span className="font-semibold text-[#484848]">{summary.metrics.supplierReady}</span> ready for shop outreach,{" "}
-            <span className="font-semibold text-[#484848]">{summary.metrics.buyerDecisionPending}</span> waiting on buyer decisions.
-          </div>
-        </article>
-
-        <article className="overflow-hidden rounded-md border border-[#ffd1d4] bg-white">
-          <SectionHeader detail={`${summary.metrics.supplierQuotesReceived} received shop quotes across active requests.`} title="Recent quote requests" />
-          <div className="grid grid-cols-[1.15fr_0.62fr_0.48fr_0.42fr] gap-4 border-b border-[#ffe1e3] bg-[#fff1f2] px-5 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#767676] max-lg:hidden">
-            <span>Request</span>
-            <span>Stage</span>
-            <span>Owner</span>
-            <span>Due</span>
-          </div>
-          <div className="divide-y divide-[#ffe1e3]">
-            {summary.recentActivity.slice(0, 6).map((request) => (
-              <Link className="grid gap-3 p-5 transition hover:bg-[#fff1f2] lg:grid-cols-[1.15fr_0.62fr_0.48fr_0.42fr] lg:items-center" href={adminQuoteHref(request.id)} key={request.id}>
-                <div>
-                  <p className="text-[15px] font-semibold text-[#484848]">{request.title}</p>
-                  <p className="mt-1 text-[13px] text-[#767676]">
-                    {request.buyerCompany} - updated {formatUpdatedAt(request.updatedAt)}
-                  </p>
-                </div>
-                <p className="text-[14px] font-semibold text-[#FF5A5F]">{statusLabels[request.status]}</p>
-                <p className="text-[14px] text-[#767676]">{request.operatorReview.assignedOwner ?? "Unassigned"}</p>
-                <p className="text-[14px] text-[#767676]">{formatDate(request.dueDate)}</p>
-              </Link>
-            ))}
-          </div>
-        </article>
-      </section>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { RequestForm, type RequestFormInitialState } from "@/components/request-form";
 import { getAccountSettings } from "@/lib/account-settings";
 import type { LatticeRequest } from "@/lib/request-model";
-import { getRequestById } from "@/lib/request-repository";
+import { getRequestById, listBuyerQuotes } from "@/lib/request-repository";
 import {
   generalToleranceOptions,
   processOptions,
@@ -108,6 +108,15 @@ function isEditableQuoteRequest(request: LatticeRequest | null): request is Latt
   );
 }
 
+function isResumeCandidate(request: LatticeRequest) {
+  return (
+    request.status === "DRAFT" ||
+    request.status === "SUBMITTED" ||
+    request.status === "NEEDS_INFO" ||
+    request.status === "READY_FOR_SUPPLIER_RFQ"
+  );
+}
+
 function copiedRequestInitialState(
   request: LatticeRequest,
   {
@@ -126,6 +135,13 @@ function copiedRequestInitialState(
     const drawingFile = drawingFiles[index];
 
     return {
+      cadPreview: cadFile?.cadPreviewUrn
+        ? {
+            status: "ready" as const,
+            fileName: cadFile.name,
+            urn: cadFile.cadPreviewUrn,
+          }
+        : undefined,
       fileName: cadFile?.name ?? "",
       fileSizeBytes: cadFile?.sizeBytes ?? 0,
       fileStorageKey: cadFile?.storageKey,
@@ -207,6 +223,13 @@ function draftInitialState(draft: LatticeRequest): RequestFormInitialState {
   return {
     buyerCompany: draft.buyerCompany,
     customerPo: "",
+    cadPreview: primaryFile?.cadPreviewUrn
+      ? {
+          status: "ready",
+          fileName: primaryFile.name,
+          urn: primaryFile.cadPreviewUrn,
+        }
+      : undefined,
     dueDate: draft.dueDate || dueDateFromToday(14),
     fileName: primaryFile?.name ?? "",
     fileSizeBytes: primaryFile?.sizeBytes ?? 0,
@@ -237,9 +260,12 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
   const reorderId = firstParam(params.reorder);
   const draftId = firstParam(params.draft);
   const accountSettings = await getAccountSettings();
-  const reviseSource = reviseId ? await getRequestById(reviseId) : null;
-  const reorderSource = reorderId ? await getRequestById(reorderId) : null;
-  const draftSource = draftId ? await getRequestById(draftId) : null;
+  const [reviseSource, reorderSource, draftSource, buyerQuotes] = await Promise.all([
+    reviseId ? getRequestById(reviseId) : Promise.resolve(null),
+    reorderId ? getRequestById(reorderId) : Promise.resolve(null),
+    draftId ? getRequestById(draftId) : Promise.resolve(null),
+    listBuyerQuotes(),
+  ]);
   const editableRevision = isEditableQuoteRequest(reviseSource) ? reviseSource : null;
   const editableDraft = draftSource?.status === "DRAFT" ? draftSource : null;
   const initialState = editableRevision
@@ -264,6 +290,7 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
             ? "Incomplete RFQ reopened. Finish the missing details, then click Request Quote when it is ready for Lattice review."
           : undefined
       }
+      resumeRequests={buyerQuotes.filter(isResumeCandidate)}
     />
   );
 }

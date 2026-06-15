@@ -4,9 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountSettingsWorkspace } from "./account-settings-workspace";
 
 const accountSettingsStorageKey = "lattice.account-settings.v1";
+const searchParamsMock = vi.hoisted(() => vi.fn(() => new URLSearchParams()));
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => searchParamsMock(),
+}));
 
 describe("AccountSettingsWorkspace", () => {
   beforeEach(() => {
+    searchParamsMock.mockReturnValue(new URLSearchParams());
     const store = new Map<string, string>();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
@@ -122,26 +128,16 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
   });
 
-  it("validates and adds payment methods", () => {
-    render(<AccountSettingsWorkspace />);
+  it("uses Stripe setup for adding payment methods", () => {
+    const createCardSetupAction = vi.fn();
+
+    render(<AccountSettingsWorkspace createCardSetupAction={createCardSetupAction} />);
 
     expect(screen.queryByLabelText("Card holder")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add credit card" }));
-
-    fireEvent.change(screen.getByLabelText("Card holder"), { target: { value: "Prototype Team" } });
-    fireEvent.change(screen.getByLabelText("Ending digits"), { target: { value: "12" } });
-    fireEvent.change(screen.getByLabelText("Expires"), { target: { value: "09/2028" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
-
-    expect(screen.getByText("Card ending must be exactly 4 digits.")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Ending digits"), { target: { value: "1234" } });
-    fireEvent.click(screen.getByRole("button", { name: "Add card" }));
-
-    expect(screen.getByText("Card ending in **** 1234")).toBeInTheDocument();
-    expect(screen.getByText("Payment method added for this demo session.")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Card holder")).not.toBeInTheDocument();
+    const addCardButton = screen.getByRole("button", { name: "Add credit card" });
+    expect(addCardButton).toHaveAttribute("form", "stripe-setup-form");
+    expect(screen.getByText("No Stripe cards are available for checkout.")).toBeInTheDocument();
   });
 
   it("edits the billing address default separately from billing contact", () => {
@@ -197,6 +193,17 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("75 Varick St")).toBeInTheDocument();
     expect(screen.getByText("Dock 3")).toBeInTheDocument();
     expect(screen.getByText("New York, NY 10013")).toBeInTheDocument();
+  });
+
+  it("opens the saved shipping address editor from the quote detail change link", () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams("edit=shipping"));
+
+    render(<AccountSettingsWorkspace />);
+
+    expect(screen.getByText("Make a change, then save or cancel.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("William Paik");
+    expect(screen.getByLabelText("Address 1")).toHaveValue("19 Morris Ave");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
   });
 
   it("edits billing contact details with separate fields", () => {

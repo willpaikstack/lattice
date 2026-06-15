@@ -12,6 +12,9 @@ type OrderDetailRouteConfig = {
   invoiceHref: string;
   invoicePreviewHref: string;
   reorderHref: string | null;
+  showSupplierQuoteFiles: boolean;
+  supplierPurchaseOrderHref: string | null;
+  supplierPurchaseOrderPreviewHref: string | null;
   supplierQuoteReturnTo: string;
 };
 
@@ -109,6 +112,85 @@ function orderReference(order: LatticeRequest) {
   return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
+function paymentMethodLabel(order: LatticeRequest) {
+  if (order.purchasePayment.method === "CARD") {
+    return "Credit card";
+  }
+
+  if (order.purchasePayment.method === "PURCHASE_ORDER") {
+    return "Purchase order";
+  }
+
+  return "Pending review";
+}
+
+function cardPaymentLabel(order: LatticeRequest) {
+  const card = order.purchasePayment.card;
+  return card ? `${card.brand || "Card"} ending in ${card.last4}` : "Saved card pending";
+}
+
+function customerPoReference(order: LatticeRequest) {
+  return order.purchasePayment.customerPoNumber || orderReference(order);
+}
+
+function supplierQuoteTotalLabel(order: LatticeRequest, selectedSupplier: LatticeRequest["supplierQuotes"][number] | null) {
+  if (selectedSupplier?.priceCents !== null && selectedSupplier?.priceCents !== undefined) {
+    return formatPrice(selectedSupplier.priceCents);
+  }
+
+  const lineTotal = (selectedSupplier?.lineItems ?? []).reduce((sum, item) => sum + item.quantity * item.unitPrice * 100, 0);
+  return lineTotal > 0 ? formatPrice(Math.round(lineTotal)) : "Pending";
+}
+
+function hasPricedSupplierQuoteLines(selectedSupplier: LatticeRequest["supplierQuotes"][number] | null) {
+  const lineItems = selectedSupplier?.lineItems ?? [];
+  return lineItems.length > 0 && lineItems.every((item) => item.quantity > 0 && item.unitPrice > 0);
+}
+
+function localFileHref(storageKey: string | undefined, name: string) {
+  return storageKey ? `/api/local-files/${storageKey.split("/").map(encodeURIComponent).join("/")}?name=${encodeURIComponent(name)}` : null;
+}
+
+function CustomerPurchaseOrderFile({ order }: { order: LatticeRequest }) {
+  const attachment = order.customerPurchaseOrderAttachment;
+
+  if (order.purchasePayment.method !== "PURCHASE_ORDER") {
+    return null;
+  }
+
+  if (!attachment) {
+    return (
+      <p className="rounded-md border border-[#f1d8a5] bg-[#fff7e8] p-4 text-[13px] leading-6 text-[#8a5b08]">
+        This order was placed by purchase order, but no PO file is attached yet.
+      </p>
+    );
+  }
+
+  const href = localFileHref(attachment.storageKey, attachment.name);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[#e5e5e5] bg-white text-[#7b8088]">
+          <FileText aria-hidden="true" className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-[13px] font-semibold text-[#202020]">{attachment.name}</p>
+          <p className="mt-1 text-[11px] text-[#7b8088]">
+            Customer PO {order.purchasePayment.customerPoNumber ? `#${order.purchasePayment.customerPoNumber}` : ""} - {formatFileSize(attachment.sizeBytes)}
+          </p>
+        </div>
+      </div>
+      {href ? (
+        <Link className="inline-flex min-h-9 shrink-0 items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[12px] font-semibold text-[#30343a] transition hover:bg-white" href={href}>
+          <Download aria-hidden="true" className="h-3.5 w-3.5" />
+          Download PO
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 function quoteReference(order: LatticeRequest) {
   return order.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
@@ -135,8 +217,8 @@ function deliveryDate(order: LatticeRequest) {
 
 function moneyBreakdown(order: LatticeRequest) {
   const subtotalCents = order.customerQuotes.at(-1)?.totalCents ?? order.quote.estimatedPriceCents;
-  const shippingCents = subtotalCents === null ? null : 3500;
-  const taxCents = subtotalCents === null ? null : Math.round(subtotalCents * 0.08875);
+  const shippingCents = order.quote.shippingCostCents;
+  const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
 
   return { shippingCents, subtotalCents, taxCents, totalCents };
@@ -182,10 +264,14 @@ export function BuyerOrderDetail({
     invoiceHref: `/orders/${order.id}/invoice.pdf`,
     invoicePreviewHref: `/orders/${order.id}/invoice.pdf?preview=1`,
     reorderHref: `/requests/new?reorder=${order.id}`,
+    showSupplierQuoteFiles: false,
+    supplierPurchaseOrderHref: null,
+    supplierPurchaseOrderPreviewHref: null,
     supplierQuoteReturnTo: `/orders/${encodeURIComponent(order.id)}`,
     ...routeConfig,
   };
-  const selectedSupplier = order.supplierQuotes.find((quote) => quote.isSelected) ?? null;
+  const selectedSupplier = order.supplierQuotes.find((quote) => quote.isSelected) ?? order.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
+  const structuredSupplierQuoteReady = hasPricedSupplierQuoteLines(selectedSupplier);
   const status = supplierStatusLabels[order.supplierOrder.status];
   const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
   const latestQuote = order.customerQuotes.at(-1);
@@ -218,6 +304,18 @@ export function BuyerOrderDetail({
               <Download aria-hidden="true" className="h-4 w-4" />
               Download invoice
             </Link>
+            {routes.supplierPurchaseOrderPreviewHref && structuredSupplierQuoteReady ? (
+              <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.supplierPurchaseOrderPreviewHref}>
+                <ReceiptText aria-hidden="true" className="h-4 w-4" />
+                View supplier PO
+              </Link>
+            ) : null}
+            {routes.supplierPurchaseOrderHref && structuredSupplierQuoteReady ? (
+              <Link className="inline-flex min-h-9 items-center gap-2 rounded-md bg-[#171717] px-3 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={routes.supplierPurchaseOrderHref}>
+                <Download aria-hidden="true" className="h-4 w-4" />
+                Download supplier PO
+              </Link>
+            ) : null}
             {routes.helpHref ? (
               <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.helpHref}>
                 <HelpCircle aria-hidden="true" className="h-4 w-4" />
@@ -316,6 +414,14 @@ export function BuyerOrderDetail({
           </Section>
 
           <div className="grid gap-5 lg:grid-cols-2">
+            {order.purchasePayment.method === "PURCHASE_ORDER" ? (
+              <Section title="Customer purchase order">
+                <div className="p-5">
+                  <CustomerPurchaseOrderFile order={order} />
+                </div>
+              </Section>
+            ) : null}
+
             <Section title="Order files">
               <div className="space-y-3 p-5">
                 {order.files.map((file) => (
@@ -354,11 +460,13 @@ export function BuyerOrderDetail({
             </Section>
           </div>
 
-          <SupplierQuoteFiles
-            request={order}
-            returnTo={routes.supplierQuoteReturnTo}
-            uploadHref="/api/supplier-quote-files"
-          />
+          {routes.showSupplierQuoteFiles ? (
+            <SupplierQuoteFiles
+              request={order}
+              returnTo={routes.supplierQuoteReturnTo}
+              uploadHref="/api/supplier-quote-files"
+            />
+          ) : null}
 
           <Section title="Order activity">
             <ol className="space-y-3 p-5">
@@ -383,13 +491,13 @@ export function BuyerOrderDetail({
           <section className="rounded-md border border-[#e7e7e7] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-6">
             <div className="border-b border-[#eeeeee] px-6 py-5">
               <h2 className="text-[16px] font-semibold text-[#202020]">Order summary</h2>
-              <p className="mt-1 text-[12px] text-[#7b8088]">{quoteReference(order)} / PO-1047</p>
+              <p className="mt-1 text-[12px] text-[#7b8088]">{quoteReference(order)} / {customerPoReference(order)}</p>
             </div>
             <div className="space-y-4 px-6 py-5">
               <dl className="space-y-3 text-[13px]">
                 <DefinitionRow label="Subtotal" value={formatPrice(subtotalCents)} />
-                <DefinitionRow label="Managed shipping" value={formatPrice(shippingCents)} />
-                <DefinitionRow label="Estimated tax" value={formatPrice(taxCents)} />
+                <DefinitionRow label={`Shipping${order.quote.shippingMethod ? ` (${order.quote.shippingMethod})` : ""}`} value={formatPrice(shippingCents)} />
+                <DefinitionRow label="Tax" value={formatPrice(taxCents)} />
                 <DefinitionRow label="Duties / tariffs" value="Included" />
               </dl>
               <div className="border-t border-[#eeeeee] pt-4">
@@ -421,12 +529,67 @@ export function BuyerOrderDetail({
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Billing and payment</p>
               <dl className="mt-4 space-y-3 text-[13px]">
-                <DefinitionRow label="Payment method" value="Purchase order" />
-                <DefinitionRow label="PO number" value="PO-1047" />
+                <DefinitionRow label="Payment method" value={paymentMethodLabel(order)} />
+                {order.purchasePayment.method === "CARD" ? <DefinitionRow label="Card" value={cardPaymentLabel(order)} /> : null}
+                {order.purchasePayment.method === "PURCHASE_ORDER" ? (
+                  <>
+                    <DefinitionRow label="PO number" value={customerPoReference(order)} />
+                    <DefinitionRow label="AP email" value={order.purchasePayment.accountsPayableEmail || "Pending"} />
+                  </>
+                ) : null}
                 <DefinitionRow label="Ordered by" value={order.requesterName} />
                 <DefinitionRow label="Billing address" value={<span>{order.buyerCompany}<br />Brooklyn, NY 11201</span>} />
               </dl>
+              {order.customerPurchaseOrderAttachment ? (
+                <div className="mt-4 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">
+                  <p className="text-[12px] font-semibold text-[#202020]">{order.customerPurchaseOrderAttachment.name}</p>
+                  <p className="mt-1 text-[11px] text-[#7b8088]">{formatFileSize(order.customerPurchaseOrderAttachment.sizeBytes)} - uploaded PO</p>
+                  {localFileHref(order.customerPurchaseOrderAttachment.storageKey, order.customerPurchaseOrderAttachment.name) ? (
+                    <Link
+                      className="mt-3 inline-flex min-h-8 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[12px] font-semibold text-[#30343a] transition hover:bg-white"
+                      href={localFileHref(order.customerPurchaseOrderAttachment.storageKey, order.customerPurchaseOrderAttachment.name) ?? "#"}
+                    >
+                      <Download aria-hidden="true" className="h-3.5 w-3.5" />
+                      Download PO
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
+              {order.purchasePayment.buyerCheckoutNotes ? <p className="mt-4 rounded-md bg-[#fafafa] p-3 text-[12px] leading-5 text-[#5f6670]">{order.purchasePayment.buyerCheckoutNotes}</p> : null}
             </div>
+
+            {routes.supplierPurchaseOrderHref || routes.supplierPurchaseOrderPreviewHref ? (
+              <div className="border-t border-[#eeeeee] px-6 py-5">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Supplier purchase order</p>
+                {structuredSupplierQuoteReady ? (
+                  <div className="mt-4 space-y-4">
+                    <dl className="space-y-3 text-[13px]">
+                      <DefinitionRow label="Selected shop" value={selectedSupplier?.shopName || supplierName} />
+                      <DefinitionRow label="Supplier quote total" value={supplierQuoteTotalLabel(order, selectedSupplier)} />
+                      <DefinitionRow label="Structured lines" value={`${selectedSupplier?.lineItems.length ?? 0} ready`} />
+                    </dl>
+                    <div className="grid gap-2">
+                      {routes.supplierPurchaseOrderPreviewHref ? (
+                        <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.supplierPurchaseOrderPreviewHref}>
+                          <ReceiptText aria-hidden="true" className="h-4 w-4" />
+                          View supplier PO
+                        </Link>
+                      ) : null}
+                      {routes.supplierPurchaseOrderHref ? (
+                        <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={routes.supplierPurchaseOrderHref}>
+                          <Download aria-hidden="true" className="h-4 w-4" />
+                          Download supplier PO
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-md border border-[#f1d8a5] bg-[#fff7e8] p-4 text-[13px] leading-6 text-[#8a5b08]">
+                    Supplier PO pending structured shop quote. Enter supplier line pricing and lead times before issuing this document.
+                  </p>
+                )}
+              </div>
+            ) : null}
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Supplier contact</p>

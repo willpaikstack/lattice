@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { CustomerProfileInput } from "@/lib/customer-profiles";
 import { updateCustomerProfile } from "@/lib/customer-profiles";
+import { requireActionRole } from "@/lib/route-authorization";
 
 function getString(formData: FormData, key: keyof CustomerProfileInput) {
   const value = formData.get(key);
@@ -12,6 +13,7 @@ function getString(formData: FormData, key: keyof CustomerProfileInput) {
 }
 
 export async function updateCustomerProfileAction(companyId: string, formData: FormData) {
+  await requireActionRole(["admin"]);
   await updateCustomerProfile(companyId, {
     name: getString(formData, "name"),
     website: getString(formData, "website"),

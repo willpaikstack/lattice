@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 
 import { saveLocalUpload } from "@/lib/local-file-storage";
+import { getCurrentSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   try {
+    const session = await getCurrentSession();
+
+    if (session?.user.role !== "customer" && session?.user.role !== "admin") {
+      return NextResponse.json({ error: "Customer or admin access required." }, { status: session ? 403 : 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file");
 

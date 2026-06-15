@@ -1,9 +1,19 @@
-import Link from "next/link";
-import { ArrowLeft, CalendarDays, CheckCircle2, FileText, Landmark, MapPin, ShieldCheck, Truck } from "lucide-react";
-import type { ReactNode } from "react";
+"use client";
 
-import type { AccountAddress } from "@/lib/account-settings-shared";
+import Link from "next/link";
+import { ArrowLeft, CalendarDays, CheckCircle2, CreditCard, FileText, Landmark, MapPin, ShieldCheck, Truck, Upload, X } from "lucide-react";
+import type { FormEvent, ReactNode } from "react";
+import { useMemo, useRef, useState } from "react";
+
+import type { AccountAddress, PaymentCard } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
+import { StripeElementsPayment } from "./stripe-elements-payment";
+
+type StripeElementsCheckoutSession = {
+  clientSecret: string;
+  publishableKey: string;
+  sessionId: string;
+};
 
 function formatPrice(cents: number | null) {
   if (cents === null) {
@@ -51,6 +61,18 @@ function trimText(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
 
+function formatFileSize(sizeBytes: number) {
+  if (sizeBytes < 1024) {
+    return `${sizeBytes} B`;
+  }
+
+  if (sizeBytes < 1024 * 1024) {
+    return `${Math.round(sizeBytes / 1024)} KB`;
+  }
+
+  return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 function FieldLabel({ children }: { children: ReactNode }) {
   return <label className="text-[12px] font-semibold text-[#4b525c]">{children}</label>;
 }
@@ -93,20 +115,41 @@ function CheckoutSection({
 }
 
 export function BuyerQuoteCheckout({
+  accountsPayableEmail,
+  cards,
+  finalizeStripeCardPaymentAction,
+  paymentNotice,
   placeOrderAction,
   request,
   receivingPhone,
   shippingAddress,
+  stripeElementsSession,
+  updateStripeElementsSessionAction,
 }: {
+  accountsPayableEmail?: string;
+  cards?: PaymentCard[];
+  finalizeStripeCardPaymentAction?: (paymentIntentId: string, formData: FormData) => Promise<{ redirectTo: string }>;
+  paymentNotice?: string;
   placeOrderAction: (formData: FormData) => void | Promise<void>;
   receivingPhone?: string;
   request: LatticeRequest;
   shippingAddress?: AccountAddress;
+  stripeElementsSession?: StripeElementsCheckoutSession | null;
+  updateStripeElementsSessionAction?: (checkoutSessionId: string, formData: FormData) => Promise<void>;
 }) {
+  const availableCards = useMemo(() => cards ?? [], [cards]);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "purchase-order">("card");
+  const [poFileSummary, setPoFileSummary] = useState("");
+  const [cardPaymentError, setCardPaymentError] = useState("");
+  const [cardPaymentReady, setCardPaymentReady] = useState(false);
+  const [cardPaymentSubmitting, setCardPaymentSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const poFileInputRef = useRef<HTMLInputElement | null>(null);
   const quoteId = quoteReference(request);
   const subtotalCents = request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
-  const shippingCents = subtotalCents === null ? null : 3500;
-  const taxCents = subtotalCents === null ? null : Math.round(subtotalCents * 0.08875);
+  const shippingCents = request.quote.shippingCostCents;
+  const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const latestQuote = request.customerQuotes.at(-1);
   const deliveryCompany = trimText(shippingAddress?.company) || request.shipToCompany || request.buyerCompany;
@@ -117,9 +160,38 @@ export function BuyerQuoteCheckout({
   const deliveryState = trimText(shippingAddress?.state) || request.shipToState;
   const deliveryZipCode = trimText(shippingAddress?.zipCode) || request.shipToZipCode;
   const defaultReceivingPhone = trimText(receivingPhone) || request.shipToPhone || request.requesterPhone;
+  const noticeCopy =
+    paymentNotice === "canceled"
+      ? "Stripe payment was canceled. No order was placed, and you can restart card checkout when ready."
+      : paymentNotice === "pending"
+        ? "Stripe received the checkout return, but the order is still finalizing. Please try again in a moment."
+        : paymentNotice === "missing-session"
+          ? "Stripe did not return a checkout session. Please restart card checkout."
+          : "";
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (paymentMethod !== "card") {
+      return;
+    }
+
+    event.preventDefault();
+    setCardPaymentError("");
+
+    if (!termsAccepted) {
+      setCardPaymentError("Accept the quote terms before placing the order.");
+      return;
+    }
+
+    if (!formRef.current || !window.latticeConfirmStripeElementsPayment) {
+      setCardPaymentError("Secure card fields are still loading. Try again in a moment.");
+      return;
+    }
+
+    await window.latticeConfirmStripeElementsPayment(formRef.current);
+  }
 
   return (
-    <form action={placeOrderAction}>
+    <form action={placeOrderAction} onSubmit={handleSubmit} ref={formRef}>
       <div className="mx-auto w-full max-w-[1480px] px-2 pb-12">
         <div className="mb-7">
           <Link className="inline-flex items-center gap-2 text-[13px] font-medium text-[#6f737a] transition hover:text-[#171717]" href={`/quotes/${request.id}`}>
@@ -136,6 +208,7 @@ export function BuyerQuoteCheckout({
             </div>
             <p className="text-[13px] text-[#7b8088]">{request.title}</p>
           </div>
+          {noticeCopy ? <p className="mt-4 rounded-md border border-[#f1d8a5] bg-[#fff7e8] px-4 py-3 text-[13px] font-medium text-[#8a5b08]">{noticeCopy}</p> : null}
         </div>
 
         <div className="grid gap-6 xl:grid-cols-12">
@@ -245,31 +318,145 @@ export function BuyerQuoteCheckout({
             </CheckoutSection>
 
             <CheckoutSection icon={<Landmark aria-hidden="true" className="h-4 w-4" />} kicker="Step 4" title="Payment and purchasing">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <FieldLabel>Payment method</FieldLabel>
-                  <select className="mt-2 h-10 w-full rounded-md border border-[#dedede] bg-white px-3 text-[13px] text-[#202020] outline-none focus:border-[#9b9b9b]" defaultValue="purchase-order" name="paymentMethod">
-                    <option value="purchase-order">Purchase order / invoice terms</option>
-                    <option value="card">Card payment after order review</option>
-                    <option value="wire">Wire transfer</option>
-                  </select>
+              <input name="paymentMethod" type="hidden" value={paymentMethod} />
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className={`rounded-md border p-4 transition ${paymentMethod === "card" ? "border-[#171717] bg-[#f8fafc]" : "border-[#e7e7e7] bg-white"}`}>
+                  <span className="flex items-start gap-3">
+                    <input
+                      className="mt-1 accent-[#171717]"
+                      checked={paymentMethod === "card"}
+                      name="checkoutPaymentChoice"
+                      onChange={() => setPaymentMethod("card")}
+                      type="radio"
+                      value="card"
+                    />
+                    <span>
+                      <span className="flex items-center gap-2 text-[14px] font-semibold text-[#202020]">
+                        <CreditCard aria-hidden="true" className="h-4 w-4 text-[#6f737a]" />
+                        Pay securely with Stripe
+                      </span>
+                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Enter payment details inline through Stripe before this quote becomes an order.</span>
+                    </span>
+                  </span>
+                </label>
+                <label className={`rounded-md border p-4 transition ${paymentMethod === "purchase-order" ? "border-[#171717] bg-[#f8fafc]" : "border-[#e7e7e7] bg-white"}`}>
+                  <span className="flex items-start gap-3">
+                    <input
+                      className="mt-1 accent-[#171717]"
+                      checked={paymentMethod === "purchase-order"}
+                      name="checkoutPaymentChoice"
+                      onChange={() => setPaymentMethod("purchase-order")}
+                      type="radio"
+                      value="purchase-order"
+                    />
+                    <span>
+                      <span className="flex items-center gap-2 text-[14px] font-semibold text-[#202020]">
+                        <FileText aria-hidden="true" className="h-4 w-4 text-[#6f737a]" />
+                        Purchase order
+                      </span>
+                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Upload the customer PO for invoice matching and order review.</span>
+                    </span>
+                  </span>
+                </label>
+              </div>
+
+              {paymentMethod === "card" ? (
+                <div className="mt-4 rounded-md border border-[#e7e7e7] bg-white p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <FieldLabel>Secure Stripe payment</FieldLabel>
+                      <p className="mt-2 text-[13px] leading-5 text-[#5f6670]">All transactions are encrypted and processed by Stripe.</p>
+                    </div>
+                    <div aria-label="Supported card networks" className="flex items-center gap-1.5">
+                      {["Visa", "MC", "Amex"].map((brand) => (
+                        <span className="inline-flex h-7 min-w-11 items-center justify-center rounded-sm border border-[#dce1e8] bg-[#f8fafc] px-2 text-[11px] font-bold uppercase text-[#263341]" key={brand}>
+                          {brand}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-3">
+                    <StripeElementsPayment
+                      enabled={paymentMethod === "card"}
+                      finalizeStripeCardPaymentAction={finalizeStripeCardPaymentAction}
+                      onError={setCardPaymentError}
+                      onReadyChange={setCardPaymentReady}
+                      onSubmittingChange={setCardPaymentSubmitting}
+                      requestId={request.id}
+                      session={stripeElementsSession ?? null}
+                      updateStripeElementsSessionAction={updateStripeElementsSessionAction}
+                    />
+                    <p className="rounded-md border border-[#dfe8f7] bg-[#f7fbff] p-3 text-[13px] font-medium text-[#35536d]">
+                      {availableCards.length > 0
+                        ? "Saved Stripe cards may appear inside the secure card field."
+                        : "No saved Stripe cards are on file. Enter card details above to pay this quote."}
+                    </p>
+                    {cardPaymentError ? <p className="rounded-md border border-[#f1d8a5] bg-[#fff7e8] p-3 text-[13px] font-medium text-[#8a5b08]">{cardPaymentError}</p> : null}
+                  </div>
                 </div>
-                <div>
-                  <FieldLabel>PO number</FieldLabel>
-                  <TextInput name="poNumber" placeholder="PO-1047" />
+              ) : (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div>
+                    <FieldLabel>PO number</FieldLabel>
+                    <TextInput name="poNumber" placeholder="PO-1047" />
+                  </div>
+                  <div>
+                    <FieldLabel>Accounts payable email</FieldLabel>
+                    <TextInput defaultValue={accountsPayableEmail} name="apEmail" placeholder="ap@company.com" type="email" />
+                  </div>
+                  <div className="md:col-span-2">
+                    <span className="text-[12px] font-semibold text-[#4b525c]">Purchase order file</span>
+                    <label htmlFor="poFile" className={`mt-2 flex min-h-28 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed px-4 py-5 text-center transition hover:border-[#9aa4b2] hover:bg-white ${
+                      poFileSummary ? "border-[#b7ead8] bg-[#ecfbf4]" : "border-[#cfd5dd] bg-[#f8fafc]"
+                    }`}>
+                      {poFileSummary ? <CheckCircle2 aria-hidden="true" className="h-5 w-5 text-[#126448]" /> : <Upload aria-hidden="true" className="h-5 w-5 text-[#7b8088]" />}
+                      <span className="mt-2 text-[13px] font-semibold text-[#30343a]">{poFileSummary ? "PO document selected" : "Upload PO document"}</span>
+                      <span className={`mt-1 text-[12px] ${poFileSummary ? "text-[#126448]" : "text-[#7b8088]"}`}>
+                        {poFileSummary || "PDF, image, Word, or spreadsheet files are accepted."}
+                      </span>
+                    </label>
+                    <input
+                      accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv,image/*,application/pdf"
+                      aria-label="Purchase order file"
+                      className="sr-only"
+                      id="poFile"
+                      name="poFile"
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        if (!file) {
+                          return;
+                        }
+                        setPoFileSummary(`${file.name} (${formatFileSize(file.size)})`);
+                      }}
+                      ref={poFileInputRef}
+                      type="file"
+                    />
+                    {poFileSummary ? (
+                      <button
+                        className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-md border border-[#d6d9de] bg-white px-3 text-[12px] font-semibold text-[#4b525c] transition hover:border-[#aeb5bf] hover:text-[#202020]"
+                        onClick={() => {
+                          setPoFileSummary("");
+                          if (poFileInputRef.current) {
+                            poFileInputRef.current.value = "";
+                          }
+                        }}
+                        type="button"
+                      >
+                        <X aria-hidden="true" className="h-3.5 w-3.5" />
+                        Remove PO file
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
-                <div>
-                  <FieldLabel>Accounts payable email</FieldLabel>
-                  <TextInput name="apEmail" placeholder="ap@company.com" type="email" />
-                </div>
-                <div>
-                  <FieldLabel>Tax status</FieldLabel>
-                  <select className="mt-2 h-10 w-full rounded-md border border-[#dedede] bg-white px-3 text-[13px] text-[#202020] outline-none focus:border-[#9b9b9b]" defaultValue="taxable" name="taxStatus">
-                    <option value="taxable">Taxable order</option>
-                    <option value="exempt">Tax exempt certificate on file</option>
-                    <option value="needs-certificate">Tax exempt, certificate needed</option>
-                  </select>
-                </div>
+              )}
+
+              <div className="mt-4">
+                <FieldLabel>Tax status</FieldLabel>
+                <select className="mt-2 h-10 w-full rounded-md border border-[#dedede] bg-white px-3 text-[13px] text-[#202020] outline-none focus:border-[#9b9b9b]" defaultValue="taxable" name="taxStatus">
+                  <option value="taxable">Taxable order</option>
+                  <option value="exempt">Tax exempt certificate on file</option>
+                  <option value="needs-certificate">Tax exempt, certificate needed</option>
+                </select>
               </div>
               <div className="mt-4">
                 <FieldLabel>Buyer notes</FieldLabel>
@@ -304,11 +491,13 @@ export function BuyerQuoteCheckout({
                     <dd className="font-semibold text-[#202020]">{formatPrice(subtotalCents)}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-[#6f737a]">Managed shipping</dt>
+                    <dt className="text-[#6f737a]">
+                      Shipping {request.quote.shippingMethod ? `(${request.quote.shippingMethod})` : ""}
+                    </dt>
                     <dd className="font-semibold text-[#202020]">{formatPrice(shippingCents)}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <dt className="text-[#6f737a]">Estimated tax</dt>
+                    <dt className="text-[#6f737a]">Tax</dt>
                     <dd className="font-semibold text-[#202020]">{formatPrice(taxCents)}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
@@ -322,7 +511,7 @@ export function BuyerQuoteCheckout({
                     <p className="text-[14px] font-semibold text-[#202020]">Total</p>
                     <p className="text-[22px] font-semibold text-[#171717]">{formatPrice(totalCents)}</p>
                   </div>
-                  <p className="mt-1 text-[12px] leading-5 text-[#7b8088]">Landed estimate including shipping, tax, duties, and import handling where applicable.</p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#7b8088]">Accepted quote total using saved production, shipping, and tax terms.</p>
                 </div>
 
                 <div className="rounded-md bg-[#fbfaf7] p-4">
@@ -335,13 +524,24 @@ export function BuyerQuoteCheckout({
                 </div>
 
                 <label className="flex items-start gap-3 text-[12px] leading-5 text-[#4f5660]">
-                  <input className="mt-1 accent-[#171717]" name="termsAccepted" required type="checkbox" />
+                  <input
+                    checked={termsAccepted}
+                    className="mt-1 accent-[#171717]"
+                    name="termsAccepted"
+                    onChange={(event) => setTermsAccepted(event.currentTarget.checked)}
+                    required
+                    type="checkbox"
+                  />
                   <span>I accept the quote basis, production lead time, Lattice purchasing terms, and understand the order will be reviewed before supplier release.</span>
                 </label>
 
-                <button className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" type="submit">
+                <button
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b] disabled:cursor-not-allowed disabled:bg-[#cfd4dc] disabled:text-[#667085]"
+                  disabled={!termsAccepted || totalCents === null || (paymentMethod === "card" && (!cardPaymentReady || cardPaymentSubmitting))}
+                  type="submit"
+                >
                   <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
-                  Place order
+                  {paymentMethod === "card" ? (cardPaymentSubmitting ? "Processing payment..." : "Pay with Stripe") : "Place order"}
                 </button>
                 <Link className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={`/quotes/${request.id}`}>
                   Back to quote

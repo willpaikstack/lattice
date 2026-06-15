@@ -28,7 +28,7 @@ describe("admin document templates", () => {
 
     expect(pdf.length).toBeGreaterThan(1000);
     expect(Buffer.from(pdf).subarray(0, 5).toString("utf8")).toBe("%PDF-");
-    expect(pdfPageCount(pdf)).toBe(2);
+    expect(pdfPageCount(pdf)).toBe(3);
   });
 
   it("builds the domestic invoice PDF", async () => {

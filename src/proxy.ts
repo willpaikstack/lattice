@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth-crypto";
+import { canRoleAccessPath, defaultHomeForRole, roleForSession, SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth-crypto";
 
 const protectedPrefixes = [
   "/account",
@@ -29,6 +29,7 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = verifySessionToken(token);
   const isAuthenticated = Boolean(session?.userId);
+  const role = session ? roleForSession(session) : null;
 
   if (isProtectedPath(pathname) && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);
@@ -37,7 +38,11 @@ export function proxy(request: NextRequest) {
   }
 
   if (pathname === "/login" && isAuthenticated) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(new URL(defaultHomeForRole(role ?? "customer"), request.url));
+  }
+
+  if (isProtectedPath(pathname) && role && !canRoleAccessPath(role, pathname)) {
+    return NextResponse.redirect(new URL(defaultHomeForRole(role), request.url));
   }
 
   return NextResponse.next();

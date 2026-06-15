@@ -57,6 +57,26 @@ function expectAllLinksNamed(label: string, href: string) {
 
 describe("AppShell", () => {
   beforeEach(() => {
+    const localStorageData: Record<string, string> = {};
+
+    Object.defineProperty(window, "localStorage", {
+      configurable: true,
+      value: {
+        clear: vi.fn(() => {
+          for (const key of Object.keys(localStorageData)) {
+            delete localStorageData[key];
+          }
+        }),
+        getItem: vi.fn((key: string) => localStorageData[key] ?? null),
+        removeItem: vi.fn((key: string) => {
+          delete localStorageData[key];
+        }),
+        setItem: vi.fn((key: string, value: string) => {
+          localStorageData[key] = value;
+        }),
+      },
+    });
+    window.history.pushState({}, "", "/dashboard");
     mockUsePathname.mockReturnValue("/dashboard");
     mockPush.mockReset();
     mockReplace.mockReset();
@@ -131,14 +151,25 @@ describe("AppShell", () => {
     expectAllLinksNamed("Orders", "/orders");
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
-    expectAllLinksNamed("Admin", "/admin");
     expect(screen.getAllByText("Your Resources").length).toBeGreaterThan(0);
     expect(screen.getByText("William Paik")).toBeInTheDocument();
     expect(screen.getByText("will@latticeos.co")).toBeInTheDocument();
 
+    expect(screen.queryByRole("link", { name: "Admin" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
+  });
+
+  it("lets admin sessions return to the admin workspace from customer routes", () => {
+    render(
+      <AppShell sessionRole="admin">
+        <div>customer content</div>
+      </AppShell>,
+    );
+
+    expectAllLinksNamed("Admin workspace", "/admin");
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
   });
 
   it("keeps request quote as a primary CTA instead of a workspace nav item", () => {
@@ -181,7 +212,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/admin");
 
     render(
-      <AppShell>
+      <AppShell sessionRole="admin">
         <div>content</div>
       </AppShell>,
     );
@@ -192,14 +223,58 @@ describe("AppShell", () => {
     expectAllLinksNamed("Quote Submissions", "/admin/quotes");
     expectAllLinksNamed("Placed Orders", "/admin/orders");
     expectAllLinksNamed("Resources", "/admin/resources");
-    expectAllLinksNamed("Customer App", "/dashboard");
+    expectAllLinksNamed("Customer workspace", "/dashboard");
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
 
+    expect(screen.queryByRole("link", { name: "Customer App" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Request Quote" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Quotes" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Materials" })).not.toBeInTheDocument();
+  });
+
+  it("persists reordered admin navigation for the current user only", async () => {
+    mockUsePathname.mockReturnValue("/admin/quotes");
+
+    render(
+      <AppShell sessionRole="admin">
+        <div>content</div>
+      </AppShell>,
+    );
+
+    const draggedData: Record<string, string> = {};
+    const dataTransfer = {
+      effectAllowed: "move",
+      getData: (type: string) => draggedData[type] ?? "",
+      setData: (type: string, value: string) => {
+        draggedData[type] = value;
+      },
+    };
+    const desktopQuoteSubmissionsLink = screen.getAllByRole("link", { name: "Quote Submissions" })[0];
+    const desktopCustomersLink = screen.getAllByRole("link", { name: "Customers" })[0];
+
+    fireEvent.dragStart(desktopQuoteSubmissionsLink, { dataTransfer });
+    fireEvent.drop(desktopCustomersLink, { dataTransfer });
+
+    await waitFor(() => {
+      expect(window.localStorage.getItem("lattice:sidebar-nav-order:will@latticeos.co:admin")).toBe(
+        JSON.stringify({
+          Admin: [
+            "/admin",
+            "/admin/quotes",
+            "/admin/customers",
+            "/admin/vendors",
+            "/admin/orders",
+            "/admin/resources",
+          ],
+        }),
+      );
+    });
+
+    const desktopAdminNav = document.querySelector("aside nav section div");
+
+    expect(desktopAdminNav?.textContent).toMatch(/Overview\s*Quote Submissions\s*Customers\s*Overseas Vendors\s*Placed Orders\s*Resources/);
   });
 
   it("keeps the admin overview link inactive on nested admin pages", () => {
@@ -233,6 +308,22 @@ describe("AppShell", () => {
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith("/quotes");
     });
+  });
+
+  it("clears stale query state when the current nav item is selected", () => {
+    mockUsePathname.mockReturnValue("/admin/quotes");
+    window.history.pushState({}, "", "/admin/quotes?requestId=req_stale");
+
+    render(
+      <AppShell sessionRole="admin">
+        <div>quote submissions</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Quote Submissions" })[0]);
+
+    expect(mockReplace).toHaveBeenCalledWith("/admin/quotes", { scroll: false });
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   it("opens account actions from the sidebar profile menu", () => {

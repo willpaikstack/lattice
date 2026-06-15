@@ -7,7 +7,7 @@ Internal document templates are available from `/admin/resources`. This file is 
 | ID | Resource | App route | Backing file / generator | Purpose |
 | --- | --- | --- | --- | --- |
 | DOC-001 | Retired | Removed from `/admin/resources` on 2026-06-05 | Historical workbook: `resources/admin/lattice-os-zintilon-quote-template.xlsx` | Former editable one-sheet customer quote source. Keep only as historical/source material for request-specific workbook generation unless explicitly revived. |
-| DOC-002 | Supplier purchase order PDF template | `/admin/resources/supplier-purchase-order-template` | `src/lib/purchase-order-pdf.ts` | Supplier-facing PO PDF template for releasing accepted work to Chinese machine shops, with a separate supplier terms page. |
+| DOC-002 | Supplier purchase order PDF template and order-specific supplier PO | `/admin/resources/supplier-purchase-order-template`; `/admin/orders/[requestId]/supplier-purchase-order.pdf` | `src/lib/purchase-order-pdf.ts` | Supplier-facing PO PDF template and accepted-order supplier PO generator for releasing work to Chinese machine shops, with a separate supplier terms page. |
 | DOC-003 | Domestic invoice PDF template | `/admin/resources/domestic-invoice-template` | `src/lib/invoice-pdf.ts` | Customer-facing invoice PDF template for accepted orders or billing milestones, with a separate remittance-instructions page. |
 | DOC-004 | Customer quote PDF template - Rev 1 | `/admin/resources/quote-template` | `src/app/admin/resources/quote-template/route.ts` + `src/lib/quote-pdf.ts` | Frozen Rev 1 generated customer quote PDF template used by the admin quote workflow. |
 
@@ -51,6 +51,14 @@ Preview and download:
 - `/admin/resources` embeds DOC-002 in the same in-app PDF viewer pattern used by DOC-003 and DOC-004.
 - `/admin/resources/supplier-purchase-order-template?preview=1` serves the PDF inline for browser preview.
 - `/admin/resources/supplier-purchase-order-template` downloads `nexus-supplier-purchase-order-template.pdf`.
+- `/admin/orders/[requestId]/supplier-purchase-order.pdf?preview=1` serves an order-specific supplier PO inline for purchased orders with a selected structured supplier quote.
+- `/admin/orders/[requestId]/supplier-purchase-order.pdf` downloads `nexus-supplier-po-<order-reference>.pdf`.
+
+Order-specific generation rules:
+
+- The admin RFQ response drawer captures the selected Chinese shop quote details and per-line supplier quote structure used by the PO renderer.
+- Supplier quote PDF attachments are source evidence only; they do not make an order-specific supplier PO ready without structured supplier line items.
+- If a purchased order has no selected structured supplier quote, admin order detail shows `Supplier PO pending structured shop quote` and the PDF route returns not found instead of using customer quote prices.
 
 Before sending, confirm the final CAD/drawing revision, quantity, material, finish, tolerance, inspection scope, packaging, shipment handoff, and any customer-approved DFM changes.
 

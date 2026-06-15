@@ -5,10 +5,15 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 ## Next Priorities
 
 - Production launch hardening after the 2026-06-02 Vercel/Neon setup:
+  - deploy the `@vercel/analytics` instrumentation change, visit `https://latticeos.co`, then confirm Vercel Analytics leaves the Get Started state and starts showing page views
   - configure Google Workspace SSO credentials in local, preview, and production environments, then decide when to disable the interim local password fallback
   - continue replacing the interim single-account credential gate with durable multi-user authentication, role/route authorization, password recovery, and optional MFA
+  - move role assignment from the current signed-session email allowlists (`LATTICE_ADMIN_EMAILS` / `LATTICE_SUPPLIER_EMAILS`) into durable user/workspace records with company and supplier ownership checks
+  - add ownership-aware access checks below the current route/action role guards so authenticated customers and suppliers cannot access records outside their company or awarded shop
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
   - configure Resend and a verified sending domain for waiting-list emails
+  - configure Stripe test/live environment variables (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_BASE_URL`) and register `/api/stripe/webhook` in Stripe for production payment finalization
+  - smoke test the public `/simple-quote` lane in production after Stripe and Resend are configured, including guest RFQ submission, admin quote issuance email, tokenized quote review, PDF download, and card payment
   - decide whether to keep local email outbox files for development only or add durable email-event records in Postgres
   - add Vercel preview env vars if preview deployments become part of the workflow
   - decide whether to remove the first unaliased Vercel deployment created before `.vercelignore` was added
@@ -32,12 +37,20 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator reviews RFQ
   - operator marks missing info or ready for supplier RFQ
   - operator saves a durable customer quote version with per-part unit pricing
+  - keep refining the explicit edit/reissue flow for correcting an already-issued customer quote without making the default issued quote detail view editable
   - buyer revises active priced quotes through a prefilled new RFQ when price or lead time needs changes
   - buyer and operator views stay in sync
-- Apply the latest schema changes, including `CLOSED`, quote shipping/date fields, account defaults, `AccountDefaults.companyName`, RFQ contact/ship-to snapshot fields, and quote revision fields (`revisionOfRequestId`, `revisionNumber`, `revisionChangeLog`), to local and production databases with Prisma after pulling this change.
+- Apply the latest schema changes, including `CLOSED`, quote shipping/date fields, account defaults, `AccountDefaults.companyName`, RFQ contact/ship-to snapshot fields, quote revision fields (`revisionOfRequestId`, `revisionNumber`, `revisionChangeLog`), and `UploadedFile.cadPreviewUrn`, to local and production databases with Prisma after pulling this change.
 - Apply the new supplier quote attachment schema (`SupplierQuoteAttachment`) to local and production databases with Prisma after Postgres is reachable; local development can store received Chinese shop quote files in `.data/uploads/supplier-quotes` through the fallback store until then.
+- Apply the new structured supplier quote schema field (`SupplierQuote.lineItems`) to production databases with Prisma so admin-issued quotes can generate order-specific DOC-002 supplier purchase order PDFs after purchase.
+- Apply the new checkout payment schema fields and `CustomerPurchaseOrderAttachment` model to local and production databases with Prisma after Postgres is reachable; local development can store customer PO uploads in `.data/uploads/customer-purchase-orders` through the fallback store until then.
+- Apply the new Stripe checkout schema fields (`AccountDefaults.stripeCustomerId`, Stripe checkout/payment intent/amount/currency/paid timestamp fields, and expanded payment statuses) to production databases with Prisma before enabling live card checkout.
+- Apply the new guest simple quote schema fields (`Request.requestOrigin`, `Request.guestAccessTokenHash`, and `Request.guestAccessTokenExpiresAt`) to local and production databases with Prisma before promoting `/simple-quote`.
 - Apply the new admin order archive schema field (`Request.isArchived`) to local and production databases with Prisma after Postgres is reachable; local development can use the `.data/requests.json` fallback until then.
 - Continue refining quote revision lineage views, including admin-side source-chain navigation from revised RFQs back to the original request.
+- Define and persist a durable `Delivered` trigger for the buyer lifecycle tag, such as a supplier/order status beyond `SHIPPED` or a delivery confirmation event.
+- Add ownership-aware repository helpers such as `getCustomerRequestById`, `listCustomerRequests`, and `getSupplierOrderById` so role isolation also filters records by customer company or awarded supplier instead of only by route family.
+- If admins need to submit RFQs on behalf of customers, build a dedicated admin-native flow under `/admin/customers/[companyId]` rather than sending operators to the customer `/requests/new` experience.
 - If buyers need post-purchase quote history, expose the saved quote/PDF from `/orders/[requestId]` instead of putting purchased records back into `/quotes`.
 - Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events. `/notifications` now derives quote-ready and missing-info rows from request state with static fallback data.
 - Configure Autodesk Platform Services for live CAD previews:
@@ -46,12 +59,12 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - set `APS_CLIENT_ID`, regenerated `APS_CLIENT_SECRET`, and globally unique `APS_BUCKET_KEY`
   - smoke test upload translation and Autodesk Viewer rendering from `/requests/new`
   - keep tuning the initial viewer camera/framing across native CAD files
-  - persist original Autodesk object IDs and translated model URNs with uploaded file records when preview state should be reusable beyond local drafts
-- Add real generated thumbnails or APS-derived preview images anywhere static CAD thumbnails are still useful outside the interactive upload preview.
+  - decide whether to also persist original Autodesk object IDs for admin troubleshooting and derivative lifecycle management
+- Smoke test APS-derived customer quote thumbnails on `/quotes/[requestId]` after APS credentials and database schema are applied in the target environment.
 - Continue clarifying buyer `/quotes` and admin `/admin/quotes` role separation now that quote issuance is database-backed and admin-owned.
 - Connect the `/admin` quote request overview more deeply to durable quote versions and supplier quote records.
 - Continue refining internal templates in `/admin/resources`; customer quote, supplier purchase order, and domestic invoice PDF templates now live there with in-app previews, with supplier outreach, order, and inspection document formats still future candidates.
-- Connect DOC-002 supplier purchase order PDF generation to accepted orders once the order workflow stores supplier release, awarded supplier, release package, logistics, and quality-document requirements durably.
+- Harden supplier PO issuance beyond on-demand generation by adding an issued supplier PO/audit record once Lattice needs immutable supplier release tracking.
 - Apply the new customer/invoice issuance schema (`CustomerSequence`, `Company.customerId`, `InvoiceSequence`, `Invoice.quoteNumber`, and `Invoice.shippingTerms`) to local/production databases with Prisma once Postgres is reachable; this machine currently lacks Docker/local Postgres, so `npm run db:push` cannot complete here.
 - Promote order invoice downloads from stable order-derived invoice references to saved `Invoice` records, including annual invoice IDs, customer PO from checkout, customer IDs, amount paid/status, billing contact, tax treatment, and immutable issued invoice snapshots.
 - Decide whether request-specific quote workbook exports should continue using the retired DOC-001 workbook as source material or move fully to generated PDF/workbook renderers.
@@ -61,7 +74,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Promote `/admin/vendors` from the current `.data/admin-vendor-overrides.json` local edit bridge to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
 - Decide whether to keep or retire `/operator/requests/[requestId]` after more RFQ detail review lives in the `/admin/quotes` command drawer.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
-- Keep the RFQ material selector aligned with researched marketplace and supplier-network material coverage; the current CNC selector is sourced from `src/lib/cnc-material-library.ts`.
+- Keep the RFQ material selector aligned with researched marketplace and supplier-network material coverage; the current CNC selector is sourced from `src/lib/cnc-material-library.ts` and browsed through Hubs-style customer-facing material families.
 - Build admin/operator source-trace views for material and equipment repositories so each standardized customer-facing claim can be audited back to vendor, document, and extraction notes.
 - Continue deduplicating vendor-provided material/equipment entries across Zintilon, Saky Steel, ZYTC, Best Prototypes, and future vendor documents.
 - Add the original source files for previously entered Zintilon processing and sheet metal capability data into `docs/vendor-sources/` when available; the registry currently records placeholders for those older sources.

@@ -2,11 +2,17 @@ import { notFound } from "next/navigation";
 
 import { buildRequestInvoicePdf, orderInvoicePdfFileName } from "@/lib/invoice-pdf";
 import { getRequestById } from "@/lib/request-repository";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(request: Request, { params }: { params: Promise<{ requestId: string }> }) {
+  const unauthorized = await requireRouteRole(["supplier"]);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const { requestId } = await params;
   const order = await getRequestById(requestId);
 

@@ -13,7 +13,7 @@ const sellerAddress = ["169 Madison Ave, #17525", "New York, NY 10016"];
 const sellerEmail = "mfg@latticeos.co";
 const remittanceRows: Array<[string, string]> = [
   ["Account holder name", "Nexus Manufacturing Technologies Inc"],
-  ["Bank name", "FIFTH THIRD BANK US"],
+  ["Bank name", "Fifth Third Bank, National Association"],
   ["Account number", "27001005816610508"],
   ["Routing number", "071919133"],
   ["Remittance email", sellerEmail],
@@ -25,7 +25,7 @@ const lightRuleColor = "#d7dce0";
 const accentFill = "#f3f5f7";
 const defaultSalesTaxRate = 0.0825;
 
-type InvoiceLineItem = {
+export type InvoiceLineItem = {
   amount: number;
   description: string;
   item: string;
@@ -34,18 +34,19 @@ type InvoiceLineItem = {
   unitPrice: number;
 };
 
-type InvoicePdfInput = {
+export type InvoicePdfInput = {
   amountPaid: number;
   billToLines: string[];
-  customerNumber: string;
+  customerNumber?: string;
   customerPo: string;
-  dueDate: string;
+  dueDate?: string;
   invoiceDate: string;
   invoiceNumber: string;
   lineItems: InvoiceLineItem[];
   paymentTerms: string;
   quoteNumber?: string;
   shipToLines: string[];
+  salesTaxAmount?: number;
   shippingAmount: number;
   shippingTerms?: string;
 };
@@ -140,6 +141,10 @@ function centsToUsd(cents: number) {
 }
 
 function orderReference(order: LatticeRequest) {
+  if (order.purchasePayment.customerPoNumber) {
+    return order.purchasePayment.customerPoNumber;
+  }
+
   return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
@@ -248,10 +253,9 @@ function drawRemittancePage(doc: PDFKit.PDFDocument, invoice: InvoicePdfInput) {
 
   doc.addPage();
   doc.font("Helvetica-Bold").fontSize(15).fillColor(textColor).text("Remittance instructions", left, 44, { width });
-  doc.font("Helvetica").fontSize(9).fillColor(mutedColor).text("Use customer-approved banking information before sending. Replace bracketed placeholders.", left, 66, { width });
-  doc.moveTo(left, 92).lineTo(right, 92).lineWidth(1).stroke(ruleColor);
+  doc.moveTo(left, 76).lineTo(right, 76).lineWidth(1).stroke(ruleColor);
 
-  const sectionY = 118;
+  const sectionY = 104;
   doc.font("Helvetica-Bold").fontSize(10).fillColor(textColor).text("ACH / direct deposit", left, sectionY, { width: 220 });
   doc.font("Helvetica").fontSize(9);
   remittanceRows.forEach(([label, value], index) => {
@@ -287,7 +291,7 @@ function drawRemittancePage(doc: PDFKit.PDFDocument, invoice: InvoicePdfInput) {
 
 function buildInvoicePdf(invoice: InvoicePdfInput) {
   const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.amount, 0);
-  const salesTax = Math.round(subtotal * defaultSalesTaxRate * 100) / 100;
+  const salesTax = invoice.salesTaxAmount ?? Math.round(subtotal * defaultSalesTaxRate * 100) / 100;
   const total = subtotal + invoice.shippingAmount + salesTax;
   const amountDue = total - invoice.amountPaid;
   const { doc, done } = createPdf({ compress: false, margin: 42, size: "LETTER" });
@@ -305,8 +309,8 @@ function buildInvoicePdf(invoice: InvoicePdfInput) {
     ["Invoice ID", invoice.invoiceNumber],
     ["Invoice date", formatDate(invoice.invoiceDate)],
     ["Payment terms", invoice.paymentTerms],
-    ["Due date", formatDate(invoice.dueDate)],
-    ["Customer ID", invoice.customerNumber],
+    ...(invoice.dueDate ? [["Due date", formatDate(invoice.dueDate)] as [string, string]] : []),
+    ...(invoice.customerNumber ? [["Customer ID", invoice.customerNumber] as [string, string]] : []),
     ...(invoice.quoteNumber ? [["Quote Number", invoice.quoteNumber] as [string, string]] : []),
     ["Customer PO", invoice.customerPo],
     ...(invoice.shippingTerms ? [["Shipping Terms", invoice.shippingTerms] as [string, string]] : []),
@@ -382,6 +386,10 @@ function buildInvoicePdf(invoice: InvoicePdfInput) {
 
 export function buildDomesticInvoiceTemplatePdf() {
   return buildInvoicePdf(invoiceTemplateInput());
+}
+
+export function buildInvoicePdfFromInput(invoice: InvoicePdfInput) {
+  return buildInvoicePdf(invoice);
 }
 
 export function buildRequestInvoicePdf(order: LatticeRequest) {

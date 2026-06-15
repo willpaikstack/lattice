@@ -20,8 +20,8 @@ export default async function AdminCustomersPage() {
               Manage platform customers, their RFQ activity, order history, contacts, and connected overseas fabrication shops.
             </p>
           </div>
-          <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/requests/new">
-            New RFQ
+          <Link className="rounded-md bg-[#171717] px-4 py-2 text-center text-sm font-semibold text-white" href="/admin/quotes">
+            Quote Submissions
           </Link>
         </div>
       </section>

@@ -4,11 +4,17 @@ import { buildCustomerQuoteInputFromVersion, customerQuotePdfFileName } from "@/
 import { buildRequestQuotePdf } from "@/lib/quote-pdf";
 import { convertCustomerQuoteTemplateToPdf } from "@/lib/quote-template-pdf";
 import { getRequestById } from "@/lib/request-repository";
+import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ requestId: string }> }) {
+  const unauthorized = await requireRouteRole(["admin"]);
+  if (unauthorized) {
+    return unauthorized;
+  }
+
   const { requestId } = await params;
   const request = await getRequestById(requestId);
   const latestCustomerQuote = request?.customerQuotes.at(-1);
