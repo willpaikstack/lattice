@@ -149,6 +149,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Request Quote", "/requests/new");
     expectAllLinksNamed("Quotes", "/quotes");
     expectAllLinksNamed("Orders", "/orders");
+    expectAllLinksNamed("Roadmap", "/roadmap");
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
     expect(screen.getAllByText("Your Resources").length).toBeGreaterThan(0);
@@ -168,8 +169,8 @@ describe("AppShell", () => {
       </AppShell>,
     );
 
-    expectAllLinksNamed("Admin workspace", "/admin");
-    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
+    expectAllLinksNamed("Admin workspace", "/admin/quotes");
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin/quotes");
   });
 
   it("keeps request quote as a primary CTA instead of a workspace nav item", () => {
@@ -208,8 +209,23 @@ describe("AppShell", () => {
     expect(compactQuoteLink?.querySelector("svg")).not.toBeNull();
   });
 
-  it("uses admin-only navigation on the admin dashboard", () => {
-    mockUsePathname.mockReturnValue("/admin");
+  it("keeps desktop navigation labels aligned with the icon slot", () => {
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    const desktopHomeLink = screen.getAllByRole("link", { name: "Home" })[0];
+    const directSpans = Array.from(desktopHomeLink.children).filter((child) => child.tagName.toLowerCase() === "span");
+
+    expect(desktopHomeLink).toHaveClass("relative", "gap-3", "px-3");
+    expect(directSpans[0]).toHaveClass("absolute");
+    expect(directSpans[1]).toHaveClass("h-7", "w-7", "shrink-0");
+  });
+
+  it("uses admin-only navigation on quote submissions", () => {
+    mockUsePathname.mockReturnValue("/admin/quotes");
 
     render(
       <AppShell sessionRole="admin">
@@ -217,13 +233,13 @@ describe("AppShell", () => {
       </AppShell>,
     );
 
-    expectAllLinksNamed("Overview", "/admin");
-    expectAllLinksNamed("Lattice admin home", "/admin");
+    expectAllLinksNamed("Lattice admin home", "/admin/quotes");
     expectAllLinksNamed("Customers", "/admin/customers");
     expectAllLinksNamed("Quote Submissions", "/admin/quotes");
     expectAllLinksNamed("Placed Orders", "/admin/orders");
     expectAllLinksNamed("Resources", "/admin/resources");
     expectAllLinksNamed("Customer workspace", "/dashboard");
+    expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
 
     expect(screen.queryByRole("link", { name: "Customer App" })).not.toBeInTheDocument();
@@ -261,9 +277,8 @@ describe("AppShell", () => {
       expect(window.localStorage.getItem("lattice:sidebar-nav-order:will@latticeos.co:admin")).toBe(
         JSON.stringify({
           Admin: [
-            "/admin",
-            "/admin/quotes",
             "/admin/customers",
+            "/admin/quotes",
             "/admin/vendors",
             "/admin/orders",
             "/admin/resources",
@@ -274,10 +289,11 @@ describe("AppShell", () => {
 
     const desktopAdminNav = document.querySelector("aside nav section div");
 
-    expect(desktopAdminNav?.textContent).toMatch(/Overview\s*Quote Submissions\s*Customers\s*Overseas Vendors\s*Placed Orders\s*Resources/);
+    expect(desktopAdminNav?.textContent).toMatch(/Customers\s*Quote Submissions\s*Overseas Vendors\s*Placed Orders\s*Resources/);
+    expect(desktopAdminNav?.textContent).not.toContain("Overview");
   });
 
-  it("keeps the admin overview link inactive on nested admin pages", () => {
+  it("does not render the retired admin overview link on nested admin pages", () => {
     mockUsePathname.mockReturnValue("/admin/customers");
 
     render(
@@ -289,9 +305,7 @@ describe("AppShell", () => {
     const currentLinks = screen.getAllByRole("link", { current: "page" });
 
     expect(currentLinks.map((link) => link.textContent)).toEqual(["Customers", "Customers"]);
-    for (const link of screen.getAllByRole("link", { name: "Overview" })) {
-      expect(link).not.toHaveAttribute("aria-current");
-    }
+    expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
   });
 
   it("allows active parent nav links to return from detail pages", async () => {

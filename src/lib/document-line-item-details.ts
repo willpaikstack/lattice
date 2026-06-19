@@ -1,10 +1,10 @@
 import type { LatticeRequest, RequestLineItem, UploadedFile } from "./request-model";
 
-export function isDrawingFile(file: UploadedFile) {
+function isDrawingFile(file: UploadedFile) {
   return /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type);
 }
 
-export function isCadFile(file: UploadedFile) {
+function isCadFile(file: UploadedFile) {
   return /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type);
 }
 

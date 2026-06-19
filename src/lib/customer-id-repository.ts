@@ -34,6 +34,7 @@ async function prisma() {
   return (await getPrismaClient()) as CustomerIdPrismaClient;
 }
 
+/** @public Retained for durable customer-ID issuance when companies become customer records. */
 export async function ensureCustomerIdForCompany(companyId: string) {
   const trimmedCompanyId = companyId.trim();
 

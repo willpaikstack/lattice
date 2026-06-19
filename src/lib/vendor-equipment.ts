@@ -88,23 +88,6 @@ export const equipmentSections: EquipmentSection[] = [
   "Additive Manufacturing",
 ];
 
-export const recommendedEquipmentSections = [
-  {
-    name: "Welding & Joining",
-    reason: "Laser, argon arc, CO2 shielded welding, riveting, and nail/rivet assembly are joining operations rather than finishing operations.",
-  },
-  {
-    name: "Secondary Operations",
-    reason: "Tapping, countersinking, clinching, extraction, embossing, and simple forming are often quoted separately from primary cutting or bending.",
-  },
-];
-
-export const equipmentSummary = [
-  { label: "Production machines", value: "200+" },
-  { label: "Sheet metal equipment", value: "27" },
-  { label: "ZEISS CMMs", value: "8" },
-];
-
 const millingImage = "/equipment/hermle-five-axis-cell.jpg";
 const latheImage = "/equipment/cnc-turning-centers.jpg";
 const sheetLaserImage = "/equipment/laser-cutting-machines.jpg";

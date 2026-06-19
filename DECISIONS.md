@@ -2,6 +2,83 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-18 - Use Exact Requester Email As Interim Customer Access Control
+
+Decision: until durable company membership is implemented, customer-facing RFQ, quote, order, checkout, invoice, and submitted-file access is scoped by the signed-in user's email. Only exact requester email matches are allowed for customer users. Admins retain support access to all customer records.
+
+Reason: manual QC confirmed that role-only customer access allowed cross-company quote URLs and storage-key downloads. Exact requester email ownership closes the immediate privacy gap without a schema migration and matches the v1 product decision that a customer user belongs to one company/account context.
+
+Implications:
+
+- `buyer@acme.com` can access RFQs submitted by `buyer@acme.com`; `teammate@acme.com`, `other@gmail.com`, and all other customer emails cannot access those RFQs until durable company membership is implemented.
+- Customer and supplier users receive not-found behavior for records or local files they are not allowed to access, reducing record-existence disclosure.
+- Supplier quote attachments are admin-only in the local file route unless a future workflow intentionally releases them.
+- Draft upload files under `rfq-drafts/...` remain available to customer/admin sessions because they are browser-draft artifacts that do not yet have a persisted RFQ owner.
+- This is an interim policy. The durable target remains one-primary-company customer membership and supplier awarded-shop ownership checks.
+
+## 2026-06-18 - Reuse RFQ Statuses For Request Info And No Quote
+
+Decision: admin RFQ response outcomes use the existing `NEEDS_INFO` and `CLOSED` request statuses for `Request information` and `No quote`, with the customer-facing operator note stored in `operatorReview.internalNotes`.
+
+Reason: the app already has a durable request status model and quote activity feed. Reusing it gives customers immediate in-app visibility on quote detail, dashboard Inbox, and notifications without adding a notification table or schema migration before the workflow is validated.
+
+Implications:
+
+- `Request information` remains action-required for the buyer and should read as a clarification request.
+- `No quote` is informational/status-only and should read as `No quote` or `Unable to quote`, not generic archive language.
+- Future work can introduce first-class customer reply, email delivery, no-quote reason fields, and durable notification/read-state tables if needed.
+
+## 2026-06-17 - Capture Customer Roadmap Interest Server-Side
+
+Decision: customer roadmap interest flags are saved as server-side `RoadmapInterest` records, with a local `.data/roadmap-interests.json` development fallback, rather than only storing the selection in the browser.
+
+Reason: the roadmap page exists to inform Lattice prioritization. Browser-only interest state would make the UI feel responsive but would not give operators a durable demand signal to review.
+
+Implications:
+
+- `/roadmap` is a customer workspace route protected like other customer routes.
+- Roadmap items live in `src/lib/product-roadmap.ts`; customer selections are written through `src/lib/roadmap-interest.ts`.
+- Production databases need the new Prisma model applied before live customer interest signals are durable.
+- A future admin/reporting surface can aggregate `RoadmapInterest` records for prioritization review.
+
+## 2026-06-17 - Keep A Daily Completed-Work Log
+
+Decision: `docs/completed-work-log.md` is the running daily record of meaningful tasks, features, fixes, and documentation updates completed for Lattice OS.
+
+Reason: William works on Lattice OS across multiple computers, and local chat history is not reliable project memory. A concise date-keyed completion log preserves what changed each day without mixing completed work into `TODO.md`.
+
+Implications:
+
+- Future substantial sessions should append a dated entry to `docs/completed-work-log.md` before handoff.
+- The log should capture completed work only; open tasks, blockers, and next actions stay in `TODO.md`.
+- When feature behavior changes, agents should update both the completed-work log and `docs/app-feature-map.md` in the same session.
+
+## 2026-06-17 - Maintain An Operator-Facing App Feature Map
+
+Decision: `docs/app-feature-map.md` is the running operator-facing feature map for Lattice OS. It lists app areas, routes, feature behavior, data sources, maturity status, limitations, and future hardening work.
+
+Reason: `PROJECT_CONTEXT.md` is optimized for agent/developer memory, while William also needs a clear product manual for what the app does and how each feature works.
+
+Implications:
+
+- Future feature changes should update `docs/app-feature-map.md` in the same work session when routes, behavior, data sources, status, or limitations change.
+- `AGENTS.md`, `README.md`, `PROJECT_CONTEXT.md`, and `TODO.md` now point agents back to the feature map so it does not drift.
+- Durable architecture/product decisions still belong in this file; detailed next work still belongs in `TODO.md`.
+
+## 2026-06-16 - Derive Buyer Dashboard Activity From Existing Request Records
+
+Decision: `/dashboard` and `/notifications` use `src/lib/customer-dashboard.ts` and `src/lib/customer-notifications.ts` to derive buyer metrics, inbox rows, quote/order activity, and alerts from existing RFQ, customer quote, purchased-order, supplier update, shipment, tracking, and supplier document records.
+
+Reason: the buyer home page should be operational instead of showing contact/mock rows, but the current product can prove the feed shape without adding a new activity table or durable read-state schema.
+
+Implications:
+
+- The dashboard selected table is `Transactions`, populated from latest quoted and purchased records.
+- The dashboard right-side card is `Recent activity`, not an order-contact panel.
+- Quote-ready and needs-info RFQs are unread derived alerts linking to `/quotes/[requestId]`.
+- Purchased order, supplier update, document, tracking, and shipped events link to `/orders/[requestId]`.
+- Durable read/unread state and first-class activity records remain future work once the derived feed behavior is validated.
+
 ## 2026-06-15 - Require Server-Side Guards On Sensitive Routes And Actions
 
 Decision: sensitive document route handlers, internal resource downloads, Autodesk CAD preview APIs, and role-specific mutation server actions must enforce session roles at the handler/action boundary instead of relying only on the Next.js proxy redirect layer.

@@ -24,7 +24,7 @@ const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; bu
   NEEDS_INFO: {
     buyerAction: "Additional buyer detail is needed before suppliers can quote accurately.",
     requestCopy: "This information is required for us to determine accurate pricing and any import considerations.",
-    requestTitle: "Are these parts for prototype or commercial use?",
+    requestTitle: "More information requested",
   },
   READY_FOR_SUPPLIER_RFQ: {
     buyerAction: "The package is complete and supplier pricing is being collected.",
@@ -146,15 +146,19 @@ function activityEventTitle(event: LatticeRequest["statusEvents"][number]) {
   }
 
   if (event.to === "CLOSED") {
-    return "Quote closed";
+    return "No quote";
   }
 
   return quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle;
 }
 
-function activityEventDetail(event: LatticeRequest["statusEvents"][number]) {
+function activityEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null) {
     return `${actorLabel(event.actor)} opened the RFQ workspace.`;
+  }
+
+  if ((event.to === "NEEDS_INFO" || event.to === "CLOSED") && request.operatorReview.internalNotes) {
+    return request.operatorReview.internalNotes;
   }
 
   return `${actorLabel(event.actor)} moved the quote from ${quoteStatusCopy[event.from].label ?? quoteStatusCopy[event.from].requestTitle} to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle}.`;
@@ -260,6 +264,10 @@ export function BuyerQuoteDetail({
   const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
   const status = quoteStatusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
+  const operatorCustomerNote = request.operatorReview.internalNotes.trim();
+  const statusLabel = request.status === "CLOSED" && operatorCustomerNote ? "No quote" : status.label;
+  const requestCalloutTitle = request.status === "CLOSED" && operatorCustomerNote ? "Unable to quote this RFQ" : status.requestTitle;
+  const requestCalloutCopy = latestCustomerQuote?.notes || (operatorCustomerNote && (request.status === "NEEDS_INFO" || request.status === "CLOSED") ? operatorCustomerNote : status.requestCopy);
   const subtotalCents = latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents;
   const shippingCents = request.quote.shippingCostCents;
   const taxCents = subtotalCents === null ? null : 0;
@@ -309,8 +317,8 @@ export function BuyerQuoteDetail({
         <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[28px] font-semibold leading-tight tracking-normal text-[#171717]">{quoteId}</h1>
-            {status.label && status.tone ? (
-              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.tone}`}>{status.label}</span>
+            {statusLabel && status.tone ? (
+              <span className={`inline-flex rounded-full border px-2.5 py-1 text-[12px] font-semibold ${status.tone}`}>{statusLabel}</span>
             ) : null}
             <span className="text-[13px] text-[#7b8088]">Last modified: {formatDate(request.updatedAt)}</span>
           </div>
@@ -324,8 +332,8 @@ export function BuyerQuoteDetail({
             <div className="flex gap-2 text-[13px] leading-6 text-[#4f5660]">
               <span className="font-semibold text-[#171717]">Request:</span>
               <div>
-                <p className="font-medium text-[#262a30]">{status.requestTitle}</p>
-                <p className="mt-1 text-[#6f737a]">{latestCustomerQuote?.notes || request.operatorReview.internalNotes || status.requestCopy}</p>
+                <p className="font-medium text-[#262a30]">{requestCalloutTitle}</p>
+                <p className="mt-1 text-[#6f737a]">{requestCalloutCopy}</p>
               </div>
             </div>
           </section>
@@ -574,7 +582,7 @@ export function BuyerQuoteDetail({
                         <p className="text-[13px] font-semibold text-[#202020]">{activityEventTitle(event)}</p>
                         <time className="text-[11px] font-medium text-[#8a8f98]" dateTime={event.at}>{formatDateTime(event.at)}</time>
                       </div>
-                      <p className="mt-1 text-[12px] leading-5 text-[#5f6670]">{activityEventDetail(event)}</p>
+                      <p className="mt-1 text-[12px] leading-5 text-[#5f6670]">{activityEventDetail(request, event)}</p>
                       <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9aa0a9]">{actorLabel(event.actor)}</p>
                     </div>
                   </div>

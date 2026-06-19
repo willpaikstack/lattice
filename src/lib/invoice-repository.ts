@@ -6,8 +6,10 @@ import { getRequestById } from "./request-repository";
 const defaultPaymentTerms = "100% Payment in Advance";
 const defaultSalesTaxRate = 0.0825;
 
+/** @public Retained for future durable invoice lifecycle records. */
 export type IssuedInvoiceStatus = "ISSUED" | "PAID" | "VOID";
 
+/** @public Retained for future durable invoice lifecycle records. */
 export type IssuedInvoice = {
   id: string;
   invoiceNumber: string;
@@ -184,6 +186,7 @@ async function prisma() {
   return (await getPrismaClient()) as InvoicePrismaClient;
 }
 
+/** @public Issues a durable invoice snapshot for a purchased request. */
 export async function issueInvoiceForRequest(
   requestId: string,
   input: {

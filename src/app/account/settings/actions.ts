@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { ensureStripeCustomerForAccount, saveAccountSettings, type AccountSettingsSnapshot } from "@/lib/account-settings";
+import { ensureStripeCustomerForAccount, saveAccountSettings } from "@/lib/account-settings";
+import type { AccountSettingsSnapshot } from "@/lib/account-settings-shared";
 import { requireActionRole } from "@/lib/route-authorization";
 import { getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 

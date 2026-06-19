@@ -36,6 +36,11 @@ import {
   processOptions,
   qualityDocumentationOptions,
   rfqMaterialOptions,
+  surfaceFinishColorOption,
+  surfaceFinishColorOptionsFor,
+  surfaceFinishCosmeticRequirementLabel,
+  surfaceFinishCosmeticRequirementOptions,
+  surfaceFinishMetadataFor,
   surfaceFinishOptions,
   type RfqOption,
 } from "../lib/rfq-options";
@@ -56,6 +61,9 @@ type LineItemState = {
   material: string;
   generalTolerance: string;
   surfaceFinish: string;
+  surfaceFinishColor: string;
+  surfaceFinishCosmeticRequirement: string;
+  surfaceFinishCustomColor: string;
   qualityDocumentation: string[];
   notes: string;
   fileName: string;
@@ -153,6 +161,9 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   material: "ss_304",
   generalTolerance: "iso_2768_medium_m",
   surfaceFinish: "as_machined_ra_3_2",
+  surfaceFinishColor: defaultSurfaceFinishColor("as_machined_ra_3_2"),
+  surfaceFinishCosmeticRequirement: defaultSurfaceFinishCosmeticRequirement("as_machined_ra_3_2"),
+  surfaceFinishCustomColor: "",
   qualityDocumentation: ["standard_inspection"],
   notes: "",
   fileName: "",
@@ -264,13 +275,128 @@ function cadPreviewUrnForLineItem(lineItem: LineItemState) {
   return undefined;
 }
 
+function qualityDocumentationRequiresDrawing(optionValue: string) {
+  return Boolean(
+    qualityDocumentationOptions.find((option) => option.value === optionValue)
+      ?.metadata?.requiresDrawing,
+  );
+}
+
+function defaultSurfaceFinishColor(surfaceFinish: string) {
+  const metadata = surfaceFinishMetadataFor(surfaceFinish);
+  return metadata?.defaultColor ?? metadata?.colors?.[0]?.value ?? "";
+}
+
+function defaultSurfaceFinishCosmeticRequirement(surfaceFinish: string) {
+  const metadata = surfaceFinishMetadataFor(surfaceFinish);
+  return metadata?.cosmeticRequirement
+    ? metadata.defaultCosmeticRequirement ?? "non_cosmetic"
+    : "";
+}
+
+function normalizedSurfaceFinishColor(surfaceFinish: string, value?: string) {
+  const options = surfaceFinishColorOptionsFor(surfaceFinish);
+
+  if (!options.length) {
+    return "";
+  }
+
+  if (value && options.some((option) => option.value === value)) {
+    return value;
+  }
+
+  return defaultSurfaceFinishColor(surfaceFinish);
+}
+
+function normalizedSurfaceFinishCosmeticRequirement(surfaceFinish: string, value?: string) {
+  const metadata = surfaceFinishMetadataFor(surfaceFinish);
+
+  if (!metadata?.cosmeticRequirement) {
+    return "";
+  }
+
+  if (
+    value &&
+    surfaceFinishCosmeticRequirementOptions.some((option) => option.value === value)
+  ) {
+    return value;
+  }
+
+  return defaultSurfaceFinishCosmeticRequirement(surfaceFinish);
+}
+
+function surfaceFinishDisplayValue(lineItem: Pick<
+  LineItemState,
+  | "surfaceFinish"
+  | "surfaceFinishColor"
+  | "surfaceFinishCosmeticRequirement"
+  | "surfaceFinishCustomColor"
+>) {
+  const finishLabel = optionLabel(surfaceFinishOptions, lineItem.surfaceFinish);
+  const metadata = surfaceFinishMetadataFor(lineItem.surfaceFinish);
+  const details: string[] = [];
+
+  if (metadata?.cosmeticRequirement && lineItem.surfaceFinishCosmeticRequirement) {
+    details.push(
+      surfaceFinishCosmeticRequirementLabel(
+        lineItem.surfaceFinishCosmeticRequirement,
+        "shortLabel",
+      ),
+    );
+  }
+
+  const colorOption = surfaceFinishColorOption(
+    lineItem.surfaceFinish,
+    lineItem.surfaceFinishColor,
+  );
+  if (colorOption) {
+    if (colorOption.mode === "custom") {
+      const customColor = lineItem.surfaceFinishCustomColor.trim();
+      details.push(customColor ? `${colorOption.label}: ${customColor}` : colorOption.label);
+    } else {
+      details.push(colorOption.label);
+    }
+  }
+
+  return details.length ? `${finishLabel} - ${details.join(" - ")}` : finishLabel;
+}
+
+function lineItemHasSurfaceFinishDetails(lineItem: LineItemState) {
+  const metadata = surfaceFinishMetadataFor(lineItem.surfaceFinish);
+  const colorOption = surfaceFinishColorOption(
+    lineItem.surfaceFinish,
+    lineItem.surfaceFinishColor,
+  );
+
+  if (metadata?.cosmeticRequirement && !lineItem.surfaceFinishCosmeticRequirement) {
+    return false;
+  }
+
+  if (metadata?.colors?.length && !colorOption) {
+    return false;
+  }
+
+  if (colorOption?.mode === "custom") {
+    return Boolean(lineItem.surfaceFinishCustomColor.trim());
+  }
+
+  return true;
+}
+
+function requiredQualityDocumentationLabels(lineItem: LineItemState) {
+  return lineItem.qualityDocumentation
+    .filter(qualityDocumentationRequiresDrawing)
+    .map((optionValue) => optionLabel(qualityDocumentationOptions, optionValue));
+}
+
 function lineItemRequiresDrawing(lineItem: LineItemState) {
   return (
     lineItem.partMarkings ||
     lineItem.tightLinearTolerance ||
     lineItem.threads ||
     lineItem.engineeringFits ||
-    lineItem.sharpInternalCorners
+    lineItem.sharpInternalCorners ||
+    requiredQualityDocumentationLabels(lineItem).length > 0
   );
 }
 
@@ -599,13 +725,24 @@ function lineItemFromInitialLineItem(
   initialState: InitialLineItemState | undefined,
   id: string,
 ): LineItemState {
+  const surfaceFinish = initialState?.surfaceFinish ?? "as_machined_ra_3_2";
+
   return {
     ...makeLineItemInitialState(id),
     partName: initialState?.partName ?? "",
     quantity: initialState?.quantity ?? "1",
     material: initialState?.material ?? "ss_304",
     generalTolerance: initialState?.generalTolerance ?? "iso_2768_medium_m",
-    surfaceFinish: initialState?.surfaceFinish ?? "as_machined_ra_3_2",
+    surfaceFinish,
+    surfaceFinishColor: normalizedSurfaceFinishColor(
+      surfaceFinish,
+      initialState?.surfaceFinishColor,
+    ),
+    surfaceFinishCosmeticRequirement: normalizedSurfaceFinishCosmeticRequirement(
+      surfaceFinish,
+      initialState?.surfaceFinishCosmeticRequirement,
+    ),
+    surfaceFinishCustomColor: initialState?.surfaceFinishCustomColor ?? "",
     qualityDocumentation: initialState?.qualityDocumentation ?? [
       "standard_inspection",
     ],
@@ -737,6 +874,9 @@ function buildRevisionChangeLog(
     pushChange(changes, `${prefix} material`, sourceLine.material, currentLine.material);
     pushChange(changes, `${prefix} tolerance`, sourceLine.generalTolerance, currentLine.generalTolerance);
     pushChange(changes, `${prefix} finish`, sourceLine.surfaceFinish, currentLine.surfaceFinish);
+    pushChange(changes, `${prefix} finish color`, sourceLine.surfaceFinishColor, currentLine.surfaceFinishColor);
+    pushChange(changes, `${prefix} finish cosmetic requirement`, sourceLine.surfaceFinishCosmeticRequirement, currentLine.surfaceFinishCosmeticRequirement);
+    pushChange(changes, `${prefix} finish custom color`, sourceLine.surfaceFinishCustomColor, currentLine.surfaceFinishCustomColor);
     pushChange(changes, `${prefix} quality docs`, sourceLine.qualityDocumentation, currentLine.qualityDocumentation);
     pushChange(changes, `${prefix} CAD file`, sourceLine.fileName, currentLine.fileName);
     pushChange(changes, `${prefix} drawing`, sourceLine.technicalDrawingName, currentLine.technicalDrawingName);
@@ -780,6 +920,7 @@ function TechnicalDrawingReviewModal({
       : null,
     lineItem.engineeringFits ? "Engineering Fits" : null,
     lineItem.threads ? "Threads" : null,
+    ...requiredQualityDocumentationLabels(lineItem),
   ].filter((selection): selection is string => Boolean(selection));
   const hasDrawingRequiredModalSelection =
     drawingRequiredModalSelections.length > 0;
@@ -1929,7 +2070,12 @@ function QualityDocumentationSelect({
                       <Check className="h-3.5 w-3.5" />
                     </span>
                     <span className="min-w-0 text-[15px] font-semibold leading-5">
-                      {option.label}
+                      <span>{option.label}</span>
+                      {qualityDocumentationRequiresDrawing(option.value) ? (
+                        <span className="ml-2 whitespace-nowrap text-[12px] font-medium text-slate-500">
+                          (drawing required)
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                 );
@@ -1979,6 +2125,16 @@ function LineItemConfigurationCard({
   const needsDrawingUpload = !lineItemHasDrawingBytes(lineItem);
   const lineItemDisplayName = displayNameFromFile(lineItem.fileName) || lineItem.partName || "New part";
   const lineItemHeader = `Line item ${index + 1}: ${lineItemDisplayName}`;
+  const selectedSurfaceFinishMetadata = surfaceFinishMetadataFor(
+    lineItem.surfaceFinish,
+  );
+  const selectedSurfaceFinishColors = surfaceFinishColorOptionsFor(
+    lineItem.surfaceFinish,
+  );
+  const selectedSurfaceFinishColor = surfaceFinishColorOption(
+    lineItem.surfaceFinish,
+    lineItem.surfaceFinishColor,
+  );
 
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -2051,7 +2207,7 @@ function LineItemConfigurationCard({
         <div className="p-8">
           <div className="mb-8 flex justify-end gap-4">
             <label className="cursor-pointer text-sm font-medium text-slate-500 transition hover:text-slate-950">
-              <span>Replace</span>
+              <span>Replace Part</span>
               <input
                 className="sr-only"
                 type="file"
@@ -2117,6 +2273,107 @@ function LineItemConfigurationCard({
                   required
                   showSearch
                 />
+                {selectedSurfaceFinishMetadata ? (
+                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+                    <span className="rounded-full bg-slate-100 px-3 py-1">
+                      {selectedSurfaceFinishMetadata.badge}
+                    </span>
+                  </div>
+                ) : null}
+                {selectedSurfaceFinishMetadata?.cosmeticRequirement ? (
+                  <CustomSelect
+                    label="Select cosmetic requirement"
+                    value={lineItem.surfaceFinishCosmeticRequirement}
+                    onChange={(value) =>
+                      updateLineItem(
+                        lineItem.id,
+                        "surfaceFinishCosmeticRequirement",
+                        value,
+                      )
+                    }
+                    options={surfaceFinishCosmeticRequirementOptions}
+                    required
+                  />
+                ) : null}
+                {selectedSurfaceFinishColors.length ? (
+                  <fieldset className="grid gap-3">
+                    <legend className="text-sm font-medium text-slate-700">
+                      Select color
+                      <span className="ml-1 text-[#d4183d]">*</span>
+                    </legend>
+                    <div className="overflow-hidden rounded-[14px] border border-[#dce4ee] bg-white">
+                      {selectedSurfaceFinishColors.map((color) => {
+                        const isSelected = lineItem.surfaceFinishColor === color.value;
+                        const isChecker = color.swatch === "checker";
+
+                        return (
+                          <label
+                            className={[
+                              "flex min-h-[54px] cursor-pointer items-center gap-4 border-b border-slate-200 px-5 py-3 text-[15px] font-semibold text-slate-950 last:border-b-0",
+                              isSelected ? "bg-slate-50 ring-1 ring-inset ring-slate-950" : "",
+                            ].join(" ")}
+                            key={color.value}
+                          >
+                            <input
+                              checked={isSelected}
+                              className="sr-only"
+                              name={`${lineItem.id}-surface-finish-color`}
+                              onChange={() =>
+                                updateLineItem(
+                                  lineItem.id,
+                                  "surfaceFinishColor",
+                                  color.value,
+                                )
+                              }
+                              type="radio"
+                              value={color.value}
+                            />
+                            {color.swatch ? (
+                              <span
+                                aria-hidden="true"
+                                className="h-6 w-6 rounded-full border border-slate-200"
+                                style={
+                                  isChecker
+                                    ? {
+                                        backgroundColor: "#ffffff",
+                                        backgroundImage:
+                                          "linear-gradient(45deg, #e5e7eb 25%, transparent 25%), linear-gradient(-45deg, #e5e7eb 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e5e7eb 75%), linear-gradient(-45deg, transparent 75%, #e5e7eb 75%)",
+                                        backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0",
+                                        backgroundSize: "16px 16px",
+                                      }
+                                    : { backgroundColor: color.swatch }
+                                }
+                              />
+                            ) : (
+                              <span
+                                aria-hidden="true"
+                                className="h-6 w-6 rounded-full border border-dashed border-slate-300"
+                              />
+                            )}
+                            <span>{color.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    {selectedSurfaceFinishColor?.mode === "custom" ? (
+                      <label className="grid gap-2 text-sm font-medium text-slate-700">
+                        <span>{selectedSurfaceFinishColor.label} color code</span>
+                        <input
+                          className={inputClass}
+                          placeholder={selectedSurfaceFinishColor.placeholder}
+                          value={lineItem.surfaceFinishCustomColor}
+                          onChange={(event) =>
+                            updateLineItem(
+                              lineItem.id,
+                              "surfaceFinishCustomColor",
+                              event.target.value,
+                            )
+                          }
+                        />
+                      </label>
+                    ) : null}
+                  </fieldset>
+                ) : null}
                 <label className="grid gap-2 text-sm font-medium text-slate-700">
                   <span>Part Markings</span>
                   <span className="flex items-center gap-2">
@@ -2347,6 +2604,7 @@ export function RequestForm({
           lineItem.material.trim() &&
           lineItem.generalTolerance.trim() &&
           lineItem.surfaceFinish.trim() &&
+          lineItemHasSurfaceFinishDetails(lineItem) &&
           Number(lineItem.quantity) > 0 &&
           lineItem.fileName.trim() &&
           lineItemHasCadBytes(lineItem) &&
@@ -2381,11 +2639,43 @@ export function RequestForm({
     field: LineItemField,
     value: string | string[],
   ) {
-    setLineItems((current) =>
-      current.map((lineItem) =>
-        lineItem.id === id ? { ...lineItem, [field]: value } : lineItem,
-      ),
+    const currentLineItem = lineItems.find((lineItem) => lineItem.id === id);
+    const nextLineItems = lineItems.map((lineItem) =>
+      lineItem.id === id && field === "surfaceFinish" && typeof value === "string"
+        ? {
+            ...lineItem,
+            surfaceFinish: value,
+            surfaceFinishColor: defaultSurfaceFinishColor(value),
+            surfaceFinishCosmeticRequirement:
+              defaultSurfaceFinishCosmeticRequirement(value),
+            surfaceFinishCustomColor: "",
+          }
+        : lineItem.id === id
+          ? { ...lineItem, [field]: value }
+          : lineItem,
     );
+    const nextLineItem = nextLineItems.find((lineItem) => lineItem.id === id);
+
+    if (
+      field === "qualityDocumentation" &&
+      currentLineItem &&
+      nextLineItem &&
+      requiredQualityDocumentationLabels(nextLineItem).some(
+        (label) => !requiredQualityDocumentationLabels(currentLineItem).includes(label),
+      ) &&
+      !currentLineItem.technicalDrawingName.trim()
+    ) {
+      setError(requiredDrawingErrorMessage(nextLineItem));
+      setDrawingReviewLineItemId(id);
+    }
+
+    if (!lineItemsHaveMissingRequiredDrawing(nextLineItems)) {
+      setError((currentError) =>
+        isRequiredDrawingError(currentError) ? null : currentError,
+      );
+    }
+
+    setLineItems(nextLineItems);
   }
 
   function updateLineItemFlag(id: string, field: LineItemFlag, value: boolean) {
@@ -2467,6 +2757,9 @@ export function RequestForm({
       quantity: lineItem.quantity,
       sharpInternalCorners: lineItem.sharpInternalCorners,
       surfaceFinish: lineItem.surfaceFinish,
+      surfaceFinishColor: lineItem.surfaceFinishColor,
+      surfaceFinishCosmeticRequirement: lineItem.surfaceFinishCosmeticRequirement,
+      surfaceFinishCustomColor: lineItem.surfaceFinishCustomColor,
       technicalDrawingName: lineItem.technicalDrawingName,
       technicalDrawingSizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
       technicalDrawingStorageKey: lineItem.technicalDrawingStorageKey,
@@ -2493,6 +2786,10 @@ export function RequestForm({
       revisionSourceRequestId: resolvedInitialState?.revisionSourceRequestId,
       revisionSourceRevisionNumber: resolvedInitialState?.revisionSourceRevisionNumber,
       surfaceFinish: primaryLineItem.surfaceFinish,
+      surfaceFinishColor: primaryLineItem.surfaceFinishColor,
+      surfaceFinishCosmeticRequirement:
+        primaryLineItem.surfaceFinishCosmeticRequirement,
+      surfaceFinishCustomColor: primaryLineItem.surfaceFinishCustomColor,
       technicalDrawingName: primaryLineItem.technicalDrawingName,
       cadPreview: persistedCadPreview(primaryLineItem.cadPreview),
       lineItems: lineItemsForResume,
@@ -2526,7 +2823,7 @@ export function RequestForm({
         quantity: Number(lineItem.quantity) || 1,
         material: optionLabel(rfqMaterialOptions, lineItem.material),
         generalTolerance: optionLabel(generalToleranceOptions, lineItem.generalTolerance),
-        surfaceFinish: optionLabel(surfaceFinishOptions, lineItem.surfaceFinish),
+        surfaceFinish: surfaceFinishDisplayValue(lineItem),
         qualityDocumentation: lineItem.qualityDocumentation.map((value) => optionLabel(qualityDocumentationOptions, value)),
         notes: lineItem.notes,
       })),
@@ -2925,12 +3222,16 @@ export function RequestForm({
   }
 
   function drawingRequiredNotes(lineItem: LineItemState) {
+    const requiredQualityLabels = requiredQualityDocumentationLabels(lineItem);
     const generatedNotes = [
       lineItem.partMarkings ? "Part markings requested; drawing required." : null,
       lineItem.tightLinearTolerance ? "Linear tolerance tighter than general tolerance requested; drawing required." : null,
       lineItem.threads ? "Threads requested; drawing required." : null,
       lineItem.engineeringFits ? "Engineering fits requested; drawing required." : null,
       lineItem.sharpInternalCorners ? "Sharp internal corners requested; drawing required." : null,
+      requiredQualityLabels.length
+        ? `${requiredQualityLabels.join(", ")} requested; drawing required.`
+        : null,
     ].filter((note): note is string => Boolean(note));
 
     return generatedNotes.filter((note) => !lineItem.notes.includes(note));
@@ -3004,10 +3305,7 @@ export function RequestForm({
             generalToleranceOptions,
             lineItem.generalTolerance,
           ),
-          surfaceFinish: optionLabel(
-            surfaceFinishOptions,
-            lineItem.surfaceFinish,
-          ),
+          surfaceFinish: surfaceFinishDisplayValue(lineItem),
           qualityDocumentation: lineItem.qualityDocumentation.map((value) =>
             optionLabel(qualityDocumentationOptions, value),
           ),

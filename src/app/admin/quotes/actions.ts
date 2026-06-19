@@ -5,9 +5,9 @@ import { redirect } from "next/navigation";
 
 import { createGuestQuoteAccess, guestQuoteHref, isGuestSimpleQuoteRequest } from "@/lib/guest-quote-access";
 import { sendGuestQuoteReadyEmail } from "@/lib/guest-quote-email";
-import { buildCustomerQuoteMarkdown, type CustomerQuoteInput, type CustomerQuoteLineItem } from "@/lib/quote-file";
+import { buildCustomerQuoteMarkdown } from "@/lib/quote-file";
 import type { OperatorStatusUpdateInput } from "@/lib/request-model";
-import { getRequestById, saveCustomerQuoteForRequest, updateGuestQuoteAccess, type SelectedSupplierQuoteInput } from "@/lib/request-repository";
+import { getRequestById, saveCustomerQuoteForRequest, updateAdminRfqDecision, updateGuestQuoteAccess, type SelectedSupplierQuoteInput } from "@/lib/request-repository";
 import { requireActionRole } from "@/lib/route-authorization";
 
 const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
@@ -17,17 +17,16 @@ const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
   "QUOTED",
   "CLOSED",
 ]);
+const allowedDecisionStatuses = new Set(["NEEDS_INFO", "CLOSED"]);
 const latticePaymentTerms = "100% Payment in Advance";
+const shippingDurationDaysByMethod: Record<string, number> = {
+  Domestic: 2,
+  International: 5,
+};
 
 function getString(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value : "";
-}
-
-function getInteger(formData: FormData, key: string) {
-  const value = getString(formData, key).trim();
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function getOptionalInteger(formData: FormData, key: string) {
@@ -60,16 +59,6 @@ function getOptionalPriceDollars(formData: FormData, key: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getOptionalPriceCentsFromDollars(formData: FormData, key: string) {
-  const value = getString(formData, key).trim();
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseFloat(value);
-  return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
-}
-
 function addDaysIso(dateValue: string, days: number) {
   const date = new Date(`${dateValue}T00:00:00.000Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -83,58 +72,8 @@ function formatShippingLabel(costCents: number | null, method: string, terms: st
   return pieces ? `${pieces} - ${cost}` : cost;
 }
 
-function parseLeadTimeDays(value: string) {
-  const match = value.match(/\d+/);
-  return match ? Number.parseInt(match[0], 10) : null;
-}
-
-function stringFromRecord(record: Record<string, unknown>, key: keyof CustomerQuoteInput) {
-  const value = record[key];
-  return typeof value === "string" ? value : "";
-}
-
-function parseLineItems(value: unknown): CustomerQuoteLineItem[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((item, index) => {
-    const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-
-    return {
-      description: typeof record.description === "string" ? record.description : "",
-      finish: typeof record.finish === "string" ? record.finish : "",
-      id: typeof record.id === "string" ? record.id : `line-${index + 1}`,
-      material: typeof record.material === "string" ? record.material : "",
-      process: typeof record.process === "string" ? record.process : "",
-      quantity: typeof record.quantity === "number" ? record.quantity : 0,
-      unitPrice: typeof record.unitPrice === "number" ? record.unitPrice : 0,
-    };
-  });
-}
-
-function parseQuotePayload(formData: FormData): CustomerQuoteInput {
-  const rawPayload = getString(formData, "quotePayload");
-  const parsed = rawPayload ? JSON.parse(rawPayload) : {};
-  const record = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
-
-  return {
-    assumptions: stringFromRecord(record, "assumptions"),
-    clarifications: stringFromRecord(record, "clarifications"),
-    customerCompany: stringFromRecord(record, "customerCompany"),
-    customerContact: stringFromRecord(record, "customerContact"),
-    filesReviewed: stringFromRecord(record, "filesReviewed"),
-    leadTime: stringFromRecord(record, "leadTime"),
-    lineItems: parseLineItems(record.lineItems),
-    notes: stringFromRecord(record, "notes"),
-    preparedBy: stringFromRecord(record, "preparedBy"),
-    projectName: stringFromRecord(record, "projectName"),
-    quoteDate: stringFromRecord(record, "quoteDate"),
-    quoteNumber: stringFromRecord(record, "quoteNumber"),
-    shipping: stringFromRecord(record, "shipping"),
-    tax: stringFromRecord(record, "tax"),
-    validUntil: stringFromRecord(record, "validUntil"),
-  };
+function shippingDurationDays(method: string) {
+  return shippingDurationDaysByMethod[method] ?? 0;
 }
 
 async function sendGuestQuoteReadyLinkIfNeeded(request: Awaited<ReturnType<typeof saveCustomerQuoteForRequest>>) {
@@ -150,35 +89,6 @@ async function sendGuestQuoteReadyLinkIfNeeded(request: Awaited<ReturnType<typeo
 
   await sendGuestQuoteReadyEmail(updated, guestQuoteHref(updated.id, access.token));
   revalidatePath(`/simple-quote/${request.id}`);
-}
-
-export async function saveCustomerQuoteAction(formData: FormData) {
-  await requireActionRole(["admin"]);
-  const requestId = getString(formData, "requestId").trim();
-
-  if (!requestId) {
-    throw new Error("Request ID is required");
-  }
-
-  const quoteMarkdown = getString(formData, "quoteMarkdown").trim();
-  const quoteSummary = getString(formData, "quoteSummary").trim();
-  const quote = parseQuotePayload(formData);
-
-  const savedQuoteRequest = await saveCustomerQuoteForRequest(requestId, {
-    ...quote,
-    estimatedPriceCents: getInteger(formData, "quoteTotalCents"),
-    leadTimeDays: parseLeadTimeDays(getString(formData, "leadTime")),
-    markdown: quoteMarkdown,
-    quoteSummary: quoteSummary || quoteMarkdown,
-  });
-  await sendGuestQuoteReadyLinkIfNeeded(savedQuoteRequest);
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/quotes");
-  revalidatePath("/quotes");
-  revalidatePath(`/quotes/${requestId}`);
-  revalidatePath("/notifications");
-  redirect("/admin/quotes");
 }
 
 export async function updateAdminQuoteStatusAction(formData: FormData) {
@@ -223,28 +133,28 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
   const supplierLineItems = current.lineItems.map((item) => ({
     id: item.id,
     description: item.partName,
-    drawingRevision: getString(formData, `supplierDrawingRevision:${item.id}`).trim() || "Released package",
+    drawingRevision: "Released package",
     finish: item.surfaceFinish ?? "",
     inspection: (item.qualityDocumentation ?? []).join(", ") || "Standard inspection",
-    leadTimeDays: getOptionalInteger(formData, `supplierLeadTimeDays:${item.id}`),
+    leadTimeDays: getOptionalInteger(formData, `leadTimeDays:${item.id}`),
     material: item.material,
     process: current.process,
     quantity: item.quantity,
-    supplierNotes: getString(formData, `supplierNotes:${item.id}`).trim(),
-    unitPrice: getOptionalPriceDollars(formData, `supplierUnitPrice:${item.id}`),
+    supplierNotes: "",
+    unitPrice: getOptionalPriceDollars(formData, `unitPrice:${item.id}`),
   }));
   const supplierLineLeadTimes = supplierLineItems
     .map((item) => item.leadTimeDays)
     .filter((value): value is number => typeof value === "number");
+  const supplierLineTotalCents = supplierLineItems.reduce((sum, item) => sum + Math.round(item.unitPrice * item.quantity * 100), 0);
+  const supplierLeadTimeDays = supplierLineLeadTimes.length ? Math.max(...supplierLineLeadTimes) + shippingDurationDays(shippingMethod) : null;
   const selectedSupplierQuote: SelectedSupplierQuoteInput = {
-    contactName: getString(formData, "supplierQuoteContact").trim(),
+    contactName: "",
     country: getString(formData, "supplierQuoteCountry").trim() || "China",
-    leadTimeDays: getOptionalInteger(formData, "supplierQuoteLeadTime") ?? (supplierLineLeadTimes.length ? Math.max(...supplierLineLeadTimes) : null),
+    leadTimeDays: supplierLeadTimeDays,
     lineItems: supplierLineItems,
-    notes: getString(formData, "supplierQuoteNotes").trim(),
-    priceCents:
-      getOptionalPriceCentsFromDollars(formData, "supplierQuoteTotal") ??
-      supplierLineItems.reduce((sum, item) => sum + Math.round(item.unitPrice * item.quantity * 100), 0),
+    notes: "",
+    priceCents: supplierLineTotalCents + (shippingCostCents ?? 0),
     shopName: getString(formData, "supplierQuoteShop").trim() || current.supplierOrder.shopName || "China supplier team",
   };
   const lineLeadTimes = lineItems
@@ -291,10 +201,40 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
-  revalidatePath("/operator/requests");
-  revalidatePath(`/operator/requests/${requestId}`);
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${requestId}`);
   revalidatePath("/notifications");
   redirect("/admin/quotes");
+}
+
+export async function updateAdminRfqDecisionAction(formData: FormData) {
+  await requireActionRole(["admin"]);
+  const requestId = getString(formData, "requestId").trim();
+  const status = getString(formData, "status");
+  const customerNote = getString(formData, "customerNote").trim();
+
+  if (!requestId) {
+    throw new Error("Request ID is required");
+  }
+
+  if (!allowedDecisionStatuses.has(status)) {
+    throw new Error("Unsupported RFQ decision");
+  }
+
+  if (!customerNote) {
+    throw new Error("Customer-facing note is required");
+  }
+
+  await updateAdminRfqDecision(requestId, {
+    customerNote,
+    status: status as "NEEDS_INFO" | "CLOSED",
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/quotes");
+  revalidatePath("/dashboard");
+  revalidatePath("/quotes");
+  revalidatePath(`/quotes/${requestId}`);
+  revalidatePath("/notifications");
+  redirect(`/admin/quotes?requestId=${encodeURIComponent(requestId)}`);
 }

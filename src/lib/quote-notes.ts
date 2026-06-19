@@ -18,7 +18,7 @@ export function addDaysIso(value: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-export function formatQuoteNoteDate(value: string | null | undefined) {
+function formatQuoteNoteDate(value: string | null | undefined) {
   const date = localDate(value);
 
   if (!date || Number.isNaN(date.getTime())) {

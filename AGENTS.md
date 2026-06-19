@@ -16,4 +16,6 @@ Before making changes, read:
 4. `TODO.md` - current priorities and next steps.
 5. Relevant files in `docs/` for deeper product references.
 
-When you finish meaningful work, update the memory files if the product direction, architecture, decisions, or next steps changed.
+When you finish meaningful work, append a dated summary to `docs/completed-work-log.md`, and update the other memory files if the product direction, architecture, decisions, or next steps changed.
+
+When feature behavior changes, also update `docs/app-feature-map.md` in the same work session so the operator-facing feature map stays current.

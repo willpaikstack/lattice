@@ -41,13 +41,16 @@ Open:
 - Waiting List: <http://localhost:3000/waiting-list>
 - Command Center: <http://localhost:3000/dashboard>
 - New Request: <http://localhost:3000/requests/new>
+- Roadmap: <http://localhost:3000/roadmap>
 - Quote Submissions: <http://localhost:3000/admin/quotes>
 
 ## Verification
 
 ```bash
-npm test
+npm run typecheck
 npm run lint
+npm test
+npm run dead-code
 npm run build
 ```
 
@@ -87,6 +90,8 @@ The quote workflow is now commissioned for real submitted RFQs. Avoid seeding ar
 This repo carries lightweight project memory so AI agents on different computers can pick up the same context:
 
 - `PROJECT_CONTEXT.md` - product, architecture, routes, and current state.
+- `docs/app-feature-map.md` - operator-facing feature map of app areas, routes, data sources, status, and limitations.
+- `docs/completed-work-log.md` - daily record of completed tasks, features, fixes, and documentation changes.
 - `DECISIONS.md` - durable technical and product decisions.
 - `TODO.md` - next priorities and cross-computer handoff checklist.
 - `AGENTS.md` - instructions agents should read before changing the repo.

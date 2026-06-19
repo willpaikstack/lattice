@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, Download, FileText, HelpCircle, ImageIcon, PackageCheck, ReceiptText, RotateCcw, Truck, User } from "lucide-react";
+import { ArrowLeft, CalendarDays, Download, ExternalLink, FileText, HelpCircle, ImageIcon, PackageCheck, ReceiptText, RotateCcw, Truck, User } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { packageTrackingLink } from "@/lib/package-tracking";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type SupplierDocumentCategory, type SupplierOrderStatus } from "@/lib/request-model";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
 
@@ -276,6 +277,7 @@ export function BuyerOrderDetail({
   const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
   const latestQuote = order.customerQuotes.at(-1);
   const trackingNumber = order.supplierOrder.trackingNumber || "Pending shipment";
+  const tracking = packageTrackingLink(order.supplierOrder.trackingNumber);
   const supplierName = order.supplierOrder.shopName || selectedSupplier?.shopName || "Supplier pending";
   const supplierContact = order.supplierOrder.contactName || selectedSupplier?.contactName || "Not recorded";
 
@@ -361,10 +363,35 @@ export function BuyerOrderDetail({
               <dl className="space-y-3 text-[13px]">
                 <DefinitionRow label="Shipping method" value="Lattice managed landed delivery" />
                 <DefinitionRow label="Import terms" value="DDP - Lattice coordinates import" />
-                <DefinitionRow label="Carrier" value={order.supplierOrder.status === "SHIPPED" ? "UPS International Priority" : "Pending booking"} />
+                <DefinitionRow label="Carrier" value={tracking?.carrier ?? "Pending booking"} />
                 <DefinitionRow label="Tracking number" value={trackingNumber} />
+                <DefinitionRow label="Tracking source" value={tracking?.carrier ?? "Pending shipment"} />
                 <DefinitionRow label="Supplier" value={supplierName} />
               </dl>
+              <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Package tracking</p>
+                {tracking ? (
+                  <>
+                    <p className="mt-3 text-[14px] font-semibold text-[#202020]">{tracking.trackingNumber}</p>
+                    <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">
+                      Open {tracking.carrier} to view live carrier scans and delivery progress.
+                    </p>
+                    <a
+                      className="mt-4 inline-flex min-h-9 items-center gap-2 rounded-md bg-[#171717] px-3 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]"
+                      href={tracking.href}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Track package
+                      <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+                    </a>
+                  </>
+                ) : (
+                  <p className="mt-3 text-[13px] leading-5 text-[#5f6670]">
+                    Tracking will appear here once the supplier marks the order shipped and adds the carrier reference.
+                  </p>
+                )}
+              </div>
             </div>
           </Section>
 

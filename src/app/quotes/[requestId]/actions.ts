@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 
 import { ensureStripeCustomerForAccount } from "@/lib/account-settings";
 import { saveLocalUpload } from "@/lib/local-file-storage";
-import { getRequestById, purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession } from "@/lib/request-repository";
+import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
+import { purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
-import { getAppBaseUrl, getStripeClient, getStripePublishableKey } from "@/lib/stripe";
+import { getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 import { finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
 
 function formText(formData: FormData, key: string) {
@@ -24,14 +25,6 @@ function isUploadFile(value: FormDataEntryValue | null): value is File {
     typeof (value as File).size === "number" &&
     (value as File).size > 0
   );
-}
-
-function quoteNumberForStripe(request: Awaited<ReturnType<typeof getRequestById>>) {
-  if (!request) {
-    return "";
-  }
-
-  return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
 function purchaseDeliveryInputFromForm(formData: FormData) {
@@ -54,68 +47,13 @@ async function requireCheckoutSession(requestId: string) {
     throw new Error("Customer or admin access required.");
   }
 
-  const request = await getRequestById(requestId);
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
 
   if (!request || request.status !== "QUOTED") {
     throw new Error("Only priced quotes can be paid by card.");
   }
 
   return request;
-}
-
-export async function createStripeElementsCheckoutSessionAction(requestId: string) {
-  const request = await requireCheckoutSession(requestId);
-  const publishableKey = getStripePublishableKey();
-
-  if (!publishableKey) {
-    throw new Error("Stripe publishable key is not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.");
-  }
-
-  const amountCents = quoteCheckoutAmountCents(request);
-  const stripe = getStripeClient();
-  const { customerId } = await ensureStripeCustomerForAccount();
-  const baseUrl = getAppBaseUrl();
-  const quoteNumber = quoteNumberForStripe(request);
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "payment",
-    ui_mode: "elements",
-    customer: customerId,
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: amountCents,
-          product_data: {
-            name: `${quoteNumber} - ${request.title}`,
-            description: "Lattice accepted quote payment",
-          },
-        },
-      },
-    ],
-    metadata: {
-      requestId,
-      quoteNumber,
-    },
-    return_url: `${baseUrl}/quotes/${encodeURIComponent(requestId)}/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
-  });
-
-  if (!checkoutSession.client_secret) {
-    throw new Error("Stripe did not return a checkout client secret.");
-  }
-
-  await recordStripeCheckoutSession(requestId, {
-    amountCents,
-    checkoutSessionId: checkoutSession.id,
-    currency: "usd",
-  });
-
-  return {
-    clientSecret: checkoutSession.client_secret,
-    publishableKey,
-    sessionId: checkoutSession.id,
-  };
 }
 
 export async function updateStripeElementsCheckoutSessionAction(requestId: string, checkoutSessionId: string, formData: FormData) {
@@ -161,19 +99,14 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
   }
 
   const paymentMethod = formText(formData, "paymentMethod");
+  const request = await requireCheckoutSession(requestId);
 
   if (paymentMethod === "card") {
-    const request = await getRequestById(requestId);
-
-    if (!request || request.status !== "QUOTED") {
-      throw new Error("Only priced quotes can be paid by card.");
-    }
-
     const amountCents = quoteCheckoutAmountCents(request);
     const stripe = getStripeClient();
     const { customerId } = await ensureStripeCustomerForAccount();
     const baseUrl = getAppBaseUrl();
-    const quoteNumber = quoteNumberForStripe(request);
+    const quoteNumber = request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer: customerId,

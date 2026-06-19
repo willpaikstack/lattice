@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { buildRequestInvoicePdf, orderInvoicePdfFileName } from "@/lib/invoice-pdf";
-import { getRequestById } from "@/lib/request-repository";
+import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ requ
   }
 
   const { requestId } = await params;
-  const order = await getRequestById(requestId);
+  const order = await getCustomerRequestByIdForCurrentSession(requestId);
 
   if (!order || order.status !== "PURCHASED") {
     notFound();

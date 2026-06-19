@@ -95,6 +95,20 @@ model WaitingListEntry {
   joinedAt         DateTime @default(now())
 }
 
+model RoadmapInterest {
+  id            String   @id @default(cuid())
+  roadmapItemId String
+  userEmail     String
+  userName      String   @default("")
+  isInterested  Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([roadmapItemId, userEmail])
+  @@index([roadmapItemId, isInterested])
+  @@index([userEmail, updatedAt])
+}
+
 model AccountDefaults {
   id                         String   @id
   name                       String   @default("")

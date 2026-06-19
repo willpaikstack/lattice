@@ -26,9 +26,15 @@ function makePurchasedOrder(): LatticeRequest {
       }),
     ),
     quote: {
+      estimatedDeliveryDate: "2026-07-05",
       estimatedPriceCents: 381500,
       leadTimeDays: 15,
-      quoteSummary: "Accepted production quote.",
+      quoteCreatedDate: "2026-06-15",
+      quoteValidUntil: "2026-07-15",
+      shippingCostCents: 25000,
+      shippingMethod: "International",
+      shippingTerms: "DDP customer address",
+      summary: "Accepted production quote.",
     },
     customerPurchaseOrderAttachment: {
       id: "customer_po_file_1",

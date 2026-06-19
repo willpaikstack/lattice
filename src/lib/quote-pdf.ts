@@ -20,7 +20,6 @@ const PDFDocument = requireFromHere("pdfkit") as typeof import("pdfkit");
 let regularFont = "Helvetica";
 let boldFont = "Helvetica-Bold";
 const quoteTextColor = "#101820";
-const quoteMutedColor = "#3f4652";
 const quoteRuleColor = "#1f2933";
 const quoteLightRuleColor = "#d7dce0";
 const quoteLinkColor = "#1473e6";

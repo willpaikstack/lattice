@@ -16,7 +16,7 @@ APS_BUCKET_KEY="lattice-os-dev-cad-previews-your-name"
 
 4. Restart the Next.js dev server.
 5. Visit `/api/cad-previews/configuration` in the browser. A configured local server returns `status: "configured"`.
-6. Upload a CAD file from `/requests/new` and wait for the preview translation.
+6. Upload a CAD file from `/requests/new`. The RFQ form should remain usable while APS translates the preview in the background.
 
 ## Bucket Key
 
@@ -50,3 +50,17 @@ You can verify production configuration at `/api/cad-previews/configuration`. Th
 ## Data Note
 
 When APS preview is enabled, uploaded CAD files are sent to Autodesk for translation. Use sample or non-sensitive geometry until the production file-handling policy is finalized.
+
+## Product Behavior
+
+CAD translation is asynchronous. Do not block RFQ configuration or submission on APS preview readiness. The upload form should show a clear background-processing state while persisting the CAD file and any returned preview URN for later reuse.
+
+The embedded Autodesk Viewer should expose a focused native Autodesk toolbar. Avoid adding a separate Lattice toolbar overlay for controls Autodesk already provides.
+
+Viewer extensions loaded for native Autodesk controls:
+
+- `Measure` - loads `Autodesk.Measure` for distance and angle measurements.
+- `Explode` - loads `Autodesk.Explode` for visual assembly separation when the model has separable structure.
+- `Section` - loads `Autodesk.Section` for sectional inspection through Autodesk's native section analysis tool.
+
+The RFQ upload preview intentionally hides the default navigation, camera, model tree, properties, settings, and full-screen toolbar buttons for now so the customer only sees the manufacturing-relevant actions: measure, explode model, and section analysis.

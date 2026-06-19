@@ -16,6 +16,7 @@ const protectedPrefixes = [
   "/projects",
   "/quotes",
   "/requests",
+  "/roadmap",
   "/shipped",
   "/supplier",
 ];

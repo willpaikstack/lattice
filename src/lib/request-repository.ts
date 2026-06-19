@@ -4,13 +4,13 @@ import type {
   CustomerQuoteLineItemSnapshot,
   DraftRequestInput,
   LatticeRequest,
-  OperatorStatusUpdateInput,
   PurchasePaymentMethod,
+  RequestStatus,
   SupplierQuoteLineItemSnapshot,
   SupplierOrderUpdateInput,
   UploadedFileInput,
 } from "./request-model";
-import { applyOperatorStatusUpdate, applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
+import { applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
 
@@ -48,6 +48,11 @@ export type SelectedSupplierQuoteInput = {
   notes: string;
   priceCents: number | null;
   shopName: string;
+};
+
+export type AdminRfqDecisionInput = {
+  customerNote: string;
+  status: Extract<RequestStatus, "NEEDS_INFO" | "CLOSED">;
 };
 
 function isArtificialRequestId(id: string) {
@@ -305,71 +310,6 @@ export async function deleteBuyerQuote(id: string) {
   }
 }
 
-export async function updateOperatorRequestStatus(id: string, input: OperatorStatusUpdateInput) {
-  const current = await getRequestById(id);
-
-  if (!current) {
-    throw new Error("Request not found");
-  }
-
-  const updated = applyOperatorStatusUpdate(current, input);
-  let client: Awaited<ReturnType<typeof prisma>>;
-
-  try {
-    client = await prisma();
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma is unavailable; saving operator request update locally.", error);
-      return saveLocalRequest(updated);
-    }
-
-    throw error;
-  }
-
-  try {
-    const stored = await client.request.update({
-      where: { id },
-      data: {
-        status: updated.status,
-        operatorCompleteness: updated.operatorReview.completeness,
-        assignedOwner: updated.operatorReview.assignedOwner,
-        internalNotes: updated.operatorReview.internalNotes,
-        supplierPackageNotes: updated.operatorReview.supplierPackageNotes,
-        estimatedPriceCents: updated.quote.estimatedPriceCents,
-        leadTimeDays: updated.quote.leadTimeDays,
-        shippingCostCents: updated.quote.shippingCostCents,
-        shippingMethod: updated.quote.shippingMethod,
-        shippingTerms: updated.quote.shippingTerms,
-        estimatedDeliveryDate: optionalDate(updated.quote.estimatedDeliveryDate),
-        quoteCreatedDate: optionalDate(updated.quote.quoteCreatedDate),
-        quoteValidUntil: optionalDate(updated.quote.quoteValidUntil),
-        quoteSummary: updated.quote.summary,
-        ...(current.status === updated.status
-          ? {}
-          : {
-              statusEvents: {
-                create: {
-                  from: current.status,
-                  to: updated.status,
-                  actor: "operator",
-                },
-              },
-            }),
-      },
-      include: storedRequestInclude,
-    });
-
-    return mapStoredRequest(stored);
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma update is unavailable; saving operator request update locally.", error);
-      return saveLocalRequest(updated);
-    }
-
-    throw error;
-  }
-}
-
 export async function saveCustomerQuoteForRequest(
   id: string,
   input: {
@@ -578,6 +518,85 @@ export async function saveCustomerQuoteForRequest(
       };
 
       return saveLocalRequest(updated);
+    }
+
+    throw error;
+  }
+}
+
+export async function updateAdminRfqDecision(id: string, input: AdminRfqDecisionInput) {
+  const current = await getRequestById(id);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (current.status === "DRAFT" || current.status === "PURCHASED" || current.status === "CLOSED") {
+    throw new Error("Only active RFQs can receive a customer-facing decision");
+  }
+
+  const note = cleanText(input.customerNote);
+
+  if (!note) {
+    throw new Error("Customer-facing note is required");
+  }
+
+  const nextStatus = input.status;
+  const operatorCompleteness = nextStatus === "NEEDS_INFO" ? "MISSING_INFO" : "COMPLETE";
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id },
+      data: {
+        status: nextStatus,
+        operatorCompleteness,
+        assignedOwner: current.operatorReview.assignedOwner,
+        internalNotes: note,
+        supplierPackageNotes: current.operatorReview.supplierPackageNotes,
+        ...(current.status === nextStatus
+          ? {}
+          : {
+              statusEvents: {
+                create: {
+                  from: current.status,
+                  to: nextStatus,
+                  actor: "operator",
+                },
+              },
+            }),
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma RFQ decision update is unavailable; saving decision locally.", error);
+      const timestamp = new Date().toISOString();
+
+      return saveLocalRequest({
+        ...current,
+        status: nextStatus,
+        operatorReview: {
+          ...current.operatorReview,
+          completeness: operatorCompleteness,
+          internalNotes: note,
+        },
+        statusEvents: current.status === nextStatus
+          ? current.statusEvents
+          : [
+              ...current.statusEvents,
+              {
+                id: makeLocalId("event"),
+                from: current.status,
+                to: nextStatus,
+                actor: "operator" as const,
+                at: timestamp,
+              },
+            ],
+        updatedAt: timestamp,
+      });
     }
 
     throw error;

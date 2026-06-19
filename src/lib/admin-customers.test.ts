@@ -94,7 +94,7 @@ describe("admin customer summaries", () => {
       orderValueCents: 125000,
       latestRequest: {
         id: "req_purchased",
-        href: "/supplier/orders/req_purchased",
+        href: "/admin/orders/req_purchased",
       },
       fabricationShops: [
         {

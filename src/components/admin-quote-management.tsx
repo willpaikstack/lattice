@@ -1,11 +1,12 @@
 "use client";
 
-import { ClipboardCheck, ExternalLink, FileText, PackageCheck, ReceiptText, Search, Truck, X } from "lucide-react";
+import { ExternalLink, FileText, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
+import type { OverseasVendor } from "@/lib/admin-vendors";
 import { quotedLineForRequestItem, type LatticeRequest } from "@/lib/request-model";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
 
@@ -21,6 +22,7 @@ const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string
 
 type AdminQuoteStatusGroup = "QUOTE_REQUESTED" | "QUOTE_RECEIVED" | "ARCHIVED";
 type AdminQuoteStatusFilter = "ALL" | AdminQuoteStatusGroup;
+type RfqDecisionStatus = "NEEDS_INFO" | "CLOSED";
 
 const customerQuoteStatusCopy: Record<AdminQuoteStatusGroup, { label: string; tone: string }> = {
   QUOTE_REQUESTED: { label: "Quote Requested", tone: "border-[#b8d4ff] bg-[#eef5ff] text-[#0f5fb8]" },
@@ -41,23 +43,26 @@ const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
 type AdminQuoteAction = (formData: FormData) => void | Promise<void>;
 
+const rfqDecisionCopy: Record<RfqDecisionStatus, { actionLabel: string; body: string; submitLabel: string; title: string }> = {
+  CLOSED: {
+    actionLabel: "No quote",
+    body: "Close this RFQ and show the customer why Lattice is unable to quote it.",
+    submitLabel: "Send no quote",
+    title: "No quote this RFQ",
+  },
+  NEEDS_INFO: {
+    actionLabel: "Request information",
+    body: "Ask the customer for the clarification needed before quoting can continue.",
+    submitLabel: "Send request",
+    title: "Request additional information",
+  },
+};
+
 type StoredIncompleteRfq = {
   id: string;
   request?: LatticeRequest;
   updatedAt: string;
 };
-
-function formatCurrency(cents: number | null) {
-  if (cents === null) {
-    return "Pending";
-  }
-
-  return new Intl.NumberFormat("en-US", {
-    currency: "USD",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(cents / 100);
-}
 
 function formatCurrencyPrecise(cents: number | null | undefined) {
   if (cents === null || cents === undefined || !Number.isFinite(cents)) {
@@ -172,10 +177,6 @@ function quoteReference(request: LatticeRequest) {
   return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function receivedSupplierQuotes(request: LatticeRequest) {
-  return request.supplierQuotes.filter((quote) => quote.status === "QUOTE_RECEIVED" || quote.status === "SELECTED");
-}
-
 function selectedSupplierQuote(request: LatticeRequest) {
   return request.supplierQuotes.find((quote) => quote.isSelected) ?? request.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
 }
@@ -208,6 +209,14 @@ function quoteDetailHref(request: LatticeRequest) {
   return `/admin/quotes?requestId=${encodeURIComponent(request.id)}`;
 }
 
+function quoteDecisionHref(request: LatticeRequest, decision: RfqDecisionStatus) {
+  return `${quoteDetailHref(request)}&decision=${encodeURIComponent(decision)}`;
+}
+
+function parsedRfqDecision(value: string | null) {
+  return value === "NEEDS_INFO" || value === "CLOSED" ? value : null;
+}
+
 function customerProfileHref(companyName: string, customerProfileHrefs: Record<string, string>) {
   return customerProfileHrefs[companyName] ?? `/admin/customers/${encodeURIComponent(companyName)}`;
 }
@@ -230,6 +239,15 @@ function CustomerProfileShortcut({
     >
       <ExternalLink aria-hidden="true" size={14} />
     </Link>
+  );
+}
+
+function DrawerMetaItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="inline-flex items-center gap-1.5 rounded-md border border-[#eeeeee] bg-[#fafafa] px-2.5 py-1 text-[12px]">
+      <dt className="font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">{label}</dt>
+      <dd className="font-semibold text-[#30343a]">{value}</dd>
+    </div>
   );
 }
 
@@ -327,25 +345,57 @@ function lineItemLeadTimeDisplay(request: LatticeRequest, lineItem: LatticeReque
   return leadTimeDays ? `${leadTimeDays} business days` : "Pending";
 }
 
-function supplierQuoteLineForRequestItem(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
-  return (selectedSupplierQuote(request)?.lineItems ?? []).find((line) => line.id === lineItem.id || line.description === lineItem.partName) ?? null;
+const supplierCountryOptions = ["China", "Vietnam", "India"];
+const defaultShippingMethod = "International";
+const shippingDurationDaysByMethod: Record<string, number> = {
+  Domestic: 2,
+  International: 5,
+};
+
+function supplierCountryValue(country: string | null | undefined) {
+  return country && supplierCountryOptions.includes(country) ? country : "China";
 }
 
-function supplierUnitPriceInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
-  const supplierLine = supplierQuoteLineForRequestItem(request, lineItem);
-  return supplierLine ? formatDollarAmount(supplierLine.unitPrice) : "";
+function shippingDurationDays(method: string) {
+  return shippingDurationDaysByMethod[method] ?? 0;
 }
 
-function supplierLeadTimeInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
-  return supplierQuoteLineForRequestItem(request, lineItem)?.leadTimeDays ?? "";
+function integerInputValue(value: string | number | null | undefined) {
+  const parsed = Number.parseInt(String(value ?? "").trim(), 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function supplierDrawingRevisionInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
-  return supplierQuoteLineForRequestItem(request, lineItem)?.drawingRevision || "Released package";
+function calculatedSupplierLeadTimeDays(leadTimeValues: string[], shippingMethod: string) {
+  const leadTimes = leadTimeValues.map(integerInputValue).filter((value): value is number => typeof value === "number");
+
+  return leadTimes.length ? Math.max(...leadTimes) + shippingDurationDays(shippingMethod) : null;
 }
 
-function supplierNotesInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
-  return supplierQuoteLineForRequestItem(request, lineItem)?.supplierNotes ?? "";
+function vendorShopOptions(vendors: OverseasVendor[], currentShopName: string) {
+  const options = vendors.map((vendor) => ({
+    label: vendor.name,
+    value: vendor.name,
+  }));
+
+  if (currentShopName && !options.some((option) => option.value === currentShopName)) {
+    options.unshift({
+      label: currentShopName,
+      value: currentShopName,
+    });
+  }
+
+  return options;
+}
+
+function selectedShopNameFromRequest(request: LatticeRequest) {
+  const selectedShop = selectedSupplierQuote(request)?.shopName.trim();
+
+  if (selectedShop) {
+    return selectedShop;
+  }
+
+  const orderShop = request.supplierOrder.shopName.trim();
+  return orderShop && orderShop !== "China supplier team" ? orderShop : "";
 }
 
 function StaticField({ label, value }: { label: string; value: string }) {
@@ -395,12 +445,18 @@ function DownloadFileLink({ file }: { file: LatticeRequest["files"][number] }) {
 }
 
 function AdminQuoteDetailDrawer({
+  initialDecision,
   onClose,
+  overseasVendors,
   request,
+  updateDecisionAction,
   updateStatusAction,
 }: {
+  initialDecision?: RfqDecisionStatus | null;
   onClose: () => void;
+  overseasVendors: OverseasVendor[];
   request: LatticeRequest;
+  updateDecisionAction?: AdminQuoteAction;
   updateStatusAction?: AdminQuoteAction;
 }) {
   const status = statusCopy[request.status];
@@ -408,11 +464,23 @@ function AdminQuoteDetailDrawer({
   const selectedShopQuote = selectedSupplierQuote(request);
   const isIssuedQuote = request.status === "QUOTED" && Boolean(latestCustomerQuote);
   const [isEditingIssuedQuote, setIsEditingIssuedQuote] = useState(false);
+  const [activeDecision, setActiveDecision] = useState<RfqDecisionStatus | null>(initialDecision ?? null);
+  const [decisionNote, setDecisionNote] = useState("");
   const isReadOnlyIssuedQuote = isIssuedQuote && !isEditingIssuedQuote;
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
   const quoteCreatedDate = defaultQuoteCreatedDate(request);
   const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
-  const totalQuantity = request.lineItems.reduce((sum, lineItem) => sum + lineItem.quantity, 0);
+  const currentShopName = selectedShopNameFromRequest(request) || overseasVendors[0]?.name || "China supplier team";
+  const shopOptions = vendorShopOptions(overseasVendors, currentShopName);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState(request.quote.shippingMethod || defaultShippingMethod);
+  const [quoteLineLeadTimeValues, setQuoteLineLeadTimeValues] = useState(() =>
+    Object.fromEntries(request.lineItems.map((lineItem) => [lineItem.id, String(lineItemLeadTimeInput(request, lineItem) ?? "")])),
+  );
+  const overallSupplierLeadTimeDays = calculatedSupplierLeadTimeDays(Object.values(quoteLineLeadTimeValues), selectedShippingMethod);
+  const quoteResponseFormId = `quote-response-${request.id}`;
+  const canSendRfqDecision = Boolean(updateDecisionAction) && request.status !== "CLOSED" && request.status !== "PURCHASED" && !isReadOnlyIssuedQuote;
+  const activeDecisionCopy = activeDecision ? rfqDecisionCopy[activeDecision] : null;
+  const decisionNoteIsReady = decisionNote.trim().length > 0;
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1f2937]/45 px-4 py-6" onClick={onClose} role="presentation">
@@ -430,13 +498,41 @@ function AdminQuoteDetailDrawer({
                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
               </div>
               <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{request.title}</h2>
-              <p className="mt-1 text-[14px] text-[#64748b]">
-                {quoteReference(request)} - {request.buyerCompany} - {request.process} - {request.lineItems.length} part
-                {request.lineItems.length === 1 ? "" : "s"} - Qty {totalQuantity} - {request.files.length} file
-                {request.files.length === 1 ? "" : "s"}
-              </p>
+              <dl aria-label="RFQ summary" className="mt-3 flex flex-wrap gap-2">
+                <DrawerMetaItem label="Quote" value={quoteReference(request)} />
+                <DrawerMetaItem label="Customer" value={request.buyerCompany} />
+                <DrawerMetaItem label="Process" value={request.process} />
+              </dl>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {canSendRfqDecision ? (
+                <>
+                  <Link
+                    className="inline-flex h-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
+                    href={quoteDecisionHref(request, "NEEDS_INFO")}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setActiveDecision("NEEDS_INFO");
+                      setDecisionNote("");
+                    }}
+                    role="button"
+                  >
+                    Request information
+                  </Link>
+                  <Link
+                    className="inline-flex h-10 items-center justify-center rounded-md border border-[#ffd1d4] bg-white px-3 text-[12px] font-semibold text-[#c23b40] transition hover:bg-[#fff7f7]"
+                    href={quoteDecisionHref(request, "CLOSED")}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setActiveDecision("CLOSED");
+                      setDecisionNote("");
+                    }}
+                    role="button"
+                  >
+                    No quote
+                  </Link>
+                </>
+              ) : null}
               {isIssuedQuote ? (
                 <button
                   className="inline-flex h-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
@@ -471,6 +567,59 @@ function AdminQuoteDetailDrawer({
         </div>
 
         <div className="px-6 py-6">
+          {activeDecision && activeDecisionCopy ? (
+            <section aria-label={activeDecisionCopy.title} className="mb-6 rounded-md border border-[#ffd1d4] bg-[#fff7f7] p-4" role="region">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#767676]">Customer-facing outcome</p>
+                  <h3 className="mt-1 text-[18px] font-semibold text-[#202020]">{activeDecisionCopy.title}</h3>
+                  <p className="mt-1 max-w-2xl text-[13px] leading-5 text-[#6f737a]">{activeDecisionCopy.body}</p>
+                </div>
+                <Link
+                  className="inline-flex h-9 items-center justify-center rounded-md px-3 text-[12px] font-semibold text-[#484848] transition hover:bg-white"
+                  href={quoteDetailHref(request)}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setActiveDecision(null);
+                    setDecisionNote("");
+                  }}
+                  role="button"
+                >
+                  Cancel
+                </Link>
+              </div>
+              <form action={updateDecisionAction} className="mt-4 grid gap-3">
+                <input name="requestId" type="hidden" value={request.id} />
+                <input name="status" type="hidden" value={activeDecision} />
+                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                  Customer note
+                  <textarea
+                    className="min-h-28 rounded-md border border-[#d9d9d9] bg-white px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
+                    name="customerNote"
+                    onChange={(event) => setDecisionNote(event.currentTarget.value)}
+                    placeholder={
+                      activeDecision === "NEEDS_INFO"
+                        ? "Example: Please upload the latest drawing with threaded-hole callouts before we can quote accurately."
+                        : "Example: We are unable to quote this RFQ because the required process is outside our current supplier network."
+                    }
+                    required
+                    value={decisionNote}
+                  />
+                </label>
+                <div className="flex justify-end">
+                  <button
+                    className={`h-10 rounded-md px-4 text-[13px] font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-[#d6d6d6] ${
+                      activeDecision === "CLOSED" ? "bg-[#c23b40] hover:bg-[#9f2f34]" : "bg-[#262626] hover:bg-[#171717]"
+                    }`}
+                    disabled={!decisionNoteIsReady}
+                    type="submit"
+                  >
+                    {activeDecisionCopy.submitLabel}
+                  </button>
+                </div>
+              </form>
+            </section>
+          ) : null}
           <SupplierQuoteFiles
             readOnly={isReadOnlyIssuedQuote}
             removeHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files/remove"}
@@ -479,9 +628,53 @@ function AdminQuoteDetailDrawer({
             stepNumber={1}
             uploadHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files"}
             variant="admin"
-          />
-
-          <form action={updateStatusAction}>
+          >
+            <div className="grid gap-4 lg:grid-cols-4">
+              <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                Shop name
+                <select
+                  className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                  defaultValue={currentShopName}
+                  form={quoteResponseFormId}
+                  name="supplierQuoteShop"
+                >
+                  {shopOptions.map((vendor) => (
+                    <option key={vendor.value} value={vendor.value}>
+                      {vendor.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                Country
+                <select
+                  className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
+                  defaultValue={supplierCountryValue(selectedShopQuote?.country)}
+                  form={quoteResponseFormId}
+                  name="supplierQuoteCountry"
+                >
+                  {supplierCountryOptions.map((country) => (
+                    <option key={country} value={country}>
+                      {country}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
+                Overall lead time days
+                <input
+                  className="h-11 rounded-md border border-[#d9d9d9] bg-[#fafafa] px-3 text-[15px] font-semibold text-[#202020] outline-none"
+                  form={quoteResponseFormId}
+                  inputMode="numeric"
+                  name="supplierQuoteLeadTime"
+                  placeholder="Calculated"
+                  readOnly
+                  value={overallSupplierLeadTimeDays ?? ""}
+                />
+              </label>
+            </div>
+          </SupplierQuoteFiles>
+          <form action={updateStatusAction} id={quoteResponseFormId}>
             <input name="requestId" type="hidden" value={request.id} />
             <input name="status" type="hidden" value="QUOTED" />
             <input name="assignedOwner" type="hidden" value={request.operatorReview.assignedOwner ?? ""} />
@@ -492,133 +685,6 @@ function AdminQuoteDetailDrawer({
             <section className="border-t border-[#eeeeee] py-6">
               <StepHeading
                 number={2}
-                summary="Capture the selected Chinese shop quote as structured data so the supplier PO can match the shop quote line by line."
-              >
-                Selected Chinese shop quote
-              </StepHeading>
-              <div className="mt-4 grid gap-4 lg:grid-cols-4">
-                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                  Shop name
-                  <input
-                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                    defaultValue={selectedShopQuote?.shopName || request.supplierOrder.shopName || "China supplier team"}
-                    name="supplierQuoteShop"
-                    placeholder="Shenzhen Precision Manufacturing"
-                  />
-                </label>
-                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                  Country
-                  <input
-                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                    defaultValue={selectedShopQuote?.country || "China"}
-                    name="supplierQuoteCountry"
-                    placeholder="China"
-                  />
-                </label>
-                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                  Supplier contact
-                  <input
-                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                    defaultValue={selectedShopQuote?.contactName || request.supplierOrder.contactName}
-                    name="supplierQuoteContact"
-                    placeholder="Contact name"
-                  />
-                </label>
-                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                  Supplier quote total
-                  <input
-                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                    defaultValue={formatCurrencyInput(selectedShopQuote?.priceCents ?? null)}
-                    inputMode="decimal"
-                    name="supplierQuoteTotal"
-                    placeholder="0.00"
-                  />
-                </label>
-                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                  Overall lead time days
-                  <input
-                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                    defaultValue={selectedShopQuote?.leadTimeDays ?? ""}
-                    inputMode="numeric"
-                    name="supplierQuoteLeadTime"
-                    placeholder="Days"
-                  />
-                </label>
-                <label className="grid gap-1 text-[13px] font-semibold text-[#30343a] lg:col-span-3">
-                  Supplier quote notes
-                  <input
-                    className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                    defaultValue={selectedShopQuote?.notes ?? ""}
-                    name="supplierQuoteNotes"
-                    placeholder="Setup, tooling, freight, or shop quote assumptions"
-                  />
-                </label>
-              </div>
-              <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
-                <div className="min-w-[1220px]">
-                  <div className="grid grid-cols-[minmax(190px,0.85fr)_64px_150px_150px_170px_minmax(240px,1fr)] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
-                    <span>Part</span>
-                    <span className="text-center">Qty</span>
-                    <span>Supplier unit price</span>
-                    <span>Supplier lead time</span>
-                    <span>Drawing / revision</span>
-                    <span>Supplier notes</span>
-                  </div>
-                  <div className="divide-y divide-[#eeeeee]">
-                    {request.lineItems.map((lineItem) => (
-                      <div className="grid grid-cols-[minmax(190px,0.85fr)_64px_150px_150px_170px_minmax(240px,1fr)] items-center gap-4 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-[#202020]">{lineItem.partName}</p>
-                          <p className="mt-1 truncate text-[12px] text-[#64748b]">{lineItem.material}</p>
-                        </div>
-                        <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
-                        <label className="grid gap-1">
-                          <span className="sr-only">Supplier unit price - {lineItem.partName}</span>
-                          <input
-                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={supplierUnitPriceInput(request, lineItem)}
-                            inputMode="decimal"
-                            name={`supplierUnitPrice:${lineItem.id}`}
-                            placeholder="0.00"
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="sr-only">Supplier lead time days - {lineItem.partName}</span>
-                          <input
-                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={supplierLeadTimeInput(request, lineItem)}
-                            inputMode="numeric"
-                            name={`supplierLeadTimeDays:${lineItem.id}`}
-                            placeholder="Days"
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="sr-only">Supplier drawing revision - {lineItem.partName}</span>
-                          <input
-                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={supplierDrawingRevisionInput(request, lineItem)}
-                            name={`supplierDrawingRevision:${lineItem.id}`}
-                          />
-                        </label>
-                        <label className="grid gap-1">
-                          <span className="sr-only">Supplier notes - {lineItem.partName}</span>
-                          <input
-                            className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                            defaultValue={supplierNotesInput(request, lineItem)}
-                            name={`supplierNotes:${lineItem.id}`}
-                            placeholder="Shop quote note"
-                          />
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="border-t border-[#eeeeee] py-6">
-              <StepHeading
-                number={3}
                 summary={isReadOnlyIssuedQuote ? "Saved part pricing and lead times from the issued customer quote." : "Review each part package, then enter the supplier-backed price and lead time."}
               >
                 {isReadOnlyIssuedQuote ? "Issued pricing and lead time" : "Enter pricing and lead time"}
@@ -633,8 +699,8 @@ function AdminQuoteDetailDrawer({
                 </p>
               ) : null}
               <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
-                <div className="min-w-[1180px]">
-                  <div className="grid grid-cols-[minmax(190px,0.8fr)_minmax(230px,1fr)_minmax(260px,1.1fr)_64px_150px_150px] items-center gap-4 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
+                <div className="min-w-[1080px]">
+                  <div className="grid grid-cols-[minmax(150px,0.55fr)_minmax(250px,1fr)_minmax(190px,0.78fr)_56px_150px_150px] items-center gap-2 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
                     <span>Part</span>
                     <span>Specs</span>
                     <span>Uploaded files</span>
@@ -644,7 +710,7 @@ function AdminQuoteDetailDrawer({
                   </div>
                   <div className="divide-y divide-[#eeeeee]">
                     {bundles.map(({ files, lineItem }) => (
-                      <div className="grid grid-cols-[minmax(190px,0.8fr)_minmax(230px,1fr)_minmax(260px,1.1fr)_64px_150px_150px] items-center gap-4 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
+                      <div className="grid grid-cols-[minmax(150px,0.55fr)_minmax(250px,1fr)_minmax(190px,0.78fr)_56px_150px_150px] items-center gap-2 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
                         <p className="min-w-0 truncate font-semibold text-[#202020]">{lineItem.partName}</p>
                         <dl className="grid gap-1.5 text-[12px] leading-5 text-[#64748b]">
                           <div>
@@ -692,6 +758,13 @@ function AdminQuoteDetailDrawer({
                                 defaultValue={lineItemLeadTimeInput(request, lineItem)}
                                 inputMode="numeric"
                                 name={`leadTimeDays:${lineItem.id}`}
+                                onChange={(event) => {
+                                  const nextLeadTime = event.currentTarget.value;
+                                  setQuoteLineLeadTimeValues((current) => ({
+                                    ...current,
+                                    [lineItem.id]: nextLeadTime,
+                                  }));
+                                }}
                                 placeholder="Days"
                               />
                             </label>
@@ -714,7 +787,7 @@ function AdminQuoteDetailDrawer({
 
             <section className="border-t border-[#eeeeee] pt-6">
               <StepHeading
-                number={4}
+                number={3}
                 summary={isReadOnlyIssuedQuote ? "Saved shipping, validity, and customer-facing note from the issued quote." : "Set shipping and quote validity, then send the customer-facing quote."}
               >
                 {isReadOnlyIssuedQuote ? "Issued customer quote" : "Issue customer quote"}
@@ -729,13 +802,13 @@ function AdminQuoteDetailDrawer({
                 </p>
               ) : null}
               {isReadOnlyIssuedQuote ? (
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <div className="mt-4 grid gap-4">
                   <StaticField label="Shipping cost" value={formatCurrencyPrecise(request.quote.shippingCostCents)} />
                   <StaticField label="Shipping speed" value={request.quote.shippingMethod || "Pending"} />
                   <StaticField label="Shipping terms" value={request.quote.shippingTerms || "Pending"} />
                   <StaticField label="Estimated delivery date" value={formatDate(request.quote.estimatedDeliveryDate)} />
                   <StaticField label="Quote valid until" value={formatDate(latestCustomerQuote?.validUntil ?? request.quote.quoteValidUntil)} />
-                  <div className="grid gap-1 lg:row-span-2">
+                  <div className="grid gap-1">
                     <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[#8a8f98]">Customer note</p>
                     <p className="min-h-28 rounded-md border border-[#eeeeee] bg-[#fafafa] px-3 py-3 text-[14px] leading-6 text-[#202020]">
                       {latestCustomerQuote?.notes || request.quote.summary || "Pending"}
@@ -744,7 +817,7 @@ function AdminQuoteDetailDrawer({
                 </div>
               ) : (
                 <>
-                  <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                  <div className="mt-4 grid gap-4">
                     <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                       Shipping cost
                       <input
@@ -759,10 +832,10 @@ function AdminQuoteDetailDrawer({
                       Shipping speed
                       <select
                         className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.shippingMethod}
                         name="shippingMethod"
+                        onChange={(event) => setSelectedShippingMethod(event.currentTarget.value)}
+                        value={selectedShippingMethod}
                       >
-                        <option value="">Select speed</option>
                         <option value="International">International</option>
                         <option value="Domestic">Domestic</option>
                       </select>
@@ -801,7 +874,7 @@ function AdminQuoteDetailDrawer({
                         value={quoteValidUntil}
                       />
                     </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a] lg:row-span-2">
+                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                       Customer note
                       <textarea
                         className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
@@ -832,16 +905,21 @@ function AdminQuoteDetailDrawer({
 
 export function AdminQuoteManagement({
   customerProfileHrefs = {},
+  overseasVendors = [],
   requests,
+  updateDecisionAction,
   updateStatusAction,
 }: {
   customerProfileHrefs?: Record<string, string>;
+  overseasVendors?: OverseasVendor[];
   requests: LatticeRequest[];
+  updateDecisionAction?: AdminQuoteAction;
   updateStatusAction?: AdminQuoteAction;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const deepLinkedRequestId = searchParams.get("requestId");
+  const deepLinkedDecision = parsedRfqDecision(searchParams.get("decision"));
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<AdminQuoteStatusFilter>("ALL");
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
@@ -859,12 +937,6 @@ export function AdminQuoteManagement({
 
     return sortByUpdatedAtNewest([...merged.values()]);
   }, [localDraftRequests, requests]);
-  const activeQuoteRequests = quoteRequests.filter((request) => request.status !== "CLOSED");
-  const activeSupplierQuotes = activeQuoteRequests.reduce((count, request) => count + receivedSupplierQuotes(request).length, 0);
-  const quotedValueCents = activeQuoteRequests.reduce((sum, request) => sum + (request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents ?? 0), 0);
-  const blockedRequests = quoteRequests.filter((request) => request.status === "NEEDS_INFO").length;
-  const readyForIssueCount = activeQuoteRequests.filter((request) => request.status === "QUOTED" || request.quote.estimatedPriceCents !== null).length;
-
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       if (!deepLinkedRequestId) {
@@ -975,44 +1047,15 @@ export function AdminQuoteManagement({
     <div className="space-y-5">
       {detailRequest ? (
         <AdminQuoteDetailDrawer
-          key={detailRequest.id}
+          key={`${detailRequest.id}:${deepLinkedDecision ?? "quote"}`}
+          initialDecision={deepLinkedDecision}
           onClose={closeDetail}
+          overseasVendors={overseasVendors}
           request={detailRequest}
+          updateDecisionAction={updateDecisionAction}
           updateStatusAction={updateStatusAction}
         />
       ) : null}
-
-      <section className="grid gap-4 md:grid-cols-4">
-        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#767676]">
-            <ClipboardCheck aria-hidden="true" size={17} />
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Active submissions</p>
-          </div>
-          <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{activeQuoteRequests.length}</p>
-        </article>
-        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#767676]">
-            <Truck aria-hidden="true" size={17} />
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Shop quotes</p>
-          </div>
-          <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{activeSupplierQuotes}</p>
-        </article>
-        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#767676]">
-            <PackageCheck aria-hidden="true" size={17} />
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Ready to price</p>
-          </div>
-          <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{readyForIssueCount}</p>
-        </article>
-        <article className="rounded-md border border-[#ffd1d4] bg-white p-4">
-          <div className="flex items-center gap-2 text-[#767676]">
-            <ReceiptText aria-hidden="true" size={17} />
-            <p className="text-[12px] font-semibold uppercase tracking-[0.14em]">Quoted value</p>
-          </div>
-          <p className="mt-3 text-[30px] font-semibold leading-none text-[#171717]">{formatCurrency(quotedValueCents)}</p>
-          {blockedRequests > 0 ? <p className="mt-2 text-[12px] font-semibold text-[#FC642D]">{blockedRequests} blocked</p> : null}
-        </article>
-      </section>
 
       <section className="overflow-hidden rounded-md border border-[#ffd1d4] bg-white">
         <div className="flex flex-col gap-2 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 sm:flex-row sm:items-end sm:justify-between">

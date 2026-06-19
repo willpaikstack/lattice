@@ -462,8 +462,3 @@ export const vendorMaterialOfferings: VendorMaterialOffering[] = [
     sourcePageRefs: ["Catalog image pages 19-20"],
   },
 ];
-
-export function getMaterialOfferingsByVendor(vendor: string) {
-  return vendorMaterialOfferings.filter((offering) => offering.vendor === vendor);
-}
-

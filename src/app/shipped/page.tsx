@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { BuyerOrders } from "@/components/buyer-orders";
+import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShippedPage() {
-  const orders = await listBuyerOrders();
+  const orders = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders());
   const shippedOrders = orders.filter((order) => order.supplierOrder.status === "SHIPPED");
   const withTrackingCount = shippedOrders.filter((order) => order.supplierOrder.trackingNumber).length;
 

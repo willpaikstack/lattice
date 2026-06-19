@@ -41,11 +41,10 @@ textarea {
   font: inherit;
 }
 
-.lattice-cad-viewer #guiviewer3d-toolbar,
-.lattice-cad-viewer .adsk-control-tooltip,
-.lattice-cad-viewer .homeViewWrapper,
-.lattice-cad-viewer .viewcube,
-.lattice-cad-viewer .viewcubeWrapper,
-.lattice-cad-viewer .viewCube {
-  display: none !important;
+.lattice-cad-viewer #guiviewer3d-toolbar {
+  bottom: 10px !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  z-index: 20 !important;
 }

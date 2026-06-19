@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readLocalUpload } from "@/lib/local-file-storage";
-import { getCurrentSession } from "@/lib/session";
+import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +12,18 @@ function downloadName(storageKey: string, request: Request) {
 
 export async function GET(request: Request, { params }: { params: Promise<{ storageKey: string[] }> }) {
   try {
-    const session = await getCurrentSession();
+    const { storageKey: storageKeyParts } = await params;
+    const storageKey = storageKeyParts.join("/");
+    const access = await canCurrentSessionAccessStorageKey(storageKey);
 
-    if (!session) {
+    if (!access.authenticated) {
       return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     }
 
-    const { storageKey: storageKeyParts } = await params;
-    const storageKey = storageKeyParts.join("/");
+    if (!access.authorized) {
+      return NextResponse.json({ error: "Local file not found" }, { status: 404 });
+    }
+
     const { contents, sizeBytes } = await readLocalUpload(storageKey);
     const url = new URL(request.url);
     const contentType = url.searchParams.get("type") || "application/octet-stream";

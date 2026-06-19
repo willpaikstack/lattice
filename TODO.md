@@ -4,6 +4,13 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Append to `docs/completed-work-log.md` at the end of substantial sessions so completed tasks, features, fixes, and docs changes stay visible by date across computers.
+- Keep `docs/app-feature-map.md` current whenever feature behavior changes, especially when a route moves, a page switches from prototype/static data to live repositories, or a limitation is resolved.
+- Run the QC/manual test matrix in `docs/qc-testing-plan.md` before external customer/supplier testing, especially the ownership/privacy probes for cross-company RFQ, order, invoice, and supplier access.
+- Continue hardening from the 2026-06-18 manual QC privacy findings:
+  - replace the interim customer exact-requester-email ownership policy with durable one-primary-company membership when customer account records are ready
+  - add supplier-award/shop ownership checks for supplier order pages, invoice PDFs, supplier documents, and status update actions
+  - rerun the live fixture QC IDs recorded in `docs/qc-testing-plan.md` after the fixes
 - Production launch hardening after the 2026-06-02 Vercel/Neon setup:
   - deploy the `@vercel/analytics` instrumentation change, visit `https://latticeos.co`, then confirm Vercel Analytics leaves the Get Started state and starts showing page views
   - configure Google Workspace SSO credentials in local, preview, and production environments, then decide when to disable the interim local password fallback
@@ -21,7 +28,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - run `npm install` if dependencies changed
   - start local services with `docker compose up -d postgres minio`
   - run `npm run prisma:generate` and `npm run db:push`
-  - run `npm test`, `npm run lint`, and preferably `npm run build`
+  - run `npm run typecheck`, `npm run lint`, `npm test`, `npm run dead-code`, and preferably `npm run build`
   - open local `/`, `/login`, `/requests/new`, `/quotes`, `/orders`, and `/admin/quotes`
   - smoke test production `https://latticeos.co/` and `/admin/quotes`
   - visually check the public Figma AI pages, request-form dropdowns, quote table/detail, quote checkout, and order detail/help/reorder flows
@@ -29,7 +36,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - install dependencies if needed
   - start local Postgres/MinIO with Docker Compose
   - run Prisma generation and database push
-  - run tests, lint, and build
+  - run typecheck, lint, tests, dead-code audit, and build
   - open the key routes in a browser
 - Install Docker Desktop or point `DATABASE_URL` at a reachable Postgres/Neon database on this machine; RFQ submissions currently work through the development `.data/requests.json` fallback when localhost Postgres is unavailable, but real shared persistence still requires Postgres.
 - Keep improving the RFQ lifecycle:
@@ -46,13 +53,14 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Apply the new checkout payment schema fields and `CustomerPurchaseOrderAttachment` model to local and production databases with Prisma after Postgres is reachable; local development can store customer PO uploads in `.data/uploads/customer-purchase-orders` through the fallback store until then.
 - Apply the new Stripe checkout schema fields (`AccountDefaults.stripeCustomerId`, Stripe checkout/payment intent/amount/currency/paid timestamp fields, and expanded payment statuses) to production databases with Prisma before enabling live card checkout.
 - Apply the new guest simple quote schema fields (`Request.requestOrigin`, `Request.guestAccessTokenHash`, and `Request.guestAccessTokenExpiresAt`) to local and production databases with Prisma before promoting `/simple-quote`.
+- Apply the new roadmap interest schema (`RoadmapInterest`) to local and production databases with Prisma so `/roadmap` interest flags persist durably outside the local development fallback.
 - Apply the new admin order archive schema field (`Request.isArchived`) to local and production databases with Prisma after Postgres is reachable; local development can use the `.data/requests.json` fallback until then.
 - Continue refining quote revision lineage views, including admin-side source-chain navigation from revised RFQs back to the original request.
 - Define and persist a durable `Delivered` trigger for the buyer lifecycle tag, such as a supplier/order status beyond `SHIPPED` or a delivery confirmation event.
 - Add ownership-aware repository helpers such as `getCustomerRequestById`, `listCustomerRequests`, and `getSupplierOrderById` so role isolation also filters records by customer company or awarded supplier instead of only by route family.
 - If admins need to submit RFQs on behalf of customers, build a dedicated admin-native flow under `/admin/customers/[companyId]` rather than sending operators to the customer `/requests/new` experience.
 - If buyers need post-purchase quote history, expose the saved quote/PDF from `/orders/[requestId]` instead of putting purchased records back into `/quotes`.
-- Connect the buyer dashboard inbox to persisted RFQ, order, document, and buyer-action events. `/notifications` now derives quote-ready and missing-info rows from request state with static fallback data.
+- Add durable activity/read-state storage for buyer dashboard and notifications once the derived v1 feed is validated. Current `/dashboard` and `/notifications` use `src/lib/customer-dashboard.ts` and `src/lib/customer-notifications.ts` to derive activity from existing RFQ, quote, order, supplier update, shipping, tracking, and supplier document records without a schema migration.
 - Configure Autodesk Platform Services for live CAD previews:
   - create APS app credentials
   - rotate any APS Client Secret that was pasted into chat/logs before using it
@@ -62,7 +70,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - decide whether to also persist original Autodesk object IDs for admin troubleshooting and derivative lifecycle management
 - Smoke test APS-derived customer quote thumbnails on `/quotes/[requestId]` after APS credentials and database schema are applied in the target environment.
 - Continue clarifying buyer `/quotes` and admin `/admin/quotes` role separation now that quote issuance is database-backed and admin-owned.
-- Connect the `/admin` quote request overview more deeply to durable quote versions and supplier quote records.
+- Keep `/admin/quotes` as the active admin home and continue deepening its durable quote-version and supplier-quote record coverage.
 - Continue refining internal templates in `/admin/resources`; customer quote, supplier purchase order, and domestic invoice PDF templates now live there with in-app previews, with supplier outreach, order, and inspection document formats still future candidates.
 - Harden supplier PO issuance beyond on-demand generation by adding an issued supplier PO/audit record once Lattice needs immutable supplier release tracking.
 - Apply the new customer/invoice issuance schema (`CustomerSequence`, `Company.customerId`, `InvoiceSequence`, `Invoice.quoteNumber`, and `Invoice.shippingTerms`) to local/production databases with Prisma once Postgres is reachable; this machine currently lacks Docker/local Postgres, so `npm run db:push` cannot complete here.
@@ -72,7 +80,6 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Continue aligning customer quote template fields with real order data, especially ship-by date, DFM warnings, and customs/end-use notes.
 - Decide whether saved quote PDFs should later be stored durably and attached to buyer-facing quote/order records, emailed, or kept as manual downloads only.
 - Promote `/admin/vendors` from the current `.data/admin-vendor-overrides.json` local edit bridge to durable supplier/vendor records, including contacts, capability documents, quality history, payment terms, and quote/order performance.
-- Decide whether to keep or retire `/operator/requests/[requestId]` after more RFQ detail review lives in the `/admin/quotes` command drawer.
 - Continue turning demo/static quote, order, supplier, and customer surfaces into durable database-backed workflows as needed.
 - Keep the RFQ material selector aligned with researched marketplace and supplier-network material coverage; the current CNC selector is sourced from `src/lib/cnc-material-library.ts` and browsed through Hubs-style customer-facing material families.
 - Build admin/operator source-trace views for material and equipment repositories so each standardized customer-facing claim can be audited back to vendor, document, and extraction notes.
@@ -85,6 +92,8 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 Before ending a substantial session:
 
+- Append completed work to `docs/completed-work-log.md` with today's date.
+- Update `docs/app-feature-map.md` if app features, routes, data sources, maturity status, or limitations changed.
 - Update `PROJECT_CONTEXT.md` if routes, architecture, or product state changed.
 - Add an entry to `DECISIONS.md` for durable product or technical decisions.
 - Update this `TODO.md` with the next concrete step.
@@ -99,8 +108,10 @@ docker compose up -d postgres minio
 npm run prisma:generate
 npm run db:push
 npm run dev
-npm test
+npm run typecheck
 npm run lint
+npm test
+npm run dead-code
 npm run build
 ```
 
@@ -114,7 +125,7 @@ npm run build
 - `/orders`
 - `/orders/[requestId]`
 - `/supplier/orders`
-- `/admin`
+- `/admin/quotes`
 - `/admin/customers`
 - `/admin/vendors`
 - `/materials`

@@ -29,7 +29,7 @@ function sortNewest(left: { latestActivityAt: string }, right: { latestActivityA
 }
 
 function quoteHref(request: LatticeRequest) {
-  return request.status === "PURCHASED" ? `/supplier/orders/${request.id}` : `/operator/requests/${request.id}`;
+  return request.status === "PURCHASED" ? `/admin/orders/${request.id}` : `/admin/quotes?requestId=${encodeURIComponent(request.id)}`;
 }
 
 export function buildAdminCustomerSummaries(requests: LatticeRequest[]): AdminCustomerSummary[] {

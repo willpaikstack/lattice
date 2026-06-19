@@ -2,11 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 
+type AutodeskViewerExtension = {
+  activate?: () => boolean | void;
+  deactivate?: () => boolean | void;
+};
+
 type AutodeskViewerInstance = {
   addEventListener: (eventName: string, callback: () => void) => void;
   fitToView: () => void;
+  getExtension?: (extensionId: string) => AutodeskViewerExtension | null;
   start: () => number;
   finish: () => void;
+  loadExtension?: (extensionId: string, options?: unknown) => Promise<AutodeskViewerExtension>;
   loadDocumentNode: (document: AutodeskDocument, viewable: unknown) => Promise<unknown>;
   navigation?: {
     getPosition?: () => AutodeskVector3;
@@ -62,6 +69,9 @@ declare global {
 
 const viewerVersion = "7.108.0";
 const viewerAssetBaseUrl = `https://developer.api.autodesk.com/modelderivative/v2/viewers/${viewerVersion}`;
+const defaultViewerExtensions = ["Autodesk.Measure", "Autodesk.Explode", "Autodesk.Section"];
+const allowedToolbarControlIds = new Set(["toolbar-measurementSubmenuTool", "toolbar-explodeTool", "toolbar-sectionTool"]);
+const allowedToolbarControlIdPrefixes = ["toolbar-sectionTool-"];
 
 function ensureViewerStylesheet() {
   if (document.querySelector(`link[data-autodesk-viewer-version="${viewerVersion}"]`)) {
@@ -185,6 +195,66 @@ async function fitInitialView(viewer: AutodeskViewerInstance, model: unknown) {
   addInitialCameraPadding(viewer);
 }
 
+async function loadViewerExtension(viewer: AutodeskViewerInstance, extensionId: string) {
+  const loadedExtension = viewer.getExtension?.(extensionId);
+
+  if (loadedExtension) {
+    return loadedExtension;
+  }
+
+  if (!viewer.loadExtension) {
+    return null;
+  }
+
+  try {
+    return await viewer.loadExtension(extensionId);
+  } catch {
+    return null;
+  }
+}
+
+function filterAutodeskToolbarControls(container: HTMLElement) {
+  const toolbar = container.querySelector<HTMLElement>("#guiviewer3d-toolbar");
+
+  if (!toolbar) {
+    return;
+  }
+
+  const controls = toolbar.querySelectorAll<HTMLElement>(".adsk-button, button");
+
+  controls.forEach((control) => {
+    const controlTitle = control.getAttribute("title") ?? control.getAttribute("aria-label") ?? "";
+    const shouldKeepControl =
+      allowedToolbarControlIds.has(control.id) ||
+      allowedToolbarControlIdPrefixes.some((prefix) => control.id.startsWith(prefix)) ||
+      controlTitle === "Measure" ||
+      controlTitle === "Explode model" ||
+      controlTitle === "Section analysis";
+    control.style.display = shouldKeepControl ? "" : "none";
+  });
+
+  toolbar.querySelectorAll<HTMLElement>(".adsk-control-group, .adsk-toolbar-group, .toolbar-group").forEach((group) => {
+    const visibleControls = Array.from(group.querySelectorAll<HTMLElement>(".adsk-button, button")).some((control) => control.style.display !== "none");
+    group.style.display = visibleControls ? "" : "none";
+  });
+}
+
+function scheduleAutodeskToolbarFilter(container: HTMLElement) {
+  filterAutodeskToolbarControls(container);
+
+  let attempts = 0;
+  const interval = window.setInterval(() => {
+    attempts += 1;
+    filterAutodeskToolbarControls(container);
+
+    if (attempts >= 28) {
+      window.clearInterval(interval);
+    }
+  }, 250);
+
+  return () => window.clearInterval(interval);
+}
+
 export function AutodeskModelViewer({ urn }: { urn: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<AutodeskViewerInstance | null>(null);
@@ -193,6 +263,7 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
 
   useEffect(() => {
     let isMounted = true;
+    let stopToolbarFilter: (() => void) | null = null;
 
     async function initializeViewer() {
       try {
@@ -223,6 +294,7 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
             }
 
             const viewer = new window.Autodesk.Viewing.GuiViewer3D(containerRef.current);
+            stopToolbarFilter = scheduleAutodeskToolbarFilter(containerRef.current);
             viewerRef.current = viewer;
             const startCode = viewer.start();
 
@@ -243,6 +315,11 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
                     return;
                   }
                   await fitInitialView(viewer, model);
+                  await Promise.all(defaultViewerExtensions.map((extensionId) => loadViewerExtension(viewer, extensionId)));
+                  if (containerRef.current) {
+                    stopToolbarFilter?.();
+                    stopToolbarFilter = scheduleAutodeskToolbarFilter(containerRef.current);
+                  }
                   if (!isMounted) {
                     return;
                   }
@@ -268,6 +345,7 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
 
     return () => {
       isMounted = false;
+      stopToolbarFilter?.();
       viewerRef.current?.finish();
     };
   }, [urn]);

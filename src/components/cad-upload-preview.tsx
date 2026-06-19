@@ -65,13 +65,13 @@ export function CadUploadPreview({
 
   const message =
     state.status === "uploading"
-      ? "Uploading to the CAD preview service."
+      ? "Uploading the CAD file. You can keep building the RFQ while the preview starts."
       : state.status === "reference_only"
         ? state.message
       : state.status === "configuration_required"
         ? state.message
         : state.status === "processing"
-          ? `Autodesk is translating the model for browser viewing. Progress: ${state.progress}.`
+          ? `Autodesk is translating the model in the background. You can keep building and submit the RFQ while this finishes. Progress: ${state.progress}.`
           : state.message;
 
   const tone = state.status === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-blue-100 bg-blue-50 text-blue-900";
@@ -82,7 +82,9 @@ export function CadUploadPreview({
       ? "Autodesk preview setup needed"
       : state.status === "failed"
         ? "3D preview unavailable"
-        : "Preparing 3D preview";
+        : state.status === "uploading"
+          ? "Starting 3D preview"
+          : "3D preview processing";
 
   return (
     <div className={`mt-4 rounded-xl border p-5 text-left ${tone}`}>

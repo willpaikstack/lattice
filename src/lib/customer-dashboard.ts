@@ -1,0 +1,190 @@
+import { buyerLifecycleTag, type BuyerLifecycleTag } from "./buyer-lifecycle";
+import { buildCustomerActivityFeed, type CustomerActivityFeedItem } from "./customer-notifications";
+import type { LatticeRequest, RequestStatus } from "./request-model";
+
+export type CustomerDashboardMetric = {
+  detail: string;
+  href: string;
+  key: "activeRfqs" | "orders" | "shipped" | "alerts";
+  label: string;
+  tone?: "alert";
+  value: string;
+};
+
+export type CustomerDashboardActivityRow = {
+  amount: string;
+  event: string;
+  href: string;
+  id: string;
+  reference: string;
+  sortAt: string;
+  status: BuyerLifecycleTag;
+  title: string;
+  updatedLabel: string;
+};
+
+export type CustomerDashboardSummary = {
+  dashboardInbox: CustomerActivityFeedItem[];
+  metrics: CustomerDashboardMetric[];
+  notifications: CustomerActivityFeedItem[];
+  quoteOrderActivity: CustomerDashboardActivityRow[];
+};
+
+const activeRfqStatuses = new Set<RequestStatus>(["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"]);
+
+function formatCurrency(cents: number | null | undefined) {
+  if (cents === null || cents === undefined) {
+    return "Pending";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    style: "currency",
+  }).format(cents / 100);
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Not available";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
+function latestStatusEvent(request: LatticeRequest, status = request.status) {
+  return request.statusEvents
+    .filter((event) => event.to === status)
+    .sort((left, right) => Number(new Date(right.at)) - Number(new Date(left.at)))
+    .at(0) ?? request.statusEvents.at(-1) ?? null;
+}
+
+function quoteAmount(request: LatticeRequest) {
+  return request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
+}
+
+function orderReference(order: LatticeRequest) {
+  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function buildQuoteOrderActivity(quotes: LatticeRequest[], orders: LatticeRequest[]) {
+  const quoteRows = quotes.flatMap<CustomerDashboardActivityRow>((request) => {
+    const latestQuote = request.customerQuotes.at(-1);
+
+    if (!latestQuote) {
+      return [];
+    }
+
+    return [
+      {
+        amount: formatCurrency(latestQuote.totalCents),
+        event: "Quote received",
+        href: `/quotes/${request.id}`,
+        id: `quote:${request.id}:${latestQuote.id}`,
+        reference: latestQuote.quoteNumber,
+        sortAt: latestQuote.issuedAt,
+        status: buyerLifecycleTag(request),
+        title: request.title,
+        updatedLabel: formatDateTime(latestQuote.issuedAt),
+      },
+    ];
+  });
+  const orderRows = orders.flatMap<CustomerDashboardActivityRow>((order) => {
+    if (order.status !== "PURCHASED") {
+      return [];
+    }
+
+    const purchaseEvent = latestStatusEvent(order, "PURCHASED");
+    const sortAt = purchaseEvent?.at ?? order.updatedAt ?? order.createdAt;
+
+    return [
+      {
+        amount: formatCurrency(quoteAmount(order)),
+        event: "Order placed",
+        href: `/orders/${order.id}`,
+        id: `order:${order.id}:${purchaseEvent?.id ?? "current"}`,
+        reference: orderReference(order),
+        sortAt,
+        status: buyerLifecycleTag(order),
+        title: order.title,
+        updatedLabel: formatDateTime(sortAt),
+      },
+    ];
+  });
+
+  return [...quoteRows, ...orderRows]
+    .sort((left, right) => Number(new Date(right.sortAt)) - Number(new Date(left.sortAt)))
+    .slice(0, 6);
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function attentionDetail(count: number) {
+  return count === 1 ? "1 needs attention" : `${count} need attention`;
+}
+
+function isDashboardInboxItem(notification: CustomerActivityFeedItem) {
+  if (notification.meta !== "RFQ status") {
+    return true;
+  }
+
+  return notification.title === "RFQ submitted" || notification.title === "No quote";
+}
+
+export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[]): CustomerDashboardSummary {
+  const notifications = buildCustomerActivityFeed({ orders, quotes });
+  const activeRfqs = quotes.filter((request) => activeRfqStatuses.has(request.status));
+  const quotedRfqs = quotes.filter((request) => request.status === "QUOTED").length;
+  const purchasedOrders = orders.filter((order) => order.status === "PURCHASED");
+  const activeOrders = purchasedOrders.filter((order) => order.supplierOrder.status !== "SHIPPED").length;
+  const shippedOrders = purchasedOrders.filter((order) => order.supplierOrder.status === "SHIPPED").length;
+  const actionRequiredNotifications = notifications.filter((notification) => notification.actionRequired).length;
+
+  return {
+    metrics: [
+      {
+        detail: `${pluralize(quotedRfqs, "quote")} ready for review`,
+        href: "/quotes",
+        key: "activeRfqs",
+        label: "Active RFQs",
+        value: String(activeRfqs.length),
+      },
+      {
+        detail: `${pluralize(activeOrders, "active order")} in production flow`,
+        href: "/orders",
+        key: "orders",
+        label: "Orders",
+        value: String(purchasedOrders.length),
+      },
+      {
+        detail: `${pluralize(shippedOrders, "order")} shipped`,
+        href: "/shipped",
+        key: "shipped",
+        label: "Shipped",
+        value: String(shippedOrders),
+      },
+      {
+        detail: attentionDetail(actionRequiredNotifications),
+        href: "/notifications",
+        key: "alerts",
+        label: "Alerts",
+        tone: "alert",
+        value: String(actionRequiredNotifications),
+      },
+    ],
+    dashboardInbox: notifications.filter(isDashboardInboxItem),
+    notifications,
+    quoteOrderActivity: buildQuoteOrderActivity(quotes, purchasedOrders),
+  };
+}

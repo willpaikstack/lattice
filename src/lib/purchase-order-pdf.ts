@@ -48,7 +48,7 @@ type PurchaseOrderPdfInput = {
   toolingAmount: number;
 };
 
-export function selectedStructuredSupplierQuote(order: LatticeRequest): SupplierQuote | null {
+function selectedStructuredSupplierQuote(order: LatticeRequest): SupplierQuote | null {
   const selected = order.supplierQuotes.find((quote) => quote.isSelected) ?? order.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
   const lineItems = selected?.lineItems ?? [];
   const hasPricedLines = lineItems.length > 0 && lineItems.every((item) => item.quantity > 0 && item.unitPrice > 0);
@@ -341,7 +341,7 @@ function drawTermsPage(doc: PDFKit.PDFDocument, purchaseOrder: PurchaseOrderPdfI
   });
 }
 
-export function buildSupplierPurchaseOrderPdf(purchaseOrder: PurchaseOrderPdfInput) {
+function buildSupplierPurchaseOrderPdf(purchaseOrder: PurchaseOrderPdfInput) {
   const subtotal = purchaseOrder.lineItems.reduce((sum, item) => sum + item.amount, 0);
   const total = subtotal + purchaseOrder.toolingAmount + purchaseOrder.otherCharges;
   const { doc, done } = createPdf({ compress: false, margin: 42, size: "LETTER" });

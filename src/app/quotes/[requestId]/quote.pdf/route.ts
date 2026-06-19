@@ -4,7 +4,7 @@ import { buildCustomerQuoteInputFromRequest, buildCustomerQuoteInputFromVersion,
 import { buildRequestQuotePdf } from "@/lib/quote-pdf";
 import { convertCustomerQuoteTemplateToPdf } from "@/lib/quote-template-pdf";
 import type { RequestStatus } from "@/lib/request-model";
-import { getRequestById } from "@/lib/request-repository";
+import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { requireRouteRole } from "@/lib/route-authorization";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ req
   }
 
   const { requestId } = await params;
-  const request = await getRequestById(requestId);
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
 
   if (!request || !downloadableQuoteStatuses.has(request.status)) {
     notFound();

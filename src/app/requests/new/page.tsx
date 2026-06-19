@@ -1,7 +1,8 @@
 import { RequestForm, type RequestFormInitialState } from "@/components/request-form";
 import { getAccountSettings } from "@/lib/account-settings";
+import { filterCustomerVisibleRequests, getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import type { LatticeRequest } from "@/lib/request-model";
-import { getRequestById, listBuyerQuotes } from "@/lib/request-repository";
+import { listBuyerQuotes } from "@/lib/request-repository";
 import {
   generalToleranceOptions,
   processOptions,
@@ -10,6 +11,7 @@ import {
   rfqMaterialOptions,
   surfaceFinishOptions,
 } from "@/lib/rfq-options";
+import { getCurrentSession } from "@/lib/session";
 
 type NewRequestPageProps = {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -260,12 +262,14 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
   const reorderId = firstParam(params.reorder);
   const draftId = firstParam(params.draft);
   const accountSettings = await getAccountSettings();
-  const [reviseSource, reorderSource, draftSource, buyerQuotes] = await Promise.all([
-    reviseId ? getRequestById(reviseId) : Promise.resolve(null),
-    reorderId ? getRequestById(reorderId) : Promise.resolve(null),
-    draftId ? getRequestById(draftId) : Promise.resolve(null),
+  const [reviseSource, reorderSource, draftSource, buyerQuotes, session] = await Promise.all([
+    reviseId ? getCustomerRequestByIdForCurrentSession(reviseId) : Promise.resolve(null),
+    reorderId ? getCustomerRequestByIdForCurrentSession(reorderId) : Promise.resolve(null),
+    draftId ? getCustomerRequestByIdForCurrentSession(draftId) : Promise.resolve(null),
     listBuyerQuotes(),
+    getCurrentSession(),
   ]);
+  const visibleBuyerQuotes = filterCustomerVisibleRequests(buyerQuotes, session);
   const editableRevision = isEditableQuoteRequest(reviseSource) ? reviseSource : null;
   const editableDraft = draftSource?.status === "DRAFT" ? draftSource : null;
   const initialState = editableRevision
@@ -290,7 +294,7 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
             ? "Incomplete RFQ reopened. Finish the missing details, then click Request Quote when it is ready for Lattice review."
           : undefined
       }
-      resumeRequests={buyerQuotes.filter(isResumeCandidate)}
+      resumeRequests={visibleBuyerQuotes.filter(isResumeCandidate)}
     />
   );
 }

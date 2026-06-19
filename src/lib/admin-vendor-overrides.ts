@@ -99,38 +99,6 @@ function cleanOnboardingStatus(value: unknown): OverseasVendor["onboardingStatus
   return onboardingStatuses.includes(value as OverseasVendor["onboardingStatus"]) ? (value as OverseasVendor["onboardingStatus"]) : "Needs intake";
 }
 
-export function pickEditableVendorFields(vendor: OverseasVendor): OverseasVendorEditableFields {
-  return {
-    capabilities: vendor.capabilities,
-    certifications: vendor.certifications,
-    city: vendor.city,
-    communicationWindow: vendor.communicationWindow,
-    country: vendor.country,
-    defectRate: vendor.defectRate,
-    fabCapabilities: vendor.fabCapabilities,
-    materials: vendor.materials,
-    name: vendor.name,
-    nonFabOfferings: vendor.nonFabOfferings,
-    notes: vendor.notes,
-    onboardingStatus: vendor.onboardingStatus,
-    onTimeDeliveryRate: vendor.onTimeDeliveryRate,
-    paymentTerms: vendor.paymentTerms,
-    phoneNumber: vendor.phoneNumber,
-    primaryCapability: vendor.primaryCapability,
-    primaryContact: vendor.primaryContact,
-    primaryEmail: vendor.primaryEmail,
-    qmsStandard: vendor.qmsStandard,
-    qualitySystem: vendor.qualitySystem,
-    region: vendor.region,
-    relationshipOwner: vendor.relationshipOwner,
-    shippingLane: vendor.shippingLane,
-    vendorDocs: vendor.vendorDocs,
-    vendorType: vendor.vendorType,
-    website: vendor.website,
-    wechatId: vendor.wechatId,
-  };
-}
-
 export function normalizeVendorSaveInput(input: unknown): OverseasVendorSaveInput {
   const candidate = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
   const rawFields = candidate.fields && typeof candidate.fields === "object" ? (candidate.fields as Record<string, unknown>) : {};

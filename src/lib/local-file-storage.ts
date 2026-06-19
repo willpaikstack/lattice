@@ -36,7 +36,7 @@ function assertSafeStorageKey(storageKey: string) {
   return normalized;
 }
 
-export function localUploadPath(storageKey: string) {
+function localUploadPath(storageKey: string) {
   const safeKey = assertSafeStorageKey(storageKey);
   const fullPath = path.join(localUploadRoot, safeKey);
   const relative = path.relative(localUploadRoot, fullPath);

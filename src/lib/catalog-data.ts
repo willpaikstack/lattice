@@ -91,7 +91,7 @@ const materialImages = {
   },
 } satisfies Record<string, MaterialImageSource>;
 
-export const stainlessSteelVariants: MaterialVariant[] = [
+const stainlessSteelVariants: MaterialVariant[] = [
   {
     name: "SS 304",
     uns: "S30400",
@@ -145,7 +145,7 @@ export const stainlessSteelVariants: MaterialVariant[] = [
   },
 ];
 
-export const aluminumVariants: MaterialVariant[] = [
+const aluminumVariants: MaterialVariant[] = [
   {
     name: "Aluminum 6061-T6",
     uns: "A96061",
@@ -196,7 +196,7 @@ export const aluminumVariants: MaterialVariant[] = [
   },
 ];
 
-export const mildSteelVariants: MaterialVariant[] = [
+const mildSteelVariants: MaterialVariant[] = [
   {
     name: "ASTM A36",
     uns: "K02600",
@@ -232,7 +232,7 @@ export const mildSteelVariants: MaterialVariant[] = [
   },
 ];
 
-export const brassVariants: MaterialVariant[] = [
+const brassVariants: MaterialVariant[] = [
   {
     name: "Brass C360",
     uns: "C36000",
@@ -268,7 +268,7 @@ export const brassVariants: MaterialVariant[] = [
   },
 ];
 
-export const copperVariants: MaterialVariant[] = [
+const copperVariants: MaterialVariant[] = [
   {
     name: "Copper C110",
     uns: "C11000",
@@ -304,7 +304,7 @@ export const copperVariants: MaterialVariant[] = [
   },
 ];
 
-export const alloySteelVariants: MaterialVariant[] = [
+const alloySteelVariants: MaterialVariant[] = [
   {
     name: "Alloy Steel 4140",
     uns: "G41400",
@@ -340,7 +340,7 @@ export const alloySteelVariants: MaterialVariant[] = [
   },
 ];
 
-export const toolSteelVariants: MaterialVariant[] = [
+const toolSteelVariants: MaterialVariant[] = [
   {
     name: "A2 Tool Steel",
     uns: "T30102",
@@ -387,7 +387,7 @@ export const toolSteelVariants: MaterialVariant[] = [
   },
 ];
 
-export const titaniumVariants: MaterialVariant[] = [
+const titaniumVariants: MaterialVariant[] = [
   {
     name: "Titanium Grade 2",
     uns: "R50400",
@@ -412,7 +412,7 @@ export const titaniumVariants: MaterialVariant[] = [
   },
 ];
 
-export const nickelAlloyVariants: MaterialVariant[] = [
+const nickelAlloyVariants: MaterialVariant[] = [
   {
     name: "Inconel 625",
     uns: "N06625",

@@ -15,9 +15,6 @@ export type SheetModel = {
   rows: SheetRow[];
 };
 
-const latticeAddress = "169 Madison Ave, #17525\nNew York, NY 10016";
-const latticeEmail = "mfg@latticeos.co";
-const latticeWebsite = "Latticeos.co";
 const latticePaymentTerms = "100% Payment in Advance";
 const defaultSalesTaxRate = 0.0825;
 
@@ -247,7 +244,7 @@ function isMoneyCell(sheetName: string, rowIndex: number, columnIndex: number) {
   return false;
 }
 
-export function isTemplateInputCell(sheetName: string, rowIndex: number, columnIndex: number) {
+function isTemplateInputCell(sheetName: string, rowIndex: number, columnIndex: number) {
   if (sheetName === "Quote PDF" || sheetName.includes("Terms") || sheetName === "Vendor Patterns") {
     return false;
   }
@@ -500,14 +497,6 @@ function productionRegion(request: LatticeRequest) {
   return request.quote.shippingMethod === "Domestic" ? "Domestic" : "Overseas";
 }
 
-function itemDetails(request: LatticeRequest, index: number) {
-  const cadFiles = request.files.filter((file) => /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type));
-  const drawingFiles = request.files.filter((file) => /\.(pdf|dwg|dxf|png|jpg|jpeg)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type));
-  const lineItem = request.lineItems[index];
-
-  return [`[Rev 1] ${cadFiles[index]?.name ?? lineItem.partName}`, drawingFiles[index]?.name, lineItem.partName].filter(Boolean).join("\n");
-}
-
 function templateItemDetails(request: LatticeRequest, index: number) {
   const lineItem = request.lineItems[index];
   if (!lineItem) {
@@ -671,32 +660,6 @@ function buildCustomerQuoteFromExcelTemplate(request: LatticeRequest) {
   return createZip(patchedEntries);
 }
 
-function termsRows() {
-  return [
-    ["Clause", "Standard language"],
-    ["Quote validity", "Price is valid through the valid-until date. Lead time is an estimate and may change if acceptance is delayed or supplier capacity changes."],
-    ["3D vs drawing precedence", "If 2D drawing requirements conflict with the 3D file, Lattice will request clarification before release."],
-    ["DFM changes", "Manual drilling, alternate stock thickness, tolerance-risk features, or reach limitations should be called out before customer acceptance."],
-    ["Payment release", `${latticePaymentTerms}. Production does not begin until payment is received and final design release is complete.`],
-    ["Taxes and duties", "Tax, tariffs, import duties, customs brokerage, and compliance fees are excluded unless explicitly listed in the quote total."],
-    ["Inspection", "Standard dimensional inspection is included. CMM, FAIR, material certs, or special documentation must be quoted explicitly."],
-    ["Shipping", "Shipping costs and delivery dates are estimates until final shipment booking unless the quote says landed cost is included."],
-    ["Confidentiality", "Customer-provided drawings, CAD files, and technical information are used only for quotation, manufacturing review, and production of the quoted work."],
-    ["Acceptance", "Customer acceptance may be provided by written approval, purchase order, or payment referencing the quote number."],
-  ];
-}
-
-function vendorPatternRows() {
-  return [
-    ["Vendor set", "Useful pattern", "Lattice template response"],
-    ["Zintilon / Jucheng / Best", "Excel-like quotation with contacts, line items, shipping, total, lead time, validity, and payment notes.", "Use a clean input sheet and customer-facing print sheet."],
-    ["Xometry", "Deep per-part technical specification and value-engineering feedback.", "Use DFM / notes and customer-visible note columns per line item."],
-    ["Fictiv", "Summary of order, production region, ship-by, delivery, shipping method, tax/tariff treatment, and DFM feedback.", "Put order total and logistics above line items."],
-    ["Hubs / Protolabs Network", "Landed-cost framing, bill-to/ship-to, detailed specs, acceptance language, and terms.", "Separate tax, tariffs/duties, shipping, and total."],
-    ["Kintec / Best Parts", "Compact table with dimensions, material, finish, lead time, and quote-specific notes.", "Dimensions and notes are first-class line item fields."],
-  ];
-}
-
 export function buildXlsxWorkbook(sheets: SheetModel[]) {
   const files = [
     { name: "[Content_Types].xml", content: contentTypesXml(sheets) },
@@ -708,126 +671,6 @@ export function buildXlsxWorkbook(sheets: SheetModel[]) {
   ];
 
   return createZip(files);
-}
-
-function buildSheets(request: LatticeRequest): SheetModel[] {
-  const latest = request.customerQuotes.at(-1);
-  const quoteDate = formatIsoDate(request.quote.quoteCreatedDate || latest?.quoteDate) || new Date().toISOString().slice(0, 10);
-  const validUntil = formatIsoDate(request.quote.quoteValidUntil || latest?.validUntil) || addDaysIso(quoteDate, 30);
-  const shipBy = request.quote.leadTimeDays ? addDaysIso(quoteDate, request.quote.leadTimeDays) : null;
-  const standardNotes = buildStandardQuoteNotes(quoteDate, shipBy);
-  const subtotal = quoteSubtotal(request);
-  const shipping = request.quote.shippingCostCents === null ? 0 : request.quote.shippingCostCents / 100;
-  const salesTax = Math.round(subtotal * defaultSalesTaxRate * 100) / 100;
-  const total = subtotal + shipping + salesTax;
-  const lineRows = request.lineItems.slice(0, 20).map((lineItem, index) => {
-    const unitPrice = latestLinePrice(request, lineItem.id, lineItem.partName);
-    const lineTotal = unitPrice === null ? null : unitPrice * lineItem.quantity;
-
-    return [
-      index + 1,
-      itemDetails(request, index),
-      request.process,
-      lineItem.material,
-      lineItem.surfaceFinish || "As machined / not specified",
-      lineItem.generalTolerance || "",
-      lineItem.quantity,
-      unitPrice,
-      lineTotal,
-      productionRegion(request),
-      [lineItem.notes, request.operatorReview.internalNotes].filter(Boolean).join("\n"),
-      lineItem.qualityDocumentation?.join(", ") || "Standard dimensional inspection included.",
-    ];
-  });
-  const paddedLines = [...lineRows, ...Array.from({ length: Math.max(0, 20 - lineRows.length) }, (_, index) => [lineRows.length + index + 1, "", "", "", "", "", null, null, null, "", "", ""])];
-  const preparedFor = preparedForLines(request).join("\n");
-  const shipTo = shipToLines(request).join("\n");
-
-  const inputRows: SheetRow[] = [
-    ["Lattice Customer Quote Template - Inputs"],
-    [],
-    ["Quote number", quoteReference(request)],
-    ["Quote status", request.status === "QUOTED" || request.status === "PURCHASED" ? "Quoted" : "Draft from RFQ data"],
-    ["Quote date", quoteDate],
-    ["Valid until", validUntil],
-    ["Prepared for", preparedFor],
-    ["Ship to", shipTo],
-    ["Bill to / ship to", shipTo],
-    ["Prepared by", latest?.preparedBy || "Lattice OS"],
-    ["Account manager", request.operatorReview.assignedOwner || "William Paik"],
-    ["Account manager email", latticeEmail],
-    ["Lattice address", latticeAddress],
-    ["Lattice website", latticeWebsite],
-    ["RFQ / project", latest?.projectName || request.title],
-    ["Production region", productionRegion(request)],
-    ["Production speed", latest?.leadTime || (request.quote.leadTimeDays ? `${request.quote.leadTimeDays} business days` : "")],
-    ["Ship by", shipBy || "Pending"],
-    ["Estimated delivery", request.quote.estimatedDeliveryDate || "TBD after checkout"],
-    ["Shipping method", request.quote.shippingMethod || "International"],
-    ["Shipping terms", request.quote.shippingTerms || "Determined at checkout"],
-    ["Payment terms", latticePaymentTerms],
-    [],
-    ["Item", "Part details / file package", "Process", "Material", "Finish", "Dimensions / tolerance", "Qty", "Unit price", "Subtotal", "Production region", "DFM / notes", "Customer-visible note"],
-    ...paddedLines,
-    [],
-    ["Part production subtotal", subtotal],
-    ["Engineering / setup", 0],
-    ["Shipping", shipping],
-    ["Sales Tax", salesTax],
-    ["Other fees", 0],
-    ["Order total", total],
-    ["Quote validity note", "Price is valid until the valid-until date; lead time is valid for 15 days unless otherwise stated."],
-    ["Customer summary note", standardNotes],
-  ];
-
-  const quoteRows: SheetRow[] = [
-    ["Lattice OS"],
-    [latticeAddress, "", "", "", "", "", `${latticeEmail}\n${latticeWebsite}`],
-    [`Quote ${quoteReference(request)}`],
-    [`${inputRows[3][1]} | Created ${quoteDate} | Valid until ${validUntil}`],
-    [],
-    ["PREPARED FOR", "", "", "SHIP TO", "", "", "QUOTE DETAILS"],
-    [
-      preparedFor,
-      "",
-      "",
-      shipTo,
-      "",
-      "",
-      `Production speed: ${inputRows[16][1] || "Pending"}\nShip by: ${shipBy || "Pending"}\nEstimated delivery: ${request.quote.estimatedDeliveryDate || "TBD after checkout"}\nShipping: ${request.quote.shippingMethod || "International"}\nTerms: ${request.quote.shippingTerms || "Determined at checkout"}`,
-    ],
-    [],
-    [],
-    [],
-    [],
-    [],
-    [`SUMMARY OF ORDER    ORDER TOTAL $${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
-    [],
-    [],
-    ["#", "Part details", "", "Process", "Material", "Finish", "Qty", "Unit price", "Subtotal"],
-    ...paddedLines.slice(0, 10).flatMap((row) => [[row[0], row[1], "", row[2], row[3], row[4], row[6], row[7], row[8]], [], []]),
-    [],
-    ["NOTES", "", "", "", "", "Part production", "", "", subtotal],
-    [standardNotes, "", "", "", "", "Engineering / setup", "", "", 0],
-    ["", "", "", "", "", "Shipping", "", "", shipping],
-    ["", "", "", "", "", "Sales Tax", "", "", salesTax],
-    ["", "", "", "", "", "Other fees", "", "", 0],
-    ["", "", "", "", "", "Order Total", "", "", total],
-    [],
-    [],
-    ["MANUFACTURING ASSUMPTIONS AND ACCEPTANCE"],
-    [],
-    [
-      `1. ${latticePaymentTerms}; production begins only after payment is received and final design release is complete.\n2. Customer-supplied CAD, drawings, quantities, material, finish, and inspection requirements are assumed complete and current.\n3. Any change to design, drawing callouts, material, quantity, shipping destination, or requested certifications may require repricing.\n4. Production lead time starts after written quote acceptance, payment, final design release, and closure of open DFM questions.\n5. Unless stated otherwise, tax, tariffs, import duties, customs brokerage, expedited freight, and special inspection documents are excluded.\n6. To accept, reply with written approval and complete payment referencing this quote number.`,
-    ],
-  ];
-
-  return [
-    { columnWidths: [6, 36, 4, 17, 17, 15, 8, 14, 15], name: "Quote PDF", rows: quoteRows },
-    { columnWidths: [22, 36, 18, 18, 18, 20, 10, 14, 14, 18, 32, 30], name: "Inputs", rows: inputRows },
-    { columnWidths: [22, 78], name: "Terms", rows: [["Standard Clause Library"], [], ...termsRows()] },
-    { columnWidths: [24, 58, 48], name: "Vendor Patterns", rows: [["Vendor Quote Patterns Reviewed"], [], ...vendorPatternRows()] },
-  ];
 }
 
 export function customerQuoteXlsxFileName(request: LatticeRequest) {
@@ -846,117 +689,4 @@ export function customerQuoteXlsxFileName(request: LatticeRequest) {
 
 export function buildCustomerQuoteXlsx(request: LatticeRequest) {
   return buildCustomerQuoteFromExcelTemplate(request);
-}
-
-function blankCustomerQuoteTemplateRequest(): LatticeRequest {
-  const placeholderRequest: LatticeRequest = {
-    buyerCompany: "Customer company",
-    createdAt: new Date().toISOString(),
-    customerQuotes: [],
-    customerPurchaseOrderAttachment: null,
-    dueDate: "",
-    files: [
-      { id: "file-cad-placeholder", name: "part.step", sizeBytes: 0, type: "application/octet-stream" },
-      { id: "file-drawing-placeholder", name: "drawing.pdf", sizeBytes: 0, type: "application/pdf" },
-    ],
-    guestAccessTokenExpiresAt: null,
-    guestAccessTokenHash: "",
-    id: "req_template",
-    isArchived: false,
-    lineItems: [
-      {
-        generalTolerance: "[Tolerance / dimensions]",
-        id: "line-template-1",
-        material: "[Material]",
-        notes: "[DFM or process notes]",
-        partName: "[Part name]",
-        qualityDocumentation: ["[Inspection / docs]"],
-        quantity: 0,
-        surfaceFinish: "[Finish]",
-      },
-      {
-        generalTolerance: "",
-        id: "line-template-2",
-        material: "",
-        notes: "",
-        partName: "",
-        qualityDocumentation: [],
-        quantity: 0,
-        surfaceFinish: "",
-      },
-    ],
-    operatorReview: {
-      assignedOwner: "William Paik",
-      completeness: "READY_FOR_REVIEW",
-      internalNotes: "",
-      supplierPackageNotes: "",
-    },
-    process: "[Process]",
-    purchasePayment: {
-      method: null,
-      status: null,
-      customerPoNumber: "",
-      accountsPayableEmail: "",
-      buyerCheckoutNotes: "",
-      card: null,
-      stripe: {
-        amountCents: null,
-        checkoutSessionId: "",
-        currency: "",
-        paidAt: null,
-        paymentIntentId: "",
-      },
-    },
-    quote: {
-      estimatedDeliveryDate: "TBD after checkout",
-      estimatedPriceCents: null,
-      leadTimeDays: null,
-      quoteCreatedDate: new Date().toISOString().slice(0, 10),
-      quoteValidUntil: addDaysIso(new Date().toISOString().slice(0, 10), 30),
-      shippingCostCents: null,
-      shippingMethod: "International",
-      shippingTerms: "Determined at checkout",
-      summary: "Pricing includes manufacturing coordination, production, standard inspection, and shipment according to the terms below.",
-    },
-    revisionChangeLog: [],
-    revisionNumber: 1,
-    revisionOfRequestId: null,
-    requestOrigin: "ACCOUNT",
-    requesterEmail: "customer@example.com",
-    requesterName: "Customer name, email, phone",
-    requesterPhone: "+1 (555) 010-0000",
-    shipToAddress1: "[Address 1]",
-    shipToAddress2: "",
-    shipToCity: "[City]",
-    shipToCompany: "Customer company",
-    shipToName: "Customer name",
-    shipToPhone: "+1 (555) 010-0000",
-    shipToState: "[State]",
-    shipToZipCode: "[Zip]",
-    status: "SUBMITTED",
-    statusEvents: [],
-    supplierOrder: {
-      contactName: "",
-      documents: [],
-      notes: "",
-      shopName: "",
-      status: "AWAITING_ACKNOWLEDGMENT",
-      trackingNumber: "",
-      updates: [],
-    },
-    supplierQuoteFiles: [],
-    supplierQuotes: [],
-    title: "Project or RFQ title",
-    updatedAt: new Date().toISOString(),
-  };
-
-  return placeholderRequest;
-}
-
-export function buildBlankCustomerQuoteTemplateSheets() {
-  return buildSheets(blankCustomerQuoteTemplateRequest());
-}
-
-export function buildBlankCustomerQuoteTemplateXlsx() {
-  return buildXlsxWorkbook(buildBlankCustomerQuoteTemplateSheets());
 }

@@ -1,12 +1,11 @@
-import Link from "next/link";
-
 import { BuyerOrders } from "@/components/buyer-orders";
+import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
-  const orders = await listBuyerOrders();
+  const orders = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders());
   const activeOrderCount = orders.filter((order) => order.supplierOrder.status !== "SHIPPED").length;
   const inProductionCount = orders.filter((order) => order.supplierOrder.status === "IN_PRODUCTION").length;
   const documentReadyCount = orders.filter((order) => order.supplierOrder.status === "DOCUMENTS_UPLOADED").length;
@@ -21,18 +20,6 @@ export default async function OrdersPage() {
             <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#6f737a]">
               Track purchased quotes through supplier acknowledgment, production, quality documents, shipment, and delivery follow-up.
             </p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link
-              className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold transition hover:bg-[#2b2b2b]"
-              href="/quotes"
-              style={{ color: "#ffffff" }}
-            >
-              View Quotes
-            </Link>
-            <Link className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#dcdcdc] bg-white px-4 text-[14px] font-semibold text-[#3f444b] transition hover:bg-[#f8f8f8]" href="/requests/new">
-              Request Quote
-            </Link>
           </div>
         </div>
       </section>

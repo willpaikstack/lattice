@@ -1,94 +1,326 @@
 import type { LatticeRequest } from "./request-model";
 
-export type CustomerNotification = {
-  title: string;
+type CustomerActivityTone = "attention" | "documents" | "shipping" | "status";
+
+export type CustomerActivityFeedItem = {
+  actionRequired: boolean;
   detail: string;
-  meta: string;
-  time: string;
   href: string;
-  unread: boolean;
+  id: string;
+  meta: string;
+  occurredAt: string;
+  time: string;
+  title: string;
+  tone: CustomerActivityTone;
 };
 
-function formatNotificationTime(value: string) {
+const supplierStatusLabels: Record<LatticeRequest["supplierOrder"]["status"], string> = {
+  AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
+  DOCUMENTS_UPLOADED: "Quality documents uploaded",
+  IN_PRODUCTION: "In production",
+  QC_IN_PROGRESS: "QC in progress",
+  READY_TO_SHIP: "Ready to ship",
+  SHIPPED: "Shipped",
+};
+
+const quoteStatusLabels: Record<LatticeRequest["status"], string> = {
+  CLOSED: "Archived",
+  DRAFT: "Draft",
+  NEEDS_INFO: "More information needed",
+  PURCHASED: "Order placed",
+  QUOTED: "Quote received",
+  READY_FOR_SUPPLIER_RFQ: "Supplier pricing",
+  SUBMITTED: "Lattice review in progress",
+};
+
+function formatActivityTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Pending";
+  }
+
   return new Intl.DateTimeFormat("en", {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
-export function buildCustomerNotifications(requests: LatticeRequest[]): CustomerNotification[] {
-  return requests
-    .flatMap((request) => {
-      const latestQuote = request.customerQuotes.at(-1);
-      const notifications: Array<CustomerNotification & { sortAt: string }> = [];
+function formatMoney(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    currency: "USD",
+    maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    style: "currency",
+  }).format(cents / 100);
+}
 
-      if (latestQuote) {
-        notifications.push({
-          title: `${latestQuote.quoteNumber} is ready for review`,
-          detail: `${request.title} is quoted at ${new Intl.NumberFormat("en-US", { currency: "USD", style: "currency" }).format(latestQuote.totalCents / 100)} with ${latestQuote.leadTime || "lead time to confirm"}.`,
-          href: `/quotes/${request.id}`,
-          meta: "RFQ status",
-          sortAt: latestQuote.issuedAt,
-          time: formatNotificationTime(latestQuote.issuedAt),
-          unread: request.status === "QUOTED",
-        });
-      } else if (request.status === "NEEDS_INFO") {
-        notifications.push({
-          title: `${request.title} needs more information`,
+function orderReference(order: LatticeRequest) {
+  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+}
+
+function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {
+  const labels: Record<LatticeRequest["statusEvents"][number]["actor"], string> = {
+    buyer: "Buyer",
+    operator: "Lattice",
+    supplier: "Supplier",
+    system: "System",
+  };
+
+  return labels[actor];
+}
+
+function quoteEventTitle(event: LatticeRequest["statusEvents"][number]) {
+  if (event.from === null && event.to === "DRAFT") {
+    return "Draft created";
+  }
+
+  if (event.from === "DRAFT" && event.to === "SUBMITTED") {
+    return "RFQ submitted";
+  }
+
+  if (event.to === "NEEDS_INFO") {
+    return "More information requested";
+  }
+
+  if (event.to === "QUOTED") {
+    return "Quote ready for review";
+  }
+
+  if (event.to === "PURCHASED") {
+    return "Order placed";
+  }
+
+  if (event.to === "CLOSED") {
+    return "No quote";
+  }
+
+  return quoteStatusLabels[event.to];
+}
+
+function quoteEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+  if (event.from === null) {
+    return `${actorLabel(event.actor)} opened the RFQ workspace.`;
+  }
+
+  if ((event.to === "NEEDS_INFO" || event.to === "CLOSED") && request.operatorReview.internalNotes) {
+    return request.operatorReview.internalNotes;
+  }
+
+  if (event.to === "SUBMITTED") {
+    return "Lattice received your RFQ and is reviewing the files and requirements.";
+  }
+
+  if (event.to === "QUOTED") {
+    return "Your quote is ready to review.";
+  }
+
+  if (event.to === "CLOSED") {
+    return "This RFQ has been closed and archived.";
+  }
+
+  return `${actorLabel(event.actor)} moved the quote from ${quoteStatusLabels[event.from]} to ${quoteStatusLabels[event.to]}.`;
+}
+
+function quoteEventMeta(event: LatticeRequest["statusEvents"][number]) {
+  if (event.to === "NEEDS_INFO") {
+    return "Action needed";
+  }
+
+  if (event.to === "QUOTED") {
+    return "RFQ Progress";
+  }
+
+  if (event.to === "PURCHASED") {
+    return "Order progress";
+  }
+
+  return "RFQ status";
+}
+
+function quoteEventHref(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+  if (event.to === "DRAFT") {
+    return `/requests/new?draft=${request.id}`;
+  }
+
+  return event.to === "PURCHASED" || request.status === "PURCHASED" ? `/orders/${request.id}` : `/quotes/${request.id}`;
+}
+
+function quoteStatusEventItems(request: LatticeRequest) {
+  const statusEvents = request.statusEvents
+    .filter((event) => event.to !== "READY_FOR_SUPPLIER_RFQ")
+    .map<CustomerActivityFeedItem>((event) => ({
+      actionRequired: event.to === "NEEDS_INFO" || event.to === "QUOTED",
+      detail: quoteEventDetail(request, event),
+      href: quoteEventHref(request, event),
+      id: `status-event:${request.id}:${event.id}`,
+      meta: quoteEventMeta(event),
+      occurredAt: event.at,
+      time: formatActivityTime(event.at),
+      title: quoteEventTitle(event),
+      tone: event.to === "NEEDS_INFO" || event.to === "QUOTED" ? "attention" : "status",
+    }));
+  const latestQuote = request.customerQuotes.at(-1);
+
+  if (latestQuote && !request.statusEvents.some((event) => event.to === "QUOTED")) {
+    statusEvents.push({
+      actionRequired: request.status === "QUOTED",
+      detail: `${request.title} is quoted at ${formatMoney(latestQuote.totalCents)} with ${latestQuote.leadTime || "lead time to confirm"}.`,
+      href: `/quotes/${request.id}`,
+      id: `quote:${request.id}:${latestQuote.id}`,
+      meta: "RFQ Progress",
+      occurredAt: latestQuote.issuedAt,
+      time: formatActivityTime(latestQuote.issuedAt),
+      title: "Quote ready for review",
+      tone: request.status === "QUOTED" ? "attention" : "status",
+    });
+  }
+
+  return statusEvents;
+}
+
+function orderStatusDetail(order: LatticeRequest, status: LatticeRequest["supplierOrder"]["status"]) {
+  if (status === "SHIPPED") {
+    return order.supplierOrder.trackingNumber ? `${orderReference(order)} shipped. Tracking ${order.supplierOrder.trackingNumber} is available.` : `${orderReference(order)} shipped. Tracking details are pending.`;
+  }
+
+  if (status === "DOCUMENTS_UPLOADED") {
+    return "Quality records are ready for customer review.";
+  }
+
+  if (status === "IN_PRODUCTION") {
+    return "Your order is in production.";
+  }
+
+  if (status === "QC_IN_PROGRESS") {
+    return "Your order is in quality inspection.";
+  }
+
+  return `Supplier status changed to ${supplierStatusLabels[status].toLowerCase()}.`;
+}
+
+function orderProgressTitle(status: LatticeRequest["supplierOrder"]["status"]) {
+  if (status === "IN_PRODUCTION") {
+    return "In Production";
+  }
+
+  if (status === "QC_IN_PROGRESS") {
+    return "Inspection In Progress";
+  }
+
+  return null;
+}
+
+function orderStatusTone(status: LatticeRequest["supplierOrder"]["status"]): CustomerActivityTone {
+  if (status === "DOCUMENTS_UPLOADED") {
+    return "documents";
+  }
+
+  if (status === "SHIPPED") {
+    return "shipping";
+  }
+
+  return "status";
+}
+
+export function buildCustomerActivityFeed({
+  orders = [],
+  quotes = [],
+}: {
+  orders?: LatticeRequest[];
+  quotes?: LatticeRequest[];
+}): CustomerActivityFeedItem[] {
+  const quoteItems = quotes.flatMap((request) => {
+    const items = quoteStatusEventItems(request);
+
+    if (request.status === "NEEDS_INFO") {
+      const hasNeedsInfoEvent = items.some((item) => item.id.startsWith(`status-event:${request.id}:`) && item.meta === "Action needed");
+
+      if (!hasNeedsInfoEvent) {
+        items.push({
+          actionRequired: true,
           detail: request.operatorReview.internalNotes || "Lattice needs buyer clarification before supplier pricing can continue.",
           href: `/quotes/${request.id}`,
+          id: `needs-info:${request.id}`,
           meta: "Action needed",
-          sortAt: request.updatedAt,
-          time: formatNotificationTime(request.updatedAt),
-          unread: true,
+          occurredAt: request.updatedAt,
+          time: formatActivityTime(request.updatedAt),
+          title: `${request.title} needs more information`,
+          tone: "attention",
         });
       }
+    }
 
-      return notifications;
-    })
-    .sort((left, right) => Number(new Date(right.sortAt)) - Number(new Date(left.sortAt)))
-    .map((notification) => ({
-      detail: notification.detail,
-      href: notification.href,
-      meta: notification.meta,
-      time: notification.time,
-      title: notification.title,
-      unread: notification.unread,
-    }));
+    return items;
+  });
+
+  const orderItems = orders.flatMap((order) => {
+    const reference = orderReference(order);
+    const orderStatusEvents = quoteStatusEventItems(order).filter((item) => item.meta === "Order progress");
+    const documents = order.supplierOrder.documents
+      .filter((document) => document.category !== "PHOTO")
+      .map<CustomerActivityFeedItem>((document) => ({
+        actionRequired: true,
+        detail: `${document.name} was added to ${reference}.`,
+        href: `/orders/${order.id}`,
+        id: `supplier-document:${order.id}:${document.id}`,
+        meta: "Documents uploaded",
+        occurredAt: document.uploadedAt,
+        time: formatActivityTime(document.uploadedAt),
+        title: document.category === "PACKING_SLIP" ? "Packing slip uploaded" : "Quality documents uploaded",
+        tone: "documents",
+      }));
+    const hasDocumentRows = documents.length > 0;
+    const updates = order.supplierOrder.updates.flatMap<CustomerActivityFeedItem>((update) => {
+      if (update.status === "DOCUMENTS_UPLOADED" && hasDocumentRows) {
+        return [];
+      }
+
+      const isShipment = update.status === "SHIPPED";
+      const progressTitle = orderProgressTitle(update.status);
+
+      if (!isShipment && update.status !== "DOCUMENTS_UPLOADED" && !progressTitle) {
+        return [];
+      }
+
+      return [
+        {
+          actionRequired: update.status === "DOCUMENTS_UPLOADED",
+          detail: update.note || orderStatusDetail(order, update.status),
+          href: `/orders/${order.id}`,
+          id: `${isShipment ? "shipment" : "supplier-update"}:${order.id}:${update.id}`,
+          meta: isShipment ? "Shipping" : update.status === "DOCUMENTS_UPLOADED" ? "Documents uploaded" : "Order progress",
+          occurredAt: update.createdAt,
+          time: formatActivityTime(update.createdAt),
+          title: isShipment ? "Order shipped" : progressTitle ?? `${reference} moved to ${supplierStatusLabels[update.status].toLowerCase()}`,
+          tone: orderStatusTone(update.status),
+        },
+      ];
+    });
+    const hasShippedUpdate = order.supplierOrder.updates.some((update) => update.status === "SHIPPED");
+    const currentShipment =
+      order.supplierOrder.status === "SHIPPED" && !hasShippedUpdate
+        ? [
+            {
+              actionRequired: false,
+              detail: orderStatusDetail(order, "SHIPPED"),
+              href: `/orders/${order.id}`,
+              id: `shipment:${order.id}:current`,
+              meta: "Shipping",
+              occurredAt: order.updatedAt,
+              time: formatActivityTime(order.updatedAt),
+              title: "Order shipped",
+              tone: "shipping" as const,
+            },
+          ]
+        : [];
+
+    return [...orderStatusEvents, ...documents, ...updates, ...currentShipment];
+  });
+
+  return [...quoteItems, ...orderItems].sort((left, right) => {
+    const byDate = Number(new Date(right.occurredAt)) - Number(new Date(left.occurredAt));
+    return byDate || left.id.localeCompare(right.id);
+  });
 }
-
-export const customerNotifications: CustomerNotification[] = [
-  {
-    title: "Order PO-1042 moved to final inspection",
-    detail: "CNC bracket set is awaiting dimensional report sign-off before packing.",
-    meta: "Order status",
-    time: "12 min ago",
-    href: "/orders",
-    unread: true,
-  },
-  {
-    title: "RFQ RFQ-1187 is ready for review",
-    detail: "Supplier quotes are in for the 6061-T6 housing revision B package.",
-    meta: "RFQ status",
-    time: "48 min ago",
-    href: "/quotes",
-    unread: true,
-  },
-  {
-    title: "Quality documents uploaded",
-    detail: "Material certs and inspection photos were added to order PO-1036.",
-    meta: "Documents",
-    time: "Today",
-    href: "/orders",
-    unread: false,
-  },
-  {
-    title: "Drawing clarification requested",
-    detail: "Operator needs confirmation on thread callout for the manifold fixture.",
-    meta: "Action needed",
-    time: "Yesterday",
-    href: "/quotes",
-    unread: false,
-  },
-];

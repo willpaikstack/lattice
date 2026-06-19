@@ -1,0 +1,27 @@
+{
+  "$schema": "https://unpkg.com/knip/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,loading,route,actions}.{ts,tsx}",
+    "src/proxy.ts",
+    "next.config.ts",
+    "eslint.config.mjs",
+    "postcss.config.mjs",
+    "prisma.config.ts",
+    "vitest.config.ts",
+    "vitest.setup.ts",
+    "vitest.server-only.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "*.ts",
+    "*.mts",
+    "*.mjs"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    "figma-ai-first-pages/**"
+  ],
+  "ignoreDependencies": [
+    "tailwindcss"
+  ]
+}

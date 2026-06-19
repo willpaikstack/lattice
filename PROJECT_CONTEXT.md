@@ -48,10 +48,12 @@ Production launch baseline as of 2026-06-02:
 - Admins can attach the quote file received from the Chinese/overseas machine shop to an RFQ/order. Supplier quote attachments upload through the multipart route handler at `/api/supplier-quote-files`, are stored as local uploads under `.data/uploads/supplier-quotes` in development, tracked on `LatticeRequest.supplierQuoteFiles`, persisted in Postgres through `SupplierQuoteAttachment`, and surfaced in the admin quote drawer plus quote/order detail pages. PDF supplier quote attachments can be opened in an inline viewer popup from the admin RFQ response drawer while retaining a separate download action.
 - Quote checkout now treats William's account as approved for either saved-card checkout or purchase-order checkout. Placing an order persists `purchasePayment` details on the request/order; card checkout stores only non-sensitive saved-card metadata, while PO checkout requires a PO number, AP email, and uploaded customer PO file stored locally under `.data/uploads/customer-purchase-orders` in development and tracked through `CustomerPurchaseOrderAttachment`.
 - The public site now includes an account-free `/simple-quote` lane for one-off CAD-backed RFQs. Guest simple quote requests persist into the normal `Request` workflow with `requestOrigin: GUEST_SIMPLE_QUOTE`, appear in `/admin/quotes`, receive acknowledgement and quote-ready emails through the Resend/local-outbox path, and use tokenized magic links under `/simple-quote/[requestId]` for quote review and card-only Stripe payment without account access.
-- Admin quote issuance can now capture a structured selected Chinese shop quote alongside the received supplier quote attachment: shop details, supplier quote total, overall lead time, and per-line supplier unit price, lead time, drawing/revision, and notes. Purchased orders with a selected structured supplier quote can render an order-specific DOC-002 supplier purchase order PDF at `/admin/orders/[requestId]/supplier-purchase-order.pdf`; old orders or selected supplier quotes without structured line items show a pending supplier PO state instead of generating a PO from customer prices or an unstructured attachment.
+- Admin quote issuance can now capture a structured selected Chinese shop quote alongside the received supplier quote attachment: shop details plus pricing and lead-time line items entered once in the quote pricing section. Supplier quote total and overall lead time are calculated from those line items plus shipping inputs. Purchased orders with a selected structured supplier quote can render an order-specific DOC-002 supplier purchase order PDF at `/admin/orders/[requestId]/supplier-purchase-order.pdf`; old orders or selected supplier quotes without structured line items show a pending supplier PO state instead of generating a PO from customer prices or an unstructured attachment.
 - Admins can archive placed orders from `/admin/orders`. Archived orders keep `status: PURCHASED` and are hidden from the active admin placed-order list through `Request.isArchived`, preserving buyer/supplier lifecycle semantics and invoice eligibility.
-- Customer, admin, and supplier app spaces are role-aware at the session/proxy layer. Signed sessions carry an `admin`, `customer`, or `supplier` role; customers are redirected to `/dashboard` and suppliers to `/supplier/orders` when they attempt to enter another app family. Admin users land on `/admin` but can also operate customer routes such as `/dashboard`, `/requests/new`, `/quotes`, and `/orders` for development and customer-support simulation. The admin shell exposes a deliberate `Customer workspace` bridge, and admin sessions operating customer routes see an `Admin workspace` bridge back to `/admin`; customer-role sessions do not see the admin shortcut.
+- Customer, admin, and supplier app spaces are role-aware at the session/proxy layer. Signed sessions carry an `admin`, `customer`, or `supplier` role; customers are redirected to `/dashboard`, admins to `/admin/quotes`, and suppliers to `/supplier/orders` when they attempt to enter another app family. Admin users can also operate customer routes such as `/dashboard`, `/requests/new`, `/quotes`, and `/orders` for development and customer-support simulation. The admin shell exposes a deliberate `Customer workspace` bridge, and admin sessions operating customer routes see an `Admin workspace` bridge back to `/admin/quotes`; customer-role sessions do not see the admin shortcut.
+- Customer-facing RFQ, quote, order, checkout, invoice, and submitted-file access now applies an interim exact-requester-email ownership policy below the role guards. Customer users can access only records whose `requesterEmail` exactly matches the signed-in session email. Admins retain support access across customer records. This closes the immediate cross-company quote, checkout, invoice, and storage-key privacy gap while durable company/customer ID membership remains future hardening.
 - Sensitive route handlers and server actions now enforce role checks directly through `src/lib/route-authorization.ts`, covering quote PDFs, invoice PDFs, supplier PO PDFs, admin quote workbooks/templates, CAD preview APIs, and role-specific mutations. Public simple-quote review and quote PDFs remain intentionally token-scoped instead of account-scoped.
+- The customer app now includes `/roadmap`, a product/services roadmap page where customers can flag interest in planned capabilities such as instant DFM review, reserved supplier capacity, assembly/kitting, sheet metal fabrication, milestone tracking, and blanket RFQ programs. Interest flags persist through `RoadmapInterest` in Prisma when available and fall back to `.data/roadmap-interests.json` in development.
 - Resend and Cloudflare R2/S3 production storage are still pending. Workspace routes are protected by a signed HTTP-only session cookie; the login page supports both the interim local password gate and Google Workspace SSO through Google OAuth/OIDC when `GOOGLE_SSO_*` environment variables are configured.
 
 The current working vertical slice:
@@ -64,7 +66,7 @@ The current working vertical slice:
 6. Prisma persists the request to PostgreSQL.
 7. Draft customer quotes are visible from admin quote submissions in a separate draft table, including same-browser incomplete RFQ drafts and durable `DRAFT` requests.
 8. Submitted requests appear in admin quote submissions, where admins open a minimal RFQ review drawer focused on downloading uploaded files, checking configured part details, and entering critical quote feedback: one unit price per configured part, lead time, shipping cost, shipping method, shipping terms, estimated delivery date, quote created date, quote valid-until date, and notes.
-9. From the admin RFQ review drawer, operators attach received Chinese/overseas shop quote files, enter unit pricing, lead time, shipping cost, shipping terms, quote dates, delivery date, and quote notes in the app, then can export a request-specific Excel quote workbook at `/admin/quotes/[requestId]/quote-template.xlsx` and manually download the latest saved customer quote PDF at `/admin/quotes/[requestId]/quote.pdf`; both are populated from the saved RFQ, uploaded files, quote feedback, customer quote version, and shipping fields. Once a customer quote has been issued, the same admin drawer presents the saved quote data as read-only by default and exposes an explicit `Edit quote` action for correction/reissue work.
+9. From the admin RFQ review drawer, operators can request more information from the customer or no-quote the RFQ with a required customer-facing note, attach received Chinese/overseas shop quote files, enter unit pricing, lead time, shipping cost, shipping terms, quote dates, delivery date, and quote notes in the app, then can export a request-specific Excel quote workbook at `/admin/quotes/[requestId]/quote-template.xlsx` and manually download the latest saved customer quote PDF at `/admin/quotes/[requestId]/quote.pdf`; both are populated from the saved RFQ, uploaded files, quote feedback, customer quote version, and shipping fields. Once a customer quote has been issued, the same admin drawer presents the saved quote data as read-only by default and exposes an explicit `Edit quote` action for correction/reissue work.
 10. As of 2026-06-03, artificial seeded/demo RFQs are removed from runtime quote fallbacks. The local fallback store currently keeps only the real aluminum plate RFQ submitted by William while the workflow moves into real commissioning.
 11. The older, fuller customer quote packet builder still exists in code for future customer-facing quote version work, but the first admin RFQ review drawer is intentionally minimal.
 12. Buyer quote rows at `/quotes` are split into in-progress RFQs and quote-received requests, show a compact first-part CAD preview with a `+N` badge for additional line items, and open a consistent quote detail template at `/quotes/[requestId]` with a summary-of-order table, per-part CAD thumbnail previews when APS URNs are available, per-part unit prices, saved customer quote versions, lead time, files, supplier quote basis, activity, purchase conversion, and an edit/resubmit action for active priced quotes.
@@ -83,14 +85,14 @@ Important routes:
 - `/dashboard` - command center/dashboard.
 - `/requests/new` - buyer RFQ/request creation; supports `?reorder=[requestId]` to prefill a new RFQ draft from a prior purchased order and `?revise=[requestId]` to prefill a new RFQ draft from an active priced quote.
 - `/operator/requests` - redirects to `/admin/quotes`; the separate RFQ queue page was retired as redundant.
-- `/operator/requests/[requestId]` - legacy/focused operator request detail screen; primary quote-submission review now lives in `/admin/quotes`.
+- `/operator/requests/[requestId]` - legacy deep links redirect to `/admin/quotes?requestId=...`; primary quote-submission review now lives in the admin quote command center.
 - `/quotes` and `/quotes/[requestId]` - buyer quote/RFQ tracking, split into in-progress and quoted-request tables; purchased quotes are excluded and handled in orders.
 - `/quotes/[requestId]/checkout` - buyer checkout step for quoted RFQs, collecting delivery, import/compliance, payment/PO, tax, and purchasing terms before order placement.
 - `/orders`, `/orders/[requestId]`, `/orders/[requestId]/help`, and `/orders/[requestId]/invoice.pdf` - buyer order tracking, detail, order-specific help request, and placed-order customer invoice PDF preview/download.
 - `/shipped` - buyer shipped-order tracking.
 - `/notifications` - buyer platform notification center for RFQ, order, document, and action alerts.
 - `/supplier/orders`, `/supplier/orders/[requestId]`, and `/supplier/orders/[requestId]/invoice.pdf` - supplier-facing order views and placed-order invoice PDF access.
-- `/admin` - critical quote request overview dashboard for active RFQ intake, blocked requests, supplier outreach, overdue items, and buyer decision follow-up.
+- `/admin` - redirects to `/admin/quotes`; the standalone admin Overview page was retired so Quote Submissions is the admin home.
 - `/admin/orders/[requestId]/invoice.pdf` - admin placed-order invoice PDF route using the same order-backed invoice renderer.
 - `/admin/orders/[requestId]/supplier-purchase-order.pdf` - admin-only placed-order supplier PO PDF route using DOC-002 with the selected structured Chinese shop quote; `?preview=1` serves inline and the default response downloads the PDF.
 - `/admin/customers` and `/admin/customers/[companyId]` - customer management, including a waiting list viewer.
@@ -103,6 +105,7 @@ Important routes:
 - `/materials` - customer-facing material catalog grouped by material family and subgroup; vendor source/provenance stays out of this page and is retained only in internal repositories.
 - `/capabilities` - fabrication capabilities.
 - `/equipment` - vendor equipment catalog sourced from China machine-shop contacts so buyers/operators can inspect real capacity, limits, and source provenance before routing RFQs.
+- `/roadmap` - customer-facing product/services roadmap where buyers flag which upcoming Lattice capabilities they want prioritized.
 - `/analytics` and `/projects` - placeholder/future modules.
 
 Important folders:
@@ -112,6 +115,8 @@ Important folders:
 - `src/lib/` - business logic, typed data, persistence, and repository code.
 - `prisma/` - database schema.
 - `docs/` - product research, Bubble audit notes, and implementation plans.
+- `docs/app-feature-map.md` - operator-facing map of app features, routes, data sources, maturity status, limitations, and maintenance checklist.
+- `docs/completed-work-log.md` - daily completed-work log for cross-computer handoff history.
 - `fixtures/` - currently disabled for RFQ seeding so artificial quote records do not re-enter the commissioned workflow.
 - `docs/autodesk-aps-cad-preview.md` - Autodesk Platform Services CAD preview setup and secret-handling guidance.
 - `public/equipment/` - manufacturing/equipment imagery.
@@ -171,9 +176,8 @@ The Bubble reference worth improving:
 - `src/lib/account-settings.ts` and `src/lib/account-settings-shared.ts` - server-visible manufacturing account defaults, browser-safe defaults/types, editable buyer company default, Stripe customer/payment-method lookup, and RFQ quote-contact snapshot helpers.
 - `src/lib/stripe.ts`, `src/lib/stripe-checkout.ts`, `src/components/stripe-elements-payment.tsx`, `src/app/api/stripe/webhook/route.ts`, `src/app/quotes/[requestId]/stripe/success`, and `src/app/quotes/[requestId]/stripe/cancel` - Stripe integration for inline card-only quote payments, setup-mode saved cards, webhook reconciliation, and buyer return/cancel handling.
 - `src/components/request-form.tsx` - buyer RFQ form.
-- `src/components/cad-upload-preview.tsx` and `src/components/autodesk-model-viewer.tsx` - upload-time CAD preview and Autodesk Viewer integration.
+- `src/components/cad-upload-preview.tsx` and `src/components/autodesk-model-viewer.tsx` - upload-time CAD preview and Autodesk Viewer integration. Preview translation is asynchronous and should not block RFQ work; the embedded viewer exposes Autodesk native controls plus fit/full-screen shortcuts.
 - `src/components/operator-queue.tsx` - operator request queue.
-- `src/components/operator-request-detail.tsx` - internal request review.
 - `src/components/buyer-quotes.tsx` and `src/components/buyer-quote-detail.tsx` - buyer quote views.
 - `src/components/buyer-orders.tsx` and `src/components/buyer-order-detail.tsx` - buyer order views.
 - `src/components/supplier-orders.tsx` and `src/components/supplier-order-detail.tsx` - supplier order views.
@@ -191,9 +195,10 @@ The Bubble reference worth improving:
 - `src/lib/local-file-storage.ts` and `/api/local-files/[...storageKey]` - temporary local CAD/drawing file storage and download path for development RFQs.
 - `src/components/supplier-quote-files.tsx`, `src/app/admin/quotes/actions.ts`, and `SupplierQuoteAttachment` in `prisma/schema.prisma` - internal received supplier quote attachment upload/listing flow used by admin quote review and quote/order detail pages.
 - `fixtures/demo-rfqs.json` - empty disabled RFQ fixture manifest retained only as a placeholder if isolated non-production test data is deliberately reintroduced.
-- `src/lib/customer-notifications.ts` - buyer notification derivation for quote-ready and missing-info RFQ states, with static fallback notifications.
+- `src/lib/customer-dashboard.ts` and `src/lib/customer-notifications.ts` - operational buyer dashboard metrics, Inbox, quote/order activity, and notification activity derivation from existing RFQ, quote, purchased-order, supplier update, shipping, tracking, and supplier document records. `/dashboard` and `/notifications` share the derived activity feed; v1 does not add a separate activity/read-state table.
+- `src/lib/product-roadmap.ts`, `src/lib/roadmap-interest.ts`, `src/components/product-roadmap-board.tsx`, and `src/app/roadmap/` - customer roadmap data, interest persistence, interactive roadmap board, and guarded server action for product/service prioritization signals.
 - `src/lib/autodesk-platform-services.ts` - APS authentication, OSS upload, Model Derivative translation, and viewer token helpers.
-- `src/lib/request-queue.ts` - legacy operator queue filtering/sorting kept for tests and future reuse if needed.
+- `src/lib/request-queue.ts` - request filtering/sorting helper retained for repository-level admin quote request listing.
 - `src/lib/catalog-data.ts` - materials/capabilities data.
 - `src/lib/cnc-material-library.ts` - quote-selectable CNC material library researched from Fictiv, Hubs/Protolabs Network, and Xometry.
 - `src/lib/vendor-materials.ts` - vendor-provided material offering repository with source document traceability for admin/operator use.
@@ -208,8 +213,10 @@ The Bubble reference worth improving:
 Use the smallest verification set that matches the change risk. For meaningful workflow changes, prefer:
 
 ```bash
-npm test
+npm run typecheck
 npm run lint
+npm test
+npm run dead-code
 npm run build
 ```
 

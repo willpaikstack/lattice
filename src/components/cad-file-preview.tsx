@@ -14,18 +14,6 @@ function hashText(value: string) {
   return [...value].reduce((hash, character) => (hash * 31 + character.charCodeAt(0)) % 997, 17);
 }
 
-export function formatFileSize(sizeBytes: number) {
-  if (sizeBytes < 1024) {
-    return `${sizeBytes} B`;
-  }
-
-  if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 export function CadRenderThumbnail({
   className = "h-16 w-16",
   file,
@@ -87,31 +75,6 @@ export function CadRenderThumbnail({
         {extension}
       </span>
       {file ? <span className="sr-only">{file.name}</span> : null}
-    </div>
-  );
-}
-
-export function CadFilePreview({ file, compact = false }: { file: UploadedFile; compact?: boolean }) {
-  const downloadHref = file.storageKey
-    ? `/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`
-    : null;
-
-  return (
-    <div className={`overflow-hidden rounded-lg border border-slate-200 bg-white ${compact ? "w-full max-w-44" : ""}`}>
-      <div className={`bg-slate-50 p-3 ${compact ? "h-24" : "h-40"}`}>
-        <CadRenderThumbnail className="h-full w-full" file={file} label={file.name} />
-      </div>
-      <div className="min-w-0 p-3">
-        <p className="truncate text-sm font-semibold text-slate-950">{file.name}</p>
-        <p className="mt-1 truncate text-xs text-slate-500">
-          {file.type || "CAD file"} - {formatFileSize(file.sizeBytes)}
-        </p>
-        {downloadHref ? (
-          <a className="mt-2 inline-flex text-xs font-semibold text-blue-600 hover:text-blue-700" href={downloadHref}>
-            Download stored file
-          </a>
-        ) : null}
-      </div>
     </div>
   );
 }

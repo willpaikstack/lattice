@@ -2,6 +2,7 @@
 
 import { Download, Eye, FileText, FileUp, Paperclip, Trash2, Upload, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 import { useState } from "react";
 
 import type { LatticeRequest } from "@/lib/request-model";
@@ -132,6 +133,7 @@ function SupplierQuoteFileName({
 }
 
 export function SupplierQuoteFiles({
+  children,
   readOnly = false,
   removeHref,
   request,
@@ -140,6 +142,7 @@ export function SupplierQuoteFiles({
   uploadHref,
   variant = "default",
 }: {
+  children?: ReactNode;
   readOnly?: boolean;
   removeHref?: string;
   request: LatticeRequest;
@@ -276,6 +279,7 @@ export function SupplierQuoteFiles({
             ) : null}
           </form>
         ) : null}
+        {children ? <div className="mt-5 border-t border-[#eeeeee] pt-5">{children}</div> : null}
       </section>
     );
   }

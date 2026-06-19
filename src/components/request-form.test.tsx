@@ -358,6 +358,54 @@ describe("RequestForm", () => {
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
   });
 
+  it("shows Hubs-style secondary surface finish choices only when the selected finish supports them", () => {
+    render(
+      <RequestForm
+        initialState={{
+          buyerCompany: "Amogy Manufacturing",
+          dueDate: "2026-06-30",
+          fileName: "bracket.step",
+          generalTolerance: "iso_2768_medium_m",
+          material: "al_6061_t6",
+          partName: "Bracket",
+          process: "cnc_milling",
+          projectName: "Bracket RFQ",
+          qualityDocumentation: ["standard_inspection"],
+          quantity: "5",
+          requesterName: "William Paik",
+          surfaceFinish: "as_machined_ra_3_2",
+        }}
+      />,
+    );
+
+    expect(screen.queryByLabelText("Select cosmetic requirement")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /Select color/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Surface Finish dropdown" }));
+    fireEvent.click(
+      screen.getAllByRole("option", {
+        name: "Bead blasted + Anodized type II (Matte)",
+      }).at(-1)!,
+    );
+
+    expect(screen.getByLabelText("Select cosmetic requirement")).toHaveDisplayValue(
+      "Non cosmetic - Optimizes cost",
+    );
+    expect(screen.getByRole("group", { name: /Select color/i })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Black" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Blue" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Clear" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Surface Finish dropdown" }));
+    fireEvent.click(screen.getAllByRole("option", { name: "Powder coated" }).at(-1)!);
+
+    expect(screen.queryByLabelText("Select cosmetic requirement")).not.toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Black" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "White" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "RAL" }));
+    expect(screen.getByPlaceholderText("Enter RAL code or name")).toBeInTheDocument();
+  });
+
   it("renders every copied line item in a prefilled quote revision draft", () => {
     render(
       <RequestForm
@@ -594,9 +642,10 @@ describe("RequestForm", () => {
     });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/cad-previews", expect.objectContaining({ method: "POST" })));
-    expect(screen.getByText("Preparing 3D preview")).toBeInTheDocument();
+    expect(screen.getByText(/Starting 3D preview|3D preview processing/)).toBeInTheDocument();
     expect(screen.getByText("Line item 1: bracket")).toBeInTheDocument();
     expect(screen.getByText("bracket.step")).toBeInTheDocument();
+    expect(screen.getByText(/You can keep building and submit the RFQ while this finishes/)).toBeInTheDocument();
     expect(screen.getByText(/Progress: queued/)).toBeInTheDocument();
   });
 
@@ -715,6 +764,37 @@ describe("RequestForm", () => {
     expect(screen.getByRole("button", { name: "Done" })).toBeEnabled();
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
+    expect(screen.queryByText(/Bracket has specifications marked as drawing required/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
+  });
+
+  it("requires a technical drawing for dimensional quality documentation", async () => {
+    mockRequestFormFetch();
+
+    render(<RequestForm />);
+
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: { files: [new File(["solid"], "bracket.step", { type: "model/step" })] },
+    });
+
+    await screen.findByText("Line item 1: bracket");
+
+    fireEvent.click(screen.getByRole("button", { name: "Quality documentation dropdown" }));
+    expect(screen.getByRole("option", { name: /Dimensional Inspection Report/ })).toHaveTextContent("(drawing required)");
+    fireEvent.click(screen.getByRole("option", { name: /Dimensional Inspection Report/ }));
+
+    expect(screen.getByText(/Bracket has specifications marked as drawing required/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.getByText(/Add a technical drawing, or uncheck Dimensional Inspection Report/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Upload replacement technical drawing"), {
+      target: { files: [new File(["drawing"], "bracket-drawing.pdf", { type: "application/pdf" })] },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.queryByText(/Bracket has specifications marked as drawing required/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
   });

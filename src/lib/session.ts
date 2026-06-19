@@ -28,7 +28,7 @@ export function createSessionCookie(user: SessionUserInput) {
   return { expires, token };
 }
 
-export async function createSessionForUser(user: SessionUserInput) {
+async function createSessionForUser(user: SessionUserInput) {
   const { expires, token } = createSessionCookie(user);
 
   const cookieStore = await cookies();

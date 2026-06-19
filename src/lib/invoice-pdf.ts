@@ -388,10 +388,6 @@ export function buildDomesticInvoiceTemplatePdf() {
   return buildInvoicePdf(invoiceTemplateInput());
 }
 
-export function buildInvoicePdfFromInput(invoice: InvoicePdfInput) {
-  return buildInvoicePdf(invoice);
-}
-
 export function buildRequestInvoicePdf(order: LatticeRequest) {
   return buildInvoicePdf(invoiceInputForOrder(order));
 }

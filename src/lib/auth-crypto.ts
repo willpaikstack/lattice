@@ -23,7 +23,7 @@ export const authorizedUser = {
 };
 
 const adminPrefixes = ["/admin", "/analytics", "/operator", "/projects"];
-const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/shipped"];
+const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/roadmap", "/shipped"];
 const sharedPrefixes = ["/account"];
 const supplierPrefixes = ["/supplier"];
 
@@ -44,7 +44,7 @@ function pathMatchesAny(pathname: string, prefixes: string[]) {
 
 export function defaultHomeForRole(role: LatticeRole) {
   if (role === "admin") {
-    return "/admin";
+    return "/admin/quotes";
   }
 
   if (role === "supplier") {

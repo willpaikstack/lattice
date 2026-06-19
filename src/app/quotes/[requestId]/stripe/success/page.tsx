@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { finalizeStripeCheckoutSession } from "@/lib/stripe-checkout";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,16 @@ export default async function StripeCheckoutSuccessPage({
     redirect(`/quotes/${encodeURIComponent(requestId)}/checkout?payment=missing-session`);
   }
 
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
+
+  if (!request || (request.status !== "QUOTED" && request.status !== "PURCHASED")) {
+    notFound();
+  }
+
+  if (request.status === "PURCHASED") {
+    redirect(`/orders/${encodeURIComponent(requestId)}`);
+  }
+
   const finalized = await finalizeStripeCheckoutSession(sessionId);
 
   revalidatePath("/quotes");
@@ -30,6 +41,10 @@ export default async function StripeCheckoutSuccessPage({
 
   if (!finalized) {
     redirect(`/quotes/${encodeURIComponent(requestId)}/checkout?payment=pending`);
+  }
+
+  if (finalized.id !== requestId) {
+    notFound();
   }
 
   redirect(`/orders/${encodeURIComponent(requestId)}`);

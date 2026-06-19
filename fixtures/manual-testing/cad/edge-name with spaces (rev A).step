@@ -1,0 +1,12 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Lattice OS QC mock STEP fixture - edge filename'),'2;1');
+FILE_NAME('edge-name with spaces (rev A).step','2026-06-18T00:00:00',('Lattice OS'),('Lattice OS'),'Generated fixture','Lattice OS','');
+FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
+ENDSEC;
+DATA;
+#1=APPLICATION_CONTEXT('configuration controlled 3d designs of mechanical parts and assemblies');
+#2=PRODUCT_CONTEXT('',#1,'mechanical');
+#3=PRODUCT('LATTICE_QC_EDGE_FILENAME','LATTICE_QC_EDGE_FILENAME','Mock part with spaces and parentheses in filename',(#2));
+ENDSEC;
+END-ISO-10303-21;

@@ -1,0 +1,12 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Lattice OS QC mock STEP fixture - duplicate B'),'2;1');
+FILE_NAME('duplicate-part.step','2026-06-18T00:00:00',('Lattice OS'),('Lattice OS'),'Generated fixture','Lattice OS','');
+FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
+ENDSEC;
+DATA;
+#1=APPLICATION_CONTEXT('configuration controlled 3d designs of mechanical parts and assemblies');
+#2=PRODUCT_CONTEXT('',#1,'mechanical');
+#3=PRODUCT('LATTICE_QC_DUPLICATE_B','LATTICE_QC_DUPLICATE_B','Second duplicate basename part',(#2));
+ENDSEC;
+END-ISO-10303-21;

@@ -1,10 +1,11 @@
 import { BuyerQuotes } from "@/components/buyer-quotes";
+import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerQuotes } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function QuotesPage() {
-  const quotes = await listBuyerQuotes();
+  const quotes = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerQuotes());
 
   return (
     <div className="mx-auto max-w-[1180px] space-y-6">

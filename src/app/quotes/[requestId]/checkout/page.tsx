@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 
 import { BuyerQuoteCheckout } from "@/components/buyer-quote-checkout";
 import { getAccountSettings, listStripePaymentCards } from "@/lib/account-settings";
-import { getRequestById } from "@/lib/request-repository";
+import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { createStripeElementsCheckoutSessionForRequest } from "@/lib/stripe-checkout";
 
 import { finalizeStripeCardPaymentAction, purchaseQuoteAction, updateStripeElementsCheckoutSessionAction } from "../actions";
@@ -17,7 +17,7 @@ type BuyerQuoteCheckoutPageProps = {
 export default async function BuyerQuoteCheckoutPage({ params, searchParams }: BuyerQuoteCheckoutPageProps) {
   const { requestId } = await params;
   const { payment } = await searchParams;
-  const request = await getRequestById(requestId);
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
 
   if (!request || request.status !== "QUOTED") {
     notFound();

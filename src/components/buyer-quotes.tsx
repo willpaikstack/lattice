@@ -6,14 +6,13 @@ import { useMemo, useState, useTransition } from "react";
 
 import { deleteBuyerQuoteAction } from "@/app/quotes/actions";
 import { CadRenderThumbnail } from "@/components/cad-file-preview";
+import { buyerLifecycleTag, type BuyerLifecycleTag } from "@/lib/buyer-lifecycle";
 import type { LatticeRequest } from "@/lib/request-model";
 
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 const deletedQuoteStorageKey = "lattice.deletedBuyerQuotes.v1";
 
-type BuyerQuoteStatusTag = "Draft" | "Quote Requested" | "Quote Received" | "In Production" | "Shipping" | "Delivered" | "Archived";
-
-const buyerQuoteStatusTone: Record<BuyerQuoteStatusTag, string> = {
+const buyerQuoteStatusTone: Record<BuyerLifecycleTag, string> = {
   Draft: "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]",
   "Quote Requested": "border-[#c9ddff] bg-[#f2f7ff] text-[#2d5f9a]",
   "Quote Received": "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
@@ -22,26 +21,6 @@ const buyerQuoteStatusTone: Record<BuyerQuoteStatusTag, string> = {
   Delivered: "border-[#bfdcc7] bg-[#f0faf2] text-[#2f6a3d]",
   Archived: "border-[#d7d7d7] bg-[#f4f4f4] text-[#4f5660]",
 };
-
-function buyerQuoteStatusTag(request: LatticeRequest): BuyerQuoteStatusTag {
-  if (request.isArchived || request.status === "CLOSED") {
-    return "Archived";
-  }
-
-  if (request.status === "DRAFT") {
-    return "Draft";
-  }
-
-  if (request.status === "QUOTED") {
-    return "Quote Received";
-  }
-
-  if (request.status === "PURCHASED") {
-    return request.supplierOrder.status === "SHIPPED" ? "Shipping" : "In Production";
-  }
-
-  return "Quote Requested";
-}
 
 function formatDueDate(value: string) {
   const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
@@ -188,14 +167,12 @@ function QuotePartPreview({ request }: { request: LatticeRequest }) {
 function QuoteTable({
   deleteQuote,
   emptyMessage,
-  footerNote,
   pendingDeleteId,
   requests,
   title,
 }: {
   deleteQuote: (request: LatticeRequest) => void;
   emptyMessage: string;
-  footerNote: string;
   pendingDeleteId: string | null;
   requests: LatticeRequest[];
   title: string;
@@ -216,7 +193,7 @@ function QuoteTable({
 
       <div className="divide-y divide-[#eeeeee]">
         {requests.map((request) => {
-          const statusTag = buyerQuoteStatusTag(request);
+          const statusTag = buyerLifecycleTag(request);
           const primaryLine = request.lineItems[0];
           const material = primaryLine?.material ?? "Material pending";
           const totalQuantity = quoteTotalQuantity(request);
@@ -288,7 +265,6 @@ function QuoteTable({
         <span>
           Showing {requests.length} {requests.length === 1 ? "quote" : "quotes"}
         </span>
-        <span>{footerNote}</span>
       </div>
     </section>
   );
@@ -360,7 +336,6 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
       <QuoteTable
         deleteQuote={deleteQuote}
         emptyMessage="No in-progress quote requests match this view."
-        footerNote="Draft rows remain editable until the buyer requests a quote"
         pendingDeleteId={activePendingDeleteId}
         requests={inProgressRequests}
         title="Quotes in progress"
@@ -368,7 +343,6 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
       <QuoteTable
         deleteQuote={deleteQuote}
         emptyMessage="No quoted requests match this view."
-        footerNote="Quote received rows open the buyer quote detail"
         pendingDeleteId={activePendingDeleteId}
         requests={quotedRequests}
         title="Quote received"

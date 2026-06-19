@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ClipboardList, Factory, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Settings, User } from "lucide-react";
+import { ArrowLeft, ClipboardList, Factory, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Map as MapIcon, Settings, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { currentUser, initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
 
-type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources";
+type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources" | "roadmap";
 
 type NavItem = {
   href: string;
@@ -44,6 +44,7 @@ const customerNavSections: NavSection[] = [
   {
     title: "Your Resources",
     items: [
+      { href: "/roadmap", label: "Roadmap", icon: "roadmap" },
       { href: "/materials", label: "Materials", icon: "analytics" },
       { href: "/capabilities", label: "Capabilities", icon: "queue" },
       { href: "/equipment", label: "Equipment", icon: "factory" },
@@ -55,10 +56,9 @@ const adminNavSections: NavSection[] = [
   {
     title: "Admin",
     items: [
-      { href: "/admin", label: "Overview", icon: "admin" },
+      { href: "/admin/quotes", label: "Quote Submissions", icon: "money" },
       { href: "/admin/customers", label: "Customers", icon: "user" },
       { href: "/admin/vendors", label: "Overseas Vendors", icon: "factory" },
-      { href: "/admin/quotes", label: "Quote Submissions", icon: "money" },
       { href: "/admin/orders", label: "Placed Orders", icon: "factory" },
       { href: "/admin/resources", label: "Resources", icon: "resources" },
     ],
@@ -79,6 +79,7 @@ const iconByName: Record<IconName, LucideIcon> = {
   project: ClipboardList,
   queue: FileSearch,
   resources: FileText,
+  roadmap: MapIcon,
   user: User,
 };
 
@@ -87,7 +88,7 @@ function isAdminRoute(pathname: string) {
 }
 
 function isNavItemActive(pathname: string, href: string) {
-  if (href === "/" || href === "/admin" || href === "/admin/quotes") {
+  if (href === "/" || href === "/admin/quotes") {
     return pathname === href;
   }
 
@@ -144,7 +145,7 @@ function SidebarIcon({ name }: { name: IconName }) {
 
 function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: NavigationHandler; tone?: "customer" | "admin" }) {
   const isAdmin = tone === "admin";
-  const homeHref = isAdmin ? "/admin" : "/dashboard";
+  const homeHref = isAdmin ? "/admin/quotes" : "/dashboard";
 
   return (
     <Link
@@ -194,7 +195,7 @@ function DesktopNavSection({
 
           return (
             <Link
-              className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 text-[14px] transition duration-150 active:scale-[0.99] ${hoverClass} ${isActive ? activeClass : inactiveClass}`}
+              className={`group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-[14px] transition duration-150 active:scale-[0.99] ${hoverClass} ${isActive ? activeClass : inactiveClass}`}
               draggable
               href={item.href}
               key={`${section.title}-${item.label}`}
@@ -211,7 +212,7 @@ function DesktopNavSection({
               }}
               onClick={(event) => onNavigate(event, item.href)}
             >
-              <span aria-hidden="true" className="flex h-7 w-3 shrink-0 items-center justify-center text-[#c7a4a7] opacity-0 transition group-hover:opacity-100" title="Drag to reorder">
+              <span aria-hidden="true" className="absolute left-1 top-1/2 flex h-7 w-3 -translate-y-1/2 items-center justify-center text-[#c7a4a7] opacity-0 transition group-hover:opacity-100" title="Drag to reorder">
                 <GripVertical aria-hidden="true" size={14} strokeWidth={2} />
               </span>
               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${isActive && tone !== "admin" ? "text-stone-900" : "text-stone-400 group-hover:text-current"}`}>
@@ -514,7 +515,7 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
               <UtilityLink detail="Use the customer portal for development." href="/dashboard" icon="back" label="Customer workspace" onNavigate={handleNavigate} tone="admin" />
             ) : null}
             {!inAdminExperience && canUseAdminWorkspace ? (
-              <UtilityLink detail="Return to internal controls." href="/admin" icon="admin" label="Admin workspace" onNavigate={handleNavigate} />
+              <UtilityLink detail="Return to internal controls." href="/admin/quotes" icon="admin" label="Admin workspace" onNavigate={handleNavigate} />
             ) : null}
             <ProfileMenu />
           </div>
@@ -531,8 +532,8 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
               {!inAdminExperience && canUseAdminWorkspace ? (
                 <Link
                   className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-semibold text-white"
-                  href="/admin"
-                  onClick={(event) => handleNavigate(event, "/admin")}
+                  href="/admin/quotes"
+                  onClick={(event) => handleNavigate(event, "/admin/quotes")}
                 >
                   Admin
                 </Link>

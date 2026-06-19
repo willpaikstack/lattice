@@ -38,7 +38,7 @@ describe("auth route roles", () => {
   });
 
   it("uses role-specific app homes", () => {
-    expect(defaultHomeForRole("admin")).toBe("/admin");
+    expect(defaultHomeForRole("admin")).toBe("/admin/quotes");
     expect(defaultHomeForRole("customer")).toBe("/dashboard");
     expect(defaultHomeForRole("supplier")).toBe("/supplier/orders");
   });

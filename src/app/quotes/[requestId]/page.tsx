@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { BuyerQuoteDetail } from "@/components/buyer-quote-detail";
-import { getRequestById } from "@/lib/request-repository";
+import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ type BuyerQuoteDetailPageProps = {
 
 export default async function BuyerQuoteDetailPage({ params }: BuyerQuoteDetailPageProps) {
   const { requestId } = await params;
-  const request = await getRequestById(requestId);
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
 
   if (!request || request.status === "DRAFT") {
     notFound();

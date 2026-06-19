@@ -1,20 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-export {
-  accountSettingsStorageKey,
-  defaultAccountSettings,
-  initialBillingAddress,
-  initialBillingContact,
-  initialCards,
-  initialShippingAddress,
-  initialTeamMembers,
-} from "./account-settings-shared";
 import { defaultAccountSettings, type AccountAddress, type AccountSettingsSnapshot, type PaymentCard } from "./account-settings-shared";
 import { getPrismaClient } from "./prisma";
 import type { RequestContactSnapshot } from "./request-model";
 import { getStripeClient, isStripeConfigured, stripePaymentMethodCardSnapshot } from "./stripe";
-export type { AccountAddress, AccountSettingsSnapshot, BillingContact, PaymentCard, TeamMember } from "./account-settings-shared";
 
 type StoredAccountDefaults = {
   billingAddress1: string;
