@@ -11,6 +11,7 @@ import type { LatticeRequest } from "@/lib/request-model";
 
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 const deletedQuoteStorageKey = "lattice.deletedBuyerQuotes.v1";
+const quoteTablePageSize = 3;
 
 const buyerQuoteStatusTone: Record<BuyerLifecycleTag, string> = {
   Draft: "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]",
@@ -128,9 +129,16 @@ function removeLocalIncompleteRequest(id: string) {
   }
 }
 
-function sortRequestsNewestCreatedFirst(requests: LatticeRequest[]) {
+function requestEditedTime(request: LatticeRequest) {
+  const value = request.updatedAt || request.createdAt;
+  const time = new Date(value).getTime();
+
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function sortRequestsNewestEditedFirst(requests: LatticeRequest[]) {
   return [...requests].sort(
-    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    (left, right) => requestEditedTime(right) - requestEditedTime(left),
   );
 }
 
@@ -177,6 +185,16 @@ function QuoteTable({
   requests: LatticeRequest[];
   title: string;
 }) {
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(requests.length / quoteTablePageSize));
+  const clampedPageIndex = Math.min(pageIndex, pageCount - 1);
+  const firstVisibleIndex = clampedPageIndex * quoteTablePageSize;
+  const visibleRequests = requests.slice(
+    firstVisibleIndex,
+    firstVisibleIndex + quoteTablePageSize,
+  );
+  const hasMultiplePages = requests.length > quoteTablePageSize;
+
   return (
     <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
       <div className="border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3">
@@ -192,7 +210,7 @@ function QuoteTable({
       </div>
 
       <div className="divide-y divide-[#eeeeee]">
-        {requests.map((request) => {
+        {visibleRequests.map((request) => {
           const statusTag = buyerLifecycleTag(request);
           const primaryLine = request.lineItems[0];
           const material = primaryLine?.material ?? "Material pending";
@@ -263,8 +281,40 @@ function QuoteTable({
 
       <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86]">
         <span>
-          Showing {requests.length} {requests.length === 1 ? "quote" : "quotes"}
+          {hasMultiplePages
+            ? `Showing ${firstVisibleIndex + 1}-${Math.min(
+                firstVisibleIndex + visibleRequests.length,
+                requests.length,
+              )} of ${requests.length} quotes`
+            : `Showing ${requests.length} ${
+                requests.length === 1 ? "quote" : "quotes"
+              }`}
         </span>
+        {hasMultiplePages ? (
+          <div className="flex items-center gap-2">
+            <button
+              className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={clampedPageIndex === 0}
+              onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+              type="button"
+            >
+              Previous
+            </button>
+            <span className="px-1 font-medium text-[#555b64]">
+              Page {clampedPageIndex + 1} of {pageCount}
+            </span>
+            <button
+              className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={clampedPageIndex >= pageCount - 1}
+              onClick={() =>
+                setPageIndex((current) => Math.min(pageCount - 1, current + 1))
+              }
+              type="button"
+            >
+              Next
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -280,7 +330,7 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
     const localIds = new Set(localIncompleteRequests.map((request) => request.id));
     const deletedIds = new Set(deletedQuoteIds);
 
-    return sortRequestsNewestCreatedFirst(
+    return sortRequestsNewestEditedFirst(
       [...localIncompleteRequests, ...requests.filter((request) => request.status !== "PURCHASED" && !localIds.has(request.id))],
     ).filter((request) => !deletedIds.has(request.id));
   }, [deletedQuoteIds, localIncompleteRequests, requests]);

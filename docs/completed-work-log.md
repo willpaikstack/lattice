@@ -13,6 +13,46 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Verification: command or smoke test run, if applicable.
 ```
 
+## 2026-06-22
+
+- Prepared the cross-computer handoff for the latest RFQ and quote UX work, including Hubs-style material metadata, the RFQ ISO 2768-1 tolerance popup, line-item deletion confirmation, CAD upload/viewer polish, buyer quote list pagination, and quote-detail status messaging.
+- Documented that buyer quote-request modification is intentionally deferred for now, after removing the temporary modify route and related customer/admin surfaces.
+- Verification: final pre-commit verification was run before committing and pushing this handoff.
+
+## 2026-06-20
+
+- Removed the temporary buyer quote-request modification workflow, including the `/quotes/[requestId]/modify` route, quote-detail modify links, request-form modify mode, legacy revise prefill handling, and admin `Modification requested` surfaces.
+- Verification: `npx vitest run src/components/request-form.test.tsx src/components/operator-request-detail.test.tsx`, `npm run lint`, `npm run typecheck`, and `git diff --check` passed.
+- Added a distinct `/quotes/[requestId]/modify` route for buyer quote modifications, updated quote-detail edit links to use it, and gave the request form a modification mode with `Update Quote Request` and `Cancel` actions while preserving revision change-log admin notifications.
+- Verification: `npx vitest run src/components/request-form.test.tsx src/components/operator-request-detail.test.tsx`, `npm run lint`, `npm run typecheck`, `git diff --check`, and unauthenticated curl route protection checks passed.
+- Added UNS numbers, detailed composition notes, and compact Hubs-style composition formulas to the CNC material library.
+- Updated the RFQ material dropdown so selected and listed materials show compact `UNS ... | formula` metadata and material search matches UNS/composition fields.
+- Verification: `npx vitest run src/lib/cnc-material-library.test.ts src/components/request-form.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+- Added a Hubs-style `ISO 2768-1 standards` tolerance reference link and modal table to the RFQ request form.
+- Verification: `npx vitest run src/components/request-form.test.tsx` and focused `npx eslint` passed.
+- Resized the RFQ `ISO 2768-1 standards` modal to match the compact Protolabs Network/Hubs popup observed in Chrome via Computer Use.
+- Verification: `npx vitest run src/components/request-form.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+- Added a right-aligned delete button to configured RFQ line-item headers, moved the visible remove action out of the expanded body controls, and added a Hubs-style `Remove from quote` confirmation modal before deletion.
+- Verification: `npx vitest run src/components/request-form.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+- Increased contrast for the disabled buyer quote-detail review CTA so pending RFQs keep the grey disabled button while the status text remains legible.
+- Verification: `npx vitest run src/components/operator-request-detail.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+- Updated submitted RFQ quote-detail messaging to explain that Lattice is gathering supplier-network feedback to prepare accurate pricing and lead time.
+- Verification: `npx vitest run src/components/operator-request-detail.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+- Restored the pending quote-detail sidebar CTA copy to `Lattice is checking the RFQ package before supplier outreach.` while keeping the updated main status message.
+- Verification: `npx vitest run src/components/operator-request-detail.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+- Replaced the buyer quote-detail upload-style revision link with `Modify quote request` and surfaced revised RFQ submissions in admin quote management as `Modification requested` with the first revision change-log line as a summary.
+- Verification: `npx vitest run src/components/operator-request-detail.test.tsx`, focused `npx eslint`, and `npm run typecheck` passed.
+
+## 2026-06-19
+
+- Improved the RFQ quality-documentation multi-select so clicking the field shell opens the dropdown while selected document pills keep their own remove/no-open behavior.
+- Verification: `npm test -- src/components/request-form.test.tsx`, `npm run lint`, and `git diff --check` passed.
+- Fixed the RFQ surface-finish color selector so the selected color row border follows the rounded list container instead of being clipped at the corners.
+- Verification: `npm test -- src/components/request-form.test.tsx`, `npm run lint`, and `git diff --check` passed.
+- Updated the buyer `/quotes` tables to sort each section by most recently edited and paginate quote rows three at a time with Previous/Next controls.
+- Removed the request-form resume panel helper sentence while preserving the resume table and actions.
+- Verification: `npm test -- src/components/buyer-quotes.test.tsx src/components/request-form.test.tsx`, `npm run typecheck`, `npm run lint`, and `git diff --check` passed.
+
 ## 2026-06-18
 
 - Added Hubs-aligned secondary surface finish controls to the RFQ request form, including cosmetic requirement choices, anodized/hardcoat/chromate color options, and powder coat RAL/Pantone custom entries; selected finish details now persist through local drafts and submitted RFQ line items.

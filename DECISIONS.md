@@ -2,6 +2,19 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-06-20 - Defer Buyer Quote Request Modification
+
+Decision: remove buyer-facing quote request modification for now. Customer quote detail should not expose `Modify quote request`, `/quotes/[requestId]/modify`, or legacy `/requests/new?revise=[requestId]` flows.
+
+Reason: the modification workflow adds product and operational complexity before it is worth supporting. Lattice can revisit it later with a clearer end-to-end design for customer changes, admin notification, quote invalidation, and supplier-network rework.
+
+Implications:
+
+- Existing quote detail pages focus on review, status, quote PDF, purchase actions, and activity rather than modification.
+- `/requests/new` remains for new RFQs, draft recovery, and reorder prefill from purchased orders.
+- Admin quote submissions no longer surface `Modification requested` badges or summaries from revision metadata.
+- The 2026-06-04 decision to expose edit/resubmit for active non-final quotes is superseded.
+
 ## 2026-06-18 - Use Exact Requester Email As Interim Customer Access Control
 
 Decision: until durable company membership is implemented, customer-facing RFQ, quote, order, checkout, invoice, and submitted-file access is scoped by the signed-in user's email. Only exact requester email matches are allowed for customer users. Admins retain support access to all customer records.
@@ -380,6 +393,8 @@ Implications:
 - Future generated invoice PDFs should preserve this separation unless William explicitly chooses a one-page invoice format.
 
 ## 2026-06-04 - Let Buyers Revise Active Non-Final Quotes
+
+Superseded by `2026-06-20 - Defer Buyer Quote Request Modification`.
 
 Decision: active buyer quotes/RFQs in `SUBMITTED`, `NEEDS_INFO`, `READY_FOR_SUPPLIER_RFQ`, or `QUOTED` status should expose an edit/resubmit action that opens `/requests/new?revise=[requestId]` as a prefilled new RFQ request.
 

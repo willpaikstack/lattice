@@ -25,6 +25,19 @@ describe("CNC material library", () => {
     expect(cncMaterialLibrary.find((material) => material.value === "in_625")?.label).toBe("Inconel 625");
   });
 
+  it("includes UNS and composition metadata for every RFQ material option", () => {
+    for (const material of cncMaterialLibrary) {
+      expect(material.unsNumber, material.label).toMatch(/^UNS /);
+      expect(material.composition, material.label).not.toHaveLength(0);
+      expect(material.compositionFormula, material.label).not.toHaveLength(0);
+    }
+
+    expect(cncMaterialLibrary.find((material) => material.value === "ss_304")?.unsNumber).toBe("UNS S30400");
+    expect(cncMaterialLibrary.find((material) => material.value === "al_6061_t6")?.composition).toContain("0.8-1.2 Mg");
+    expect(cncMaterialLibrary.find((material) => material.value === "al_6061_t6")?.compositionFormula).toBe("AlMg1SiCu");
+    expect(cncMaterialLibrary.find((material) => material.value === "ultem_2300")?.compositionFormula).toBe("PEI GF30");
+  });
+
   it("feeds researched marketplace materials into the customer material catalog", () => {
     const gradesBySlug = Object.fromEntries(customerMaterialCatalog.map((material) => [material.slug, material.materialGroups.flatMap((group) => group.grades)]));
 

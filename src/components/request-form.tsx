@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Download,
   Eye,
+  FileUp,
   Paperclip,
   Search,
   Trash2,
@@ -95,9 +96,6 @@ type InitialLineItemState = Partial<
 
 type LegacyInitialState = Partial<ProjectFormState & InitialLineItemState> & {
   lineItems?: InitialLineItemState[];
-  revisionSourceQuoteReference?: string;
-  revisionSourceRequestId?: string;
-  revisionSourceRevisionNumber?: number;
 };
 
 export type RequestFormInitialState = LegacyInitialState;
@@ -115,6 +113,7 @@ const cadAccept = ".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt";
 const cadFileExtensions = cadAccept.split(",").map((extension) => extension.trim().toLowerCase());
 const drawingAccept = ".pdf,.dxf,.dwg,.png,.jpg,.jpeg";
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
+const resumeQuotePageSize = 3;
 
 type LineItemField = keyof Omit<
   LineItemState,
@@ -675,6 +674,16 @@ const materialSelectGroups = buildMaterialSelectGroups();
 const materialSelectOptions = materialSelectGroups.flatMap((group) =>
   group.subgroups.flatMap((subgroup) => subgroup.options),
 );
+const iso2768ToleranceRows = [
+  ["0.5mm* to 3mm", "+/-0.1mm", "+/-0.05mm"],
+  ["Over 3mm to 6mm", "+/-0.1mm", "+/-0.05mm"],
+  ["Over 6mm to 30mm", "+/-0.2mm", "+/-0.1mm"],
+  ["Over 30mm to 120mm", "+/-0.3mm", "+/-0.15mm"],
+  ["Over 120mm to 400mm", "+/-0.5mm", "+/-0.2mm"],
+  ["Over 400mm to 1000mm", "+/-0.8mm", "+/-0.3mm"],
+  ["Over 1000mm to 2000mm", "+/-1.2mm", "+/-0.5mm"],
+  ["Over 2000mm to 4000mm", "+/-2mm", ""],
+];
 
 function initialCadPreview(
   initialState?: InitialLineItemState,
@@ -820,70 +829,6 @@ function writeIncompleteRfqs(drafts: StoredIncompleteRfq[]) {
 
 function removeIncompleteRfq(id: string) {
   writeIncompleteRfqs(readIncompleteRfqs().filter((draft) => draft.id !== id));
-}
-
-function normalizedValue(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value.join(", ") : (value ?? "").trim();
-}
-
-function pushChange(changes: string[], label: string, before: string | string[] | undefined, after: string | string[] | undefined) {
-  const previous = normalizedValue(before);
-  const next = normalizedValue(after);
-
-  if (previous !== next) {
-    changes.push(`${label}: ${previous || "blank"} -> ${next || "blank"}`);
-  }
-}
-
-function buildRevisionChangeLog(
-  source: RequestFormInitialState,
-  currentProject: ProjectFormState,
-  currentLineItems: LineItemState[],
-) {
-  const changes: string[] = [];
-
-  pushChange(changes, "Quote name", source.projectName, currentProject.projectName);
-  pushChange(changes, "Needed by", source.dueDate, currentProject.dueDate);
-  pushChange(changes, "Manufacturing process", source.process, currentProject.process);
-  pushChange(changes, "Customer PO", source.customerPo, currentProject.customerPo);
-
-  const sourceLineItems = source.lineItems?.length ? source.lineItems : [source];
-  const count = Math.max(sourceLineItems.length, currentLineItems.length);
-
-  for (let index = 0; index < count; index += 1) {
-    const sourceLine = sourceLineItems[index];
-    const currentLine = currentLineItems[index];
-    const prefix = `Line ${index + 1}`;
-
-    if (!sourceLine && currentLine) {
-      changes.push(`${prefix}: added ${currentLine.partName || currentLine.fileName || "new part"}`);
-      continue;
-    }
-
-    if (sourceLine && !currentLine) {
-      changes.push(`${prefix}: removed ${sourceLine.partName || sourceLine.fileName || "part"}`);
-      continue;
-    }
-
-    if (!sourceLine || !currentLine) {
-      continue;
-    }
-
-    pushChange(changes, `${prefix} part name`, sourceLine.partName, currentLine.partName);
-    pushChange(changes, `${prefix} quantity`, sourceLine.quantity, currentLine.quantity);
-    pushChange(changes, `${prefix} material`, sourceLine.material, currentLine.material);
-    pushChange(changes, `${prefix} tolerance`, sourceLine.generalTolerance, currentLine.generalTolerance);
-    pushChange(changes, `${prefix} finish`, sourceLine.surfaceFinish, currentLine.surfaceFinish);
-    pushChange(changes, `${prefix} finish color`, sourceLine.surfaceFinishColor, currentLine.surfaceFinishColor);
-    pushChange(changes, `${prefix} finish cosmetic requirement`, sourceLine.surfaceFinishCosmeticRequirement, currentLine.surfaceFinishCosmeticRequirement);
-    pushChange(changes, `${prefix} finish custom color`, sourceLine.surfaceFinishCustomColor, currentLine.surfaceFinishCustomColor);
-    pushChange(changes, `${prefix} quality docs`, sourceLine.qualityDocumentation, currentLine.qualityDocumentation);
-    pushChange(changes, `${prefix} CAD file`, sourceLine.fileName, currentLine.fileName);
-    pushChange(changes, `${prefix} drawing`, sourceLine.technicalDrawingName, currentLine.technicalDrawingName);
-    pushChange(changes, `${prefix} notes`, sourceLine.notes, currentLine.notes);
-  }
-
-  return changes.length ? changes : ["Resubmitted for review with no field-level changes detected."];
 }
 
 function makeLocalDraftId() {
@@ -1152,25 +1097,65 @@ function UploadCadDropZone({
   label: string;
   onFilesSelected: (files: File[]) => void;
 }) {
+  const dragDepthRef = useRef(0);
+  const [isDragActive, setIsDragActive] = useState(false);
+
+  function handleDragEnter(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDragActive(true);
+  }
+
+  function handleDragLeave(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+
+    if (dragDepthRef.current === 0) {
+      setIsDragActive(false);
+    }
+  }
+
+  function handleDragOver(event: DragEvent<HTMLElement>) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
   function handleDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
+    dragDepthRef.current = 0;
+    setIsDragActive(false);
     onFilesSelected(Array.from(event.dataTransfer.files).filter(isCadUploadFile));
   }
 
   return (
     <section
       aria-label={compact ? "Additional CAD upload drop zone" : "CAD upload drop zone"}
-      className={`rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-center transition ${compact ? "py-16" : "py-24"}`}
-      onDragOver={(event) => event.preventDefault()}
+      className={[
+        "rounded-lg border border-dashed px-6 text-center transition-all duration-150",
+        compact ? "py-16" : "py-24",
+        isDragActive
+          ? "border-blue-500 bg-blue-50 shadow-[inset_0_0_0_2px_rgba(37,99,235,0.18),0_10px_30px_rgba(37,99,235,0.12)]"
+          : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-white",
+      ].join(" ")}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border border-slate-200 bg-white text-2xl text-slate-400">
-        ^
+      <div
+        className={[
+          "mx-auto flex h-16 w-16 items-center justify-center rounded-xl border transition-all duration-150",
+          isDragActive
+            ? "scale-105 border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-200"
+            : "border-slate-200 bg-white text-slate-500 shadow-sm",
+        ].join(" ")}
+      >
+        <FileUp aria-hidden="true" className="h-9 w-9" strokeWidth={1.8} />
       </div>
-      <p className="mt-4 text-lg font-semibold text-slate-950">
-        Drag & drop CAD files here, or browse
+      <p className={`mt-4 text-lg font-semibold ${isDragActive ? "text-blue-950" : "text-slate-950"}`}>
+        {isDragActive ? "Drop CAD files to add them" : "Drag & drop CAD files here, or browse"}
       </p>
-      <p className="mt-2 text-sm leading-6 text-slate-500">
+      <p className={`mt-2 text-sm leading-6 ${isDragActive ? "text-blue-700" : "text-slate-500"}`}>
         Suggested File Types: {cadFileTypes}
       </p>
       <label className="mt-5 inline-flex cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
@@ -1191,6 +1176,16 @@ function UploadCadDropZone({
 }
 
 function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(requests.length / resumeQuotePageSize));
+  const clampedPageIndex = Math.min(pageIndex, pageCount - 1);
+  const firstVisibleIndex = clampedPageIndex * resumeQuotePageSize;
+  const visibleRequests = requests.slice(
+    firstVisibleIndex,
+    firstVisibleIndex + resumeQuotePageSize,
+  );
+  const hasMultiplePages = requests.length > resumeQuotePageSize;
+
   if (!requests.length) {
     return null;
   }
@@ -1201,10 +1196,6 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
         <h2 className="text-[15px] font-semibold text-[#202020]">
           Resume an open quote
         </h2>
-        <p className="mt-1 text-[13px] leading-5 text-[#6f737a]">
-          Pick up an incomplete draft or check an RFQ already in progress
-          before starting a new request.
-        </p>
       </div>
 
       <div className="grid grid-cols-[2fr_0.95fr_0.8fr_1.15fr_88px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
@@ -1216,7 +1207,8 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
       </div>
 
       <div className="divide-y divide-[#eeeeee]">
-        {requests.map((request, index) => {
+        {visibleRequests.map((request, index) => {
+          const absoluteIndex = firstVisibleIndex + index;
           const primaryLineItem = request.lineItems[0];
           const totalQuantity = request.lineItems.reduce(
             (sum, lineItem) => sum + (Number(lineItem.quantity) || 0),
@@ -1243,7 +1235,7 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
                 />
                 <div className="min-w-0">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">
-                    {resumeQuoteReference(request, index)}
+                    {resumeQuoteReference(request, absoluteIndex)}
                   </span>
                   <h3 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">
                     {request.title}
@@ -1311,6 +1303,39 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
           );
         })}
       </div>
+
+      {hasMultiplePages ? (
+        <div className="flex flex-col gap-3 border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86] sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Showing {firstVisibleIndex + 1}-
+            {Math.min(firstVisibleIndex + visibleRequests.length, requests.length)} of{" "}
+            {requests.length} quotes
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={clampedPageIndex === 0}
+              onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+              type="button"
+            >
+              Previous
+            </button>
+            <span className="px-1 font-medium text-[#555b64]">
+              Page {clampedPageIndex + 1} of {pageCount}
+            </span>
+            <button
+              className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa] disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={clampedPageIndex >= pageCount - 1}
+              onClick={() =>
+                setPageIndex((current) => Math.min(pageCount - 1, current + 1))
+              }
+              type="button"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -1502,6 +1527,9 @@ function MaterialSelect({
         option.category,
         option.subgroup,
         String(option.metadata?.family ?? ""),
+        String(option.metadata?.unsNumber ?? ""),
+        String(option.metadata?.composition ?? ""),
+        String(option.metadata?.compositionFormula ?? ""),
       ]
         .join(" ")
         .toLowerCase()
@@ -1727,8 +1755,15 @@ function MaterialSelect({
           onKeyDown={handleButtonKeyDown}
           type="button"
         >
-          <span className="min-w-0 truncate text-[15px] font-semibold leading-6 text-[#020617]">
-            {selectedOption?.label ?? "Select a material"}
+          <span className="min-w-0">
+            <span className="block truncate text-[15px] font-semibold leading-6 text-[#020617]">
+              {selectedOption?.label ?? "Select a material"}
+            </span>
+            {selectedOption ? (
+              <span className="mt-0.5 block truncate text-[12px] font-medium leading-4 text-[#64748b]">
+                {materialOptionDetails(selectedOption)}
+              </span>
+            ) : null}
           </span>
           <span className="ml-4 flex shrink-0 items-center gap-2">
             {selectedOption ? (
@@ -1877,6 +1912,158 @@ function materialOptionId(labelId: string, optionValue: string) {
   return `${labelId}-${optionValue}-option`;
 }
 
+function Iso2768ToleranceModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/35 px-4 py-6">
+      <section
+        aria-modal="true"
+        aria-labelledby="iso-2768-tolerance-title"
+        className="max-h-[calc(100vh-3rem)] w-full max-w-[640px] overflow-y-auto rounded bg-white px-5 py-4 shadow-2xl md:px-6 md:py-5"
+        role="dialog"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2
+              className="text-lg font-semibold tracking-tight text-[#242424]"
+              id="iso-2768-tolerance-title"
+            >
+              ISO 2768-1 tolerances
+            </h2>
+            <p className="mt-2 text-sm leading-5 text-[#6f6f6f]">
+              Clearly indicate tolerances for nominal sizes below 0.5mm on your
+              technical drawing.
+            </p>
+          </div>
+          <button
+            aria-label="Close ISO 2768-1 tolerances"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[#242424] transition hover:bg-slate-100"
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" className="h-5 w-5" strokeWidth={2.4} />
+          </button>
+        </div>
+
+        <div className="mt-6 overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[#d8d8d8]">
+                <th className="pb-3 pr-5 text-sm font-semibold text-[#242424]">
+                  Limits for nominal size
+                </th>
+                <th className="pb-3 pr-5 text-sm font-semibold text-[#242424]">
+                  Medium class (m)
+                </th>
+                <th className="pb-3 text-sm font-semibold text-[#242424]">
+                  Fine class (f)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {iso2768ToleranceRows.map(([nominalSize, mediumClass, fineClass]) => (
+                <tr className="border-b border-[#d8d8d8]" key={nominalSize}>
+                  <td className="py-3 pr-5 text-sm text-[#4f4f4f]">{nominalSize}</td>
+                  <td className="py-3 pr-5 text-sm text-[#4f4f4f]">{mediumClass}</td>
+                  <td className="py-3 text-sm text-[#4f4f4f]">{fineClass || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RemoveLineItemConfirmationModal({
+  index,
+  lineItemName,
+  onCancel,
+  onConfirm,
+}: {
+  index: number;
+  lineItemName: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  useEffect(() => {
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 px-4 py-6">
+      <section
+        aria-modal="true"
+        aria-labelledby="remove-line-item-title"
+        className="w-full max-w-[520px] rounded bg-white px-8 py-7 shadow-2xl"
+        role="dialog"
+      >
+        <div className="flex items-start justify-between gap-6">
+          <h2
+            className="text-2xl font-semibold tracking-tight text-[#242424]"
+            id="remove-line-item-title"
+          >
+            Remove from quote
+          </h2>
+          <button
+            aria-label="Close remove line item confirmation"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[#242424] transition hover:bg-slate-100"
+            onClick={onCancel}
+            type="button"
+          >
+            <X aria-hidden="true" className="h-5 w-5" strokeWidth={2.4} />
+          </button>
+        </div>
+
+        <p className="mt-8 text-lg font-medium text-[#242424]">
+          {index + 1}.&nbsp;&nbsp;{lineItemName}
+        </p>
+
+        <div className="mt-16 flex justify-end gap-3">
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded bg-[#f2f2f2] px-6 text-base font-semibold text-[#4f4f4f] transition hover:bg-[#e8e8e8]"
+            onClick={onCancel}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded bg-[#ffe8ec] px-6 text-base font-semibold text-[#c41230] transition hover:bg-[#ffdce3]"
+            onClick={onConfirm}
+            type="button"
+          >
+            Remove
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function materialOptionDetails(option: MaterialSelectOption) {
+  const unsNumber = String(option.metadata?.unsNumber ?? "UNS N/A").replace(/^UNS\s+/, "UNS: ");
+  const composition = String(option.metadata?.compositionFormula ?? option.metadata?.composition ?? "Composition pending");
+  return `${unsNumber} | ${composition}`;
+}
+
 function MaterialOptionButton({
   id,
   isActive,
@@ -1910,8 +2097,9 @@ function MaterialOptionButton({
       role="option"
       type="button"
     >
-      <span className="block text-[14px] font-semibold leading-5">
-        {option.label}
+      <span className="block text-[14px] font-semibold leading-5">{option.label}</span>
+      <span className="mt-1 block text-[12px] font-medium leading-4 text-[#64748b]">
+        {materialOptionDetails(option)}
       </span>
     </button>
   );
@@ -1973,12 +2161,14 @@ function QualityDocumentationSelect({
       />
       <div className="relative">
         <div
+          data-testid="quality-documentation-trigger"
           className={[
-            "flex min-h-[54px] w-full items-center justify-between gap-3 rounded-[14px] border bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition-all duration-150",
+            "flex min-h-[54px] w-full cursor-pointer items-center justify-between gap-3 rounded-[14px] border bg-white px-3.5 py-2.5 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition-all duration-150",
             isOpen
               ? "border-[#1d73ff] shadow-[0_0_0_5px_rgba(191,219,254,0.78),0_2px_8px_rgba(15,23,42,0.08)]"
               : "border-[#dce4ee] hover:border-[#b4c5d8] focus:border-[#1d73ff] focus:shadow-[0_0_0_5px_rgba(191,219,254,0.65)]",
           ].join(" ")}
+          onClick={() => setIsOpen((current) => !current)}
         >
           <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             {selectedValues.length > 0 ? (
@@ -1989,6 +2179,7 @@ function QualityDocumentationSelect({
                   <span
                     className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-[#f8f8f8] py-1.5 pl-3 pr-2 text-[15px] font-medium leading-5 text-[#27272a] shadow-[0_1px_1px_rgba(15,23,42,0.04)]"
                     key={optionValue}
+                    onClick={(event) => event.stopPropagation()}
                   >
                     <span className="min-w-0 truncate">{label}</span>
                     <button
@@ -2135,14 +2326,16 @@ function LineItemConfigurationCard({
     lineItem.surfaceFinish,
     lineItem.surfaceFinishColor,
   );
+  const [isToleranceModalOpen, setIsToleranceModalOpen] = useState(false);
+  const [isRemoveConfirmationOpen, setIsRemoveConfirmationOpen] = useState(false);
 
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="border-b border-slate-100 bg-slate-50 px-5 py-3">
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
         <button
           aria-expanded={!isCollapsed}
           aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${lineItemHeader}`}
-          className="flex w-full items-center gap-3 text-left text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-800"
+          className="flex min-w-0 flex-1 items-center gap-3 text-left text-sm font-semibold uppercase tracking-[0.18em] text-slate-500 transition hover:text-slate-800"
           onClick={() => onToggleCollapsed(lineItem.id)}
           type="button"
         >
@@ -2151,10 +2344,30 @@ function LineItemConfigurationCard({
               className={`h-4 w-4 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
             />
           </span>
-          <span className="min-w-0 break-all">
-          {lineItemHeader}
-          </span>
+          <span className="min-w-0 break-all">{lineItemHeader}</span>
         </button>
+        {canRemove ? (
+          <button
+            aria-label={`Delete ${lineItemHeader}`}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#e2e2e2] bg-white text-[#8a3f3f] transition hover:border-[#d7b4b4] hover:bg-[#fff6f6] hover:text-[#7c2424]"
+            onClick={() => setIsRemoveConfirmationOpen(true)}
+            title="Delete line item"
+            type="button"
+          >
+            <Trash2 aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
+          </button>
+        ) : null}
+        {isRemoveConfirmationOpen ? (
+          <RemoveLineItemConfirmationModal
+            index={index}
+            lineItemName={lineItemDisplayName}
+            onCancel={() => setIsRemoveConfirmationOpen(false)}
+            onConfirm={() => {
+              setIsRemoveConfirmationOpen(false);
+              onRemove(lineItem.id);
+            }}
+          />
+        ) : null}
       </div>
       <div className={isCollapsed ? "hidden" : "grid lg:grid-cols-[0.95fr_1fr]"}>
         <div className="border-b border-slate-200 p-8 lg:border-b-0 lg:border-r">
@@ -2220,15 +2433,6 @@ function LineItemConfigurationCard({
                 }
               />
             </label>
-            {canRemove ? (
-              <button
-                className="text-sm font-medium text-slate-500 transition hover:text-slate-950"
-                onClick={() => onRemove(lineItem.id)}
-                type="button"
-              >
-                Remove
-              </button>
-            ) : null}
           </div>
 
           <div className="space-y-8">
@@ -2273,13 +2477,6 @@ function LineItemConfigurationCard({
                   required
                   showSearch
                 />
-                {selectedSurfaceFinishMetadata ? (
-                  <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
-                    <span className="rounded-full bg-slate-100 px-3 py-1">
-                      {selectedSurfaceFinishMetadata.badge}
-                    </span>
-                  </div>
-                ) : null}
                 {selectedSurfaceFinishMetadata?.cosmeticRequirement ? (
                   <CustomSelect
                     label="Select cosmetic requirement"
@@ -2309,8 +2506,8 @@ function LineItemConfigurationCard({
                         return (
                           <label
                             className={[
-                              "flex min-h-[54px] cursor-pointer items-center gap-4 border-b border-slate-200 px-5 py-3 text-[15px] font-semibold text-slate-950 last:border-b-0",
-                              isSelected ? "bg-slate-50 ring-1 ring-inset ring-slate-950" : "",
+                              "flex min-h-[54px] cursor-pointer items-center gap-4 border-b border-slate-200 px-5 py-3 text-[15px] font-semibold text-slate-950 first:rounded-t-[13px] last:rounded-b-[13px] last:border-b-0",
+                              isSelected ? "bg-slate-50 shadow-[inset_0_0_0_1px_#020617]" : "",
                             ].join(" ")}
                             key={color.value}
                           >
@@ -2400,6 +2597,16 @@ function LineItemConfigurationCard({
               <h3 className="text-3xl font-semibold tracking-tight text-slate-950">
                 Tolerances
               </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Tolerances follow{" "}
+                <button
+                  className="font-semibold text-[#006ce5] underline underline-offset-2 transition hover:text-[#004eb5]"
+                  onClick={() => setIsToleranceModalOpen(true)}
+                  type="button"
+                >
+                  ISO 2768-1 standards
+                </button>
+              </p>
               <div className="mt-6 grid gap-5">
                 <CustomSelect
                   label="General Tolerances"
@@ -2452,6 +2659,9 @@ function LineItemConfigurationCard({
                   </label>
                 ))}
               </div>
+              {isToleranceModalOpen ? (
+                <Iso2768ToleranceModal onClose={() => setIsToleranceModalOpen(false)} />
+              ) : null}
             </section>
 
             <section className="border-t border-slate-200 pt-8">
@@ -2782,9 +2992,6 @@ export function RequestForm({
       qualityDocumentation: primaryLineItem.qualityDocumentation,
       quantity: primaryLineItem.quantity,
       requesterName: projectForm.requesterName,
-      revisionSourceQuoteReference: resolvedInitialState?.revisionSourceQuoteReference,
-      revisionSourceRequestId: resolvedInitialState?.revisionSourceRequestId,
-      revisionSourceRevisionNumber: resolvedInitialState?.revisionSourceRevisionNumber,
       surfaceFinish: primaryLineItem.surfaceFinish,
       surfaceFinishColor: primaryLineItem.surfaceFinishColor,
       surfaceFinishCosmeticRequirement:
@@ -2896,11 +3103,9 @@ export function RequestForm({
         quoteValidUntil: "",
         summary: "",
       },
-      revisionChangeLog: resolvedInitialState?.revisionSourceRequestId
-        ? buildRevisionChangeLog(resolvedInitialState, projectForm, configuredLineItems)
-        : [],
-      revisionNumber: resolvedInitialState?.revisionSourceRequestId ? (resolvedInitialState.revisionSourceRevisionNumber ?? 1) + 1 : 1,
-      revisionOfRequestId: resolvedInitialState?.revisionSourceRequestId ?? null,
+      revisionChangeLog: [],
+      revisionNumber: 1,
+      revisionOfRequestId: null,
       requestOrigin: "ACCOUNT",
       statusEvents: [
         {
@@ -3206,7 +3411,26 @@ export function RequestForm({
   }
 
   function removeLineItem(id: string) {
-    setLineItems((current) => current.filter((lineItem) => lineItem.id !== id));
+    const remainingConfiguredLineItems = lineItems.filter(
+      (lineItem) => lineItem.id !== id && lineItem.fileName.trim(),
+    );
+
+    setLineItems((current) => {
+      const remainingLineItems = current.filter((lineItem) => lineItem.id !== id);
+      return remainingLineItems.length
+        ? remainingLineItems
+        : [makeLineItemInitialState("line-1")];
+    });
+
+    if (!isQuoteNameCustomized) {
+      setProjectForm((current) => ({
+        ...current,
+        projectName: quoteNameFromFileNames(
+          remainingConfiguredLineItems.map((lineItem) => lineItem.fileName),
+        ),
+      }));
+    }
+
     setCollapsedLineItemIds((current) => {
       if (!current.has(id)) {
         return current;
@@ -3280,14 +3504,6 @@ export function RequestForm({
       title: projectForm.projectName,
       process: optionLabel(processOptions, projectForm.process),
       dueDate: projectForm.dueDate,
-      revision: resolvedInitialState?.revisionSourceRequestId
-        ? {
-            changeLog: buildRevisionChangeLog(resolvedInitialState, projectForm, configuredLineItems),
-            revisionNumber: (resolvedInitialState.revisionSourceRevisionNumber ?? 1) + 1,
-            sourceQuoteReference: resolvedInitialState.revisionSourceQuoteReference,
-            sourceRequestId: resolvedInitialState.revisionSourceRequestId,
-          }
-        : undefined,
       lineItems: configuredLineItems.map((lineItem, index) => {
         const noteLines = [
           index === 0 && projectForm.customerPo.trim()
@@ -3503,7 +3719,7 @@ export function RequestForm({
               index={index}
               lineItem={lineItem}
               isCollapsed={collapsedLineItemIds.has(lineItem.id)}
-              canRemove={configuredLineItems.length > 1}
+              canRemove
               updateLineItem={updateLineItem}
               updateLineItemFlag={updateLineItemFlag}
               onToggleCollapsed={toggleLineItemCollapsed}

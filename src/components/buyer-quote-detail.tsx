@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowDownUp, ArrowLeft, Download, Info, Mail, Phone, Upload, User, X } from "lucide-react";
+import { ArrowDownUp, ArrowLeft, Download, Info, Mail, Phone, User, X } from "lucide-react";
 
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
@@ -18,8 +18,8 @@ const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; bu
   },
   SUBMITTED: {
     buyerAction: "Lattice is checking the RFQ package before supplier outreach.",
-    requestCopy: "Lattice is reviewing the uploaded files, material, quantity, and timing before routing this RFQ.",
-    requestTitle: "Lattice review in progress",
+    requestCopy: "Lattice is gathering feedback from its supplier network to prepare accurate pricing and lead time for this order.",
+    requestTitle: "Supplier network review in progress",
   },
   NEEDS_INFO: {
     buyerAction: "Additional buyer detail is needed before suppliers can quote accurately.",
@@ -273,7 +273,6 @@ export function BuyerQuoteDetail({
   const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
-  const reviseHref = `/requests/new?revise=${request.id}`;
   const shippingAddressLines = quoteShippingAddressLines(request);
   const lineItemFiles = bundledFilesByLineItem(request);
   const lineItemIds = useMemo(() => request.lineItems.map((item) => item.id), [request.lineItems]);
@@ -338,33 +337,8 @@ export function BuyerQuoteDetail({
             </div>
           </section>
 
-          {request.revisionNumber > 1 || request.revisionChangeLog.length > 0 ? (
-            <section className="rounded-md border border-[#e7e7e7] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Revision history</p>
-                  <h2 className="mt-1 text-[18px] font-semibold text-[#202020]">Revision {request.revisionNumber}</h2>
-                </div>
-                {request.revisionOfRequestId ? <span className="text-[12px] font-medium text-[#6f737a]">Original: {request.revisionOfRequestId}</span> : null}
-              </div>
-              <ul className="mt-4 space-y-2 text-[13px] leading-6 text-[#4f5660]">
-                {(request.revisionChangeLog.length ? request.revisionChangeLog : ["Revision submitted for updated review."]).map((change) => (
-                  <li className="rounded-md bg-[#fafafa] px-3 py-2" key={change}>{change}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
           <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="border-b border-[#d8dce2] px-5 py-4">
-              <div className="flex flex-wrap gap-3">
-                <Link className="inline-flex min-h-10 items-center gap-2 rounded-md border border-[#d5d9df] bg-white px-4 text-[14px] font-medium text-[#30343a] transition hover:border-[#aeb6c2] hover:bg-[#f8fafc]" href={reviseHref}>
-                  <Upload aria-hidden="true" className="h-4 w-4" />
-                  Select files or drag and drop here to upload
-                </Link>
-              </div>
-              <h2 className="sr-only">Summary of order</h2>
-            </div>
+            <h2 className="sr-only">Summary of order</h2>
 
             <div className="overflow-x-auto" data-testid="quote-line-items-scroll">
               <div className="min-w-[1044px]">
@@ -437,9 +411,6 @@ export function BuyerQuoteDetail({
                           {(item.qualityDocumentation ?? []).length > 0 ? (
                             <p className="text-[#5f6670]">{(item.qualityDocumentation ?? []).join(", ")}</p>
                           ) : null}
-                          <Link className="mt-2 inline-flex font-semibold text-[#4f7cff] transition hover:text-[#244bc7]" href={reviseHref}>
-                            Edit configuration
-                          </Link>
                         </div>
                         <div className="flex min-h-11 items-center px-4 text-[16px] font-semibold text-[#262a30]" aria-label={`Quantity for ${item.partName}`}>
                           {item.quantity}
@@ -499,7 +470,7 @@ export function BuyerQuoteDetail({
                 </form>
               ) : (
                 <button
-                  className="min-h-11 w-full rounded-md bg-[#d5d8dd] px-4 text-[14px] font-semibold text-white disabled:cursor-not-allowed"
+                  className="min-h-11 w-full rounded-md bg-[#d5d8dd] px-4 text-[14px] font-semibold text-[#30343a] disabled:cursor-not-allowed"
                   disabled
                   type="button"
                 >

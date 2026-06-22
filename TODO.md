@@ -45,9 +45,8 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator marks missing info or ready for supplier RFQ
   - operator saves a durable customer quote version with per-part unit pricing
   - keep refining the explicit edit/reissue flow for correcting an already-issued customer quote without making the default issued quote detail view editable
-  - buyer revises active priced quotes through a prefilled new RFQ when price or lead time needs changes
   - buyer and operator views stay in sync
-- Apply the latest schema changes, including `CLOSED`, quote shipping/date fields, account defaults, `AccountDefaults.companyName`, RFQ contact/ship-to snapshot fields, quote revision fields (`revisionOfRequestId`, `revisionNumber`, `revisionChangeLog`), and `UploadedFile.cadPreviewUrn`, to local and production databases with Prisma after pulling this change.
+- Apply the latest schema changes, including `CLOSED`, quote shipping/date fields, account defaults, `AccountDefaults.companyName`, RFQ contact/ship-to snapshot fields, and `UploadedFile.cadPreviewUrn`, to local and production databases with Prisma after pulling this change.
 - Apply the new supplier quote attachment schema (`SupplierQuoteAttachment`) to local and production databases with Prisma after Postgres is reachable; local development can store received Chinese shop quote files in `.data/uploads/supplier-quotes` through the fallback store until then.
 - Apply the new structured supplier quote schema field (`SupplierQuote.lineItems`) to production databases with Prisma so admin-issued quotes can generate order-specific DOC-002 supplier purchase order PDFs after purchase.
 - Apply the new checkout payment schema fields and `CustomerPurchaseOrderAttachment` model to local and production databases with Prisma after Postgres is reachable; local development can store customer PO uploads in `.data/uploads/customer-purchase-orders` through the fallback store until then.
@@ -55,7 +54,6 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Apply the new guest simple quote schema fields (`Request.requestOrigin`, `Request.guestAccessTokenHash`, and `Request.guestAccessTokenExpiresAt`) to local and production databases with Prisma before promoting `/simple-quote`.
 - Apply the new roadmap interest schema (`RoadmapInterest`) to local and production databases with Prisma so `/roadmap` interest flags persist durably outside the local development fallback.
 - Apply the new admin order archive schema field (`Request.isArchived`) to local and production databases with Prisma after Postgres is reachable; local development can use the `.data/requests.json` fallback until then.
-- Continue refining quote revision lineage views, including admin-side source-chain navigation from revised RFQs back to the original request.
 - Define and persist a durable `Delivered` trigger for the buyer lifecycle tag, such as a supplier/order status beyond `SHIPPED` or a delivery confirmation event.
 - Add ownership-aware repository helpers such as `getCustomerRequestById`, `listCustomerRequests`, and `getSupplierOrderById` so role isolation also filters records by customer company or awarded supplier instead of only by route family.
 - If admins need to submit RFQs on behalf of customers, build a dedicated admin-native flow under `/admin/customers/[companyId]` rather than sending operators to the customer `/requests/new` experience.

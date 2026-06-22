@@ -138,6 +138,49 @@ function waitForNextFrame() {
   });
 }
 
+function hasUsableViewerSize(element: HTMLElement) {
+  const bounds = element.getBoundingClientRect();
+  return bounds.width > 20 && bounds.height > 20;
+}
+
+function waitForViewerContainerSize(element: HTMLElement) {
+  if (hasUsableViewerSize(element)) {
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    let frame = 0;
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("The CAD preview area is not ready yet. Try reopening this line item."));
+    }, 5000);
+
+    const observer =
+      typeof window.ResizeObserver === "function"
+        ? new window.ResizeObserver(() => checkSize())
+        : null;
+
+    function cleanup() {
+      window.clearTimeout(timeout);
+      window.cancelAnimationFrame(frame);
+      observer?.disconnect();
+    }
+
+    function checkSize() {
+      if (hasUsableViewerSize(element)) {
+        cleanup();
+        resolve();
+        return;
+      }
+
+      frame = window.requestAnimationFrame(checkSize);
+    }
+
+    observer?.observe(element);
+    checkSize();
+  });
+}
+
 async function waitForGeometry(viewer: AutodeskViewerInstance, model: unknown) {
   if (viewer.waitForLoadDone) {
     await viewer.waitForLoadDone({ geometry: true, onlyModels: [model] });
@@ -275,6 +318,13 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
           return;
         }
 
+        const container = containerRef.current;
+        await waitForViewerContainerSize(container);
+
+        if (!window.Autodesk || containerRef.current !== container || !isMounted) {
+          return;
+        }
+
         window.Autodesk.Viewing.Initializer(
           {
             env: "AutodeskProduction2",
@@ -289,12 +339,12 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
             },
           },
           () => {
-            if (!window.Autodesk || !containerRef.current || !isMounted) {
+            if (!window.Autodesk || containerRef.current !== container || !isMounted) {
               return;
             }
 
-            const viewer = new window.Autodesk.Viewing.GuiViewer3D(containerRef.current);
-            stopToolbarFilter = scheduleAutodeskToolbarFilter(containerRef.current);
+            const viewer = new window.Autodesk.Viewing.GuiViewer3D(container);
+            stopToolbarFilter = scheduleAutodeskToolbarFilter(container);
             viewerRef.current = viewer;
             const startCode = viewer.start();
 

@@ -122,6 +122,9 @@ export const rfqMaterialOptions: RfqOption[] = uniqueOptionsByValue(
   cncMaterialLibrary.map((entry) =>
     option(entry.value, entry.label, entry.value, {
       family: entry.family,
+      unsNumber: entry.unsNumber,
+      composition: entry.composition,
+      compositionFormula: entry.compositionFormula,
       sources: entry.sources.join(", "),
     }),
   ),

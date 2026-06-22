@@ -646,8 +646,17 @@ describe("BuyerQuoteDetail", () => {
 
     render(<BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />);
 
-    expect(screen.getAllByText("Lattice review in progress").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Lattice is checking the RFQ package before supplier outreach." })).toBeDisabled();
+    expect(screen.getAllByText("Supplier network review in progress").length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(
+        "Lattice is gathering feedback from its supplier network to prepare accurate pricing and lead time for this order.",
+      ),
+    ).toBeInTheDocument();
+    const disabledAction = screen.getByRole("button", {
+      name: "Lattice is checking the RFQ package before supplier outreach.",
+    });
+    expect(disabledAction).toBeDisabled();
+    expect(disabledAction).toHaveClass("text-[#30343a]");
     expect(screen.queryByRole("link", { name: "Edit and resubmit request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Download quote PDF" })).not.toBeInTheDocument();
   });
@@ -725,7 +734,8 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
     expect(screen.getByText("Summary of order")).toBeInTheDocument();
     expect(screen.getByTestId("quote-line-items-scroll")).toHaveClass("overflow-x-auto");
-    expect(screen.getByRole("link", { name: "Select files or drag and drop here to upload" })).toHaveAttribute("href", `/requests/new?revise=${requestWithCustomerQuote.id}`);
+    expect(screen.queryByRole("link", { name: "Modify quote request" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Edit configuration" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Configure via drawing" })).not.toBeInTheDocument();
     expect(screen.getByText(/Price/)).toBeInTheDocument();
     expect(screen.getByText("$76.04/ea")).toBeInTheDocument();

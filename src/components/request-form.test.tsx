@@ -234,19 +234,22 @@ describe("RequestForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand Line item 1: bracket" }));
     expect(screen.getByRole("button", { name: "Collapse Line item 1: bracket" })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("SS 304");
+    expect(screen.getByText(/UNS: S30400 \| X5CrNi18-10/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
     expect(screen.getByRole("button", { name: /Aluminum/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Stainless steel/i })).toBeInTheDocument();
-    expect(screen.queryByText("300 series austenitic")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Aluminum/i }));
+    expect(screen.getAllByText(/UNS: A96061 \| AlMg1SiCu/).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("option", { name: /2014 Aluminum/i }).length).toBeGreaterThan(0);
     fireEvent.change(screen.getByPlaceholderText("Search grade, alloy, or family..."), {
       target: { value: "Ultem 2300" },
     });
     const ultemOptions = screen.getAllByRole("option", { name: /ULTEM 2300/ });
     expect(ultemOptions.length).toBeGreaterThan(0);
+    expect(screen.getByRole("option", { name: /UNS: N\/A \| PEI GF30/ })).toBeInTheDocument();
     fireEvent.click(ultemOptions.at(-1)!);
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("ULTEM 2300");
+    expect(screen.getByText(/UNS: N\/A \| PEI GF30/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
     const materialSearch = screen.getByPlaceholderText("Search grade, alloy, or family...");
     fireEvent.change(materialSearch, { target: { value: "6061" } });
@@ -254,6 +257,13 @@ describe("RequestForm", () => {
     fireEvent.keyDown(materialSearch, { key: "Enter" });
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("6061-T651 Aluminum");
     expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("ISO 2768 Medium (m)");
+    fireEvent.click(screen.getByRole("button", { name: "ISO 2768-1 standards" }));
+    expect(screen.getByRole("dialog", { name: "ISO 2768-1 tolerances" })).toBeInTheDocument();
+    expect(screen.getByText("Limits for nominal size")).toBeInTheDocument();
+    expect(screen.getByText("Over 400mm to 1000mm")).toBeInTheDocument();
+    expect(screen.getByText("+/-0.8mm")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close ISO 2768-1 tolerances" }));
+    expect(screen.queryByRole("dialog", { name: "ISO 2768-1 tolerances" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("Surface Finish")).toHaveDisplayValue("As machined (Ra 3.2 um / Ra 126 uin)");
     expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue("Standard Inspection");
     fireEvent.click(screen.getByRole("button", { name: "Quality documentation dropdown" }));
@@ -302,6 +312,36 @@ describe("RequestForm", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByText("replacement-drawing.pdf")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review drawing specs" })).toBeInTheDocument();
+  });
+
+  it("opens quality documentation options from the field shell without opening from selected pills", async () => {
+    mockRequestFormFetch();
+
+    render(<RequestForm />);
+
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: { files: [new File(["solid"], "bracket.step", { type: "model/step" })] },
+    });
+
+    await screen.findByText("Line item 1: bracket");
+
+    fireEvent.click(screen.getByText("Standard Inspection"));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("quality-documentation-trigger"));
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("option", { name: "Material Test Report (MTR)" }));
+    expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue(
+      "Standard Inspection, Material Test Report (MTR)",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Quality documentation dropdown" }));
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Material Test Report (MTR)" }));
+    expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue("Standard Inspection");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   it("renders a prefilled reorder draft from an existing order", () => {
@@ -406,7 +446,7 @@ describe("RequestForm", () => {
     expect(screen.getByPlaceholderText("Enter RAL code or name")).toBeInTheDocument();
   });
 
-  it("renders every copied line item in a prefilled quote revision draft", () => {
+  it("renders every copied line item in a prefilled request draft", () => {
     render(
       <RequestForm
         initialState={{
@@ -439,14 +479,14 @@ describe("RequestForm", () => {
             },
           ],
           process: "cnc_milling",
-          projectName: "Tubesheet Retainer Plate revision",
+          projectName: "Tubesheet Retainer Plate reorder",
           requesterName: "William Paik",
         }}
-        prefillNotice="Quote revision draft prepared from LQ-MPYTWFRU."
+        prefillNotice="Reorder draft prepared from PO-MPYTWFRU."
       />,
     );
 
-    expect(screen.getByText("Quote revision draft prepared from LQ-MPYTWFRU.")).toBeInTheDocument();
+    expect(screen.getByText("Reorder draft prepared from PO-MPYTWFRU.")).toBeInTheDocument();
     expect(screen.getByText("Line item 1: Aluminum Plate")).toBeInTheDocument();
     expect(screen.getByText("Line item 2: Tubesheet Retainer Plate")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Aluminum Plate" })).not.toBeInTheDocument();
@@ -454,6 +494,24 @@ describe("RequestForm", () => {
     expect(screen.queryByLabelText("Part / line item name")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("File reference")).not.toBeInTheDocument();
     expect(screen.getAllByText(/This is only a saved filename/)).toHaveLength(2);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Delete Line item 2: Tubesheet Retainer Plate",
+      }),
+    );
+    expect(screen.getByRole("dialog", { name: "Remove from quote" })).toBeInTheDocument();
+    expect(screen.getByText(/2\.\s+Tubesheet Retainer Plate/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog", { name: "Remove from quote" })).not.toBeInTheDocument();
+    expect(screen.getByText("Line item 2: Tubesheet Retainer Plate")).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Delete Line item 2: Tubesheet Retainer Plate",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    expect(screen.queryByText("Line item 2: Tubesheet Retainer Plate")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete Line item 1: Aluminum Plate" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
   });
 
@@ -523,11 +581,11 @@ describe("RequestForm", () => {
     expect(submittedForm.get("file-1")).toBeNull();
   });
 
-  it("lets a revision resubmit saved CAD and drawing files without reuploading them", async () => {
+  it("lets a prefilled request submit saved CAD and drawing files without reuploading them", async () => {
     const fetchMock = mockRequestFormFetch({
       request: {
-        id: "req_revision",
-        title: "Tubesheet Retainer Plate revision",
+        id: "req_reorder",
+        title: "Tubesheet Retainer Plate reorder",
         status: "SUBMITTED",
       },
     });
@@ -558,11 +616,8 @@ describe("RequestForm", () => {
             },
           ],
           process: "cnc_milling",
-          projectName: "Tubesheet Retainer Plate revision",
+          projectName: "Tubesheet Retainer Plate reorder",
           requesterName: "William Paik",
-          revisionSourceQuoteReference: "LQ-MPYTWFRU",
-          revisionSourceRequestId: "req_mpytwfru_f7mhsk",
-          revisionSourceRevisionNumber: 1,
         }}
       />,
     );
@@ -578,12 +633,7 @@ describe("RequestForm", () => {
     const submittedForm = fetchMock.mock.calls.at(-1)?.[1]?.body as FormData;
     const submitted = JSON.parse(String(submittedForm.get("request")));
 
-    expect(submitted.revision).toMatchObject({
-      revisionNumber: 2,
-      sourceQuoteReference: "LQ-MPYTWFRU",
-      sourceRequestId: "req_mpytwfru_f7mhsk",
-    });
-    expect(submitted.revision.changeLog).toEqual(["Resubmitted for review with no field-level changes detected."]);
+    expect(submitted).not.toHaveProperty("revision");
     expect(submitted.files).toMatchObject([
       {
         name: "Aluminum Plate.STEP",
@@ -827,6 +877,27 @@ describe("RequestForm", () => {
         { fileName: "housing.sldprt", fileStorageKey: "rfq-drafts/test/housing.sldprt" },
       ]);
     });
+  });
+
+  it("deletes the only configured line item from the line item header", async () => {
+    mockRequestFormFetch();
+
+    render(<RequestForm />);
+
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: { files: [new File(["solid"], "bracket.step", { type: "model/step" })] },
+    });
+
+    await screen.findByText("Line item 1: bracket");
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete Line item 1: bracket" }));
+    expect(screen.getByRole("dialog", { name: "Remove from quote" })).toBeInTheDocument();
+    expect(screen.getByText(/1\.\s+bracket/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(screen.queryByText("Line item 1: bracket")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Choose CAD file")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Delete Line item/i })).not.toBeInTheDocument();
   });
 
   it("adds a second configurable line item from the upload another CAD file drop zone", async () => {

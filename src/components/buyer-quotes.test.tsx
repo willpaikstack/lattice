@@ -11,7 +11,7 @@ vi.mock("@/app/quotes/actions", () => ({
 }));
 
 describe("BuyerQuotes", () => {
-  it("sorts quote rows by created date descending", () => {
+  it("sorts quote rows by last edited date descending", () => {
     const olderButRecentlyUpdated = {
       ...submitDraftRequest(
         buildDraftRequest({
@@ -49,13 +49,48 @@ describe("BuyerQuotes", () => {
 
     const rows = screen.getAllByRole("link", { name: /Open quote detail for/ });
     expect(rows.map((row) => row.getAttribute("aria-label"))).toEqual([
-      "Open quote detail for Newer quote created later",
       "Open quote detail for Older quote updated later",
+      "Open quote detail for Newer quote created later",
     ]);
     expect(screen.getByText("LQ-MQ9NEWER")).toBeInTheDocument();
     expect(screen.getByText("LQ-MQ8OLDER")).toBeInTheDocument();
     expect(screen.queryByText("LQ-1001")).not.toBeInTheDocument();
     expect(screen.queryByText("LQ-1002")).not.toBeInTheDocument();
+  });
+
+  it("paginates quote tables in groups of three newest-edited rows", () => {
+    const requests = Array.from({ length: 4 }, (_, index) => ({
+      ...submitDraftRequest(
+        buildDraftRequest({
+          buyerCompany: "Amogy Manufacturing",
+          requesterName: "William Paik",
+          title: `Paged quote ${index + 1}`,
+          process: "CNC milling",
+          dueDate: "2026-06-20",
+          lineItems: [{ partName: `Paged part ${index + 1}`, quantity: 1, material: "SS 304" }],
+          files: [{ name: `paged-${index + 1}.step`, sizeBytes: 1024, type: "model/step" }],
+        }),
+      ),
+      createdAt: `2026-06-0${index + 1}T10:00:00.000Z`,
+      id: `req_paged_${index + 1}`,
+      updatedAt: `2026-06-0${index + 1}T10:00:00.000Z`,
+    }));
+
+    render(<BuyerQuotes requests={requests} />);
+
+    expect(screen.getByText("Paged quote 4")).toBeInTheDocument();
+    expect(screen.getByText("Paged quote 3")).toBeInTheDocument();
+    expect(screen.getByText("Paged quote 2")).toBeInTheDocument();
+    expect(screen.queryByText("Paged quote 1")).not.toBeInTheDocument();
+    expect(screen.getByText("Showing 1-3 of 4 quotes")).toBeInTheDocument();
+    expect(screen.getByText("Page 1 of 2")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(screen.queryByText("Paged quote 4")).not.toBeInTheDocument();
+    expect(screen.getByText("Paged quote 1")).toBeInTheDocument();
+    expect(screen.getByText("Showing 4-4 of 4 quotes")).toBeInTheDocument();
+    expect(screen.getByText("Page 2 of 2")).toBeInTheDocument();
   });
 
   it("renders quote tables without search controls", () => {
