@@ -9,6 +9,7 @@ const statusOptions: Array<{ value: SupplierOrderStatus; label: string; selectLa
   { value: "DOCUMENTS_UPLOADED", label: "Documents uploaded" },
   { value: "READY_TO_SHIP", label: "Ready to ship" },
   { value: "SHIPPED", label: "Shipped" },
+  { value: "DELIVERED", label: "Delivered" },
 ];
 
 const documentCategoryOptions: Array<{ value: SupplierDocumentCategory; label: string }> = [

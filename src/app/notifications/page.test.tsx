@@ -106,9 +106,10 @@ describe("NotificationsPage", () => {
 
     render(await NotificationsPage());
 
-    expect(screen.getByRole("heading", { name: "Alerts" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Notifications" })).toBeInTheDocument();
     expect(screen.getAllByText("Needs attention").length).toBeGreaterThan(0);
-    expect(screen.getByText("Total notifications")).toBeInTheDocument();
+    expect(screen.getByText("Notification history")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Action Center" })).toHaveAttribute("href", "/dashboard#action-center");
     expect(screen.getByText("Quote ready for review")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Quote ready for review/ })).toHaveAttribute("href", "/quotes/req_quoted");
     expect(screen.queryByText("Order PO-1042 moved to final inspection")).not.toBeInTheDocument();

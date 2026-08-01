@@ -1,14 +1,14 @@
-# Customer Inbox Notification Spec
+# Customer Action Center And Notification Spec
 
 Last updated: 2026-06-17
 
-This is the working document for the customer-facing Inbox and Notifications center. Use it to edit the notification taxonomy, decide what should require buyer attention, and keep dashboard behavior aligned with quote and order activity.
+This is the working document for the customer-facing Action Center and Notifications center. Use it to edit the notification taxonomy, define grouped customer workflows, and keep dashboard behavior aligned with quote and order activity.
 
 ## Current Principle
 
-The customer Inbox should show operational activity that already exists in RFQ, quote, order, supplier update, shipment, tracking, and document records.
+The Action Center should answer what needs attention next. Notifications should preserve the chronological record of what happened. An event can appear in notification history and also create a grouped action workflow, but reading the event does not resolve the workflow.
 
-V1 does not use a separate notifications table, read/unread persistence, or mark-read action. Dashboard alerts are derived from `actionRequired`.
+V1 does not use separate workflow/notification tables, read/unread persistence, explicit checklist completion, or mark-read actions. Workflows and notification rows are derived from existing records.
 
 ## Notification Types
 
@@ -31,11 +31,12 @@ V1 does not use a separate notifications table, read/unread persistence, or mark
 
 ## Dashboard Behavior
 
-- `/dashboard` shows the newest 4-6 high-signal Inbox items.
+- `/dashboard` leads with the highest-priority unresolved workflows, each with an owner, due context, progress, short checklist, and continuation action.
+- `/dashboard` separately shows the newest high-signal notifications under Recent Updates.
 - `/notifications` shows the full derived feed, including lower-level audit events such as draft creation and quote closure.
-- Both views should use the same feed builder so counts and rows do not disagree.
-- The Alert KPI counts only notifications where `actionRequired` is true.
-- Copy should use `Needs attention`, not `Unread`, until read-state is persisted.
+- Quote review and quote expiration collapse into one workflow for the same RFQ.
+- The Actions KPI counts grouped workflows, not raw notifications.
+- Copy must not use `Unread` until read-state is persisted.
 - Dashboard RFQ status rows should include `RFQ submitted` and action-required `Quote ready for review`.
 - Do not create customer notification rows for `Supplier pricing started`; supplier-pricing movement remains internal/admin or quote-activity context.
 - Shipping should use one `Order shipped` notification. Do not create a separate `Tracking available` notification unless tracking is added later as a separate operational event in a future version.
@@ -43,6 +44,7 @@ V1 does not use a separate notifications table, read/unread persistence, or mark
 ## Current Implementation
 
 - Feed builder: `src/lib/customer-notifications.ts`
+- Workflow builder: `src/lib/customer-action-center.ts`
 - Dashboard summary builder: `src/lib/customer-dashboard.ts`
 - Dashboard page: `src/app/dashboard/page.tsx`
 - Notification center page: `src/app/notifications/page.tsx`

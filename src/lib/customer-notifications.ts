@@ -1,4 +1,5 @@
 import type { LatticeRequest } from "./request-model";
+import { customerOrderStatusLabel, isOrderMilestoneLate, orderNextStep } from "./order-progress";
 
 type CustomerActivityTone = "attention" | "documents" | "shipping" | "status";
 
@@ -14,14 +15,7 @@ export type CustomerActivityFeedItem = {
   tone: CustomerActivityTone;
 };
 
-const supplierStatusLabels: Record<LatticeRequest["supplierOrder"]["status"], string> = {
-  AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
-  DOCUMENTS_UPLOADED: "Quality documents uploaded",
-  IN_PRODUCTION: "In production",
-  QC_IN_PROGRESS: "QC in progress",
-  READY_TO_SHIP: "Ready to ship",
-  SHIPPED: "Shipped",
-};
+const supplierStatusLabels = customerOrderStatusLabel;
 
 const quoteStatusLabels: Record<LatticeRequest["status"], string> = {
   CLOSED: "Archived",
@@ -185,6 +179,10 @@ function orderStatusDetail(order: LatticeRequest, status: LatticeRequest["suppli
     return order.supplierOrder.trackingNumber ? `${orderReference(order)} shipped. Tracking ${order.supplierOrder.trackingNumber} is available.` : `${orderReference(order)} shipped. Tracking details are pending.`;
   }
 
+  if (status === "DELIVERED") {
+    return `${orderReference(order)} was marked delivered.`;
+  }
+
   if (status === "DOCUMENTS_UPLOADED") {
     return "Quality records are ready for customer review.";
   }
@@ -279,8 +277,9 @@ export function buildCustomerActivityFeed({
 
       const isShipment = update.status === "SHIPPED";
       const progressTitle = orderProgressTitle(update.status);
+      const isManualLatticeUpdate = update.actor === "operator";
 
-      if (!isShipment && update.status !== "DOCUMENTS_UPLOADED" && !progressTitle) {
+      if (!isShipment && update.status !== "DOCUMENTS_UPLOADED" && !progressTitle && !isManualLatticeUpdate) {
         return [];
       }
 
@@ -293,7 +292,7 @@ export function buildCustomerActivityFeed({
           meta: isShipment ? "Shipping" : update.status === "DOCUMENTS_UPLOADED" ? "Documents uploaded" : "Order progress",
           occurredAt: update.createdAt,
           time: formatActivityTime(update.createdAt),
-          title: isShipment ? "Order shipped" : progressTitle ?? `${reference} moved to ${supplierStatusLabels[update.status].toLowerCase()}`,
+          title: isShipment ? "Order shipped" : progressTitle ?? `${reference} updated: ${supplierStatusLabels[update.status]}`,
           tone: orderStatusTone(update.status),
         },
       ];
@@ -316,7 +315,23 @@ export function buildCustomerActivityFeed({
           ]
         : [];
 
-    return [...orderStatusEvents, ...documents, ...updates, ...currentShipment];
+    const overdueMilestone = isOrderMilestoneLate(order)
+      ? [
+          {
+            actionRequired: true,
+            detail: `${orderNextStep(order)} is past its expected date. Lattice is following up and will post the next update here.`,
+            href: `/orders/${order.id}`,
+            id: `late-milestone:${order.id}:${order.supplierOrder.nextMilestoneDate}`,
+            meta: "Order attention",
+            occurredAt: order.updatedAt,
+            time: formatActivityTime(order.updatedAt),
+            title: `${reference} milestone overdue`,
+            tone: "attention" as const,
+          },
+        ]
+      : [];
+
+    return [...orderStatusEvents, ...documents, ...updates, ...currentShipment, ...overdueMilestone];
   });
 
   return [...quoteItems, ...orderItems].sort((left, right) => {

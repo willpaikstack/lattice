@@ -149,6 +149,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Request Quote", "/requests/new");
     expectAllLinksNamed("Quotes", "/quotes");
     expectAllLinksNamed("Orders", "/orders");
+    expectAllLinksNamed("Notifications", "/notifications");
     expectAllLinksNamed("Roadmap", "/roadmap");
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");

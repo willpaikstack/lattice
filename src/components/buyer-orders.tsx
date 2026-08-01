@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
+import { isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
 
 const supplierStatusCopy: Record<SupplierOrderStatus, { label: string; tone: string; nextAction: string }> = {
   AWAITING_ACKNOWLEDGMENT: {
@@ -35,6 +36,11 @@ const supplierStatusCopy: Record<SupplierOrderStatus, { label: string; tone: str
     label: "Shipped",
     nextAction: "Track shipment",
     tone: "border-slate-950 bg-slate-950 text-white",
+  },
+  DELIVERED: {
+    label: "Delivered",
+    nextAction: "Delivery complete",
+    tone: "border-emerald-100 bg-emerald-50 text-emerald-700",
   },
 };
 
@@ -146,6 +152,7 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
           const primaryLine = order.lineItems[0];
           const status = supplierStatusCopy[order.supplierOrder.status];
           const material = primaryLine?.material ?? "Material pending";
+          const milestoneLate = isOrderMilestoneLate(order);
 
           return (
             <Link
@@ -183,14 +190,14 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Status</p>
-                <p className="mt-1 text-[14px] font-semibold text-[#202020] xl:mt-0">{status.nextAction}</p>
-                <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-[#747a83]">{status.label}</p>
+                <p className={`mt-1 text-[14px] font-semibold xl:mt-0 ${milestoneLate ? "text-[#b54708]" : "text-[#202020]"}`}>{milestoneLate ? "Milestone overdue" : status.nextAction}</p>
+                <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-[#747a83]">{milestoneLate ? orderNextStep(order) : status.label}</p>
               </div>
 
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Updated</p>
                 <p className="mt-1 text-[14px] text-[#4b525b] xl:mt-0">{formatUpdatedAt(order.updatedAt)}</p>
-                <p className="mt-1 text-[12px] text-[#8a8f98]">Due {order.dueDate}</p>
+                <p className={`mt-1 text-[12px] ${milestoneLate ? "font-semibold text-[#b54708]" : "text-[#8a8f98]"}`}>{milestoneLate ? `Late: ${order.supplierOrder.nextMilestoneDate}` : `Next: ${orderNextStep(order)}`}</p>
               </div>
             </Link>
           );

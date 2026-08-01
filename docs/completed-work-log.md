@@ -13,6 +13,34 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Verification: command or smoke test run, if applicable.
 ```
 
+## 2026-08-01
+
+- Redesigned the customer `/requests/new` first screen around the selected upload-first concept: clear RFQ progress, autosave reassurance, a more focused CAD upload surface, and a draft continuation table that excludes submitted requests.
+- Preserved the existing multi-file upload, CAD preview, local draft persistence, configuration, drawing validation, and submission behavior. Verification: all 19 request-form tests, TypeScript, targeted ESLint, desktop browser rendering, page-width checks, and visual source comparison passed; a pre-existing app-shell navigation hydration warning remains visible in local development.
+- Replaced the customer dashboard Inbox with a workflow-based Action Center covering supplier clarification, quote review/expiration, overdue order milestones, and customer document review; each workflow now shows priority, owner, due context, progress, checklist steps, and a direct continuation action.
+- Preserved informational updates through a separate Recent Updates dashboard preview and the full `/notifications` history, and added a global notification bell to customer desktop/mobile navigation without presenting derived attention state as unread state.
+- Added focused workflow derivation, dashboard, notification-page, and app-shell coverage. Verification: type checking, lint, dead-code analysis, production build, `git diff --check`, and all 36 focused tests passed; the full suite passed 245 of 246 tests, with only the pre-existing date-sensitive admin activity assertion failing.
+- Reworked customer quote detail around a clear status/next-step summary and responsive part-and-pricing rows that stack before columns become cramped; removed unused line-item selection controls and the duplicate disabled status action.
+- Reworked customer order detail around one operational health panel for status, latest update, milestone ownership, overdue state, and tracking; consolidated customer invoice, reorder, and help actions into the summary rail while preserving admin-specific controls.
+- Verification: 32 focused quote/order/admin tests and ESLint passed, `git diff --check` passed, and desktop/mobile browser checks confirmed quote and order detail pages have no horizontal page overflow.
+- Redesigned the admin order-progress publisher into a compact lifecycle workflow with semantic status cues, suggested milestones and owners, conditional tracking, collapsible internal details, a live customer preview, and completion-aware validation.
+- Verification: focused order-progress and admin-order tests, targeted ESLint, `git diff --check`, desktop/mobile browser checks, conditional shipped-state testing, and console-error review passed. Visual comparison evidence is recorded in `design-qa.md`.
+- Added a shared, manually managed purchased-order lifecycle. Admins can publish status, Lattice owner, next milestone/date, responsible party, tracking number, and required customer-facing update from `/admin/orders/[requestId]`.
+- Added explicit `Delivered` status, monotonic status-transition validation, persistent order-progress fields, audit actor metadata, local-fallback persistence, customer-visible milestone context, and automatic overdue-milestone alerts in dashboard/notifications/order views.
+- Verification: `npm run prisma:generate`, `npm run db:push`, `npm run typecheck`, `npm run lint`, focused order/dashboard/notification tests, and `npm run build` passed. The full suite has one unrelated date-sensitive admin activity dashboard assertion that now expects a stale June queue label.
+- Configured the first internal Lattice Google Workspace OAuth web client for local and production callback URLs.
+- Added the Google Workspace SSO settings to the Lattice Vercel Production environment and redeployed `latticeos.co`; verified the live login route exposes Google Workspace sign-in and starts Google authorization with the production callback URI.
+- Fixed local Google sign-in state validation when the development server is opened through `0.0.0.0:3000`; SSO now redirects to the registered callback host before setting its secure state cookie.
+- Added route coverage for host normalization and OAuth state-cookie creation.
+- Added a stable local development launcher at `npm run dev:local` that pins Lattice to `http://localhost:3000` while also listening on the local machine interface.
+- Installed a macOS LaunchAgent at `~/Library/LaunchAgents/com.lattice.local-dev.plist` so the local dev server starts at login and is kept alive in the background on this computer.
+- Rebuilt `/login` with optional configured Google Workspace SSO, preserved email/deep-link context, and added accessible errors, pending feedback, password visibility, Caps Lock feedback, official Google branding, and support paths.
+- Simplified the login journey after review: work email and password now appear together on one screen, while configured Google Workspace SSO remains an optional alternative.
+- Verification: targeted login and recovery tests, lint, type checking, `git diff --check`, and a fresh local browser check passed.
+- Refined `/forgot-password` with a prefilled work-email handoff, pending feedback, non-enumerating reset confirmation, inbox/spam guidance, retry support, and a primary return-to-sign-in action.
+- Verification: focused login/auth tests, `npm run typecheck`, `npm run lint`, `npm run dead-code`, `npm run build`, `git diff --check`, and desktop/mobile browser checks passed. The full suite passed 234 of 235 tests; the unrelated admin activity dashboard test remains date-sensitive and expects a June queue label that no longer applies on the current August date.
+- Verification: `launchctl print gui/$(id -u)/com.lattice.local-dev`, `lsof -nP -iTCP:3000 -sTCP:LISTEN`, and `curl -I http://localhost:3000` confirmed the service is running and serving `200 OK`.
+
 ## 2026-06-22
 
 - Prepared the cross-computer handoff for the latest RFQ and quote UX work, including Hubs-style material metadata, the RFQ ISO 2768-1 tolerance popup, line-item deletion confirmation, CAD upload/viewer polish, buyer quote list pagination, and quote-detail status messaging.

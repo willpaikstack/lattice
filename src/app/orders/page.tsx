@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
   const orders = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders());
-  const activeOrderCount = orders.filter((order) => order.supplierOrder.status !== "SHIPPED").length;
+  const activeOrderCount = orders.filter((order) => order.supplierOrder.status !== "DELIVERED").length;
   const inProductionCount = orders.filter((order) => order.supplierOrder.status === "IN_PRODUCTION").length;
   const documentReadyCount = orders.filter((order) => order.supplierOrder.status === "DOCUMENTS_UPLOADED").length;
 

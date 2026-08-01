@@ -652,11 +652,9 @@ describe("BuyerQuoteDetail", () => {
         "Lattice is gathering feedback from its supplier network to prepare accurate pricing and lead time for this order.",
       ),
     ).toBeInTheDocument();
-    const disabledAction = screen.getByRole("button", {
-      name: "Lattice is checking the RFQ package before supplier outreach.",
-    });
-    expect(disabledAction).toBeDisabled();
-    expect(disabledAction).toHaveClass("text-[#30343a]");
+    expect(screen.getByText("What happens next")).toBeInTheDocument();
+    expect(screen.queryByText("No action needed")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Lattice is checking the RFQ package before supplier outreach." })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit and resubmit request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Download quote PDF" })).not.toBeInTheDocument();
   });
@@ -732,12 +730,12 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
     expect(screen.getAllByText("Quote received").length).toBeGreaterThan(0);
     expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
-    expect(screen.getByText("Summary of order")).toBeInTheDocument();
-    expect(screen.getByTestId("quote-line-items-scroll")).toHaveClass("overflow-x-auto");
+    expect(screen.getByRole("heading", { name: "Parts and pricing" })).toBeInTheDocument();
+    expect(screen.getByTestId("quote-line-items-responsive")).not.toHaveClass("overflow-x-auto");
     expect(screen.queryByRole("link", { name: "Modify quote request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit configuration" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Configure via drawing" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Price/)).toBeInTheDocument();
+    expect(screen.getAllByText("Price").length).toBeGreaterThan(0);
     expect(screen.getByText("$76.04/ea")).toBeInTheDocument();
     expect(screen.getByText("Preview pending")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "mounting-bracket.step" })).toHaveAttribute(
@@ -766,18 +764,8 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.queryByText("Chinese shop quote")).not.toBeInTheDocument();
     expect(screen.queryByText(/internal pricing traceability/i)).not.toBeInTheDocument();
 
-    const selectAllCheckbox = screen.getByRole("checkbox", { name: "Select all line items" });
-    const lineItemCheckbox = screen.getByRole("checkbox", { name: "Select Mounting bracket" });
-    expect(selectAllCheckbox).not.toBeChecked();
-    expect(lineItemCheckbox).not.toBeChecked();
-
-    fireEvent.click(selectAllCheckbox);
-    expect(selectAllCheckbox).toBeChecked();
-    expect(lineItemCheckbox).toBeChecked();
-
-    fireEvent.click(lineItemCheckbox);
-    expect(selectAllCheckbox).not.toBeChecked();
-    expect(lineItemCheckbox).not.toBeChecked();
+    expect(screen.queryByRole("checkbox", { name: "Select all line items" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Select Mounting bracket" })).not.toBeInTheDocument();
   });
 
   it("shows customers the latest updated quote version", () => {
@@ -1083,7 +1071,7 @@ describe("BuyerOrderDetail", () => {
     render(<BuyerOrderDetail order={order} />);
 
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    expect(screen.getByText("In production")).toBeInTheDocument();
+    expect(screen.getAllByText("In production").length).toBeGreaterThan(0);
     expect(screen.getByText("Shenzhen Precision Manufacturing")).toBeInTheDocument();
     expect(screen.getAllByText("1Z999AA10123456784").length).toBeGreaterThan(0);
     expect(screen.getAllByText("UPS").length).toBeGreaterThan(0);
@@ -1094,10 +1082,7 @@ describe("BuyerOrderDetail", () => {
     expect(screen.getByText(/Required docs: Standard Inspection/)).toBeInTheDocument();
     expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
     expect(screen.getByText(/Quality documents will appear here/)).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "View invoice" }).map((link) => link.getAttribute("href"))).toEqual([
-      `/orders/${order.id}/invoice.pdf?preview=1`,
-      `/orders/${order.id}/invoice.pdf?preview=1`,
-    ]);
+    expect(screen.getByRole("link", { name: "View invoice" })).toHaveAttribute("href", `/orders/${order.id}/invoice.pdf?preview=1`);
     expect(screen.getByRole("link", { name: "Download invoice" })).toHaveAttribute("href", `/orders/${order.id}/invoice.pdf`);
     expect(screen.getByRole("link", { name: "Reorder parts" })).toHaveAttribute("href", `/requests/new?reorder=${order.id}`);
     expect(screen.queryByText("Chinese shop quote")).not.toBeInTheDocument();
@@ -1108,10 +1093,7 @@ describe("BuyerOrderDetail", () => {
     expect(screen.getByText("$4,273.28")).toBeInTheDocument();
     expect(screen.queryByText("$35.00")).not.toBeInTheDocument();
     expect(screen.queryByText("$338.61")).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Help with order" }).map((link) => link.getAttribute("href"))).toEqual([
-      `/orders/${order.id}/help`,
-      `/orders/${order.id}/help`,
-    ]);
+    expect(screen.getByRole("link", { name: "Help with order" })).toHaveAttribute("href", `/orders/${order.id}/help`);
   });
 
   it("renders an order-specific help request page", () => {

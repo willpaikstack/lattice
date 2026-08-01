@@ -81,6 +81,8 @@ Set these values in `.env.local`:
 
 For production, register the production callback URL and set the same variables in Vercel.
 
+The host that starts Google sign-in must match the registered callback host. The local route automatically redirects `0.0.0.0:3000` starts to `localhost:3000` before setting its secure OAuth state cookie, so use `http://localhost:3000/login` as the local sign-in URL.
+
 ## Real RFQ data
 
 The quote workflow is now commissioned for real submitted RFQs. Avoid seeding artificial RFQ records into the quote database or local fallback store. Use `.data/requests.json` only as the local development fallback when Prisma/Postgres is unavailable, and keep real customer/vendor CAD files out of Git.

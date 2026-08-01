@@ -15,6 +15,7 @@ const supplierStatusCopy: Record<SupplierOrderStatus, { label: string; tone: str
   DOCUMENTS_UPLOADED: { label: "Documents uploaded", nextAction: "Review docs", tone: "border-emerald-100 bg-emerald-50 text-emerald-700" },
   READY_TO_SHIP: { label: "Ready to ship", nextAction: "Release shipment", tone: "border-cyan-100 bg-cyan-50 text-cyan-700" },
   SHIPPED: { label: "Shipped", nextAction: "Track delivery", tone: "border-slate-950 bg-slate-950 text-white" },
+  DELIVERED: { label: "Delivered", nextAction: "Delivery complete", tone: "border-emerald-100 bg-emerald-50 text-emerald-700" },
 };
 
 const statusFilters: Array<{ label: string; value: "ALL" | SupplierOrderStatus }> = [
@@ -25,6 +26,7 @@ const statusFilters: Array<{ label: string; value: "ALL" | SupplierOrderStatus }
   { label: "Docs", value: "DOCUMENTS_UPLOADED" },
   { label: "Ship", value: "READY_TO_SHIP" },
   { label: "Shipped", value: "SHIPPED" },
+  { label: "Delivered", value: "DELIVERED" },
 ];
 
 function formatCurrency(cents: number | null) {
@@ -65,7 +67,7 @@ export function AdminOrderManagement({
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<(typeof statusFilters)[number]["value"]>("ALL");
 
-  const openOrders = orders.filter((order) => order.supplierOrder.status !== "SHIPPED");
+  const openOrders = orders.filter((order) => order.supplierOrder.status !== "DELIVERED");
   const readyToShip = orders.filter((order) => order.supplierOrder.status === "READY_TO_SHIP").length;
   const missingDocuments = orders.filter((order) => order.supplierOrder.documents.length === 0).length;
   const orderValueCents = orders.reduce((sum, order) => sum + (order.quote.estimatedPriceCents ?? 0), 0);

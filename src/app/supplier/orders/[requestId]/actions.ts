@@ -14,6 +14,7 @@ const allowedStatuses = new Set<SupplierOrderStatus>([
   "DOCUMENTS_UPLOADED",
   "READY_TO_SHIP",
   "SHIPPED",
+  "DELIVERED",
 ]);
 
 const allowedDocumentCategories = new Set<SupplierDocumentCategory>([

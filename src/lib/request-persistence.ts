@@ -68,6 +68,9 @@ export type StoredRequest = {
   supplierContactName?: string;
   supplierNotes?: string;
   supplierTrackingNumber?: string;
+  orderNextMilestone?: string;
+  orderNextMilestoneDate?: Date | null;
+  orderResponsibleParty?: string;
   estimatedPriceCents: number | null;
   leadTimeDays: number | null;
   shippingCostCents: number | null;
@@ -143,6 +146,7 @@ export type StoredRequest = {
     status: LatticeRequest["supplierOrder"]["status"];
     note: string;
     trackingNumber: string;
+    actor?: string;
     createdAt: Date;
   }>;
   supplierQuotes?: Array<{
@@ -290,6 +294,9 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     supplierContactName: submitted.supplierOrder.contactName,
     supplierNotes: submitted.supplierOrder.notes,
     supplierTrackingNumber: submitted.supplierOrder.trackingNumber,
+    orderNextMilestone: submitted.supplierOrder.nextMilestone,
+    orderNextMilestoneDate: toOptionalDate(submitted.supplierOrder.nextMilestoneDate),
+    orderResponsibleParty: submitted.supplierOrder.responsibleParty,
     estimatedPriceCents: submitted.quote.estimatedPriceCents,
     leadTimeDays: submitted.quote.leadTimeDays,
     shippingCostCents: submitted.quote.shippingCostCents,
@@ -405,6 +412,12 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       contactName: stored.supplierContactName ?? "",
       notes: stored.supplierNotes ?? "",
       trackingNumber: stored.supplierTrackingNumber ?? "",
+      nextMilestone: stored.orderNextMilestone ?? "",
+      nextMilestoneDate: formatOptionalDate(stored.orderNextMilestoneDate ?? null),
+      responsibleParty:
+        stored.orderResponsibleParty === "Supplier" || stored.orderResponsibleParty === "Customer" || stored.orderResponsibleParty === "Lattice"
+          ? stored.orderResponsibleParty
+          : "Lattice",
       documents: (stored.supplierDocuments ?? []).map((document) => ({
         id: document.id,
         name: document.name,
@@ -418,6 +431,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
         status: update.status,
         note: update.note,
         trackingNumber: update.trackingNumber,
+        actor: update.actor === "operator" ? "operator" : "supplier",
         createdAt: update.createdAt.toISOString(),
       })),
     },

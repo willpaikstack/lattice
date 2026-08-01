@@ -1,6 +1,18 @@
 import type { LatticeRequest } from "./request-model";
+import { customerOrderStatusLabel } from "./order-progress";
 
-export type BuyerLifecycleTag = "Draft" | "Quote Requested" | "Quote Received" | "In Production" | "Shipping" | "Delivered" | "Archived";
+export type BuyerLifecycleTag =
+  | "Draft"
+  | "Quote Requested"
+  | "Quote Received"
+  | "Awaiting supplier acknowledgment"
+  | "In production"
+  | "Quality review"
+  | "Quality documents ready"
+  | "Ready to ship"
+  | "Shipping"
+  | "Delivered"
+  | "Archived";
 
 export function buyerLifecycleTag(request: Pick<LatticeRequest, "isArchived" | "status" | "supplierOrder">): BuyerLifecycleTag {
   if (request.isArchived || request.status === "CLOSED") {
@@ -16,7 +28,7 @@ export function buyerLifecycleTag(request: Pick<LatticeRequest, "isArchived" | "
   }
 
   if (request.status === "PURCHASED") {
-    return request.supplierOrder.status === "SHIPPED" ? "Shipping" : "In Production";
+    return customerOrderStatusLabel[request.supplierOrder.status] as BuyerLifecycleTag;
   }
 
   return "Quote Requested";

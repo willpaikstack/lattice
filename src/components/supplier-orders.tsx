@@ -9,6 +9,7 @@ const statusLabels: Record<SupplierOrderStatus, string> = {
   DOCUMENTS_UPLOADED: "Documents uploaded",
   READY_TO_SHIP: "Ready to ship",
   SHIPPED: "Shipped",
+  DELIVERED: "Delivered",
 };
 
 function formatPrice(cents: number | null) {

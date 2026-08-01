@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import {
   Check,
+  CheckCircle2,
   ChevronDown,
   Download,
   Eye,
@@ -113,7 +114,7 @@ const cadAccept = ".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt";
 const cadFileExtensions = cadAccept.split(",").map((extension) => extension.trim().toLowerCase());
 const drawingAccept = ".pdf,.dxf,.dwg,.png,.jpg,.jpeg";
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
-const resumeQuotePageSize = 3;
+const resumeDraftPageSize = 3;
 
 type LineItemField = keyof Omit<
   LineItemState,
@@ -414,55 +415,8 @@ function lineItemsHaveMissingRequiredDrawing(lineItems: LineItemState[]) {
   );
 }
 
-function resumeStatusLabel(status: LatticeRequest["status"]) {
-  if (status === "DRAFT") {
-    return "Draft";
-  }
-
-  return "Quote Requested";
-}
-
-function resumeStatusTone(status: LatticeRequest["status"]) {
-  if (status === "DRAFT") {
-    return "border-[#d8dde5] bg-[#f7f8fa] text-[#4f5660]";
-  }
-
-  return "border-[#c9ddff] bg-[#f2f7ff] text-[#2d5f9a]";
-}
-
 function resumeRequestHref(request: LatticeRequest) {
-  return request.status === "DRAFT"
-    ? `/requests/new?draft=${request.id}`
-    : `/quotes/${request.id}`;
-}
-
-function resumeRequestActionLabel(request: LatticeRequest) {
-  return request.status === "DRAFT" ? "Resume draft" : "View status";
-}
-
-function formatResumeDueDate(value: string) {
-  if (!value) {
-    return "Pending";
-  }
-
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  const date = dateOnlyMatch
-    ? new Date(
-        Number(dateOnlyMatch[1]),
-        Number(dateOnlyMatch[2]) - 1,
-        Number(dateOnlyMatch[3]),
-      )
-    : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Pending";
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
+  return `/requests/new?draft=${request.id}`;
 }
 
 function formatResumeLastEdited(value: string) {
@@ -481,12 +435,14 @@ function formatResumeLastEdited(value: string) {
   }).format(date);
 }
 
-function resumeQuoteReference(request: LatticeRequest, index: number) {
-  if (request.status === "DRAFT") {
-    return "Draft";
-  }
+function draftCompletionPercent(request: LatticeRequest) {
+  const completedIntakeSignals = [
+    Boolean(request.title.trim()),
+    request.files.length > 0,
+    request.lineItems.length > 0,
+  ].filter(Boolean).length;
 
-  return `LQ-${String(1001 + index).padStart(4, "0")}`;
+  return completedIntakeSignals * 20;
 }
 
 function requiredDrawingErrorMessage(lineItem: LineItemState) {
@@ -1156,9 +1112,21 @@ function UploadCadDropZone({
         {isDragActive ? "Drop CAD files to add them" : "Drag & drop CAD files here, or browse"}
       </p>
       <p className={`mt-2 text-sm leading-6 ${isDragActive ? "text-blue-700" : "text-slate-500"}`}>
-        Suggested File Types: {cadFileTypes}
+        Supported formats: {cadFileTypes}
       </p>
-      <label className="mt-5 inline-flex cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50">
+      {!compact ? (
+        <p className={`mt-1 text-xs leading-5 ${isDragActive ? "text-blue-700" : "text-slate-400"}`}>
+          Maximum file size: 200 MB per file
+        </p>
+      ) : null}
+      <label
+        className={[
+          "mt-5 inline-flex cursor-pointer rounded-md border px-4 py-3 text-sm font-semibold transition",
+          compact
+            ? "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            : "border-[#171717] bg-[#171717] text-white hover:bg-black",
+        ].join(" ")}
+      >
         <span>{label}</span>
         <input
           aria-label={label}
@@ -1177,54 +1145,55 @@ function UploadCadDropZone({
 
 function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
   const [pageIndex, setPageIndex] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(requests.length / resumeQuotePageSize));
+  const pageCount = Math.max(1, Math.ceil(requests.length / resumeDraftPageSize));
   const clampedPageIndex = Math.min(pageIndex, pageCount - 1);
-  const firstVisibleIndex = clampedPageIndex * resumeQuotePageSize;
+  const firstVisibleIndex = clampedPageIndex * resumeDraftPageSize;
   const visibleRequests = requests.slice(
     firstVisibleIndex,
-    firstVisibleIndex + resumeQuotePageSize,
+    firstVisibleIndex + resumeDraftPageSize,
   );
-  const hasMultiplePages = requests.length > resumeQuotePageSize;
+  const hasMultiplePages = requests.length > resumeDraftPageSize;
 
   if (!requests.length) {
     return null;
   }
 
   return (
-    <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
-      <div className="border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3">
-        <h2 className="text-[15px] font-semibold text-[#202020]">
-          Resume an open quote
-        </h2>
+    <section aria-labelledby="draft-requests-heading" className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
+      <div className="flex flex-col gap-1 border-b border-[#eeeeee] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-[18px] font-semibold text-[#202020]" id="draft-requests-heading">
+            Draft requests
+          </h2>
+          <p className="mt-1 text-[13px] text-[#70757d]">
+            Continue RFQs that have not been submitted.
+          </p>
+        </div>
+        <span className="text-[12px] font-medium text-[#777d86]">
+          {requests.length} {requests.length === 1 ? "draft" : "drafts"}
+        </span>
       </div>
 
-      <div className="grid grid-cols-[2fr_0.95fr_0.8fr_1.15fr_88px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-xl:hidden">
-        <span>RFQ details</span>
-        <span>Process &amp; Qty</span>
+      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_96px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-lg:hidden">
+        <span>RFQ draft</span>
         <span>Last edited</span>
-        <span>Quote Status</span>
+        <span>Completion</span>
         <span className="text-right">Actions</span>
       </div>
 
       <div className="divide-y divide-[#eeeeee]">
-        {visibleRequests.map((request, index) => {
-          const absoluteIndex = firstVisibleIndex + index;
+        {visibleRequests.map((request) => {
           const primaryLineItem = request.lineItems[0];
-          const totalQuantity = request.lineItems.reduce(
-            (sum, lineItem) => sum + (Number(lineItem.quantity) || 0),
-            0,
-          );
-          const actionLabel = resumeRequestActionLabel(request);
           const href = resumeRequestHref(request);
-          const statusLabel = resumeStatusLabel(request.status);
+          const completionPercent = draftCompletionPercent(request);
 
           return (
             <div
-              className="grid gap-5 px-4 py-4 transition hover:bg-[#fbfbfb] xl:grid-cols-[2fr_0.95fr_0.8fr_1.15fr_88px] xl:items-center"
+              className="grid gap-5 px-5 py-4 transition hover:bg-[#fbfbfb] lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_96px] lg:items-center"
               key={request.id}
             >
               <a
-                aria-label={`Open resume option for ${request.title}`}
+                aria-label={`Resume draft for ${request.title}`}
                 className="flex min-w-0 gap-4 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
                 href={href}
               >
@@ -1235,14 +1204,14 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
                 />
                 <div className="min-w-0">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">
-                    {resumeQuoteReference(request, absoluteIndex)}
+                    Draft
                   </span>
                   <h3 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">
                     {request.title}
                   </h3>
                   <p className="mt-1 truncate text-[13px] text-[#69707a]">
-                    {primaryLineItem?.partName ?? "No line item"} -{" "}
-                    {primaryLineItem?.material ?? "Material pending"}
+                    {request.files.length} {request.files.length === 1 ? "file" : "files"}
+                    {primaryLineItem?.partName ? ` - ${primaryLineItem.partName}` : ""}
                   </p>
                 </div>
               </a>
@@ -1252,27 +1221,10 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
                 href={href}
                 tabIndex={-1}
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">
-                  Process &amp; Qty
-                </p>
-                <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
-                  {request.process}
-                </p>
-                <p className="mt-1 text-[12px] text-[#8a8f98]">
-                  Qty {totalQuantity || "Pending"} - Due{" "}
-                  {formatResumeDueDate(request.dueDate)}
-                </p>
-              </a>
-
-              <a
-                className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
-                href={href}
-                tabIndex={-1}
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">
                   Last edited
                 </p>
-                <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
+                <p className="mt-1 text-[14px] font-medium text-[#30343a] lg:mt-0">
                   {formatResumeLastEdited(request.updatedAt || request.createdAt)}
                 </p>
               </a>
@@ -1282,21 +1234,27 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
                 href={href}
                 tabIndex={-1}
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">
-                  Quote Status
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] lg:hidden">
+                  Completion
                 </p>
-                <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-[12px] font-semibold ${resumeStatusTone(request.status)}`}>
-                  {statusLabel}
+                <p className="mt-1 text-[13px] font-medium text-[#4f5660] lg:mt-0">
+                  {completionPercent}% complete
+                </p>
+                <span className="mt-2 block h-1.5 max-w-[190px] overflow-hidden rounded-full bg-[#e6e8eb]">
+                  <span
+                    className="block h-full rounded-full bg-[#171717]"
+                    style={{ width: `${completionPercent}%` }}
+                  />
                 </span>
               </a>
 
-              <div className="flex items-center justify-between gap-2 xl:justify-end">
+              <div className="flex items-center justify-between gap-2 lg:justify-end">
                 <a
-                  aria-label={`${actionLabel} for ${request.title}`}
+                  aria-label={`Continue draft for ${request.title}`}
                   className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa]"
                   href={href}
                 >
-                  {request.status === "DRAFT" ? "Resume" : "Open"}
+                  Continue
                 </a>
               </div>
             </div>
@@ -1309,7 +1267,7 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
           <span>
             Showing {firstVisibleIndex + 1}-
             {Math.min(firstVisibleIndex + visibleRequests.length, requests.length)} of{" "}
-            {requests.length} quotes
+            {requests.length} drafts
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -1337,6 +1295,57 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 }) {
+  const steps = ["Upload", "Configure", "Review", "Submit"];
+
+  return (
+    <nav aria-label="Request quote progress" className="mt-7 overflow-x-auto pb-1">
+      <ol className="grid min-w-[620px] grid-cols-4">
+        {steps.map((step, index) => {
+          const stepNumber = index + 1;
+          const isCurrent = stepNumber === currentStep;
+          const isComplete = stepNumber < currentStep;
+
+          return (
+            <li className="flex min-w-0 items-center" key={step}>
+              <div
+                aria-current={isCurrent ? "step" : undefined}
+                className="flex shrink-0 items-center gap-3"
+              >
+                <span
+                  className={[
+                    "flex h-9 w-9 items-center justify-center rounded-full border text-[14px] font-semibold",
+                    isCurrent
+                      ? "border-[#171717] bg-[#171717] text-white"
+                      : isComplete
+                        ? "border-[#171717] bg-white text-[#171717]"
+                        : "border-[#d7d9dd] bg-white text-[#656b74]",
+                  ].join(" ")}
+                >
+                  {isComplete ? <Check aria-hidden="true" className="h-4 w-4" /> : stepNumber}
+                </span>
+                <span
+                  className={[
+                    "whitespace-nowrap text-[14px]",
+                    isCurrent || isComplete
+                      ? "font-semibold text-[#202020]"
+                      : "font-medium text-[#70757d]",
+                  ].join(" ")}
+                >
+                  {step}
+                </span>
+              </div>
+              {stepNumber < steps.length ? (
+                <span aria-hidden="true" className="mx-5 h-px min-w-8 flex-1 bg-[#dfe1e4]" />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 
@@ -2744,12 +2753,7 @@ export function RequestForm({
       ...localResumeRequests,
       ...resumeRequests.filter((request) => !localIds.has(request.id)),
     ]
-      .filter((request) =>
-        request.status === "DRAFT" ||
-        request.status === "SUBMITTED" ||
-        request.status === "NEEDS_INFO" ||
-        request.status === "READY_FOR_SUPPLIER_RFQ",
-      )
+      .filter((request) => request.status === "DRAFT")
       .sort((a, b) => {
         const aTime = new Date(a.updatedAt || a.createdAt).getTime();
         const bTime = new Date(b.updatedAt || b.createdAt).getTime();
@@ -3070,6 +3074,9 @@ export function RequestForm({
         contactName: "",
         notes: "",
         trackingNumber: "",
+        nextMilestone: "Supplier acknowledgment",
+        nextMilestoneDate: "",
+        responsibleParty: "Supplier",
         documents: [],
         updates: [],
       },
@@ -3595,29 +3602,31 @@ export function RequestForm({
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#8c8c8c]">
-            Request Quote
-          </p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">
-            Create a manufacturable RFQ package.
-          </h1>
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">
-            Send the part file, target quantity, material, and timing so Lattice
-            can turn it into a clean RFQ package for review.
-          </p>
+        <header className="px-1 pt-1">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h1 className="text-[34px] font-semibold leading-tight tracking-tight text-[#171717] sm:text-[40px]">
+                Request a quote
+              </h1>
+              <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#656b74]">
+                Upload your CAD files to start a saved RFQ draft. Configure the
+                details, review the package, and submit when it is ready.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 text-[13px] font-medium text-[#656b74] lg:pt-2">
+              <CheckCircle2 aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
+              <span>Drafts autosave as you work</span>
+            </div>
+          </div>
           {prefillNotice ? (
             <p className="mt-5 rounded-md border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-medium leading-6 text-blue-800">
               {prefillNotice}
             </p>
           ) : null}
-        </section>
+          <RequestQuoteProgress currentStep={hasCadFile ? 2 : 1} />
+        </header>
 
-        {shouldShowResumePanel ? (
-          <ResumeQuotePanel requests={resumeChoices} />
-        ) : null}
-
-        <section className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="space-y-6 rounded-md border border-[#e1e3e6] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5">
           {activeDrawingLineItem ? (
             <TechnicalDrawingReviewModal
               lineItem={activeDrawingLineItem}
@@ -3760,6 +3769,10 @@ export function RequestForm({
             </div>
           ) : null}
         </section>
+
+        {shouldShowResumePanel ? (
+          <ResumeQuotePanel requests={resumeChoices} />
+        ) : null}
       </form>
 
     </div>

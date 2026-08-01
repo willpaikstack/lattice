@@ -147,8 +147,10 @@ describe("Home dashboard", () => {
     expect(screen.getByRole("link", { name: /View Active RFQs/ })).toHaveAttribute("href", "/quotes");
     expect(screen.getByRole("link", { name: /View Orders/ })).toHaveAttribute("href", "/orders");
     expect(screen.getByRole("link", { name: /View Shipped/ })).toHaveAttribute("href", "/shipped");
-    expect(screen.getByRole("link", { name: /View Alerts/ })).toHaveAttribute("href", "/notifications");
-    expect(screen.getByRole("heading", { name: "Inbox" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View Actions/ })).toHaveAttribute("href", "/dashboard#action-center");
+    expect(screen.getByRole("heading", { name: "Needs Attention" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recent Updates" })).toBeInTheDocument();
+    expect(screen.getByText("Supplier clarification required")).toBeInTheDocument();
     expect(screen.getAllByText("Quote ready for review").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Quote ready for review/ }).some((link) => link.getAttribute("href") === "/quotes/req_quoted")).toBe(true);
     expect(screen.getAllByText("More information requested").length).toBeGreaterThan(0);
@@ -160,8 +162,8 @@ describe("Home dashboard", () => {
     expect(screen.getByRole("heading", { name: "Quote and Order Activity" })).toBeInTheDocument();
     expect(screen.getByText("Quotes received by customers and orders placed by customers")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Transactions" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View All/ })).toHaveAttribute("href", "/notifications");
-    expect(screen.getByText("LQ-2001")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View Quotes/ })).toHaveAttribute("href", "/quotes");
+    expect(screen.getAllByText("LQ-2001").length).toBeGreaterThan(0);
     expect(screen.getByText("PO-ORDER")).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Order placed/ }).some((link) => link.getAttribute("href") === "/orders/req_order")).toBe(true);
     expect(screen.getAllByText("$1,825").length).toBeGreaterThan(0);
@@ -200,8 +202,9 @@ describe("Home dashboard", () => {
 
     render(await Home());
 
-    expect(screen.getByText("No updates yet.")).toBeInTheDocument();
-    expect(screen.getByText("RFQ, quote, order, shipment, and quality-document events will appear here when they exist.")).toBeInTheDocument();
+    expect(screen.getByText("You're all caught up.")).toBeInTheDocument();
+    expect(screen.getByText("There are no customer workflows requiring attention right now.")).toBeInTheDocument();
+    expect(screen.getByText("RFQ, quote, order, shipment, and document updates will appear here.")).toBeInTheDocument();
     expect(screen.getByText("Quotes received and placed orders will appear here.")).toBeInTheDocument();
     expect(screen.queryByText("Purchased quotes will appear here.")).not.toBeInTheDocument();
     expect(screen.queryByText("Order PO-1042 moved to final inspection")).not.toBeInTheDocument();

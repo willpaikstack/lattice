@@ -18,6 +18,7 @@ type GoogleSsoConfig = {
 };
 
 export type GoogleSsoState = {
+  email?: string;
   exp: number;
   next: string;
   nonce: string;
@@ -98,8 +99,24 @@ export function googleSsoConfig(origin: string): GoogleSsoConfig | null {
   };
 }
 
-export function createGoogleSsoState(next: string | null) {
+export function googleSsoAvailability() {
+  const clientId = process.env.GOOGLE_SSO_CLIENT_ID?.trim();
+  const clientSecret = process.env.GOOGLE_SSO_CLIENT_SECRET?.trim();
+  const allowedDomains = (process.env.GOOGLE_SSO_ALLOWED_DOMAINS ?? process.env.GOOGLE_WORKSPACE_DOMAIN ?? "")
+    .split(",")
+    .map((domain) => domain.trim().toLowerCase())
+    .filter(Boolean);
+
+  return {
+    allowedDomains,
+    enabled: Boolean(clientId && clientSecret && clientId !== "replace-me" && clientSecret !== "replace-me"),
+  };
+}
+
+export function createGoogleSsoState(next: string | null, email?: string | null) {
+  const normalizedEmail = email?.trim().toLowerCase();
   const state: GoogleSsoState = {
+    email: normalizedEmail && normalizedEmail.includes("@") ? normalizedEmail : undefined,
     exp: Date.now() + stateTtlMs,
     next: safePath(next),
     nonce: randomBytes(24).toString("base64url"),
@@ -150,6 +167,10 @@ export function googleAuthorizationUrl(config: GoogleSsoConfig, stateToken: stri
   url.searchParams.set("nonce", state.nonce);
   url.searchParams.set("access_type", "online");
   url.searchParams.set("prompt", "select_account");
+
+  if (state.email) {
+    url.searchParams.set("login_hint", state.email);
+  }
 
   if (config.allowedDomains.length === 1) {
     url.searchParams.set("hd", config.allowedDomains[0]);

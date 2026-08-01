@@ -1,11 +1,12 @@
 import { buyerLifecycleTag, type BuyerLifecycleTag } from "./buyer-lifecycle";
+import { buildCustomerActionWorkflows, type CustomerActionWorkflow } from "./customer-action-center";
 import { buildCustomerActivityFeed, type CustomerActivityFeedItem } from "./customer-notifications";
 import type { LatticeRequest, RequestStatus } from "./request-model";
 
 export type CustomerDashboardMetric = {
   detail: string;
   href: string;
-  key: "activeRfqs" | "orders" | "shipped" | "alerts";
+  key: "actions" | "activeRfqs" | "orders" | "shipped";
   label: string;
   tone?: "alert";
   value: string;
@@ -24,10 +25,11 @@ export type CustomerDashboardActivityRow = {
 };
 
 export type CustomerDashboardSummary = {
-  dashboardInbox: CustomerActivityFeedItem[];
+  actionWorkflows: CustomerActionWorkflow[];
   metrics: CustomerDashboardMetric[];
   notifications: CustomerActivityFeedItem[];
   quoteOrderActivity: CustomerDashboardActivityRow[];
+  recentNotifications: CustomerActivityFeedItem[];
 };
 
 const activeRfqStatuses = new Set<RequestStatus>(["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"]);
@@ -130,11 +132,7 @@ function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function attentionDetail(count: number) {
-  return count === 1 ? "1 needs attention" : `${count} need attention`;
-}
-
-function isDashboardInboxItem(notification: CustomerActivityFeedItem) {
+function isDashboardRecentItem(notification: CustomerActivityFeedItem) {
   if (notification.meta !== "RFQ status") {
     return true;
   }
@@ -142,15 +140,14 @@ function isDashboardInboxItem(notification: CustomerActivityFeedItem) {
   return notification.title === "RFQ submitted" || notification.title === "No quote";
 }
 
-export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[]): CustomerDashboardSummary {
+export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[], now = new Date()): CustomerDashboardSummary {
   const notifications = buildCustomerActivityFeed({ orders, quotes });
+  const actionWorkflows = buildCustomerActionWorkflows({ now, orders, quotes });
   const activeRfqs = quotes.filter((request) => activeRfqStatuses.has(request.status));
   const quotedRfqs = quotes.filter((request) => request.status === "QUOTED").length;
   const purchasedOrders = orders.filter((order) => order.status === "PURCHASED");
-  const activeOrders = purchasedOrders.filter((order) => order.supplierOrder.status !== "SHIPPED").length;
+  const activeOrders = purchasedOrders.filter((order) => order.supplierOrder.status !== "DELIVERED").length;
   const shippedOrders = purchasedOrders.filter((order) => order.supplierOrder.status === "SHIPPED").length;
-  const actionRequiredNotifications = notifications.filter((notification) => notification.actionRequired).length;
-
   return {
     metrics: [
       {
@@ -175,16 +172,17 @@ export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: 
         value: String(shippedOrders),
       },
       {
-        detail: attentionDetail(actionRequiredNotifications),
-        href: "/notifications",
-        key: "alerts",
-        label: "Alerts",
-        tone: "alert",
-        value: String(actionRequiredNotifications),
+        detail: actionWorkflows.length === 1 ? "1 workflow needs attention" : `${actionWorkflows.length} workflows need attention`,
+        href: "/dashboard#action-center",
+        key: "actions",
+        label: "Actions",
+        tone: actionWorkflows.length > 0 ? "alert" : undefined,
+        value: String(actionWorkflows.length),
       },
     ],
-    dashboardInbox: notifications.filter(isDashboardInboxItem),
+    actionWorkflows,
     notifications,
     quoteOrderActivity: buildQuoteOrderActivity(quotes, purchasedOrders),
+    recentNotifications: notifications.filter(isDashboardRecentItem).slice(0, 4),
   };
 }

@@ -34,6 +34,7 @@ enum SupplierOrderStatus {
   DOCUMENTS_UPLOADED
   READY_TO_SHIP
   SHIPPED
+  DELIVERED
 }
 
 enum SupplierDocumentCategory {
@@ -169,6 +170,9 @@ model Request {
   supplierContactName             String                           @default("")
   supplierNotes                   String                           @default("")
   supplierTrackingNumber          String                           @default("")
+  orderNextMilestone              String                           @default("")
+  orderNextMilestoneDate          DateTime?
+  orderResponsibleParty           String                           @default("Lattice")
   estimatedPriceCents             Int?
   leadTimeDays                    Int?
   shippingCostCents               Int?
@@ -374,6 +378,7 @@ model SupplierUpdate {
   status         SupplierOrderStatus
   note           String              @default("")
   trackingNumber String              @default("")
+  actor          String              @default("supplier")
   createdAt      DateTime            @default(now())
 }
 

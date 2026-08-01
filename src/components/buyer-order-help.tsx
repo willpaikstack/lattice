@@ -13,6 +13,7 @@ const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   QC_IN_PROGRESS: "QC in progress",
   READY_TO_SHIP: "Ready to ship",
   SHIPPED: "Shipped",
+  DELIVERED: "Delivered",
 };
 
 function orderReference(order: LatticeRequest) {

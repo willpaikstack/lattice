@@ -6,8 +6,12 @@ import { createSessionCookie } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-function redirectWithError(request: Request, error: string) {
-  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error)}`, request.url));
+function redirectWithError(request: Request, error: string, state?: { email?: string; next?: string }) {
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set("error", error);
+  if (state?.email) loginUrl.searchParams.set("email", state.email);
+  if (state?.next) loginUrl.searchParams.set("next", state.next);
+  return NextResponse.redirect(loginUrl);
 }
 
 export async function GET(request: NextRequest) {
@@ -18,15 +22,15 @@ export async function GET(request: NextRequest) {
     return redirectWithError(request, "sso-not-configured");
   }
 
-  const oauthError = requestUrl.searchParams.get("error");
-  if (oauthError) {
-    return redirectWithError(request, "sso-cancelled");
-  }
-
   const state = verifyGoogleSsoState(request.cookies.get(GOOGLE_SSO_STATE_COOKIE_NAME)?.value, requestUrl.searchParams.get("state"));
 
   if (!state) {
     return redirectWithError(request, "sso-state");
+  }
+
+  const oauthError = requestUrl.searchParams.get("error");
+  if (oauthError) {
+    return redirectWithError(request, "sso-cancelled", state);
   }
 
   const code = requestUrl.searchParams.get("code");
@@ -58,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     return response;
   } catch {
-    const response = redirectWithError(request, "sso-failed");
+    const response = redirectWithError(request, "sso-failed", state);
     response.cookies.delete(GOOGLE_SSO_STATE_COOKIE_NAME);
     return response;
   }

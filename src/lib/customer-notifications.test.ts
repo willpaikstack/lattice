@@ -290,6 +290,39 @@ describe("customer notifications", () => {
     expect(feed.every((item) => item.meta === "Order progress")).toBe(true);
     expect(feed.some((item) => item.title.includes("Ready to ship") || item.title.includes("Awaiting"))).toBe(false);
   });
+
+  it("includes every customer-facing update published by Lattice", () => {
+    const order = {
+      ...makeSubmittedRequest(),
+      id: "req_manual_update",
+      status: "PURCHASED" as const,
+      supplierOrder: {
+        ...makeSubmittedRequest().supplierOrder,
+        status: "READY_TO_SHIP" as const,
+        updates: [
+          {
+            actor: "operator" as const,
+            createdAt: "2026-08-01T10:00:00.000Z",
+            id: "operator_update_1",
+            note: "Quality checks are complete and Lattice is arranging pickup.",
+            status: "READY_TO_SHIP" as const,
+            trackingNumber: "",
+          },
+        ],
+      },
+    };
+
+    const feed = buildCustomerActivityFeed({ orders: [order] });
+
+    expect(feed).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          detail: "Quality checks are complete and Lattice is arranging pickup.",
+          title: "PO-MANUAL_U updated: Ready to ship",
+        }),
+      ]),
+    );
+  });
 });
 
 function customerQuote(overrides: Partial<CustomerQuoteVersion> = {}): CustomerQuoteVersion {

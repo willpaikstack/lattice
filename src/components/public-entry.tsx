@@ -4,7 +4,7 @@ export function PublicHeader() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-stone-200/60 bg-stone-50/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
-        <Link className="flex w-fit items-center gap-3" href="/">
+        <Link className="flex min-h-9 w-fit items-center gap-3 rounded focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2" href="/">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-900 shadow-sm">
             <svg aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16" xmlns="http://www.w3.org/2000/svg">
               <path d="M8 2L14 8L8 14L2 8L8 2Z" fill="white" />
@@ -19,7 +19,7 @@ export function PublicHeader() {
 
 export function TechnicalBackground() {
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]" />
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:100px_100px]" />
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { buildCustomerActionWorkflows } from "@/lib/customer-action-center";
 import { buildCustomerActivityFeed } from "@/lib/customer-notifications";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
@@ -12,33 +13,38 @@ export default async function NotificationsPage() {
     filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders()),
   ]);
   const notificationItems = buildCustomerActivityFeed({ orders, quotes });
-  const actionRequiredCount = notificationItems.filter((notification) => notification.actionRequired).length;
+  const actionWorkflows = buildCustomerActionWorkflows({ orders, quotes });
 
   return (
     <div className="mx-auto max-w-[960px] space-y-5">
       <section className="border-b border-[#e6e6e6] pb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a7f87]">Platform notifications</p>
-            <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-normal text-[#171717]">Alerts</h1>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#7a7f87]">Customer activity</p>
+            <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-normal text-[#171717]">Notifications</h1>
             <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#6f737a]">
-              Review RFQ updates, order status changes, quality document uploads, and buyer action items in one place.
+              A chronological record of RFQ updates, order milestones, documents, and events that may also require action.
             </p>
           </div>
-          <Link className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#dcdcdc] bg-white px-4 text-[14px] font-semibold text-[#3f444b] transition hover:bg-[#f8f8f8]" href="/dashboard">
-            Back to Home
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#303030]" href="/dashboard#action-center">
+              Open Action Center
+            </Link>
+            <Link className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#dcdcdc] bg-white px-4 text-[14px] font-semibold text-[#3f444b] transition hover:bg-[#f8f8f8]" href="/dashboard">
+              Back to Home
+            </Link>
+          </div>
         </div>
       </section>
 
       <section aria-label="Notification summary" className="grid gap-3 sm:grid-cols-2">
         <article className="rounded-md border border-[#e8e8e8] bg-white p-4">
-          <p className="text-[13px] font-medium text-[#686d75]">Needs attention</p>
-          <p className="mt-3 text-[28px] font-semibold leading-none text-[#202020]">{actionRequiredCount}</p>
-          <p className="mt-2 text-[12px] text-[#8a8f98]">Need buyer attention</p>
+          <p className="text-[13px] font-medium text-[#686d75]">Open workflows</p>
+          <p className="mt-3 text-[28px] font-semibold leading-none text-[#202020]">{actionWorkflows.length}</p>
+          <p className="mt-2 text-[12px] text-[#8a8f98]">Tracked separately in the Action Center</p>
         </article>
         <article className="rounded-md border border-[#e8e8e8] bg-white p-4">
-          <p className="text-[13px] font-medium text-[#686d75]">Total notifications</p>
+          <p className="text-[13px] font-medium text-[#686d75]">Notification history</p>
           <p className="mt-3 text-[28px] font-semibold leading-none text-[#202020]">{notificationItems.length}</p>
           <p className="mt-2 text-[12px] text-[#8a8f98]">Across RFQs, orders, and documents</p>
         </article>
@@ -46,8 +52,8 @@ export default async function NotificationsPage() {
 
       <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white">
         <div className="border-b border-[#eeeeee] px-5 py-4">
-          <h2 className="text-[20px] font-semibold text-[#202020]">Notification center</h2>
-          <p className="mt-1 text-[13px] text-[#737982]">Rows open the related workspace area.</p>
+          <h2 className="text-[20px] font-semibold text-[#202020]">All notifications</h2>
+          <p className="mt-1 text-[13px] text-[#737982]">Notifications explain what happened. Action workflows remain open until the underlying work is resolved.</p>
         </div>
         {notificationItems.length ? (
           <div className="divide-y divide-[#eeeeee]">

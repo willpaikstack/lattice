@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarDays, Download, ExternalLink, FileText, HelpCircle, 
 import type { ReactNode } from "react";
 
 import { packageTrackingLink } from "@/lib/package-tracking";
+import { customerOrderStatusLabel, isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type SupplierDocumentCategory, type SupplierOrderStatus } from "@/lib/request-model";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
 
@@ -19,14 +20,7 @@ type OrderDetailRouteConfig = {
   supplierQuoteReturnTo: string;
 };
 
-const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
-  AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
-  IN_PRODUCTION: "In production",
-  QC_IN_PROGRESS: "QC in progress",
-  DOCUMENTS_UPLOADED: "Quality documents uploaded",
-  READY_TO_SHIP: "Ready to ship",
-  SHIPPED: "Shipped",
-};
+const supplierStatusLabels = customerOrderStatusLabel;
 
 const supplierStatusTone: Record<SupplierOrderStatus, string> = {
   AWAITING_ACKNOWLEDGMENT: "border-[#cfe0ff] bg-[#eff5ff] text-[#315f9b]",
@@ -35,6 +29,7 @@ const supplierStatusTone: Record<SupplierOrderStatus, string> = {
   DOCUMENTS_UPLOADED: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
   READY_TO_SHIP: "border-[#b8e5f2] bg-[#effbff] text-[#236477]",
   SHIPPED: "border-[#d7d7d7] bg-[#f4f4f4] text-[#242424]",
+  DELIVERED: "border-[#b7ead8] bg-[#ecfbf4] text-[#126448]",
 };
 
 const documentCategoryLabels: Record<SupplierDocumentCategory, string> = {
@@ -210,12 +205,6 @@ function lineItemTotalCents(order: LatticeRequest, item: RequestLineItem) {
   return null;
 }
 
-function deliveryDate(order: LatticeRequest) {
-  const date = new Date(order.updatedAt);
-  date.setDate(date.getDate() + (order.quote.leadTimeDays ?? 18) + 5);
-  return formatDate(date.toISOString());
-}
-
 function moneyBreakdown(order: LatticeRequest) {
   const subtotalCents = order.customerQuotes.at(-1)?.totalCents ?? order.quote.estimatedPriceCents;
   const shippingCents = order.quote.shippingCostCents;
@@ -280,6 +269,12 @@ export function BuyerOrderDetail({
   const tracking = packageTrackingLink(order.supplierOrder.trackingNumber);
   const supplierName = order.supplierOrder.shopName || selectedSupplier?.shopName || "Supplier pending";
   const supplierContact = order.supplierOrder.contactName || selectedSupplier?.contactName || "Not recorded";
+  const milestoneLate = isOrderMilestoneLate(order);
+  const latestCustomerUpdate = order.supplierOrder.updates.at(-1)?.note || order.supplierOrder.notes || "Lattice is coordinating the next supplier milestone and will post updates here.";
+  const isCustomerView = routeConfig === undefined;
+  const waitingOn = !order.supplierOrder.nextMilestone && order.supplierOrder.status === "AWAITING_ACKNOWLEDGMENT"
+    ? "Supplier"
+    : order.supplierOrder.responsibleParty;
 
   return (
     <div className="mx-auto w-full max-w-[1480px] px-2 pb-10">
@@ -297,7 +292,7 @@ export function BuyerOrderDetail({
             </div>
             <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-normal text-[#171717]">{order.title}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          {!isCustomerView ? <div className="flex flex-wrap items-center gap-3">
             <Link className="inline-flex min-h-9 items-center gap-2 rounded-md border border-[#dedede] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.invoicePreviewHref}>
               <ReceiptText aria-hidden="true" className="h-4 w-4" />
               View invoice
@@ -324,33 +319,42 @@ export function BuyerOrderDetail({
                 Help with order
               </Link>
             ) : null}
-          </div>
+          </div> : null}
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-12">
-        <main className="space-y-5 xl:col-span-8">
-          <section className="rounded-md border border-[#e7e7e7] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="grid gap-4 md:grid-cols-4">
-              {[
-                { icon: PackageCheck, label: "Order status", value: order.supplierOrder.status === "IN_PRODUCTION" ? "Supplier work underway" : status },
-                { icon: CalendarDays, label: "Estimated delivery", value: deliveryDate(order) },
-                { icon: Truck, label: "Tracking", value: order.supplierOrder.trackingNumber ? "Tracking assigned" : "Pending shipment" },
-                { icon: ReceiptText, label: "Reference quote", value: quoteReference(order) },
-              ].map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4" key={item.label}>
-                    <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">
-                      <Icon aria-hidden="true" className="h-4 w-4" />
-                      {item.label}
-                    </div>
-                    <p className="mt-3 text-[14px] font-semibold text-[#202020]">{item.value}</p>
-                  </div>
-                );
-              })}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <main className="min-w-0 space-y-5">
+          <section className={`rounded-md border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${milestoneLate ? "border-[#efc98c]" : "border-[#dfe3e8]"}`} aria-labelledby="order-health-heading">
+            <div className="flex flex-col gap-4 px-5 py-5 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <PackageCheck aria-hidden="true" className="h-4 w-4 text-[#4f7cff]" />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7b8088]">Current order status</p>
+                  {milestoneLate ? <span className="rounded-full bg-[#fff3dc] px-2 py-1 text-[11px] font-semibold text-[#9a5700]">Milestone overdue</span> : null}
+                </div>
+                <h2 className="mt-2 text-[20px] font-semibold text-[#202020]" id="order-health-heading">{status}</h2>
+                <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{latestCustomerUpdate}</p>
+              </div>
+              <div className="shrink-0 text-left lg:text-right">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Reference</p>
+                <p className="mt-1 text-[13px] font-semibold text-[#30343a]">{quoteReference(order)}</p>
+              </div>
             </div>
+            <dl className="grid border-t border-[#eeeeee] sm:grid-cols-3">
+              <div className="border-b border-[#eeeeee] px-5 py-4 sm:border-b-0 sm:border-r sm:px-6">
+                <dt className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]"><CalendarDays aria-hidden="true" className="h-3.5 w-3.5" />Next milestone</dt>
+                <dd className={`mt-2 text-[13px] font-semibold leading-5 ${milestoneLate ? "text-[#a15c00]" : "text-[#202020]"}`}>{orderNextStep(order)}</dd>
+              </div>
+              <div className="border-b border-[#eeeeee] px-5 py-4 sm:border-b-0 sm:border-r sm:px-6">
+                <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Waiting on</dt>
+                <dd className="mt-2 text-[13px] font-semibold text-[#202020]">{waitingOn}</dd>
+              </div>
+              <div className="px-5 py-4 sm:px-6">
+                <dt className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]"><Truck aria-hidden="true" className="h-3.5 w-3.5" />Tracking</dt>
+                <dd className="mt-2 text-[13px] font-semibold text-[#202020]">{order.supplierOrder.trackingNumber ? "Tracking assigned" : "Pending shipment"}</dd>
+              </div>
+            </dl>
           </section>
 
           <Section title="Shipment">
@@ -514,7 +518,7 @@ export function BuyerOrderDetail({
           </Section>
         </main>
 
-        <aside className="space-y-5 xl:col-span-4">
+        <aside className="space-y-5">
           <section className="rounded-md border border-[#e7e7e7] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-6">
             <div className="border-b border-[#eeeeee] px-6 py-5">
               <h2 className="text-[16px] font-semibold text-[#202020]">Order summary</h2>
@@ -534,12 +538,18 @@ export function BuyerOrderDetail({
                 </div>
               </div>
               <div className="grid gap-2">
-                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.invoicePreviewHref}>
+                <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={routes.invoicePreviewHref}>
                   <ReceiptText aria-hidden="true" className="h-4 w-4" />
                   View invoice
                 </Link>
+                {isCustomerView ? (
+                  <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.invoiceHref}>
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    Download invoice
+                  </Link>
+                ) : null}
                 {routes.reorderHref ? (
-                  <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[13px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={routes.reorderHref}>
+                  <Link className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={routes.reorderHref}>
                     <RotateCcw aria-hidden="true" className="h-4 w-4" />
                     Reorder parts
                   </Link>

@@ -10,7 +10,24 @@ export type SupplierOrderStatus =
   | "QC_IN_PROGRESS"
   | "DOCUMENTS_UPLOADED"
   | "READY_TO_SHIP"
-  | "SHIPPED";
+  | "SHIPPED"
+  | "DELIVERED";
+
+export type OrderResponsibleParty = "Lattice" | "Supplier" | "Customer";
+
+export const supplierOrderStatusSequence: SupplierOrderStatus[] = [
+  "AWAITING_ACKNOWLEDGMENT",
+  "IN_PRODUCTION",
+  "QC_IN_PROGRESS",
+  "DOCUMENTS_UPLOADED",
+  "READY_TO_SHIP",
+  "SHIPPED",
+  "DELIVERED",
+];
+
+export function canTransitionSupplierOrderStatus(from: SupplierOrderStatus, to: SupplierOrderStatus) {
+  return supplierOrderStatusSequence.indexOf(to) >= supplierOrderStatusSequence.indexOf(from);
+}
 
 export type SupplierDocumentCategory =
   | "INSPECTION_REPORT"
@@ -127,6 +144,7 @@ export type SupplierUpdate = {
   status: SupplierOrderStatus;
   note: string;
   trackingNumber: string;
+  actor?: "operator" | "supplier";
   createdAt: string;
 };
 
@@ -136,6 +154,9 @@ export type SupplierOrder = {
   contactName: string;
   notes: string;
   trackingNumber: string;
+  nextMilestone: string;
+  nextMilestoneDate: string;
+  responsibleParty: OrderResponsibleParty;
   documents: SupplierDocument[];
   updates: SupplierUpdate[];
 };
@@ -396,6 +417,9 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       contactName: "",
       notes: "",
       trackingNumber: "",
+      nextMilestone: "Supplier acknowledgment",
+      nextMilestoneDate: "",
+      responsibleParty: "Supplier",
       documents: [],
       updates: [],
     },
@@ -511,9 +535,14 @@ export type OperatorStatusUpdateInput = {
 
 export type SupplierOrderUpdateInput = {
   status: SupplierOrderStatus;
+  actor?: "operator" | "supplier";
+  assignedOwner?: string | null;
   shopName?: string;
   contactName?: string;
   notes?: string;
+  nextMilestone?: string;
+  nextMilestoneDate?: string;
+  responsibleParty?: OrderResponsibleParty;
   trackingNumber?: string;
   documents?: Array<{
     name: string;
@@ -590,7 +619,17 @@ export function applySupplierOrderUpdate(
     throw new Error("Only purchased orders can be updated from the supplier portal");
   }
 
+  if (!canTransitionSupplierOrderStatus(request.supplierOrder.status, input.status)) {
+    throw new Error("Order status cannot move backward. Add a customer update or contact an administrator to correct a recorded milestone.");
+  }
+
   const timestamp = nowIso();
+  const actor = input.actor ?? "supplier";
+  const note = input.notes?.trim() ?? "";
+
+  if (actor === "operator" && !note) {
+    throw new Error("A customer-facing update is required when Lattice changes order progress");
+  }
   const nextDocuments = (input.documents ?? []).map((document) => ({
     id: makeId("supplier_doc"),
     name: document.name,
@@ -607,16 +646,20 @@ export function applySupplierOrderUpdate(
       status: input.status,
       shopName: input.shopName?.trim() || request.supplierOrder.shopName,
       contactName: input.contactName?.trim() || request.supplierOrder.contactName,
-      notes: input.notes?.trim() || request.supplierOrder.notes,
+      notes: note || request.supplierOrder.notes,
       trackingNumber,
+      nextMilestone: input.nextMilestone === undefined ? request.supplierOrder.nextMilestone : input.nextMilestone.trim(),
+      nextMilestoneDate: input.nextMilestoneDate === undefined ? request.supplierOrder.nextMilestoneDate : input.nextMilestoneDate,
+      responsibleParty: input.responsibleParty ?? request.supplierOrder.responsibleParty,
       documents: [...request.supplierOrder.documents, ...nextDocuments],
       updates: [
         ...request.supplierOrder.updates,
         {
           id: makeId("supplier_update"),
           status: input.status,
-          note: input.notes?.trim() || "",
+          note,
           trackingNumber,
+          actor,
           createdAt: timestamp,
         },
       ],
@@ -627,10 +670,14 @@ export function applySupplierOrderUpdate(
         id: makeId("event"),
         from: request.status,
         to: request.status,
-        actor: "supplier",
+        actor,
         at: timestamp,
       },
     ],
+    operatorReview: {
+      ...request.operatorReview,
+      assignedOwner: input.assignedOwner === undefined ? request.operatorReview.assignedOwner : input.assignedOwner?.trim() || null,
+    },
     updatedAt: timestamp,
   };
 }

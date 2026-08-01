@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, Box, CheckCircle2, FileText, ReceiptText } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, Box, CheckCircle2, Circle, Clock3, FileCheck2, FileText, MessageSquareText, ReceiptText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import type { CustomerActionWorkflow } from "@/lib/customer-action-center";
 import {
   buildCustomerDashboardSummary,
   type CustomerDashboardActivityRow,
@@ -17,9 +18,17 @@ export const dynamic = "force-dynamic";
 
 const metricIcons: Record<CustomerDashboardMetric["label"], LucideIcon> = {
   "Active RFQs": FileText,
-  Alerts: AlertTriangle,
+  Actions: AlertTriangle,
   Orders: ReceiptText,
   Shipped: Box,
+};
+
+const workflowIcons: Record<CustomerActionWorkflow["type"], LucideIcon> = {
+  customer_requirement: FileCheck2,
+  order_delay: Clock3,
+  quote_expiring: Clock3,
+  quote_review: ReceiptText,
+  supplier_question: MessageSquareText,
 };
 
 function MetricCard({ detail, href, label, tone, value }: Omit<CustomerDashboardMetric, "key">) {
@@ -89,8 +98,70 @@ function NotificationRow({ item }: { item: CustomerActivityFeedItem }) {
   );
 }
 
+function WorkflowRow({ workflow }: { workflow: CustomerActionWorkflow }) {
+  const Icon = workflowIcons[workflow.type];
+  const isCritical = workflow.priority === "critical";
+  const isHigh = workflow.priority === "high";
+  const priorityLabel = isCritical ? "Critical" : isHigh ? "High priority" : "Open";
+  const priorityClass = isCritical
+    ? "border-red-200 bg-red-50 text-red-700"
+    : isHigh
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-stone-200 bg-stone-50 text-stone-600";
+
+  return (
+    <div className="grid gap-5 py-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+      <div className="min-w-0">
+        <div className="flex items-start gap-3">
+          <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${priorityClass}`}>
+            <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{workflow.reference}</span>
+              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityClass}`}>{priorityLabel}</span>
+            </div>
+            <h3 className="mt-1 text-base font-semibold text-stone-950">{workflow.title}</h3>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-600">{workflow.detail}</p>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-medium text-stone-500">
+              <span>{workflow.dueLabel}</span>
+              <span>Owner: {workflow.owner}</span>
+              <span>
+                {workflow.completedSteps} of {workflow.steps.length} steps complete
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <ol aria-label={`${workflow.title} workflow`} className="mt-5 grid gap-2 sm:grid-cols-3">
+          {workflow.steps.map((step) => (
+            <li className="flex min-w-0 items-start gap-2 text-xs leading-5 text-stone-600" key={step.id}>
+              {step.state === "complete" ? (
+                <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2} />
+              ) : step.state === "current" ? (
+                <Clock3 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" strokeWidth={2} />
+              ) : (
+                <Circle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-stone-300" strokeWidth={1.8} />
+              )}
+              <span className={step.state === "complete" ? "text-stone-400 line-through" : step.state === "current" ? "font-semibold text-stone-800" : undefined}>{step.label}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <Link
+        className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
+        href={workflow.href}
+      >
+        {workflow.ctaLabel}
+        <ArrowUpRight aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
+      </Link>
+    </div>
+  );
+}
+
 function StatusPill({ status }: { status: string }) {
-  const isComplete = ["Delivered", "In Production", "Quote Received", "Shipping"].includes(status);
+  const isComplete = ["Delivered", "In production", "Quote Received", "Shipping", "Quality documents ready"].includes(status);
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${isComplete ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-stone-200 bg-stone-50 text-stone-600"}`}>
@@ -147,7 +218,7 @@ export default async function Home() {
   const [quotes, orders, session] = await Promise.all([listBuyerQuotes(), listBuyerOrders(), getCurrentSession()]);
   const dashboard = buildCustomerDashboardSummary(filterCustomerVisibleRequests(quotes, session), filterCustomerVisibleRequests(orders, session));
   const userName = session?.user.name || "there";
-  const inboxItems = dashboard.dashboardInbox.slice(0, 6);
+  const actionWorkflows = dashboard.actionWorkflows.slice(0, 5);
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">
@@ -165,35 +236,49 @@ export default async function Home() {
         </Link>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {dashboard.metrics.map(({ key: metricKey, ...metric }) => (
-          <MetricCard key={metricKey} {...metric} />
-        ))}
-      </section>
-
       <section className="space-y-6">
-        <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30">
-          <SectionHeader detail="Customer updates across RFQs, orders, and quality documentation" title="Inbox" />
-          <div className="mt-5 divide-y divide-stone-100">
-            {inboxItems.length ? (
-              inboxItems.map((item) => <NotificationRow item={item} key={item.id} />)
+        <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30" id="action-center">
+          <SectionHeader detail="Prioritized workflows that need a decision, response, review, or close monitoring" title="Needs Attention" />
+          <div className="mt-3 divide-y divide-stone-100">
+            {actionWorkflows.length ? (
+              actionWorkflows.map((workflow) => <WorkflowRow key={workflow.id} workflow={workflow} />)
             ) : (
               <EmptyState>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-semibold text-stone-700">No updates yet.</p>
-                    <p className="mt-1">RFQ, quote, order, shipment, and quality-document events will appear here when they exist.</p>
+                    <p className="font-semibold text-stone-700">You&apos;re all caught up.</p>
+                    <p className="mt-1">There are no customer workflows requiring attention right now.</p>
                   </div>
-                  <div className="flex shrink-0 gap-3">
-                    <Link className="font-semibold text-stone-950 hover:text-stone-600" href="/requests/new">
-                      Request Quote
-                    </Link>
-                    <Link className="font-semibold text-stone-950 hover:text-stone-600" href="/quotes">
-                      View Quotes
-                    </Link>
-                  </div>
+                  <Link className="shrink-0 font-semibold text-stone-950 hover:text-stone-600" href="/notifications">
+                    View recent updates
+                  </Link>
                 </div>
               </EmptyState>
+            )}
+          </div>
+        </article>
+
+        <section aria-label="Operational summary" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {dashboard.metrics.map(({ key: metricKey, ...metric }) => (
+            <MetricCard key={metricKey} {...metric} />
+          ))}
+        </section>
+
+        <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30">
+          <SectionHeader
+            action={
+              <Link className="text-sm font-semibold text-stone-700 transition hover:text-stone-950" href="/notifications">
+                View all
+              </Link>
+            }
+            detail="Informational and action-related events across your RFQs and orders"
+            title="Recent Updates"
+          />
+          <div className="mt-4 divide-y divide-stone-100">
+            {dashboard.recentNotifications.length ? (
+              dashboard.recentNotifications.map((item) => <NotificationRow item={item} key={item.id} />)
+            ) : (
+              <EmptyState>RFQ, quote, order, shipment, and document updates will appear here.</EmptyState>
             )}
           </div>
         </article>
@@ -202,8 +287,8 @@ export default async function Home() {
           <div className="border-b border-stone-200 px-6 py-5">
             <SectionHeader
               action={
-                <Link className="inline-flex h-10 items-center gap-2 rounded-xl bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800" href="/notifications">
-                  View All
+                <Link className="inline-flex h-10 items-center gap-2 rounded-xl bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800" href="/quotes">
+                  View Quotes
                   <ArrowUpRight aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
                 </Link>
               }

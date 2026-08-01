@@ -276,4 +276,60 @@ describe("request model", () => {
       actor: "supplier",
     });
   });
+
+  it("records a manual Lattice order update with ownership and the next milestone", () => {
+    const submitted = submitDraftRequest(
+      buildDraftRequest({
+        buyerCompany: "Acme Manufacturing",
+        requesterName: "Buyer",
+        title: "Production order",
+        process: "CNC machining",
+        dueDate: "2026-08-20",
+        lineItems: [{ partName: "Bracket", quantity: 4, material: "6061 Aluminum" }],
+        files: [{ name: "bracket.step", sizeBytes: 1024, type: "model/step" }],
+      }),
+    );
+
+    const updated = applySupplierOrderUpdate(
+      { ...submitted, status: "PURCHASED" },
+      {
+        actor: "operator",
+        assignedOwner: "Production team",
+        nextMilestone: "First article approval",
+        nextMilestoneDate: "2026-08-12",
+        notes: "The supplier has started machining. We will share the first article review next.",
+        responsibleParty: "Lattice",
+        status: "IN_PRODUCTION",
+      },
+    );
+
+    expect(updated.operatorReview.assignedOwner).toBe("Production team");
+    expect(updated.supplierOrder).toMatchObject({
+      status: "IN_PRODUCTION",
+      nextMilestone: "First article approval",
+      nextMilestoneDate: "2026-08-12",
+      responsibleParty: "Lattice",
+    });
+    expect(updated.supplierOrder.updates.at(-1)).toMatchObject({ actor: "operator", note: "The supplier has started machining. We will share the first article review next." });
+  });
+
+  it("prevents a recorded order milestone from moving backward", () => {
+    const purchased = {
+      ...submitDraftRequest(
+        buildDraftRequest({
+          buyerCompany: "Acme Manufacturing",
+          requesterName: "Buyer",
+          title: "Production order",
+          process: "CNC machining",
+          dueDate: "2026-08-20",
+          lineItems: [{ partName: "Bracket", quantity: 4, material: "6061 Aluminum" }],
+          files: [{ name: "bracket.step", sizeBytes: 1024, type: "model/step" }],
+        }),
+      ),
+      status: "PURCHASED" as const,
+    };
+    const inProduction = applySupplierOrderUpdate(purchased, { status: "IN_PRODUCTION" });
+
+    expect(() => applySupplierOrderUpdate(inProduction, { status: "AWAITING_ACKNOWLEDGMENT" })).toThrow("cannot move backward");
+  });
 });

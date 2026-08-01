@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ClipboardList, Factory, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Map as MapIcon, Settings, User } from "lucide-react";
+import { ArrowLeft, Bell, ClipboardList, Factory, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Map as MapIcon, Settings, User } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -158,6 +158,27 @@ function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: Navigatio
         <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill={isAdmin ? "#fff1f2" : "#f6f7f8"} opacity="0.92" />
         <path d="M14 2.8v11.3l9.8 5.5M14 14.1 4.2 19.6M14 14.1l9.8-5.7M14 14.1 4.2 8.4" fill="none" stroke={isAdmin ? "#FF5A5F" : "#62666d"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
       </svg>
+    </Link>
+  );
+}
+
+function NotificationLink({ onNavigate, pathname }: { onNavigate: NavigationHandler; pathname: string }) {
+  const isActive = isNavItemActive(pathname, "/notifications");
+
+  return (
+    <Link
+      aria-current={isActive ? "page" : undefined}
+      aria-label="Notifications"
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950 ${
+        isActive
+          ? "border-stone-300 bg-white text-stone-950 shadow-sm"
+          : "border-transparent text-stone-500 hover:border-stone-200 hover:bg-white hover:text-stone-950"
+      }`}
+      href="/notifications"
+      onClick={(event) => onNavigate(event, "/notifications")}
+      title="Notifications"
+    >
+      <Bell aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
     </Link>
   );
 }
@@ -469,11 +490,14 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
           }`}
         >
           <div>
-            <div className="flex items-center gap-3">
-              <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
-              <div>
-                <p className="text-[16px] font-semibold leading-5 text-[#171717]">Lattice OS</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
+                <div>
+                  <p className="text-[16px] font-semibold leading-5 text-[#171717]">Lattice OS</p>
+                </div>
               </div>
+              {!inAdminExperience ? <NotificationLink onNavigate={handleNavigate} pathname={activeNavPathname} /> : null}
             </div>
 
             {!inAdminExperience ? (
@@ -529,19 +553,22 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
           >
             <div className="flex items-center justify-between gap-4">
               <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
-              {!inAdminExperience && canUseAdminWorkspace ? (
-                <Link
-                  className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-semibold text-white"
-                  href="/admin/quotes"
-                  onClick={(event) => handleNavigate(event, "/admin/quotes")}
-                >
-                  Admin
-                </Link>
-              ) : (
-                <span className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#fff1f2] text-[#484848]" : "bg-[#ffffff] text-[#303036]"}`}>
-                  {inAdminExperience ? "Admin" : "Customer"}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {!inAdminExperience ? <NotificationLink onNavigate={handleNavigate} pathname={activeNavPathname} /> : null}
+                {!inAdminExperience && canUseAdminWorkspace ? (
+                  <Link
+                    className="rounded-xl bg-[#171717] px-3 py-2 text-sm font-semibold text-white"
+                    href="/admin/quotes"
+                    onClick={(event) => handleNavigate(event, "/admin/quotes")}
+                  >
+                    Admin
+                  </Link>
+                ) : (
+                  <span className={`rounded-xl px-3 py-2 text-sm font-semibold ${inAdminExperience ? "bg-[#fff1f2] text-[#484848]" : "bg-[#ffffff] text-[#303036]"}`}>
+                    {inAdminExperience ? "Admin" : "Customer"}
+                  </span>
+                )}
+              </div>
             </div>
             <nav aria-label="Compact navigation" className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {navSections.flatMap((section) => section.items).map((item) => (

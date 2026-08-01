@@ -2,6 +2,45 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-08-01 - Separate Customer Action Workflows From Notifications
+
+Decision: the customer dashboard uses a workflow-based Action Center for unresolved work, while `/notifications` remains the chronological record of customer-facing events. An event can appear in notification history and also create one grouped action workflow, but reading a notification does not resolve the workflow.
+
+Reason: customers need both a dependable operational history and a focused answer to “what needs my attention next?” A single mixed Inbox makes routine updates compete with clarification requests, quote decisions, expiring quotes, delayed milestones, and document requirements.
+
+Implications:
+
+- Action workflows are derived from current RFQ, quote, order, milestone, and document state in v1 and include priority, owner, due context, progress, and a short checklist.
+- Related quote-review and quote-expiration conditions collapse into one workflow so customers do not receive duplicate tasks for the same decision.
+- The dashboard shows a compact Recent Updates preview, while the global notification bell opens the complete notification history.
+- Durable read/unread state, explicit checklist completion, user notification preferences, and email delivery remain future persistence work.
+
+## 2026-08-01 - Start Order Progress With Manual Lattice Updates
+
+Decision: Lattice operators are the initial authority for purchased-order progress. Operators update the shared order status, Lattice owner, next milestone, expected date, responsible party, tracking number, and customer-facing note from `/admin/orders/[requestId]`.
+
+Reason: this establishes a dependable customer experience before supplier and carrier integrations are mature enough to be authoritative across the network.
+
+Implications:
+
+- The dashboard, customer order list, customer order detail, notification feed, and admin order detail read the same persisted order-progress fields.
+- Order status advances through one ordered lifecycle: supplier acknowledgment, production, quality review, document readiness, shipment readiness, shipping, and delivered.
+- A customer-facing note is required for manual Lattice updates, and past expected milestones are surfaced as customer alerts.
+- Supplier/carrier integrations can later write through the same lifecycle after Lattice defines validation and override policy.
+
+## 2026-08-01 - Use Direct Credential Entry With Optional SSO
+
+Decision: `/login` should present work email and password together on a single screen. Google Workspace SSO remains an optional alternative when configured, while the interim password fallback remains available until Lattice selects and commissions its durable production identity platform.
+
+Reason: users expect a direct credential form when they sign in with a password. Requiring an email-only intermediate step adds friction without providing enough value for Lattice's current authentication model.
+
+Implications:
+
+- Login errors preserve the entered email and intended protected destination instead of clearing the form or dropping deep-link context.
+- Configured Google SSO receives the entered work email as a login hint and preserves it through recoverable OAuth failures.
+- Password and recovery forms expose explicit pending states, accessible error/status messages, password visibility, and support paths.
+- This experience improvement does not make the interim hard-coded password account a production identity system; durable users, organization membership, enforced SSO, MFA/passkeys, provisioning, session controls, and audit events remain required before enterprise rollout.
+
 ## 2026-06-20 - Defer Buyer Quote Request Modification
 
 Decision: remove buyer-facing quote request modification for now. Customer quote detail should not expose `Modify quote request`, `/quotes/[requestId]/modify`, or legacy `/requests/new?revise=[requestId]` flows.

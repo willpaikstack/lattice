@@ -131,8 +131,12 @@ describe("RequestForm", () => {
   it("emulates Bubble's upload-first RFQ intake without debug placeholder text", () => {
     render(<RequestForm />);
 
+    expect(screen.getByRole("heading", { name: "Request a quote" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Request quote progress" })).toBeInTheDocument();
+    expect(screen.getByText("Drafts autosave as you work")).toBeInTheDocument();
     expect(screen.getByText("Drag & drop CAD files here, or browse")).toBeInTheDocument();
     expect(screen.getByText(/STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT/)).toBeInTheDocument();
+    expect(screen.getByText("Maximum file size: 200 MB per file")).toBeInTheDocument();
     expect(screen.queryByLabelText("Customer PO#")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Company Name")).not.toBeInTheDocument();
     expect(screen.queryByText("Attach a CAD file to unlock customer details and manufacturing configuration.")).not.toBeInTheDocument();
@@ -148,7 +152,7 @@ describe("RequestForm", () => {
     expect(screen.queryByRole("textbox", { name: "Quote name" })).not.toBeInTheDocument();
   });
 
-  it("shows in-progress quotes before the buyer uploads a new CAD file", () => {
+  it("keeps submitted quotes out of the draft continuation section", () => {
     render(
       <RequestForm
         resumeRequests={[
@@ -161,18 +165,8 @@ describe("RequestForm", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Resume an open quote" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Aluminum Plate RFQ")).toBeInTheDocument();
-    expect(screen.getAllByText("Last edited").length).toBeGreaterThan(0);
-    expect(screen.getByText("Quote Requested")).toBeInTheDocument();
-    expect(screen.getByText(/Qty 8 - Due Jun 30, 2026/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", {
-        name: "View status for Aluminum Plate RFQ",
-      }),
-    ).toHaveAttribute("href", "/quotes/req_submitted_resume");
+    expect(screen.queryByRole("heading", { name: "Draft requests" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Aluminum Plate RFQ")).not.toBeInTheDocument();
     expect(screen.getByText("Drag & drop CAD files here, or browse")).toBeInTheDocument();
   });
 
@@ -201,10 +195,13 @@ describe("RequestForm", () => {
 
     render(<RequestForm />);
 
+    expect(screen.getByRole("heading", { name: "Draft requests" })).toBeInTheDocument();
+    expect(screen.getByText("Continue RFQs that have not been submitted.")).toBeInTheDocument();
     expect(screen.getByText("Motor plate draft")).toBeInTheDocument();
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
+    expect(screen.getByText("40% complete")).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Resume draft for Motor plate draft" }),
+      screen.getByRole("link", { name: "Continue draft for Motor plate draft" }),
     ).toHaveAttribute("href", "/requests/new?draft=local_draft_resume");
   });
 

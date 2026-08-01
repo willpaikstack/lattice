@@ -1,11 +1,16 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import type { Metadata } from "next";
 
+import { LoginPanel } from "@/components/login-panel";
 import { PublicHeader, TechnicalBackground } from "@/components/public-entry";
-import { loginAction } from "./actions";
+import { googleSsoAvailability } from "@/lib/google-sso";
+
+export const metadata: Metadata = {
+  title: "Sign in | Lattice",
+};
 
 type LoginPageProps = {
   searchParams?: Promise<{
+    email?: string;
     error?: string;
     next?: string;
   }>;
@@ -19,7 +24,7 @@ const loginBenefits = [
 
 function CheckIcon() {
   return (
-    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/10">
+    <span aria-hidden="true" className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded bg-white/10">
       <svg fill="none" height="12" viewBox="0 0 12 12" width="12">
         <path className="text-white" d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
       </svg>
@@ -30,9 +35,10 @@ function CheckIcon() {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const error = params?.error;
+  const initialEmail = normalizeEmail(params?.email);
   const next = safePath(params?.next);
-  const hasInvalidCredentials = error === "invalid-credentials";
-  const hasSsoError = error?.startsWith("sso-");
+  const sso = googleSsoAvailability();
+  const initialErrorMessage = loginErrorMessage(error);
 
   return (
     <main className="min-h-screen bg-stone-50 font-sans text-stone-900 selection:bg-stone-200">
@@ -42,7 +48,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
             <div className="hidden space-y-6 lg:block">
               <div className="space-y-2">
-                <h1 className="text-4xl font-semibold tracking-normal text-white">Welcome back</h1>
+                <h2 className="text-4xl font-semibold tracking-normal text-white">Welcome back</h2>
                 <p className="max-w-md text-lg leading-relaxed text-stone-300">
                   Access the private RFQ and procurement workspace for active Lattice teams.
                 </p>
@@ -62,91 +68,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
 
             <div className="mx-auto w-full max-w-md lg:mx-0 lg:ml-auto">
-              <div className="rounded-2xl border border-stone-200 bg-white p-8 shadow-xl lg:p-10">
-                <div className="space-y-6">
-                  <div>
-                    <h1 className="text-2xl font-semibold tracking-normal text-stone-900">Log in</h1>
-                    <p className="mt-1 text-sm text-stone-600">Enter your credentials to continue</p>
-                  </div>
-
-                  {hasInvalidCredentials ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                      The email or password is incorrect.
-                    </div>
-                  ) : null}
-
-                  {hasSsoError ? (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-                      Google Workspace sign-in is not available. Check the SSO configuration and allowed domain.
-                    </div>
-                  ) : null}
-
-                  <Link
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-3 font-medium text-stone-900 transition-all hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2"
-                    href={`/api/auth/google?next=${encodeURIComponent(next)}`}
-                  >
-                    Continue with Google Workspace
-                  </Link>
-
-                  <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-stone-200" />
-                    <span className="text-xs font-medium uppercase tracking-[0.16em] text-stone-400">or</span>
-                    <div className="h-px flex-1 bg-stone-200" />
-                  </div>
-
-                  <form aria-label="Log in form" action={loginAction} className="space-y-5">
-                    <input name="next" type="hidden" value={next} />
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-stone-700" htmlFor="email">
-                        Email
-                      </label>
-                      <input
-                        autoComplete="email"
-                        className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-transparent focus:ring-2 focus:ring-stone-900"
-                        id="email"
-                        name="email"
-                        placeholder="you@company.com"
-                        required
-                        type="email"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <label className="block text-sm font-medium text-stone-700" htmlFor="password">
-                          Password
-                        </label>
-                        <Link className="text-sm font-medium text-stone-700 hover:text-stone-950 hover:underline" href="/forgot-password">
-                          Forgot password?
-                        </Link>
-                      </div>
-                      <input
-                        autoComplete="current-password"
-                        className="w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none transition-all placeholder:text-stone-400 focus:border-transparent focus:ring-2 focus:ring-stone-900"
-                        id="password"
-                        name="password"
-                        placeholder="........"
-                        required
-                        type="password"
-                      />
-                    </div>
-
-                    <button className="group flex w-full items-center justify-center gap-2 rounded-lg bg-stone-900 px-4 py-3 font-medium text-white transition-all hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2" type="submit">
-                      Continue
-                      <ArrowRight className="transition-transform group-hover:translate-x-0.5" size={16} />
-                    </button>
-                  </form>
-
-                  <div className="border-t border-stone-200 pt-6">
-                    <p className="text-center text-sm text-stone-600">
-                      Need access?{" "}
-                      <Link className="font-medium text-stone-900 hover:underline" href="/waiting-list">
-                        Request an invite
-                      </Link>
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <LoginPanel
+                initialEmail={initialEmail}
+                initialErrorMessage={initialErrorMessage}
+                next={next}
+                ssoEnabled={sso.enabled}
+              />
             </div>
           </div>
         </div>
@@ -155,6 +82,35 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       </section>
     </main>
   );
+}
+
+function loginErrorMessage(error?: string) {
+  if (error === "invalid-credentials") {
+    return "The email or password is incorrect. Try again or reset your password.";
+  }
+
+  if (error === "sso-not-configured") {
+    return "Single sign-on is unavailable right now. Use your password or contact Lattice support.";
+  }
+
+  if (error === "sso-cancelled") {
+    return "Single sign-on was canceled. Try again when you are ready.";
+  }
+
+  if (error === "sso-state") {
+    return "Your secure sign-in session expired. Start again with your work email.";
+  }
+
+  if (error?.startsWith("sso-")) {
+    return "We could not complete single sign-on. Try again or contact Lattice support.";
+  }
+
+  return "";
+}
+
+function normalizeEmail(email?: string) {
+  const normalized = email?.trim().toLowerCase() ?? "";
+  return normalized.includes("@") ? normalized : "";
 }
 
 function safePath(path?: string) {

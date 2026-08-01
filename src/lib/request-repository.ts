@@ -1207,45 +1207,59 @@ export async function updateSupplierOrder(requestId: string, input: SupplierOrde
 
   const updated = applySupplierOrderUpdate(current, input);
   const newUpdate = updated.supplierOrder.updates.at(-1);
-  const client = await prisma();
 
-  const stored = await client.request.update({
-    where: { id: requestId },
-    data: {
-      supplierOrderStatus: updated.supplierOrder.status,
-      supplierShopName: updated.supplierOrder.shopName,
-      supplierContactName: updated.supplierOrder.contactName,
-      supplierNotes: updated.supplierOrder.notes,
-      supplierTrackingNumber: updated.supplierOrder.trackingNumber,
-      supplierDocuments: input.documents?.length
-        ? {
-            create: input.documents.map((document) => ({
-              name: document.name,
-              sizeBytes: document.sizeBytes,
-              type: document.type,
-              category: document.category,
-            })),
-          }
-        : undefined,
-      supplierUpdates: newUpdate
-        ? {
-            create: {
-              status: newUpdate.status,
-              note: newUpdate.note,
-              trackingNumber: newUpdate.trackingNumber,
-            },
-          }
-        : undefined,
-      statusEvents: {
-        create: {
-          from: current.status,
-          to: current.status,
-          actor: "supplier",
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: requestId },
+      data: {
+        supplierOrderStatus: updated.supplierOrder.status,
+        supplierShopName: updated.supplierOrder.shopName,
+        supplierContactName: updated.supplierOrder.contactName,
+        supplierNotes: updated.supplierOrder.notes,
+        supplierTrackingNumber: updated.supplierOrder.trackingNumber,
+        orderNextMilestone: updated.supplierOrder.nextMilestone,
+        orderNextMilestoneDate: optionalDate(updated.supplierOrder.nextMilestoneDate),
+        orderResponsibleParty: updated.supplierOrder.responsibleParty,
+        assignedOwner: updated.operatorReview.assignedOwner,
+        supplierDocuments: input.documents?.length
+          ? {
+              create: input.documents.map((document) => ({
+                name: document.name,
+                sizeBytes: document.sizeBytes,
+                type: document.type,
+                category: document.category,
+              })),
+            }
+          : undefined,
+        supplierUpdates: newUpdate
+          ? {
+              create: {
+                status: newUpdate.status,
+                note: newUpdate.note,
+                trackingNumber: newUpdate.trackingNumber,
+                actor: newUpdate.actor,
+              },
+            }
+          : undefined,
+        statusEvents: {
+          create: {
+            from: current.status,
+            to: current.status,
+            actor: input.actor ?? "supplier",
+          },
         },
       },
-    },
-    include: storedRequestInclude,
-  });
+      include: storedRequestInclude,
+    });
 
-  return mapStoredRequest(stored);
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma order progress update is unavailable; saving locally.", error);
+      return saveLocalRequest(updated);
+    }
+
+    throw error;
+  }
 }

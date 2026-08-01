@@ -111,13 +111,13 @@ describe("customer dashboard summary", () => {
       },
     });
 
-    const summary = buildCustomerDashboardSummary([submitted, needsInfo, supplierReady, quoted], [activeOrder, shippedOrder]);
+    const summary = buildCustomerDashboardSummary([submitted, needsInfo, supplierReady, quoted], [activeOrder, shippedOrder], new Date("2026-06-10T12:00:00.000Z"));
     const metrics = Object.fromEntries(summary.metrics.map((metric) => [metric.key, metric]));
 
     expect(metrics.activeRfqs.value).toBe("4");
     expect(metrics.orders.value).toBe("2");
     expect(metrics.shipped.value).toBe("1");
-    expect(metrics.alerts.value).toBe("2");
+    expect(metrics.actions.value).toBe("2");
   });
 
   it("sorts quote and order activity by the newest quote receipt or order placement", () => {
@@ -148,7 +148,7 @@ describe("customer dashboard summary", () => {
       event: "Order placed",
       href: "/orders/req_order_new",
       reference: "PO-ORDER_NE",
-      status: "In Production",
+      status: "Awaiting supplier acknowledgment",
     });
     expect(summary.quoteOrderActivity[1]).toMatchObject({
       event: "Quote received",
@@ -168,7 +168,7 @@ describe("customer dashboard summary", () => {
     expect(summary.quoteOrderActivity).toEqual([]);
   });
 
-  it("keeps low-signal RFQ audit events out of the dashboard inbox", () => {
+  it("keeps the full notification history available while exposing a recent preview", () => {
     const request = makeRequest({
       id: "req_status_history",
       status: "CLOSED",
@@ -188,14 +188,18 @@ describe("customer dashboard summary", () => {
       "RFQ submitted",
       "Draft created",
     ]);
-    expect(summary.dashboardInbox.map((notification) => notification.title)).toEqual(["No quote", "RFQ submitted"]);
+    expect(summary.recentNotifications.map((notification) => notification.title)).toEqual([
+      "No quote",
+      "RFQ submitted",
+    ]);
   });
 
   it("does not add static fallback rows when live data is empty", () => {
     const summary = buildCustomerDashboardSummary([], []);
 
     expect(summary.notifications).toEqual([]);
-    expect(summary.dashboardInbox).toEqual([]);
+    expect(summary.actionWorkflows).toEqual([]);
+    expect(summary.recentNotifications).toEqual([]);
     expect(summary.quoteOrderActivity).toEqual([]);
     expect(summary.metrics.map((metric) => metric.value)).toEqual(["0", "0", "0", "0"]);
   });

@@ -4,6 +4,9 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Apply the order-progress schema changes (`SupplierOrderStatus.DELIVERED`, `Request.orderNextMilestone`, `Request.orderNextMilestoneDate`, `Request.orderResponsibleParty`, and `SupplierUpdate.actor`) to local and production PostgreSQL with `npm run db:push`, then smoke test a manual admin update through `/admin/orders/[requestId]`.
+- Decide the correction/override policy for an incorrectly recorded order milestone before broader operator rollout; v1 intentionally prevents backward status changes.
+
 - Append to `docs/completed-work-log.md` at the end of substantial sessions so completed tasks, features, fixes, and docs changes stay visible by date across computers.
 - Keep `docs/app-feature-map.md` current whenever feature behavior changes, especially when a route moves, a page switches from prototype/static data to live repositories, or a limitation is resolved.
 - Run the QC/manual test matrix in `docs/qc-testing-plan.md` before external customer/supplier testing, especially the ownership/privacy probes for cross-company RFQ, order, invoice, and supplier access.
@@ -13,8 +16,8 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - rerun the live fixture QC IDs recorded in `docs/qc-testing-plan.md` after the fixes
 - Production launch hardening after the 2026-06-02 Vercel/Neon setup:
   - deploy the `@vercel/analytics` instrumentation change, visit `https://latticeos.co`, then confirm Vercel Analytics leaves the Get Started state and starts showing page views
-  - configure Google Workspace SSO credentials in local, preview, and production environments, then decide when to disable the interim local password fallback
-  - continue replacing the interim single-account credential gate with durable multi-user authentication, role/route authorization, password recovery, and optional MFA
+  - choose the durable production identity platform and organization model, then configure Google Workspace/SAML/OIDC credentials in local, preview, and production and decide when to disable the interim local password fallback
+  - continue replacing the interim single-account credential gate with durable multi-user authentication, organization-owned login policy, role/route authorization, production password recovery, MFA/passkeys, session/device controls, and identity audit events
   - move role assignment from the current signed-session email allowlists (`LATTICE_ADMIN_EMAILS` / `LATTICE_SUPPLIER_EMAILS`) into durable user/workspace records with company and supplier ownership checks
   - add ownership-aware access checks below the current route/action role guards so authenticated customers and suppliers cannot access records outside their company or awarded shop
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
@@ -58,7 +61,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Add ownership-aware repository helpers such as `getCustomerRequestById`, `listCustomerRequests`, and `getSupplierOrderById` so role isolation also filters records by customer company or awarded supplier instead of only by route family.
 - If admins need to submit RFQs on behalf of customers, build a dedicated admin-native flow under `/admin/customers/[companyId]` rather than sending operators to the customer `/requests/new` experience.
 - If buyers need post-purchase quote history, expose the saved quote/PDF from `/orders/[requestId]` instead of putting purchased records back into `/quotes`.
-- Add durable activity/read-state storage for buyer dashboard and notifications once the derived v1 feed is validated. Current `/dashboard` and `/notifications` use `src/lib/customer-dashboard.ts` and `src/lib/customer-notifications.ts` to derive activity from existing RFQ, quote, order, supplier update, shipping, tracking, and supplier document records without a schema migration.
+- Add durable activity/workflow state once the derived v1 Action Center and notification feed are validated: persistent read/unread state, explicit checklist completion, customer clarification replies, notification preferences, and email delivery. Current `/dashboard` and `/notifications` derive workflows and activity from existing RFQ, quote, order, milestone, supplier update, shipping, tracking, and supplier document records without a schema migration.
 - Configure Autodesk Platform Services for live CAD previews:
   - create APS app credentials
   - rotate any APS Client Secret that was pasted into chat/logs before using it

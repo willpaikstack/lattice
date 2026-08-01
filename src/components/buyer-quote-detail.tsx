@@ -1,9 +1,6 @@
-"use client";
-
-import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowDownUp, ArrowLeft, Download, Info, Mail, Phone, User, X } from "lucide-react";
+import { ArrowLeft, CircleDot, Download, Mail, Phone, User, X } from "lucide-react";
 
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
@@ -224,10 +221,6 @@ function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][numbe
   );
 }
 
-function sortIndicator() {
-  return <ArrowDownUp aria-hidden="true" className="ml-1 inline h-3.5 w-3.5 text-[#b7bcc4]" />;
-}
-
 function customerFacingFileName(fileName: string | undefined, fallback: string) {
   return fileName?.trim() || fallback;
 }
@@ -275,37 +268,6 @@ export function BuyerQuoteDetail({
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
   const shippingAddressLines = quoteShippingAddressLines(request);
   const lineItemFiles = bundledFilesByLineItem(request);
-  const lineItemIds = useMemo(() => request.lineItems.map((item) => item.id), [request.lineItems]);
-  const [selectedLineItemIds, setSelectedLineItemIds] = useState<Set<string>>(() => new Set());
-  const selectAllRef = useRef<HTMLInputElement>(null);
-  const selectedCount = selectedLineItemIds.size;
-  const allLineItemsSelected = lineItemIds.length > 0 && selectedCount === lineItemIds.length;
-  const someLineItemsSelected = selectedCount > 0 && !allLineItemsSelected;
-
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = someLineItemsSelected;
-    }
-  }, [someLineItemsSelected]);
-
-  function toggleAllLineItems(checked: boolean) {
-    setSelectedLineItemIds(checked ? new Set(lineItemIds) : new Set());
-  }
-
-  function toggleLineItem(lineItemId: string, checked: boolean) {
-    setSelectedLineItemIds((current) => {
-      const next = new Set(current);
-
-      if (checked) {
-        next.add(lineItemId);
-      } else {
-        next.delete(lineItemId);
-      }
-
-      return next;
-    });
-  }
-
   return (
     <div className="mx-auto w-full max-w-[1600px] px-2 pb-10">
       <div className="mb-7">
@@ -327,103 +289,87 @@ export function BuyerQuoteDetail({
 
       <div className="grid gap-6 xl:grid-cols-12">
         <main className="space-y-5 xl:col-span-8">
-          <section className="rounded-md border border-[#e7e7e7] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="flex gap-2 text-[13px] leading-6 text-[#4f5660]">
-              <span className="font-semibold text-[#171717]">Request:</span>
-              <div>
-                <p className="font-medium text-[#262a30]">{requestCalloutTitle}</p>
-                <p className="mt-1 text-[#6f737a]">{requestCalloutCopy}</p>
+          <section className="rounded-md border border-[#dfe3e8] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-[12px] font-semibold text-[#5f6670]">
+                  <CircleDot aria-hidden="true" className="h-4 w-4 text-[#4f7cff]" />
+                  Current status
+                </div>
+                <h2 className="mt-2 text-[18px] font-semibold text-[#202020]">{requestCalloutTitle}</h2>
+                <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{requestCalloutCopy}</p>
+              </div>
+              <div className="shrink-0 border-t border-[#eeeeee] pt-4 lg:w-[250px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">What happens next</p>
+                <p className="mt-2 text-[13px] font-medium leading-5 text-[#30343a]">{status.buyerAction}</p>
               </div>
             </div>
           </section>
 
           <section className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <h2 className="sr-only">Summary of order</h2>
+            <div className="flex items-center justify-between border-b border-[#e2e5e9] bg-[#fbfbfc] px-5 py-4 sm:px-6">
+              <h2 className="text-[15px] font-semibold text-[#262a30]">Parts and pricing</h2>
+              <span className="text-[12px] font-medium text-[#7b8088]">{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"}</span>
+            </div>
 
-            <div className="overflow-x-auto" data-testid="quote-line-items-scroll">
-              <div className="min-w-[1044px]">
-                <div className="grid grid-cols-[40px_minmax(360px,1.45fr)_minmax(250px,1fr)_120px_126px] items-center gap-5 bg-[#fbfbfc] py-4 pl-5 pr-12 text-[15px] font-semibold text-[#262a30] shadow-[inset_0_-1px_0_#d8dce2]">
-                  <span className="flex justify-start">
-                    <input
-                      aria-label="Select all line items"
-                      checked={allLineItemsSelected}
-                      className="h-5 w-5 rounded border-[#d2d7de]"
-                      onChange={(event) => toggleAllLineItems(event.currentTarget.checked)}
-                      ref={selectAllRef}
-                      type="checkbox"
-                    />
-                  </span>
-                  <span>Name {sortIndicator()}</span>
-                  <span>Configuration {sortIndicator()}</span>
-                  <span className="flex items-center justify-end gap-1">
-                    Quantity
-                    <Info aria-hidden="true" className="h-4 w-4 text-[#5d86ff]" />
-                    {sortIndicator()}
-                  </span>
-                  <span className="text-right">Price {sortIndicator()}</span>
-                </div>
+            <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_70px_100px] gap-4 border-b border-[#eeeeee] bg-[#fbfbfc] px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#80858d] 2xl:grid">
+              <span>Name</span>
+              <span>Configuration</span>
+              <span className="text-center">Qty</span>
+              <span className="text-right">Price</span>
+            </div>
 
-                <div className="divide-y divide-[#e2e5e9]">
-                  {request.lineItems.map((item, index) => {
-                    const total = lineItemTotalCents(item, request);
-                    const unit = lineItemUnitCents(item, total);
-                    const files = lineItemFiles[index];
-                    const file = files?.cadFile ?? request.files[index] ?? request.files[0];
-                    const drawingFile = files?.drawingFile;
-                    const fileName = customerFacingFileName(file?.name, item.partName);
-                    const downloadHref = fileDownloadHref(file);
+            <div className="divide-y divide-[#e2e5e9]" data-testid="quote-line-items-responsive">
+              {request.lineItems.map((item, index) => {
+                const total = lineItemTotalCents(item, request);
+                const unit = lineItemUnitCents(item, total);
+                const files = lineItemFiles[index];
+                const file = files?.cadFile ?? request.files[index] ?? request.files[0];
+                const drawingFile = files?.drawingFile;
+                const fileName = customerFacingFileName(file?.name, item.partName);
+                const downloadHref = fileDownloadHref(file);
 
-                    return (
-                      <article className="grid grid-cols-[40px_minmax(360px,1.45fr)_minmax(250px,1fr)_120px_126px] items-start gap-5 py-7 pl-5 pr-12" key={item.id}>
-                        <div className="flex justify-start">
-                          <input
-                            aria-label={`Select ${item.partName}`}
-                            checked={selectedLineItemIds.has(item.id)}
-                            className="mt-1 h-5 w-5 rounded border-[#d2d7de]"
-                            onChange={(event) => toggleLineItem(item.id, event.currentTarget.checked)}
-                            type="checkbox"
-                          />
-                        </div>
+                return (
+                  <article className="grid grid-cols-2 gap-5 px-5 py-5 sm:px-6 2xl:grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_70px_100px] 2xl:items-start 2xl:gap-4" key={item.id}>
+                    <div className="col-span-2 min-w-0 2xl:col-span-1">
+                      <div className="flex items-start gap-4">
+                        <CadRenderPreview file={file} index={index} />
                         <div className="min-w-0">
-                          <div className="flex items-start gap-4">
-                            <CadRenderPreview file={file} index={index} />
-                            <div className="min-w-0">
-                              {downloadHref ? (
-                                <a className="block truncate text-[15px] font-semibold text-[#4f7cff] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
-                                  {fileName}
-                                </a>
-                              ) : (
-                                <p className="truncate text-[15px] font-semibold text-[#4f7cff]">{fileName}</p>
-                              )}
-                              {drawingFile ? (
-                                <span className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[13px] font-medium text-[#4f7cff]">
-                                  <span className="truncate">{drawingFile.name}</span>
-                                  <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-[14px] leading-5 text-[#30343a]">
-                          <p className="font-semibold">{request.process || "CNC"}</p>
-                          <p className="font-semibold text-[#5f6670]">{item.material}</p>
-                          <p className="text-[#5f6670]">{item.surfaceFinish || "No finish (As machined)"}</p>
-                          {(item.qualityDocumentation ?? []).length > 0 ? (
-                            <p className="text-[#5f6670]">{(item.qualityDocumentation ?? []).join(", ")}</p>
+                          {downloadHref ? (
+                            <a className="block break-words text-[15px] font-semibold text-[#4f7cff] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
+                              {fileName}
+                            </a>
+                          ) : (
+                            <p className="break-words text-[15px] font-semibold text-[#4f7cff]">{fileName}</p>
+                          )}
+                          {drawingFile ? (
+                            <span className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[13px] font-medium text-[#4f7cff]">
+                              <span className="truncate">{drawingFile.name}</span>
+                              <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
+                            </span>
                           ) : null}
                         </div>
-                        <div className="flex min-h-11 items-center px-4 text-[16px] font-semibold text-[#262a30]" aria-label={`Quantity for ${item.partName}`}>
-                          {item.quantity}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[18px] font-semibold text-[#262a30]">{formatSummaryPrice(total)}</p>
-                          <p className="mt-1 text-[14px] text-[#5f6670]">{unit === null ? "-" : `${formatPrice(unit)}/ea`}</p>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </div>
+                      </div>
+                    </div>
+                    <div className="col-span-2 text-[13px] leading-5 text-[#30343a] 2xl:col-span-1">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] 2xl:hidden">Configuration</p>
+                      <p className="mt-1 font-semibold 2xl:mt-0">{request.process || "CNC"}</p>
+                      <p className="text-[#5f6670]">{item.material}</p>
+                      <p className="text-[#5f6670]">{item.surfaceFinish || "No finish (As machined)"}</p>
+                      {(item.qualityDocumentation ?? []).length > 0 ? <p className="text-[#5f6670]">{(item.qualityDocumentation ?? []).join(", ")}</p> : null}
+                    </div>
+                    <div className="2xl:text-center" aria-label={`Quantity for ${item.partName}`}>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] 2xl:hidden">Quantity</p>
+                      <p className="mt-1 text-[16px] font-semibold text-[#262a30] 2xl:mt-0">{item.quantity}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] 2xl:hidden">Price</p>
+                      <p className="mt-1 text-[18px] font-semibold text-[#262a30] 2xl:mt-0">{formatSummaryPrice(total)}</p>
+                      <p className="mt-1 text-[12px] text-[#5f6670]">{unit === null ? "Pending" : `${formatPrice(unit)}/ea`}</p>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
 
@@ -468,15 +414,7 @@ export function BuyerQuoteDetail({
                     Accept quote
                   </button>
                 </form>
-              ) : (
-                <button
-                  className="min-h-11 w-full rounded-md bg-[#d5d8dd] px-4 text-[14px] font-semibold text-[#30343a] disabled:cursor-not-allowed"
-                  disabled
-                  type="button"
-                >
-                  {canPurchase ? "Accept quote" : status.buyerAction}
-                </button>
-              )}
+              ) : null}
               {canDownloadQuote ? (
                 <a
                   className="flex min-h-10 w-full items-center justify-center gap-2 rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]"
