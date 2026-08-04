@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowUpRight, Box, CheckCircle2, FileText, ListChecks, ReceiptText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -12,8 +11,18 @@ import {
 import { filterCustomerVisibleRequests } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
+import {
+  customerDashboardScenarioNames,
+  getCustomerDashboardScenario,
+  isCustomerDashboardScenario,
+  type CustomerDashboardScenario,
+} from "@/lib/customer-dashboard-scenarios";
 
 export const dynamic = "force-dynamic";
+
+type DashboardPageProps = {
+  searchParams?: Promise<{ scenario?: string }>;
+};
 
 const metricIcons: Record<CustomerDashboardMetric["key"], LucideIcon> = {
   actions: ListChecks,
@@ -44,28 +53,16 @@ function MetricCard({ detail, href, label, metricKey, tone, value }: Omit<Custom
   );
 }
 
-function SectionHeader({
-  action,
-  detail,
-  title,
-}: {
-  action?: ReactNode;
-  detail: string;
-  title: string;
-}) {
+function SectionHeader({ detail, meta, title }: { detail?: string; meta?: string; title: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <h2 className="text-xl font-semibold tracking-tight text-stone-950">{title}</h2>
-        <p className="mt-1 text-sm leading-5 text-stone-500">{detail}</p>
+        {detail ? <p className="mt-1 text-sm leading-5 text-stone-500">{detail}</p> : null}
       </div>
-      {action}
+      {meta ? <p className="shrink-0 text-sm text-stone-500">{meta}</p> : null}
     </div>
   );
-}
-
-function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/70 p-5 text-sm leading-6 text-stone-500">{children}</div>;
 }
 
 function WorkflowRow({ workflow }: { workflow: CustomerActionWorkflow }) {
@@ -122,11 +119,40 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
+function EmptyTableRow({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+  return (
+    <div className="flex min-h-16 items-center gap-3 border-t border-stone-200 px-1 py-4 text-sm text-stone-500 sm:px-0">
+      <Icon aria-hidden="true" className="h-5 w-5 shrink-0 text-stone-400" strokeWidth={1.7} />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ScenarioLinks({ activeScenario }: { activeScenario: CustomerDashboardScenario }) {
+  return (
+    <nav aria-label="Dashboard preview scenarios" className="flex flex-wrap items-center gap-2 text-xs">
+      <span className="font-semibold uppercase tracking-[0.12em] text-stone-400">Preview data</span>
+      {customerDashboardScenarioNames.map((scenario) => (
+        <Link
+          className={`rounded-md border px-2.5 py-1.5 transition ${scenario === activeScenario ? "border-stone-950 bg-stone-950 text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-400 hover:text-stone-950"}`}
+          href={`/dashboard?scenario=${scenario}`}
+          key={scenario}
+        >
+          {scenario}
+        </Link>
+      ))}
+      <Link className="px-1.5 py-1.5 text-stone-500 underline-offset-2 hover:text-stone-950 hover:underline" href="/dashboard">
+        live data
+      </Link>
+    </nav>
+  );
+}
+
 function QuoteOrderActivityTable({ items }: { items: CustomerDashboardActivityRow[] }) {
   if (items.length === 0) {
     return (
-      <div className="p-6">
-        <EmptyState>Quotes received and placed orders will appear here.</EmptyState>
+      <div className="px-6 pb-5">
+        <EmptyTableRow icon={FileText} label="No quote or order activity yet." />
       </div>
     );
   }
@@ -165,8 +191,13 @@ function QuoteOrderActivityTable({ items }: { items: CustomerDashboardActivityRo
   );
 }
 
-export default async function Home() {
-  const [quotes, orders, session] = await Promise.all([listBuyerQuotes(), listBuyerOrders(), getCurrentSession()]);
+export default async function Home({ searchParams }: DashboardPageProps = {}) {
+  const requestedScenario = (await searchParams)?.scenario;
+  const scenario = process.env.NODE_ENV !== "production" && isCustomerDashboardScenario(requestedScenario) ? requestedScenario : null;
+  const [liveQuotes, liveOrders, session] = await Promise.all([listBuyerQuotes(), listBuyerOrders(), getCurrentSession()]);
+  const scenarioData = scenario ? getCustomerDashboardScenario(scenario) : null;
+  const quotes = scenarioData?.quotes ?? liveQuotes;
+  const orders = scenarioData?.orders ?? liveOrders;
   const dashboard = buildCustomerDashboardSummary(filterCustomerVisibleRequests(quotes, session), filterCustomerVisibleRequests(orders, session));
   const userName = session?.user.name || "there";
   const actionWorkflows = dashboard.actionWorkflows.slice(0, 5);
@@ -187,6 +218,8 @@ export default async function Home() {
         </Link>
       </header>
 
+      {scenario ? <ScenarioLinks activeScenario={scenario} /> : null}
+
       <section className="space-y-6">
         <section aria-label="Operational summary" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {dashboard.metrics.map(({ key: metricKey, ...metric }) => (
@@ -196,37 +229,24 @@ export default async function Home() {
 
         <article className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-200/30 sm:p-6" id="action-center">
           <SectionHeader
-            detail={actionWorkflows.length ? actionCenterSummary(actionWorkflows) : "No open items require attention right now."}
+            detail={actionWorkflows.length ? actionCenterSummary(actionWorkflows) : undefined}
+            meta={actionWorkflows.length ? undefined : "0 open"}
             title="Action Center"
           />
-          <div className="mt-3 divide-y divide-stone-100">
-            {actionWorkflows.length ? (
-              actionWorkflows.map((workflow) => <WorkflowRow key={workflow.id} workflow={workflow} />)
-            ) : (
-              <EmptyState>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-stone-700">You&apos;re all caught up.</p>
-                    <p className="mt-1">There are no customer workflows requiring attention right now.</p>
-                  </div>
-                  <Link className="shrink-0 font-semibold text-stone-950 hover:text-stone-600" href="/notifications">
-                    View recent updates
-                  </Link>
-                </div>
-              </EmptyState>
-            )}
-          </div>
+          {actionWorkflows.length ? (
+            <div className="mt-3 divide-y divide-stone-100">
+              {actionWorkflows.map((workflow) => <WorkflowRow key={workflow.id} workflow={workflow} />)}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <EmptyTableRow icon={CheckCircle2} label="No action items require attention." />
+            </div>
+          )}
         </article>
 
         <article className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm shadow-stone-200/30">
-          <div className="border-b border-stone-200 px-6 py-5">
+          <div className="px-6 pt-5">
             <SectionHeader
-              action={
-                <Link className="inline-flex h-10 items-center gap-2 rounded-xl bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800" href="/quotes">
-                  View Quotes
-                  <ArrowUpRight aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-                </Link>
-              }
               detail="Quotes received by customers and orders placed by customers"
               title="Quote and Order Activity"
             />

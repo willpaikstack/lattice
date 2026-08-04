@@ -88,3 +88,34 @@ final result: passed
 - [x] Verify focused tests, TypeScript, lint, desktop comparison, mobile width, and browser console.
 
 final result: passed
+
+---
+
+# Design QA: Dashboard Empty States
+
+**Evidence**
+- Source visual truth: `C:\Users\william.paik\.codex\generated_images\019fce22-4685-7301-b951-b72a94b95067\exec-62f86828-facf-435e-9cf2-6d2f5486a2b1.png`
+- Browser-rendered implementation: `C:\Users\william.paik\Documents\Codex\2026-08-04\ple\work\lattice-dashboard-implemented.png`
+- Viewport: existing desktop browser viewport, `1146 x 912` CSS pixels. The generated source image was rendered at `1405 x 1119` pixels; comparison was normalized visually by matching the dashboard composition and empty-state regions.
+- State: `/dashboard`, authenticated empty-data state with zero quotes, orders, shipped items, open items, action workflows, and quote/order activity.
+
+**Findings**
+- No actionable P0, P1, or P2 differences found.
+- Full view preserves the sidebar, greeting, metric cards, section order, typography hierarchy, neutral palette, spacing rhythm, and primary Request Quote action.
+- Focused regions match the approved minimal treatment: title area, one light divider, and one muted empty row. No column-label band, nested empty card, dashed outline, or secondary CTA remains.
+- Typography, spacing, colors, tokens, icon fidelity, and app-specific copy remain consistent with the existing product surface.
+
+**Interaction Coverage**
+- Reloaded `/dashboard` in the local browser.
+- Confirmed the empty Action Center row renders with `No action items require attention.` and `0 open`.
+- Confirmed the empty activity row renders with `No quote or order activity yet.`.
+- Confirmed focused dashboard tests and TypeScript checks pass.
+- No browser console errors were observed during the render check.
+
+**Implementation Checklist**
+- [x] Replace the empty Action Center message with a single divider-led row.
+- [x] Replace the empty activity card with a single divider-led row.
+- [x] Preserve populated workflow and activity behavior.
+- [x] Verify TypeScript, focused tests, and browser rendering.
+
+final result: passed

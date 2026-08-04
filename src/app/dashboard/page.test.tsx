@@ -154,7 +154,7 @@ describe("Home dashboard", () => {
     expect(screen.getByRole("heading", { name: "Quote and Order Activity" })).toBeInTheDocument();
     expect(screen.getByText("Quotes received by customers and orders placed by customers")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Transactions" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /View Quotes/ })).toHaveAttribute("href", "/quotes");
+    expect(screen.queryByRole("link", { name: /View Quotes/ })).not.toBeInTheDocument();
     expect(screen.getAllByText("LQ-2001").length).toBeGreaterThan(0);
     expect(screen.getAllByText("PO-ORDER").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Order placed/ }).some((link) => link.getAttribute("href") === "/orders/req_order")).toBe(true);
@@ -164,19 +164,40 @@ describe("Home dashboard", () => {
     expect(screen.queryByText("Frank Bennett")).not.toBeInTheDocument();
   });
 
-  it("renders operational empty states when live records are empty", async () => {
+  it("renders lean operational summaries when live records are empty", async () => {
     mocks.listBuyerQuotes.mockResolvedValue([]);
     mocks.listBuyerOrders.mockResolvedValue([]);
 
     render(await Home());
 
-    expect(screen.getByText("You're all caught up.")).toBeInTheDocument();
-    expect(screen.getByText("There are no customer workflows requiring attention right now.")).toBeInTheDocument();
-    expect(screen.getByText("Quotes received and placed orders will appear here.")).toBeInTheDocument();
+    expect(screen.getByText("No action items require attention.")).toBeInTheDocument();
+    expect(screen.getByText("No quote or order activity yet.")).toBeInTheDocument();
+    expect(screen.getByText("0 open")).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Work item" })).not.toBeInTheDocument();
+    expect(screen.queryByText("You're all caught up.")).not.toBeInTheDocument();
+    expect(screen.queryByText("There are no customer workflows requiring attention right now.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Quotes received and placed orders will appear here.")).not.toBeInTheDocument();
+    expect(screen.queryByText("LQ-3104")).not.toBeInTheDocument();
+    expect(screen.queryByText("CNC aluminum bracket package")).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Recent Updates" })).not.toBeInTheDocument();
     expect(screen.queryByText("Purchased quotes will appear here.")).not.toBeInTheDocument();
     expect(screen.queryByText("Order PO-1042 moved to final inspection")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Quote and Order Activity" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Transactions" })).not.toBeInTheDocument();
+  });
+
+  it("renders a dashboard scenario from the URL without changing live repository data", async () => {
+    mocks.listBuyerQuotes.mockResolvedValue([]);
+    mocks.listBuyerOrders.mockResolvedValue([]);
+
+    render(await Home({ searchParams: Promise.resolve({ scenario: "full" }) }));
+
+    expect(screen.getByRole("navigation", { name: "Dashboard preview scenarios" })).toBeInTheDocument();
+    expect(screen.getByText("CNC aluminum bracket package")).toBeInTheDocument();
+    expect(screen.getByText("Production manifold order")).toBeInTheDocument();
+    expect(screen.getAllByText("LQ-3104").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("PO-SCENARIO").length).toBeGreaterThan(0);
+    expect(mocks.listBuyerQuotes).toHaveBeenCalled();
+    expect(mocks.listBuyerOrders).toHaveBeenCalled();
   });
 });
