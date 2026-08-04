@@ -117,7 +117,7 @@ describe("customer dashboard summary", () => {
     expect(metrics.activeRfqs.value).toBe("4");
     expect(metrics.orders.value).toBe("2");
     expect(metrics.shipped.value).toBe("1");
-    expect(metrics.actions.value).toBe("2");
+    expect(metrics.actions.value).toBe("4");
   });
 
   it("sorts quote and order activity by the newest quote receipt or order placement", () => {
@@ -168,38 +168,10 @@ describe("customer dashboard summary", () => {
     expect(summary.quoteOrderActivity).toEqual([]);
   });
 
-  it("keeps the full notification history available while exposing a recent preview", () => {
-    const request = makeRequest({
-      id: "req_status_history",
-      status: "CLOSED",
-      statusEvents: [
-        statusEvent("DRAFT", "2026-06-01T08:00:00.000Z", null),
-        statusEvent("SUBMITTED", "2026-06-01T09:00:00.000Z", "DRAFT"),
-        statusEvent("READY_FOR_SUPPLIER_RFQ", "2026-06-01T10:00:00.000Z", "SUBMITTED"),
-        statusEvent("CLOSED", "2026-06-01T11:00:00.000Z", "READY_FOR_SUPPLIER_RFQ"),
-      ],
-      updatedAt: "2026-06-01T11:00:00.000Z",
-    });
-
-    const summary = buildCustomerDashboardSummary([request], []);
-
-    expect(summary.notifications.map((notification) => notification.title)).toEqual([
-      "No quote",
-      "RFQ submitted",
-      "Draft created",
-    ]);
-    expect(summary.recentNotifications.map((notification) => notification.title)).toEqual([
-      "No quote",
-      "RFQ submitted",
-    ]);
-  });
-
   it("does not add static fallback rows when live data is empty", () => {
     const summary = buildCustomerDashboardSummary([], []);
 
-    expect(summary.notifications).toEqual([]);
     expect(summary.actionWorkflows).toEqual([]);
-    expect(summary.recentNotifications).toEqual([]);
     expect(summary.quoteOrderActivity).toEqual([]);
     expect(summary.metrics.map((metric) => metric.value)).toEqual(["0", "0", "0", "0"]);
   });

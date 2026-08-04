@@ -40,6 +40,12 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Refined `/forgot-password` with a prefilled work-email handoff, pending feedback, non-enumerating reset confirmation, inbox/spam guidance, retry support, and a primary return-to-sign-in action.
 - Verification: focused login/auth tests, `npm run typecheck`, `npm run lint`, `npm run dead-code`, `npm run build`, `git diff --check`, and desktop/mobile browser checks passed. The full suite passed 234 of 235 tests; the unrelated admin activity dashboard test remains date-sensitive and expects a June queue label that no longer applies on the current August date.
 - Verification: `launchctl print gui/$(id -u)/com.lattice.local-dev`, `lsof -nP -iTCP:3000 -sTCP:LISTEN`, and `curl -I http://localhost:3000` confirmed the service is running and serving `200 OK`.
+- Fixed the buyer quote-list delete flow for browser-only drafts: the UI now labels the action `Discard draft` and removes it locally without attempting to delete a non-existent server request. Saved RFQs continue to use the authorized server delete path, with an inline error for genuine failures.
+- Verification: buyer-quote regression coverage, TypeScript, and lint passed; live Quotes page reload confirmed the failed draft had already been discarded locally.
+- Reordered `/dashboard` so the KPI cards lead, the Action Center is the second row, and quote/order activity follows. Removed the redundant Recent Updates preview; `/notifications` remains the single notification-history destination.
+- Implemented the approved minimal Action Center: one contextual summary sentence and compact rows that retain only a state marker, reference, concise status, and direct continuation action. Removed dashboard checklist, ownership, priority-badge, and duplicate-count noise.
+- Made each compact Action Center row a full-width order/quote link, replacing the redundant `View order` button with a subtle directional affordance and keyboard-visible focus state.
+- Fixed the date-sensitive admin activity dashboard test by supplying a fixed pre-due-date clock; the existing activity-summary test continues to cover overdue quote recovery separately.
 
 ## 2026-06-22
 
@@ -275,6 +281,13 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Added quote-file and quote-PDF helpers plus tests for customer-facing quote artifact generation.
 - Uploaded the app online and added Vercel deployment hygiene, brand/logo iteration assets, and waiting-list/email persistence updates.
 - Verification recorded in git history: commits `8951418` and `f034a83`.
+
+## 2026-08-01
+
+- Fixed a customer Action Center gap where purchased orders without a confirmed supplier milestone date were omitted from attention workflows.
+- Added a distinct milestone-confirmation workflow with owner, next-step context, progress checklist, and order-detail continuation action; redesigned it as a neutral `Lattice monitoring` state with compact rows, calmer copy, and an outlined continuation action.
+- Renamed the dashboard section to `Action Center` and changed its summary metric to distinguish customer actions from order updates Lattice is monitoring.
+- Verification: focused Action Center tests, typecheck, lint, production build, and diff validation pass. The full suite has one unrelated existing admin-activity label assertion failure.
 
 ## 2026-05-31
 

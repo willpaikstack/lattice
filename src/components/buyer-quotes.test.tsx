@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { deleteBuyerQuoteAction } from "@/app/quotes/actions";
 import { getDemoRequests } from "@/lib/demo-requests";
 import { buildDraftRequest, submitDraftRequest } from "@/lib/request-model";
 
@@ -193,7 +194,7 @@ describe("BuyerQuotes", () => {
     expect(container.querySelector('img[src*="/api/cad-previews/thumbnail"]')).toBeInTheDocument();
   });
 
-  it("lets buyers delete a quote row from the table", () => {
+  it("lets buyers delete a saved quote row from the table", async () => {
     const request = submitDraftRequest(
       buildDraftRequest({
         buyerCompany: "Amogy Manufacturing",
@@ -211,8 +212,40 @@ describe("BuyerQuotes", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Delete quote for Delete-ready quote" }));
 
-    expect(screen.queryByText("Delete-ready quote")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("Delete-ready quote")).not.toBeInTheDocument());
     expect(confirmSpy).toHaveBeenCalledWith('Delete "Delete-ready quote" from quotes?');
+
+    confirmSpy.mockRestore();
+  });
+
+  it("discards browser-only drafts without calling the server delete action", () => {
+    const draft = {
+      ...submitDraftRequest(
+        buildDraftRequest({
+          buyerCompany: "Amogy Manufacturing",
+          requesterName: "William Paik",
+          title: "Local draft quote",
+          process: "CNC milling",
+          dueDate: "2026-06-20",
+          lineItems: [{ partName: "Draft part", quantity: 1, material: "SS 304" }],
+          files: [{ name: "draft.step", sizeBytes: 1024, type: "model/step" }],
+        }),
+      ),
+      id: "local_draft_delete_ready",
+      status: "DRAFT" as const,
+    };
+    const deleteAction = vi.mocked(deleteBuyerQuoteAction);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    deleteAction.mockClear();
+    window.localStorage.setItem("lattice.incompleteRfqs.v1", JSON.stringify([{ id: draft.id, request: draft }]));
+    render(<BuyerQuotes requests={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard draft for Local draft quote" }));
+
+    expect(screen.queryByText("Local draft quote")).not.toBeInTheDocument();
+    expect(confirmSpy).toHaveBeenCalledWith('Discard draft "Local draft quote"?');
+    expect(deleteAction).not.toHaveBeenCalled();
 
     confirmSpy.mockRestore();
   });

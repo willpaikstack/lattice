@@ -383,10 +383,10 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
   const isPublicRoute = publicRoutes.has(pathname);
   const inAdminExperience = isAdminRoute(pathname);
   const navTone = inAdminExperience ? "admin" : "customer";
-  const [storedNavOrdersByTone, setStoredNavOrdersByTone] = useState<Record<"admin" | "customer", Record<string, string[]>>>(() => ({
-    admin: readStoredNavOrder("admin"),
-    customer: readStoredNavOrder("customer"),
-  }));
+  const [storedNavOrdersByTone, setStoredNavOrdersByTone] = useState<Record<"admin" | "customer", Record<string, string[]>>>({
+    admin: {},
+    customer: {},
+  });
   const canUseAdminWorkspace = sessionRole === "admin";
   const isPublicSimpleQuoteRoute = pathname === "/simple-quote" || pathname.startsWith("/simple-quote/");
   const activeNavPathname = pendingHref ?? pathname;
@@ -394,6 +394,17 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
   const baseNavSections = inAdminExperience ? adminNavSections : customerNavSections;
   const storedNavOrders = storedNavOrdersByTone[navTone];
   const navSections = baseNavSections.map((section) => applyStoredOrder(section, storedNavOrders[section.title]));
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setStoredNavOrdersByTone({
+        admin: readStoredNavOrder("admin"),
+        customer: readStoredNavOrder("customer"),
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (!pendingHref || pathname !== pendingHref) {

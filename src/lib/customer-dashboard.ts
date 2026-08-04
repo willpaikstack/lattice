@@ -1,6 +1,5 @@
 import { buyerLifecycleTag, type BuyerLifecycleTag } from "./buyer-lifecycle";
 import { buildCustomerActionWorkflows, type CustomerActionWorkflow } from "./customer-action-center";
-import { buildCustomerActivityFeed, type CustomerActivityFeedItem } from "./customer-notifications";
 import type { LatticeRequest, RequestStatus } from "./request-model";
 
 export type CustomerDashboardMetric = {
@@ -27,9 +26,7 @@ export type CustomerDashboardActivityRow = {
 export type CustomerDashboardSummary = {
   actionWorkflows: CustomerActionWorkflow[];
   metrics: CustomerDashboardMetric[];
-  notifications: CustomerActivityFeedItem[];
   quoteOrderActivity: CustomerDashboardActivityRow[];
-  recentNotifications: CustomerActivityFeedItem[];
 };
 
 const activeRfqStatuses = new Set<RequestStatus>(["DRAFT", "SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED"]);
@@ -132,17 +129,10 @@ function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function isDashboardRecentItem(notification: CustomerActivityFeedItem) {
-  if (notification.meta !== "RFQ status") {
-    return true;
-  }
-
-  return notification.title === "RFQ submitted" || notification.title === "No quote";
-}
-
 export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[], now = new Date()): CustomerDashboardSummary {
-  const notifications = buildCustomerActivityFeed({ orders, quotes });
   const actionWorkflows = buildCustomerActionWorkflows({ now, orders, quotes });
+  const customerActionCount = actionWorkflows.filter((workflow) => workflow.owner === "Customer").length;
+  const priorityItemCount = actionWorkflows.filter((workflow) => workflow.priority !== "normal").length;
   const activeRfqs = quotes.filter((request) => activeRfqStatuses.has(request.status));
   const quotedRfqs = quotes.filter((request) => request.status === "QUOTED").length;
   const purchasedOrders = orders.filter((order) => order.status === "PURCHASED");
@@ -172,17 +162,22 @@ export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: 
         value: String(shippedOrders),
       },
       {
-        detail: actionWorkflows.length === 1 ? "1 workflow needs attention" : `${actionWorkflows.length} workflows need attention`,
+        detail:
+          actionWorkflows.length === 0
+            ? "No open items"
+            : customerActionCount > 0
+              ? `${pluralize(customerActionCount, "item")} ${customerActionCount === 1 ? "requires" : "require"} your action`
+              : priorityItemCount > 0
+                ? `${pluralize(priorityItemCount, "priority item")} being tracked`
+                : `${pluralize(actionWorkflows.length, "order update")} being monitored`,
         href: "/dashboard#action-center",
         key: "actions",
-        label: "Actions",
-        tone: actionWorkflows.length > 0 ? "alert" : undefined,
+        label: "Open items",
+        tone: customerActionCount > 0 || priorityItemCount > 0 ? "alert" : undefined,
         value: String(actionWorkflows.length),
       },
     ],
     actionWorkflows,
-    notifications,
     quoteOrderActivity: buildQuoteOrderActivity(quotes, purchasedOrders),
-    recentNotifications: notifications.filter(isDashboardRecentItem).slice(0, 4),
   };
 }

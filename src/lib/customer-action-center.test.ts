@@ -161,4 +161,34 @@ describe("customer action center", () => {
       title: "Order documents need review",
     });
   });
+
+  it("surfaces purchased orders whose next milestone has not been confirmed", () => {
+    const order = makeRequest({
+      id: "req_missing_milestone",
+      status: "PURCHASED",
+      supplierOrder: {
+        ...makeRequest().supplierOrder,
+        nextMilestone: "",
+        nextMilestoneDate: "",
+        status: "AWAITING_ACKNOWLEDGMENT",
+      },
+    });
+
+    const workflows = buildCustomerActionWorkflows({
+      now: new Date("2026-08-01T12:00:00.000Z"),
+      orders: [order],
+    });
+
+    expect(workflows).toHaveLength(1);
+    expect(workflows[0]).toMatchObject({
+      ctaLabel: "View order",
+      dueLabel: "Schedule confirmation pending",
+      id: "order-milestone:req_missing_milestone",
+      owner: "Lattice",
+      priority: "normal",
+      title: "Next milestone being confirmed",
+      type: "order_milestone",
+    });
+    expect(workflows[0].steps.map((step) => step.state)).toEqual(["complete", "current", "upcoming"]);
+  });
 });

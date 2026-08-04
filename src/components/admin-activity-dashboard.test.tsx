@@ -34,7 +34,10 @@ describe("AdminActivityDashboard", () => {
       assignedOwner: "Adam",
       supplierPackageNotes: "Package ready for supplier outreach.",
     });
-    const summary = buildAdminActivitySummary([makeRequest({ id: "req_submitted" }), needsInfo, ready]);
+    const summary = buildAdminActivitySummary(
+      [makeRequest({ id: "req_submitted" }), needsInfo, ready],
+      new Date("2026-06-10T12:00:00.000Z"),
+    );
 
     render(<AdminActivityDashboard summary={summary} />);
 

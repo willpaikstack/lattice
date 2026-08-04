@@ -147,53 +147,21 @@ describe("Home dashboard", () => {
     expect(screen.getByRole("link", { name: /View Active RFQs/ })).toHaveAttribute("href", "/quotes");
     expect(screen.getByRole("link", { name: /View Orders/ })).toHaveAttribute("href", "/orders");
     expect(screen.getByRole("link", { name: /View Shipped/ })).toHaveAttribute("href", "/shipped");
-    expect(screen.getByRole("link", { name: /View Actions/ })).toHaveAttribute("href", "/dashboard#action-center");
-    expect(screen.getByRole("heading", { name: "Needs Attention" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Recent Updates" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /View Open items/ })).toHaveAttribute("href", "/dashboard#action-center");
+    expect(screen.getByRole("heading", { name: "Action Center" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Recent Updates" })).not.toBeInTheDocument();
     expect(screen.getByText("Supplier clarification required")).toBeInTheDocument();
-    expect(screen.getAllByText("Quote ready for review").length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: /Quote ready for review/ }).some((link) => link.getAttribute("href") === "/quotes/req_quoted")).toBe(true);
-    expect(screen.getAllByText("More information requested").length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: /More information requested/ }).some((link) => link.getAttribute("href") === "/quotes/req_needs_info")).toBe(true);
-    expect(screen.getAllByText("No quote").length).toBeGreaterThan(0);
-    expect(screen.getByText("We are unable to quote this RFQ because the required process is outside our supplier network.")).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /No quote/ }).some((link) => link.getAttribute("href") === "/quotes/req_no_quote")).toBe(true);
-    expect(screen.getAllByText("Needs attention").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Quote and Order Activity" })).toBeInTheDocument();
     expect(screen.getByText("Quotes received by customers and orders placed by customers")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Transactions" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /View Quotes/ })).toHaveAttribute("href", "/quotes");
     expect(screen.getAllByText("LQ-2001").length).toBeGreaterThan(0);
-    expect(screen.getByText("PO-ORDER")).toBeInTheDocument();
+    expect(screen.getAllByText("PO-ORDER").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Order placed/ }).some((link) => link.getAttribute("href") === "/orders/req_order")).toBe(true);
     expect(screen.getAllByText("$1,825").length).toBeGreaterThan(0);
     expect(screen.queryByRole("heading", { name: "Orders" })).not.toBeInTheDocument();
     expect(screen.queryByText("Recent order and quote contacts")).not.toBeInTheDocument();
     expect(screen.queryByText("Frank Bennett")).not.toBeInTheDocument();
-  });
-
-  it("shows high-signal RFQ status rows in the dashboard inbox", async () => {
-    const statusHistory = makeSubmittedRequest({
-      id: "req_status_history",
-      status: "READY_FOR_SUPPLIER_RFQ",
-      statusEvents: [
-        { actor: "buyer", at: "2026-06-01T08:00:00.000Z", from: null, id: "event_draft", to: "DRAFT" },
-        { actor: "buyer", at: "2026-06-01T09:00:00.000Z", from: "DRAFT", id: "event_submitted", to: "SUBMITTED" },
-        { actor: "operator", at: "2026-06-01T10:00:00.000Z", from: "SUBMITTED", id: "event_supplier_pricing", to: "READY_FOR_SUPPLIER_RFQ" },
-      ],
-      updatedAt: "2026-06-01T10:00:00.000Z",
-    });
-
-    mocks.listBuyerQuotes.mockResolvedValue([statusHistory]);
-    mocks.listBuyerOrders.mockResolvedValue([]);
-
-    render(await Home());
-
-    expect(screen.queryByText("Draft created")).not.toBeInTheDocument();
-    expect(screen.getByText("RFQ submitted")).toBeInTheDocument();
-    expect(screen.getByText("Lattice received your RFQ and is reviewing the files and requirements.")).toBeInTheDocument();
-    expect(screen.queryByText("Supplier pricing started")).not.toBeInTheDocument();
-    expect(screen.queryByText("Lattice is collecting supplier pricing for this RFQ.")).not.toBeInTheDocument();
   });
 
   it("renders operational empty states when live records are empty", async () => {
@@ -204,8 +172,8 @@ describe("Home dashboard", () => {
 
     expect(screen.getByText("You're all caught up.")).toBeInTheDocument();
     expect(screen.getByText("There are no customer workflows requiring attention right now.")).toBeInTheDocument();
-    expect(screen.getByText("RFQ, quote, order, shipment, and document updates will appear here.")).toBeInTheDocument();
     expect(screen.getByText("Quotes received and placed orders will appear here.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Recent Updates" })).not.toBeInTheDocument();
     expect(screen.queryByText("Purchased quotes will appear here.")).not.toBeInTheDocument();
     expect(screen.queryByText("Order PO-1042 moved to final inspection")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Quote and Order Activity" })).toBeInTheDocument();

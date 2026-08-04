@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight, Box, CheckCircle2, Circle, Clock3, FileCheck2, FileText, MessageSquareText, ReceiptText } from "lucide-react";
+import { ArrowUpRight, Box, CheckCircle2, FileText, ListChecks, ReceiptText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import type { CustomerActionWorkflow } from "@/lib/customer-action-center";
@@ -9,31 +9,22 @@ import {
   type CustomerDashboardActivityRow,
   type CustomerDashboardMetric,
 } from "@/lib/customer-dashboard";
-import type { CustomerActivityFeedItem } from "@/lib/customer-notifications";
 import { filterCustomerVisibleRequests } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-const metricIcons: Record<CustomerDashboardMetric["label"], LucideIcon> = {
-  "Active RFQs": FileText,
-  Actions: AlertTriangle,
-  Orders: ReceiptText,
-  Shipped: Box,
+const metricIcons: Record<CustomerDashboardMetric["key"], LucideIcon> = {
+  actions: ListChecks,
+  activeRfqs: FileText,
+  orders: ReceiptText,
+  shipped: Box,
 };
 
-const workflowIcons: Record<CustomerActionWorkflow["type"], LucideIcon> = {
-  customer_requirement: FileCheck2,
-  order_delay: Clock3,
-  quote_expiring: Clock3,
-  quote_review: ReceiptText,
-  supplier_question: MessageSquareText,
-};
-
-function MetricCard({ detail, href, label, tone, value }: Omit<CustomerDashboardMetric, "key">) {
+function MetricCard({ detail, href, label, metricKey, tone, value }: Omit<CustomerDashboardMetric, "key"> & { metricKey: CustomerDashboardMetric["key"] }) {
   const isAlert = tone === "alert";
-  const Icon = metricIcons[label];
+  const Icon = metricIcons[metricKey];
 
   return (
     <Link
@@ -77,87 +68,47 @@ function EmptyState({ children }: { children: ReactNode }) {
   return <div className="rounded-xl border border-dashed border-stone-200 bg-stone-50/70 p-5 text-sm leading-6 text-stone-500">{children}</div>;
 }
 
-function NotificationRow({ item }: { item: CustomerActivityFeedItem }) {
+function WorkflowRow({ workflow }: { workflow: CustomerActionWorkflow }) {
+  const isMonitoring = workflow.type === "order_milestone";
+  const statusDotClass = isMonitoring
+    ? "border-sky-300 bg-sky-100"
+    : workflow.priority === "critical"
+      ? "border-red-300 bg-red-100"
+      : workflow.priority === "high"
+        ? "border-amber-300 bg-amber-100"
+        : "border-stone-300 bg-stone-100";
+  const rowLabel = isMonitoring ? workflow.dueLabel : workflow.title;
+
   return (
     <Link
-      className="grid gap-3 rounded-xl py-4 transition hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950 sm:grid-cols-[auto_1fr_auto] sm:items-start sm:px-3"
-      href={item.href}
+      aria-label={`View ${workflow.reference}: ${rowLabel}`}
+      className="group -mx-2 grid gap-3 rounded-md px-2 py-3 transition hover:bg-stone-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+      href={workflow.href}
     >
-      <span aria-label={item.actionRequired ? "Needs attention" : "Informational update"} className={item.actionRequired ? "mt-1.5 h-2.5 w-2.5 rounded-full bg-amber-700" : "mt-1.5 h-2.5 w-2.5 rounded-full bg-stone-300"} />
-      <span className="min-w-0">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500">{item.meta}</span>
-          <span className="text-xs text-stone-400">{item.time}</span>
-          {item.actionRequired ? <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Needs attention</span> : null}
-        </span>
-        <span className="mt-1 block text-sm font-semibold text-stone-950">{item.title}</span>
-        <span className="mt-1 block text-sm leading-5 text-stone-600">{item.detail}</span>
-      </span>
-      <ArrowUpRight aria-hidden="true" className="hidden h-4 w-4 text-stone-300 sm:block" strokeWidth={1.8} />
+      <div className="flex min-w-0 items-center gap-3">
+        <span aria-label={rowLabel} className={`h-2.5 w-2.5 shrink-0 rounded-full border ${statusDotClass}`} />
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-500">{workflow.reference}</p>
+          <h3 className="mt-0.5 truncate text-sm font-medium text-stone-950">{rowLabel}</h3>
+        </div>
+      </div>
+      <ArrowUpRight aria-hidden="true" className={`hidden h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:block ${isMonitoring ? "text-stone-400" : "text-stone-700"}`} strokeWidth={1.8} />
     </Link>
   );
 }
 
-function WorkflowRow({ workflow }: { workflow: CustomerActionWorkflow }) {
-  const Icon = workflowIcons[workflow.type];
-  const isCritical = workflow.priority === "critical";
-  const isHigh = workflow.priority === "high";
-  const priorityLabel = isCritical ? "Critical" : isHigh ? "High priority" : "Open";
-  const priorityClass = isCritical
-    ? "border-red-200 bg-red-50 text-red-700"
-    : isHigh
-      ? "border-amber-200 bg-amber-50 text-amber-800"
-      : "border-stone-200 bg-stone-50 text-stone-600";
+function actionCenterSummary(workflows: CustomerActionWorkflow[]) {
+  if (workflows.every((workflow) => workflow.type === "order_milestone")) {
+    return `Lattice is confirming schedules for ${workflows.length} ${workflows.length === 1 ? "order" : "orders"}.`;
+  }
 
-  return (
-    <div className="grid gap-5 py-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-      <div className="min-w-0">
-        <div className="flex items-start gap-3">
-          <span className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${priorityClass}`}>
-            <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">{workflow.reference}</span>
-              <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${priorityClass}`}>{priorityLabel}</span>
-            </div>
-            <h3 className="mt-1 text-base font-semibold text-stone-950">{workflow.title}</h3>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-600">{workflow.detail}</p>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs font-medium text-stone-500">
-              <span>{workflow.dueLabel}</span>
-              <span>Owner: {workflow.owner}</span>
-              <span>
-                {workflow.completedSteps} of {workflow.steps.length} steps complete
-              </span>
-            </div>
-          </div>
-        </div>
+  const customerActionCount = workflows.filter((workflow) => workflow.owner === "Customer").length;
 
-        <ol aria-label={`${workflow.title} workflow`} className="mt-5 grid gap-2 sm:grid-cols-3">
-          {workflow.steps.map((step) => (
-            <li className="flex min-w-0 items-start gap-2 text-xs leading-5 text-stone-600" key={step.id}>
-              {step.state === "complete" ? (
-                <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" strokeWidth={2} />
-              ) : step.state === "current" ? (
-                <Clock3 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" strokeWidth={2} />
-              ) : (
-                <Circle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-stone-300" strokeWidth={1.8} />
-              )}
-              <span className={step.state === "complete" ? "text-stone-400 line-through" : step.state === "current" ? "font-semibold text-stone-800" : undefined}>{step.label}</span>
-            </li>
-          ))}
-        </ol>
-      </div>
+  if (customerActionCount > 0) {
+    return `${customerActionCount} ${customerActionCount === 1 ? "item needs" : "items need"} your attention.`;
+  }
 
-      <Link
-        className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
-        href={workflow.href}
-      >
-        {workflow.ctaLabel}
-        <ArrowUpRight aria-hidden="true" className="h-4 w-4" strokeWidth={2} />
-      </Link>
-    </div>
-  );
+  return `Lattice is monitoring ${workflows.length} ${workflows.length === 1 ? "open item" : "open items"}.`;
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -237,8 +188,17 @@ export default async function Home() {
       </header>
 
       <section className="space-y-6">
-        <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30" id="action-center">
-          <SectionHeader detail="Prioritized workflows that need a decision, response, review, or close monitoring" title="Needs Attention" />
+        <section aria-label="Operational summary" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {dashboard.metrics.map(({ key: metricKey, ...metric }) => (
+            <MetricCard key={metricKey} metricKey={metricKey} {...metric} />
+          ))}
+        </section>
+
+        <article className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-200/30 sm:p-6" id="action-center">
+          <SectionHeader
+            detail={actionWorkflows.length ? actionCenterSummary(actionWorkflows) : "No open items require attention right now."}
+            title="Action Center"
+          />
           <div className="mt-3 divide-y divide-stone-100">
             {actionWorkflows.length ? (
               actionWorkflows.map((workflow) => <WorkflowRow key={workflow.id} workflow={workflow} />)
@@ -254,31 +214,6 @@ export default async function Home() {
                   </Link>
                 </div>
               </EmptyState>
-            )}
-          </div>
-        </article>
-
-        <section aria-label="Operational summary" className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {dashboard.metrics.map(({ key: metricKey, ...metric }) => (
-            <MetricCard key={metricKey} {...metric} />
-          ))}
-        </section>
-
-        <article className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm shadow-stone-200/30">
-          <SectionHeader
-            action={
-              <Link className="text-sm font-semibold text-stone-700 transition hover:text-stone-950" href="/notifications">
-                View all
-              </Link>
-            }
-            detail="Informational and action-related events across your RFQs and orders"
-            title="Recent Updates"
-          />
-          <div className="mt-4 divide-y divide-stone-100">
-            {dashboard.recentNotifications.length ? (
-              dashboard.recentNotifications.map((item) => <NotificationRow item={item} key={item.id} />)
-            ) : (
-              <EmptyState>RFQ, quote, order, shipment, and document updates will appear here.</EmptyState>
             )}
           </div>
         </article>

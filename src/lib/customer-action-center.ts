@@ -4,6 +4,7 @@ import { isOrderMilestoneLate, orderNextStep } from "./order-progress";
 export type CustomerActionWorkflowType =
   | "customer_requirement"
   | "order_delay"
+  | "order_milestone"
   | "quote_expiring"
   | "quote_review"
   | "supplier_question";
@@ -172,6 +173,37 @@ function buildOrderDelayWorkflow(order: LatticeRequest, now: Date): CustomerActi
   };
 }
 
+function buildOrderMilestoneWorkflow(order: LatticeRequest): CustomerActionWorkflow | null {
+  if (
+    order.status !== "PURCHASED" ||
+    order.supplierOrder.status === "DELIVERED" ||
+    order.supplierOrder.nextMilestoneDate ||
+    order.quote.estimatedDeliveryDate
+  ) {
+    return null;
+  }
+
+  return {
+    completedSteps: 1,
+    ctaLabel: "View order",
+    detail: "Lattice is confirming the next supplier milestone and date. No action is needed from you right now.",
+    dueLabel: "Schedule confirmation pending",
+    href: `/orders/${order.id}`,
+    id: `order-milestone:${order.id}`,
+    occurredAt: order.updatedAt,
+    owner: "Lattice",
+    priority: "normal",
+    reference: orderReference(order),
+    steps: [
+      { id: "placed", label: "Order placed", state: "complete" },
+      { id: "confirm", label: "Lattice confirms schedule", state: "current" },
+      { id: "track", label: "Production tracking begins", state: "upcoming" },
+    ],
+    title: "Next milestone being confirmed",
+    type: "order_milestone",
+  };
+}
+
 function buildCustomerRequirementWorkflow(order: LatticeRequest): CustomerActionWorkflow | null {
   const documents = order.supplierOrder.documents.filter((document) => document.category !== "PHOTO");
 
@@ -216,7 +248,7 @@ export function buildCustomerActionWorkflows({
     return workflows.filter((workflow): workflow is CustomerActionWorkflow => workflow !== null);
   });
   const orderWorkflows = orders.flatMap((order) => {
-    const workflows = [buildOrderDelayWorkflow(order, now), buildCustomerRequirementWorkflow(order)];
+    const workflows = [buildOrderDelayWorkflow(order, now), buildOrderMilestoneWorkflow(order), buildCustomerRequirementWorkflow(order)];
     return workflows.filter((workflow): workflow is CustomerActionWorkflow => workflow !== null);
   });
 

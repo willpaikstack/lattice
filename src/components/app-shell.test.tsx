@@ -294,6 +294,29 @@ describe("AppShell", () => {
     expect(desktopAdminNav?.textContent).not.toContain("Overview");
   });
 
+  it("applies saved navigation order after the initial render", async () => {
+    window.localStorage.setItem(
+      "lattice:sidebar-nav-order:will@latticeos.co:customer",
+      JSON.stringify({
+        "Your Resources": ["/equipment", "/materials", "/roadmap", "/capabilities"],
+      }),
+    );
+
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    const customerNav = document.querySelector("aside nav section:nth-child(2) div");
+
+    expect(customerNav?.textContent).toMatch(/Roadmap\s*Materials\s*Capabilities\s*Equipment/);
+
+    await waitFor(() => {
+      expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Roadmap\s*Capabilities/);
+    });
+  });
+
   it("does not render the retired admin overview link on nested admin pages", () => {
     mockUsePathname.mockReturnValue("/admin/customers");
 

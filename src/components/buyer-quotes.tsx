@@ -108,11 +108,6 @@ function writeDeletedQuoteIds(ids: string[]) {
   window.localStorage.setItem(deletedQuoteStorageKey, JSON.stringify(ids));
 }
 
-function deleteStoredQuoteId(id: string) {
-  const nextIds = readDeletedQuoteIds().filter((storedId) => storedId !== id);
-  writeDeletedQuoteIds(nextIds);
-}
-
 function removeLocalIncompleteRequest(id: string) {
   if (typeof window === "undefined" || !window.localStorage?.setItem) {
     return;
@@ -220,6 +215,7 @@ function QuoteTable({
           const material = primaryLine?.material ?? "Material pending";
           const totalQuantity = quoteTotalQuantity(request);
           const quoteId = quoteReference(request);
+          const deleteLabel = request.status === "DRAFT" ? "Discard draft" : "Delete quote";
 
           return (
             <div
@@ -262,11 +258,11 @@ function QuoteTable({
               <div className="flex items-center justify-between gap-2 xl:justify-end">
                 <ChevronRight aria-hidden="true" className="h-4 w-4 text-[#a4a9b0] xl:hidden" strokeWidth={1.8} />
                 <button
-                  aria-label={`Delete quote for ${request.title}`}
+                  aria-label={`${deleteLabel} for ${request.title}`}
                   className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[#e2e2e2] bg-white text-[#8a3f3f] transition hover:border-[#d7b4b4] hover:bg-[#fff6f6] hover:text-[#7c2424] disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={pendingDeleteId === request.id}
                   onClick={() => deleteQuote(request)}
-                  title="Delete quote"
+                  title={deleteLabel}
                   type="button"
                 >
                   <Trash2 aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
@@ -327,6 +323,7 @@ function QuoteTable({
 export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
   const [localIncompleteRequests] = useState<LatticeRequest[]>(readLocalIncompleteRequests);
   const [deletedQuoteIds, setDeletedQuoteIds] = useState<string[]>(readDeletedQuoteIds);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -344,27 +341,39 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
   const activePendingDeleteId = isPending ? pendingDeleteId : null;
 
   function deleteQuote(request: LatticeRequest) {
-    const confirmed = window.confirm(`Delete "${request.title}" from quotes?`);
+    const isBrowserDraft = localIncompleteRequests.some((draft) => draft.id === request.id);
+    const confirmed = window.confirm(
+      isBrowserDraft ? `Discard draft "${request.title}"?` : `Delete "${request.title}" from quotes?`,
+    );
 
     if (!confirmed) {
       return;
     }
 
-    removeLocalIncompleteRequest(request.id);
-    setDeletedQuoteIds((currentIds) => {
-      const nextIds = Array.from(new Set([...currentIds, request.id]));
-      writeDeletedQuoteIds(nextIds);
-      return nextIds;
-    });
+    setDeleteError(null);
+
+    if (isBrowserDraft) {
+      removeLocalIncompleteRequest(request.id);
+      setDeletedQuoteIds((currentIds) => {
+        const nextIds = Array.from(new Set([...currentIds, request.id]));
+        writeDeletedQuoteIds(nextIds);
+        return nextIds;
+      });
+      return;
+    }
+
     setPendingDeleteId(request.id);
 
     startTransition(async () => {
       try {
         await deleteBuyerQuoteAction(request.id);
+        setDeletedQuoteIds((currentIds) => {
+          const nextIds = Array.from(new Set([...currentIds, request.id]));
+          writeDeletedQuoteIds(nextIds);
+          return nextIds;
+        });
       } catch {
-        deleteStoredQuoteId(request.id);
-        setDeletedQuoteIds((currentIds) => currentIds.filter((id) => id !== request.id));
-        window.alert("This quote could not be deleted. Please try again.");
+        setDeleteError("We couldn't delete this quote. It may already be removed or you may no longer have access.");
       } finally {
         setPendingDeleteId(null);
       }
@@ -387,6 +396,11 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
   return (
     <div className="space-y-5">
+      {deleteError ? (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">
+          {deleteError}
+        </p>
+      ) : null}
       <QuoteTable
         deleteQuote={deleteQuote}
         emptyMessage="No in-progress quote requests match this view."
