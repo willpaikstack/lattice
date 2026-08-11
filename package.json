@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:mock": "LATTICE_DATA_MODE=mock next dev",
+    "dev:customer": "LATTICE_DATA_MODE=customer next dev",
     "dev:local": "bash scripts/start-local-dev.sh",
     "build": "next build",
     "start": "next start",

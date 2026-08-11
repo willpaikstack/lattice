@@ -148,14 +148,14 @@ export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: 
         value: String(activeRfqs.length),
       },
       {
-        detail: `${pluralize(activeOrders, "active order")} in production flow`,
+        detail: pluralize(activeOrders, "active order"),
         href: "/orders",
         key: "orders",
         label: "Orders",
         value: String(purchasedOrders.length),
       },
       {
-        detail: `${pluralize(shippedOrders, "order")} shipped`,
+        detail: `${pluralize(shippedOrders, "order")} in transit`,
         href: "/shipped",
         key: "shipped",
         label: "Shipped",

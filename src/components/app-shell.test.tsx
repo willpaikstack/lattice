@@ -80,6 +80,58 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/dashboard");
     mockPush.mockReset();
     mockReplace.mockReset();
+    const now = new Date();
+    const twoDaysAgo = new Date(now);
+    const tenDaysAgo = new Date(now);
+    const twentyDaysAgo = new Date(now);
+    twoDaysAgo.setDate(now.getDate() - 2);
+    tenDaysAgo.setDate(now.getDate() - 10);
+    twentyDaysAgo.setDate(now.getDate() - 20);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          json: () =>
+            Promise.resolve({
+              attentionCount: 1,
+              items: [
+                {
+                  actionRequired: true,
+                  detail: "Your quote is ready to review.",
+                  href: "/quotes/req_quoted",
+                  id: "quote:req_quoted:customer_quote_1",
+                  meta: "RFQ Progress",
+                  occurredAt: twoDaysAgo.toISOString(),
+                  time: "2 Jun 2026",
+                  title: "Quote ready for review",
+                },
+                {
+                  actionRequired: false,
+                  detail: "Lattice received your RFQ and is reviewing the files.",
+                  href: "/quotes/req_last_week",
+                  id: "status-event:req_last_week:event_submitted",
+                  meta: "RFQ status",
+                  occurredAt: tenDaysAgo.toISOString(),
+                  time: "27 Jul 2026",
+                  title: "RFQ submitted",
+                },
+                {
+                  actionRequired: false,
+                  detail: "Buyer opened the RFQ workspace.",
+                  href: "/requests/new?draft=req_older",
+                  id: "status-event:req_older:event_draft",
+                  meta: "RFQ status",
+                  occurredAt: twentyDaysAgo.toISOString(),
+                  time: "17 Jul 2026",
+                  title: "Draft created",
+                },
+              ],
+              totalCount: 3,
+            }),
+          ok: true,
+        }),
+      ),
+    );
   });
 
   it("leaves the public landing page outside the app shell", () => {
@@ -92,7 +144,7 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByText("landing content")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
@@ -106,7 +158,7 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByText("login content")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Home" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
@@ -149,10 +201,11 @@ describe("AppShell", () => {
     expectAllLinksNamed("Request Quote", "/requests/new");
     expectAllLinksNamed("Quotes", "/quotes");
     expectAllLinksNamed("Orders", "/orders");
-    expectAllLinksNamed("Notifications", "/notifications");
-    expectAllLinksNamed("Roadmap", "/roadmap");
+    expect(screen.getAllByRole("button", { name: "Notifications" }).length).toBeGreaterThan(0);
+    expectAllLinksNamed("Lattice OS Roadmap", "/roadmap");
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
+    expectAllLinksNamed("Inspection & Certificates", "/quality-documentation");
     expect(screen.getAllByText("Your Resources").length).toBeGreaterThan(0);
     expect(screen.getByText("William Paik")).toBeInTheDocument();
     expect(screen.getByText("will@latticeos.co")).toBeInTheDocument();
@@ -161,6 +214,50 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the customer sidebar header while the bell swaps the content below it", async () => {
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Notifications" })[0]);
+
+    expect(screen.getAllByRole("link", { name: "Lattice home" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Request Quote" }).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("This week")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Last week").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Older").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("2d").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Search notifications" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Refresh notifications" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Priority")).not.toBeInTheDocument();
+    expect(screen.queryByText("Today")).not.toBeInTheDocument();
+    expect(screen.queryByText("1 need attention")).not.toBeInTheDocument();
+    const notificationLink = screen.getAllByRole("link", { name: /Quote ready for review/ })[0];
+    expect(notificationLink).toHaveAttribute("href", "/quotes/req_quoted");
+    expect(notificationLink).toHaveClass("border-b", "border-stone-200");
+    expect(notificationLink.querySelector("svg")).toBeNull();
+    expect(screen.getAllByRole("link", { name: "View all notifications" })[0]).toHaveAttribute("href", "/notifications");
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+
+    fireEvent.click(notificationLink);
+
+    expect(screen.getAllByText("This week").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("content"));
+
+    expect(screen.getAllByRole("link", { name: "Home" }).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Notifications" })[0]);
+    expect(screen.getAllByText("This week").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getAllByRole("link", { name: "Lattice home" })[0]);
+
+    expect(screen.getAllByRole("link", { name: "Home" }).length).toBeGreaterThan(0);
   });
 
   it("lets admin sessions return to the admin workspace from customer routes", () => {
@@ -310,10 +407,10 @@ describe("AppShell", () => {
 
     const customerNav = document.querySelector("aside nav section:nth-child(2) div");
 
-    expect(customerNav?.textContent).toMatch(/Roadmap\s*Materials\s*Capabilities\s*Equipment/);
+    expect(customerNav?.textContent).toMatch(/Lattice OS Roadmap\s*Materials\s*Capabilities\s*Equipment\s*Inspection & Certificates/);
 
     await waitFor(() => {
-      expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Roadmap\s*Capabilities/);
+      expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Lattice OS Roadmap\s*Capabilities\s*Inspection & Certificates/);
     });
   });
 
@@ -375,6 +472,33 @@ describe("AppShell", () => {
 
     expect(screen.getByRole("link", { name: "Account Settings" })).toHaveAttribute("href", "/account/settings");
     expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+  });
+
+  it("closes account actions when clicking outside the sidebar profile menu", () => {
+    render(
+      <AppShell>
+        <button type="button">Page action</button>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+    expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Page action" }));
+
+    expect(screen.queryByRole("button", { name: "Sign Out" })).not.toBeInTheDocument();
+  });
+
+  it("opens account settings when the sidebar profile card is clicked", () => {
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: /William Paik will@latticeos.co/ }));
+
+    expect(mockPush).toHaveBeenCalledWith("/account/settings");
   });
 
   it("returns to the landing page when signing out", () => {

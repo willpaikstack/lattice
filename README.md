@@ -44,6 +44,18 @@ Open:
 - Roadmap: <http://localhost:3000/roadmap>
 - Quote Submissions: <http://localhost:3000/admin/quotes>
 
+### Data modes
+
+Local development defaults to mock mode so product and UI work can use demo RFQs/orders without touching the customer-safe fallback store.
+
+```bash
+npm run dev          # defaults to mock mode in development
+npm run dev:mock     # explicit mock mode
+npm run dev:customer # customer-safe mode on the same localhost URL
+```
+
+Set `LATTICE_DATA_MODE=customer` for customer-facing deployments. Production refuses `LATTICE_DATA_MODE=mock`. Mock fallback RFQs/orders are stored under `.data/mock/requests.json`; customer-safe fallback RFQs/orders remain under `.data/requests.json`.
+
 ## Verification
 
 ```bash
@@ -85,7 +97,7 @@ The host that starts Google sign-in must match the registered callback host. The
 
 ## Real RFQ data
 
-The quote workflow is now commissioned for real submitted RFQs. Avoid seeding artificial RFQ records into the quote database or local fallback store. Use `.data/requests.json` only as the local development fallback when Prisma/Postgres is unavailable, and keep real customer/vendor CAD files out of Git.
+The quote workflow is now commissioned for real submitted RFQs. Keep artificial RFQ records out of customer mode and `.data/requests.json`. Use `LATTICE_DATA_MODE=mock` and `.data/mock/requests.json` for isolated demo/product-development records, and keep real customer/vendor CAD files out of Git.
 
 ## Shared agent context
 

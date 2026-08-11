@@ -136,10 +136,8 @@ export const qualityDocumentationOptions: RfqOption[] = [
   option("standard_inspection", "Standard Inspection", "cmm"),
   option("dimensional_inspection_report", "Dimensional Inspection Report", "dimensional_inspection_report", { requiresDrawing: true }),
   option("formal_dimensional_report", "Formal Inspection with Dimensional Report", "coc", { requiresDrawing: true }),
-  option("cmm_dimensional_report", "CMM Inspection with Dimensional Report", "fai", { requiresDrawing: true }),
+  option("cmm_dimensional_report", "CMM Inspection Report", "fai", { requiresDrawing: true }),
   option("fair_as9102", "First Article Inspection Report (FAIR AS9102)", "fat", { requiresDrawing: true }),
-  option("source_inspection", "Source Inspection", "reach_compliance_declaration"),
-  option("build_and_hold_first_article", "Build and Hold First Article Inspection", "iso_90001", { requiresDrawing: true }),
   option("custom_inspection", "Custom Inspection"),
   option("material_test_report", "Material Test Report (MTR)", "material_test_report__mtr_"),
 ];

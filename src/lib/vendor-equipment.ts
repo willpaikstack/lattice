@@ -25,6 +25,12 @@ export type EquipmentDataSheet = {
   source: string;
 };
 
+export type EquipmentCustomerGuidance = {
+  bestFor?: string;
+  limitation?: string;
+  qualificationNote?: string;
+};
+
 export type VendorEquipment = {
   slug: string;
   vendor: string;
@@ -32,14 +38,17 @@ export type VendorEquipment = {
   name: string;
   makeModel: string;
   quantity: string;
+  customerQuantityLabel?: string;
   imagePath: string;
   imageSourceUrl: string;
+  imageKind?: "actual" | "same-model" | "representative";
   summary: string;
   details: {
     label: string;
     value: string;
   }[];
   fabricatorNotes: string[];
+  customerGuidance?: EquipmentCustomerGuidance;
   dataSheets?: EquipmentDataSheet[];
   machineUrl: string;
   source: EquipmentSource;
@@ -418,11 +427,13 @@ export const vendorEquipment: VendorEquipment[] = [
   }),
   millingCard({
     slug: "jingdiao-jdgr200t",
-    name: "5-axis CNC milling machine",
+    name: "5-axis CNC machining center",
     makeModel: "Beijing Jingdiao JDGR200T",
     quantity: "1 set",
+    customerQuantityLabel: "1 machine",
     imageSourceUrl: "https://en.jingdiao.com/machines/high-speed-machining-centers/5-axis-series/jdgr200t",
     imagePath: "/equipment/jingdiao-jdgr200t.jpg",
+    imageKind: "representative",
     dataSheets: [jingdiaoDataSheets.jdgr200t],
     summary: "High-speed small-envelope 5-axis Jingdiao machine.",
     details: [
@@ -433,6 +444,12 @@ export const vendorEquipment: VendorEquipment[] = [
       { label: "Control", value: "JD50" },
     ],
     fabricatorNotes: ["High spindle speed makes this relevant for small fine-feature parts."],
+    customerGuidance: {
+      bestFor: "Fine features, multi-face geometry, and small precision components.",
+      limitation: "Small work envelope; orientation and fixturing require review.",
+      qualificationNote:
+        "Potential fit only. Final manufacturability and part tolerance are confirmed from the drawing, material, and inspection requirements.",
+    },
   }),
   millingCard({
     slug: "jingdiao-jdgr400t",

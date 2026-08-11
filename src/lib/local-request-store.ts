@@ -1,10 +1,14 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { getLatticeDataMode, isMockDataMode } from "./data-mode";
+import { getDemoRequests } from "./demo-requests";
 import type { LatticeRequest } from "./request-model";
 import { sortRequestsNewestFirst } from "./request-queue";
 
-const storePath = path.join(process.cwd(), ".data", "requests.json");
+function getStorePath() {
+  return path.join(process.cwd(), ".data", getLatticeDataMode() === "mock" ? "mock/requests.json" : "requests.json");
+}
 
 function normalizeLocalRequest(request: LatticeRequest): LatticeRequest {
   return {
@@ -49,17 +53,17 @@ function normalizeLocalRequest(request: LatticeRequest): LatticeRequest {
 
 async function readRequestsFromDisk(): Promise<LatticeRequest[]> {
   try {
-    const raw = await readFile(storePath, "utf8");
+    const raw = await readFile(getStorePath(), "utf8");
     const normalized = raw.replace(/^\uFEFF/, "").trim();
     if (!normalized) {
-      return [];
+      return isMockDataMode() ? getDemoRequests().map(normalizeLocalRequest) : [];
     }
 
     const parsed = JSON.parse(normalized);
     return Array.isArray(parsed) ? (parsed as LatticeRequest[]).map(normalizeLocalRequest) : [];
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      return [];
+      return isMockDataMode() ? getDemoRequests().map(normalizeLocalRequest) : [];
     }
 
     if (error instanceof SyntaxError && process.env.NODE_ENV === "development") {
@@ -72,6 +76,7 @@ async function readRequestsFromDisk(): Promise<LatticeRequest[]> {
 }
 
 async function writeRequestsToDisk(requests: LatticeRequest[]) {
+  const storePath = getStorePath();
   await mkdir(path.dirname(storePath), { recursive: true });
   await writeFile(storePath, `${JSON.stringify(sortRequestsNewestFirst(requests), null, 2)}\n`, "utf8");
 }

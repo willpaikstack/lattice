@@ -2,6 +2,75 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-08-10 - Present Plastics Through Functional Selection Traits
+
+Decision: the customer-facing Plastics / polymers family guide does not display mechanical-property tables. Its curated common grades instead show a compact functional-selection rail: heat tolerance, moisture response, chemical resistance, and wear / friction. The long-tail directory likewise omits mechanical-property tables and directs the buyer to confirm the exact resin data sheet during RFQ review.
+
+Reason: polymer performance varies materially with resin formulation, filler, grade, processing history, geometry, and service environment. A compact trait comparison is more useful during early material selection and avoids implying that a single typical property set is a design or procurement commitment.
+
+Implications:
+
+- Forms, machinability, applications, and selection guidance remain visible for plastics.
+- Internal source-backed mechanical-property research is retained for audit and operator use, but it is not a customer-facing comparison surface for plastics.
+- RFQ review remains the point at which the exact resin grade and data sheet are confirmed.
+
+## 2026-08-09 - Show Canonical Material Grades, Not Supplier Label Variants
+
+Decision: the customer-facing Materials catalog consolidates equivalent supplier and marketplace labels into one canonical material grade. For Aluminum, related temper variants are exposed within a single alloy offering rather than as peer rows; the selected condition governs any displayed reference properties. Other material families retain separate condition-specific rows until their offering relationships are curated.
+
+Decision: when an Aluminum offering does not carry a supplier-listed temper but a trustworthy public reference is available for a specific condition and form, show that data only as a labelled **reference condition**. It is never presented as the network's supplied condition; the RFQ, drawing, and mill certificate remain authoritative.
+
+Reason: duplicate naming makes the catalog look less credible, inflates availability counts, and creates avoidable research backlogs. Customers need an understandable set of available grades, while operators still need raw source labels for provenance.
+
+Implications:
+
+- The raw vendor and marketplace datasets remain unchanged and retain their original labels.
+- `customer-material-catalog.ts` owns explicit, auditable alias mappings used only by the customer catalog.
+- Customer-facing counts, search, and family headers derive from the normalized directory—not source-record totals or display-only common-grade lists.
+- An Aluminum offering can show its supplier-supported conditions, but condition-specific properties must remain tied to the selected condition.
+- Equivalence mappings must be explicit. Do not collapse a different temper, a dual-certified designation, or a near-equivalent grade without a documented technical basis.
+
+## 2026-08-08 - Keep Equipment Provenance Internal And Qualify Precision Claims
+
+Decision: the customer Equipment catalog presents part-fit signals, qualified precision claims, technical specifications, best-fit guidance, known limitations, technical data sheets, and an RFQ evaluation action. Supplier identity, source documents, review dates, and generic documentation-status badges remain internal admin metadata.
+
+Reason: buyers need to decide whether a machine is a plausible fit and understand what a precision value means. Recordkeeping metadata does not answer those questions and can imply independent validation when Lattice has only received or reviewed supplier information.
+
+Implications:
+
+- Customer-facing tolerance and accuracy values must state their claim basis, such as `Supplier-reported capability`, and must not guarantee final-part results.
+- Final manufacturability and achievable part tolerance are confirmed from the drawing, material, setup, fixturing, and inspection requirements during RFQ review.
+- Equipment images must distinguish representative, same-model, and actual-machine imagery when that classification is known.
+- Vendor documents, review metadata, and field-level provenance remain in internal repositories so operators can audit and improve the customer claims.
+- Equipment specifications should be rendered from known values only; missing fields must not be replaced with invented placeholders or inferred capabilities.
+
+## 2026-08-07 - Treat Standard Inspection As An Included RFQ Baseline
+
+Decision: every customer RFQ includes Standard Inspection and the buyer cannot remove it. Optional inspection/documentation choices are limited to dimensional, formal dimensional, CMM, FAIR AS9102, custom inspection, and MTR; custom inspection scope is defined in Manufacturing notes and the selector links to a plain-language documentation guide.
+
+Reason: a baseline inspection expectation should travel with every RFQ, while advanced requirements need explicit customer intent and enough context for Lattice to validate the supplier scope before quoting.
+
+Implications:
+
+- The customer selector must preserve `standard_inspection` when loading drafts and when changing optional choices.
+- Drawing-dependent options continue to require a technical drawing.
+- The app documentation must explain that CMM is a measurement method and a dimensional report is the resulting evidence.
+- For larger production lots, critical dimensions are 100% inspected; non-critical dimensional checks use an RFQ-confirmed ISO 2859-1 / ANSI-ASQ Z1.4 sampling plan.
+- Source Inspection and Build and Hold First Article Inspection are not customer-facing selector options for this workflow.
+
+## 2026-08-06 - Separate Mock Data From Customer-Safe Workspace Data
+
+Decision: runtime RFQ/order fallback data is selected by `LATTICE_DATA_MODE`, with `customer` and `mock` as the only supported modes. Customer mode hides artificial `demo_` and `fixture_` records and uses `.data/requests.json`; mock mode allows demo records and uses `.data/mock/requests.json`. Local development defaults to mock mode, while production refuses to run with mock mode enabled.
+
+Reason: Lattice needs fast product/UI iteration against rich mock scenarios without contaminating the customer workspace with demo labels, placeholder names, persistence-test notes, or ambiguous fake states.
+
+Implications:
+
+- Customer-visible deployments must set or default to `LATTICE_DATA_MODE=customer`.
+- Developers can run `npm run dev:customer` locally to inspect the pristine customer workspace on the same localhost URL.
+- Mock data should be selected at the repository/fallback-store boundary, not filtered out inside presentation components.
+- Future fixture or demo seeding should target `.data/mock/requests.json` or another explicitly mock-only data source.
+
 ## 2026-08-01 - Separate Customer Action Workflows From Notifications
 
 Decision: the customer dashboard uses a workflow-based Action Center for unresolved work, while `/notifications` remains the chronological record of customer-facing events. An event can appear in notification history and also create one grouped action workflow, but reading a notification does not resolve the workflow.
@@ -785,7 +854,7 @@ Implications:
 - Customer-facing views should avoid exposing noisy vendor provenance unless it helps the workflow.
 - Admin/operator views and repositories should preserve vendor, document title/date, received date, local source path, and extraction notes.
 - When missing values are filled from external lookup rather than a vendor document, the repository record should note that external-source dependency.
-- New vendor documents should be copied into `docs/vendor-sources/` and added to the source document registry before derived data is expanded.
+- New reusable vendor documents should be copied into a vendor-specific folder at `docs/vendor-sources/<vendor-slug>/` and added to the source document registry before derived data is expanded. The archive instructions live in `docs/vendor-sources/README.md`; RFQ- and order-specific files remain in workflow storage.
 
 ## 2026-05-29 - Separate Overseas Vendor Management From Customers
 

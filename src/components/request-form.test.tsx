@@ -205,6 +205,67 @@ describe("RequestForm", () => {
     ).toHaveAttribute("href", "/requests/new?draft=local_draft_resume");
   });
 
+  it("prompts for an optional reason before archiving a server draft", async () => {
+    const fetchMock = mockRequestFormFetch();
+    const serverDraft = makeResumeRequest({
+      id: "req_server_draft",
+      status: "DRAFT",
+      title: "Pump cover revision C",
+    });
+
+    render(<RequestForm resumeRequests={[serverDraft]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive draft for Pump cover revision C" }));
+    const dialog = screen.getByRole("dialog", { name: "Archive draft quote?" });
+
+    expect(within(dialog).getByText(/You can add a reason/)).toBeInTheDocument();
+    fireEvent.change(within(dialog).getByLabelText("Reason for archiving"), {
+      target: { value: "No longer needed." },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Archive quote" }));
+
+    await waitFor(() => expect(screen.queryByText("Pump cover revision C")).not.toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith("/api/requests/req_server_draft/archive", {
+      body: JSON.stringify({ reason: "No longer needed." }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+  });
+
+  it("archives browser-local incomplete drafts without calling the API", async () => {
+    const localDraft = makeResumeRequest({
+      id: "local_draft_archive",
+      status: "DRAFT",
+      title: "Local bracket draft",
+    });
+
+    window.localStorage.setItem(
+      "lattice.incompleteRfqs.v1",
+      JSON.stringify([
+        {
+          id: localDraft.id,
+          initialState: {
+            dueDate: "2026-06-30",
+            partName: "Bracket",
+            projectName: "Local bracket draft",
+          },
+          request: localDraft,
+          updatedAt: "2026-06-10T14:00:00.000Z",
+        },
+      ]),
+    );
+
+    render(<RequestForm />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive draft for Local bracket draft" }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive quote" }));
+
+    await waitFor(() => expect(screen.queryByText("Local bracket draft")).not.toBeInTheDocument());
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("reveals quote configuration fields after a CAD file is selected", async () => {
     mockRequestFormFetch();
 
@@ -283,8 +344,15 @@ describe("RequestForm", () => {
     expect(screen.getByRole("heading", { name: "Technical Drawing Specifications" })).toBeInTheDocument();
     expect(screen.getByLabelText("Preview of bracket-drawing.pdf")).toBeInTheDocument();
     expect(screen.getByLabelText("General Tolerance")).toHaveDisplayValue("ISO 2768 Medium (m)");
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
+    fireEvent.change(screen.getByLabelText("General Tolerance"), {
+      target: { value: "iso_2768_fine_f" },
+    });
+    expect(screen.getByLabelText("General Tolerance")).toHaveDisplayValue("ISO 2768 Fine (f)");
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("checkbox", { name: "Engineering Fits" }));
     expect(screen.getByText("For example: holes and shafts such as H7, k6")).toBeInTheDocument();
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Remove Drawing" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -322,11 +390,20 @@ describe("RequestForm", () => {
 
     await screen.findByText("Line item 1: bracket");
 
+    expect(screen.getByRole("link", { name: "Learn about quality documentation" })).toHaveAttribute(
+      "href",
+      "/quality-documentation",
+    );
+    expect(screen.queryByRole("button", { name: "Remove Standard Inspection" })).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByText("Standard Inspection"));
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("quality-documentation-trigger"));
     expect(screen.getByRole("listbox")).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Standard Inspection/ })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.queryByRole("option", { name: "Source Inspection" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Build and Hold First Article/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("option", { name: "Material Test Report (MTR)" }));
     expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue(
@@ -339,6 +416,53 @@ describe("RequestForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Remove Material Test Report (MTR)" }));
     expect(screen.getByLabelText("Quality documentation")).toHaveDisplayValue("Standard Inspection");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("explains where to define a custom inspection", async () => {
+    mockRequestFormFetch();
+
+    render(<RequestForm />);
+
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: { files: [new File(["solid"], "bracket.step", { type: "model/step" })] },
+    });
+
+    await screen.findByText("Line item 1: bracket");
+    fireEvent.click(screen.getByRole("button", { name: "Quality documentation dropdown" }));
+    fireEvent.click(screen.getByRole("option", { name: "Custom Inspection" }));
+
+    expect(screen.getByText("Describe the custom inspection in the Manufacturing notes section below.")).toBeInTheDocument();
+  });
+
+  it("closes the technical drawing review when the backdrop is clicked", async () => {
+    mockRequestFormFetch();
+
+    render(<RequestForm />);
+
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: {
+        files: [new File(["solid"], "bracket.step", { type: "model/step" })],
+      },
+    });
+
+    await screen.findByText("Line item 1: bracket");
+
+    fireEvent.change(screen.getByLabelText(/Technical drawing/), {
+      target: {
+        files: [
+          new File(["drawing"], "bracket-drawing.pdf", {
+            type: "application/pdf",
+          }),
+        ],
+      },
+    });
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+
+    fireEvent.mouseDown(dialog);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("renders a prefilled reorder draft from an existing order", () => {

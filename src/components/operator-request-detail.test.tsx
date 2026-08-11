@@ -731,18 +731,20 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getAllByText("Quote received").length).toBeGreaterThan(0);
     expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Parts and pricing" })).toBeInTheDocument();
-    expect(screen.getByTestId("quote-line-items-responsive")).not.toHaveClass("overflow-x-auto");
+    expect(screen.getByTestId("quote-line-items-responsive")).toHaveClass("overflow-x-auto");
     expect(screen.queryByRole("link", { name: "Modify quote request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit configuration" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Configure via drawing" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("Price").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Unit price").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Line total").length).toBeGreaterThan(0);
     expect(screen.getByText("$76.04/ea")).toBeInTheDocument();
-    expect(screen.getByText("Preview pending")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "mounting-bracket.step" })).toHaveAttribute(
+    expect(screen.getAllByText("Preview pending").length).toBeGreaterThan(0);
+    const fileLinks = screen.getAllByRole("link", { name: "mounting-bracket.step" });
+    expect(fileLinks[0]).toHaveAttribute(
       "href",
       "/api/local-files/rfq/request-1/mounting-bracket.step?name=mounting-bracket.step&type=model%2Fstep",
     );
-    expect(screen.getByRole("link", { name: "mounting-bracket.step" })).toHaveAttribute("download", "mounting-bracket.step");
+    expect(fileLinks[0]).toHaveAttribute("download", "mounting-bracket.step");
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Shipping address")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", "/account/settings?edit=shipping");
@@ -759,7 +761,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByRole("link", { name: "Download quote PDF" })).toHaveAttribute("href", `/quotes/${requestWithCustomerQuote.id}/quote.pdf`);
     expect(screen.getByText("Quote activity")).toBeInTheDocument();
     expect(screen.queryByText("Quote basis")).not.toBeInTheDocument();
-    expect(screen.getByText(/Standard Inspection/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Standard Inspection/).length).toBeGreaterThan(0);
     expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
     expect(screen.queryByText("Chinese shop quote")).not.toBeInTheDocument();
     expect(screen.queryByText(/internal pricing traceability/i)).not.toBeInTheDocument();

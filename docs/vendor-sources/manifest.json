@@ -5,7 +5,7 @@
     "title": "SAKY STEEL Alloy Bar/Sheet/Strip/Pipe/Flange/Wire Catalog",
     "documentDate": "unknown",
     "receivedDate": "2026-05-29",
-    "path": "docs/vendor-sources/saky-catalog.pdf",
+    "path": "docs/vendor-sources/saky-steel/saky-catalog.pdf",
     "originalFileName": "saky-catalog.pdf"
   },
   {
@@ -14,8 +14,26 @@
     "title": "Your Alloy Expert Catalog",
     "documentDate": "unknown",
     "receivedDate": "2026-05-29",
-    "path": "docs/vendor-sources/zytc-catalogue.pdf",
+    "path": "docs/vendor-sources/zytc/zytc-catalogue.pdf",
     "originalFileName": "catalogue.pdf"
+  },
+  {
+    "id": "zytc-alloy-617-brochure",
+    "vendor": "Tianjin ZYTC Alloy Technology Co., Ltd",
+    "title": "HAYNES 617 Alloy Brochure",
+    "documentDate": "2020-06-12",
+    "receivedDate": "2025-12-18",
+    "path": "docs/vendor-sources/zytc/zytc-alloy-617-brochure.pdf",
+    "originalFileName": "617-brochure.pdf"
+  },
+  {
+    "id": "zytc-alloy-625-brochure",
+    "vendor": "Tianjin ZYTC Alloy Technology Co., Ltd",
+    "title": "HAYNES 625 Alloy Brochure",
+    "documentDate": "2020-06-12",
+    "receivedDate": "2025-12-18",
+    "path": "docs/vendor-sources/zytc/zytc-alloy-625-brochure.pdf",
+    "originalFileName": "625-brochure.pdf"
   },
   {
     "id": "best-prototypes-equipment-list",
@@ -23,7 +41,7 @@
     "title": "Machine Tool Equipment, Inspection Equipment, Die Casting, and 3D Printing Equipment",
     "documentDate": "unknown",
     "receivedDate": "2026-05-29",
-    "path": "docs/vendor-sources/best-prototypes-equipment-list.pdf",
+    "path": "docs/vendor-sources/best-prototypes/best-prototypes-equipment-list.pdf",
     "originalFileName": "best_prototypes_equipment_list.pdf"
   },
   {
@@ -32,7 +50,7 @@
     "title": "ZTL's General Materials List (Ongoing update 250613)",
     "documentDate": "2025-06-13",
     "receivedDate": "2026-05-29",
-    "path": "docs/vendor-sources/zintilon-general-materials-list-20250613.xlsx",
+    "path": "docs/vendor-sources/zintilon/zintilon-general-materials-list-20250613.xlsx",
     "originalFileName": "Zintilons_General_Materials_List_(Ongoing_update250613).xlsx"
   },
   {
@@ -41,7 +59,115 @@
     "title": "Zintilon QC Equipment List & 2026 Calibration Plan",
     "documentDate": "2026-01-23",
     "receivedDate": "2026-05-29",
-    "path": "docs/vendor-sources/zintilon-qc-equipment-list-20260123.pdf",
+    "path": "docs/vendor-sources/zintilon/zintilon-qc-equipment-list-20260123.pdf",
     "originalFileName": "Zintilon_QC_Equipment_List_-_E_20260123.pdf"
+  },
+  {
+    "id": "zintilon-processing-equipment-statistics",
+    "vendor": "Zintilon",
+    "title": "Zintilon CNC Milling Machine and Lathe Machine Statistics Table",
+    "documentDate": "2025-08-12",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/zintilon/zintilon-processing-equipment-list-20250812.pdf",
+    "originalFileName": "2. Zintilon Processing Equipment List 20250812.pdf"
+  },
+  {
+    "id": "zintilon-qc-equipment-list-20250612",
+    "vendor": "Zintilon",
+    "title": "Zintilon QC Equipment List",
+    "documentDate": "2025-06-12",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/zintilon/zintilon-qc-equipment-list-20250612.pdf",
+    "originalFileName": "3. Zintilon QC Equipment List 20250612.pdf"
+  },
+  {
+    "id": "zintilon-sheet-metal-processing-capability",
+    "vendor": "Zintilon",
+    "title": "Zintilon Sheet Metal Processing Capability",
+    "documentDate": "2024-11-15",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/zintilon/zintilon-sheet-metal-processing-capability-20241115.pdf",
+    "originalFileName": "4. Zintilon Sheet Metal Processing Capability 20241115.pdf"
+  },
+  {
+    "id": "zintilon-certificates-20250108",
+    "vendor": "Zintilon",
+    "title": "Zintilon Certificates",
+    "documentDate": "2025-01-08",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/zintilon/zintilon-certificates-20250108.rar",
+    "originalFileName": "5. Zintilon Certificates 2025.1.8.rar"
+  },
+  {
+    "id": "zintilon-profile-20250815-meeting",
+    "vendor": "Zintilon",
+    "title": "Zintilon Profile — August 15, 2025 Meeting",
+    "documentDate": "2025-08-15",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/zintilon/zintilon-profile-20250815-meeting.pdf",
+    "originalFileName": "1. Zintilon Profile 20250815 Meeting.pdf"
+  },
+  {
+    "id": "yijin-iso-9001",
+    "vendor": "Shenzhen Yijin Hardware Co., Ltd. (Yijin Solution)",
+    "title": "Yijin ISO 9001 Certificate",
+    "documentDate": "unknown",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/yijin-solution/yijin-iso-9001.pdf",
+    "originalFileName": "ISO9001.pdf"
+  },
+  {
+    "id": "yijin-iso-14001",
+    "vendor": "Shenzhen Yijin Hardware Co., Ltd. (Yijin Solution)",
+    "title": "Yijin ISO 14001 Certificate",
+    "documentDate": "unknown",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/yijin-solution/yijin-iso-14001.pdf",
+    "originalFileName": "ISO14001.pdf"
+  },
+  {
+    "id": "yijin-equipment-list",
+    "vendor": "Shenzhen Yijin Hardware Co., Ltd. (Yijin Solution)",
+    "title": "Yijin Equipment List",
+    "documentDate": "unknown",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/yijin-solution/yijin-equipment-list.pdf",
+    "originalFileName": "Equipment list.pdf"
+  },
+  {
+    "id": "best-parts-equipment-list",
+    "vendor": "Best Parts",
+    "title": "Best Parts Equipment List",
+    "documentDate": "unknown",
+    "receivedDate": "2026-07-22",
+    "path": "docs/vendor-sources/best-parts/best-parts-equipment-list.pdf",
+    "originalFileName": "BST equipment list.pdf"
+  },
+  {
+    "id": "best-parts-inspection-equipment-list",
+    "vendor": "Best Parts",
+    "title": "Best Parts Inspection Equipment List",
+    "documentDate": "unknown",
+    "receivedDate": "2026-07-22",
+    "path": "docs/vendor-sources/best-parts/best-parts-inspection-equipment-list.pdf",
+    "originalFileName": "BST Inspection equipment list.pdf"
+  },
+  {
+    "id": "best-parts-machinable-materials",
+    "vendor": "Best Parts",
+    "title": "Best Parts Machinable Materials",
+    "documentDate": "unknown",
+    "receivedDate": "2026-07-22",
+    "path": "docs/vendor-sources/best-parts/best-parts-machinable-materials.png",
+    "originalFileName": "Machinable materials.png"
+  },
+  {
+    "id": "jucheng-traceability-control-procedure",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Jucheng Identification and Traceability Control Procedure",
+    "documentDate": "unknown",
+    "receivedDate": "2025-08-25",
+    "path": "docs/vendor-sources/jucheng-precision/jucheng-traceability-control-procedure.doc",
+    "originalFileName": "JC-QP-16标识与可追溯性控制程序.doc"
   }
 ]

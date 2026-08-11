@@ -1,5 +1,6 @@
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
+import { isMockDataMode } from "./data-mode";
 import type {
   CustomerQuoteLineItemSnapshot,
   DraftRequestInput,
@@ -63,13 +64,17 @@ function realRequestsOnly<T extends { id: string }>(requests: T[]) {
   return requests.filter((request) => !isArtificialRequestId(request.id));
 }
 
+function requestsForDataMode<T extends { id: string }>(requests: T[]) {
+  return isMockDataMode() ? requests : realRequestsOnly(requests);
+}
+
 async function includeLocalDevelopmentRequests(requests: LatticeRequest[]) {
   if (process.env.NODE_ENV !== "development") {
     return requests;
   }
 
   const seen = new Set(requests.map((request) => request.id));
-  const localOnly = realRequestsOnly(await listLocalRequests()).filter((request) => !seen.has(request.id));
+  const localOnly = requestsForDataMode(await listLocalRequests()).filter((request) => !seen.has(request.id));
 
   return sortRequestsNewestFirst([...requests, ...localOnly]);
 }
@@ -219,9 +224,9 @@ export async function listOperatorRequests() {
         },
       });
 
-      return getOperatorQueueRequests(await includeLocalDevelopmentRequests(realRequestsOnly(storedRequests).map(mapStoredRequest)));
+      return getOperatorQueueRequests(await includeLocalDevelopmentRequests(requestsForDataMode(storedRequests).map(mapStoredRequest)));
     },
-    async () => getOperatorQueueRequests(sortRequestsNewestFirst(await listLocalRequests())),
+    async () => getOperatorQueueRequests(sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests()))),
   );
 }
 
@@ -236,14 +241,14 @@ export async function listAdminRequests() {
         },
       });
 
-      return includeLocalDevelopmentRequests(realRequestsOnly(storedRequests).map(mapStoredRequest));
+      return includeLocalDevelopmentRequests(requestsForDataMode(storedRequests).map(mapStoredRequest));
     },
-    async () => sortRequestsNewestFirst(await listLocalRequests()),
+    async () => sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests())),
   );
 }
 
 export async function getRequestById(id: string) {
-  if (isArtificialRequestId(id)) {
+  if (isArtificialRequestId(id) && !isMockDataMode()) {
     return null;
   }
 
@@ -282,12 +287,12 @@ export async function listBuyerQuotes() {
         },
       });
 
-      const requests = await includeLocalDevelopmentRequests(realRequestsOnly(storedRequests).map(mapStoredRequest));
-      return requests.filter((request) => request.status !== "PURCHASED");
+      const requests = await includeLocalDevelopmentRequests(requestsForDataMode(storedRequests).map(mapStoredRequest));
+      return requests.filter((request) => request.status !== "PURCHASED" && !request.isArchived);
     },
     async () =>
       sortRequestsNewestFirst(
-        (await listLocalRequests()).filter((request) => request.status !== "PURCHASED"),
+        requestsForDataMode(await listLocalRequests()).filter((request) => request.status !== "PURCHASED" && !request.isArchived),
       ),
   );
 }
@@ -1110,9 +1115,9 @@ export async function listBuyerOrders() {
         },
       });
 
-      return realRequestsOnly(storedRequests).map(mapStoredRequest);
+      return requestsForDataMode(storedRequests).map(mapStoredRequest);
     },
-    async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
+    async () => sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
   );
 }
 
@@ -1131,9 +1136,9 @@ export async function listAdminOrders() {
         },
       });
 
-      return realRequestsOnly(storedRequests).map(mapStoredRequest);
+      return requestsForDataMode(storedRequests).map(mapStoredRequest);
     },
-    async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED" && !request.isArchived)),
+    async () => sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests()).filter((request) => request.status === "PURCHASED" && !request.isArchived)),
   );
 }
 
@@ -1173,6 +1178,54 @@ export async function archiveOrder(requestId: string) {
   }
 }
 
+export async function archiveDraftRequest(requestId: string, reason = "") {
+  const current = await getRequestById(requestId);
+
+  if (!current) {
+    throw new Error("Draft request not found");
+  }
+
+  if (current.status !== "DRAFT") {
+    throw new Error("Only draft requests can be archived");
+  }
+
+  const note = reason.trim();
+  const internalNotes = note
+    ? [current.operatorReview.internalNotes.trim(), `Archived draft reason: ${note}`]
+        .filter(Boolean)
+        .join("\n\n")
+    : current.operatorReview.internalNotes;
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: requestId },
+      data: {
+        internalNotes,
+        isArchived: true,
+      },
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma draft archive is unavailable; archiving draft locally.", error);
+      return saveLocalRequest({
+        ...current,
+        isArchived: true,
+        operatorReview: {
+          ...current.operatorReview,
+          internalNotes,
+        },
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    throw error;
+  }
+}
+
 export async function listSupplierOrders() {
   return withDemoFallback(
     async () => {
@@ -1192,9 +1245,9 @@ export async function listSupplierOrders() {
         ],
       });
 
-      return realRequestsOnly(storedRequests).map(mapStoredRequest);
+      return requestsForDataMode(storedRequests).map(mapStoredRequest);
     },
-    async () => sortRequestsNewestFirst((await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
+    async () => sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests()).filter((request) => request.status === "PURCHASED")),
   );
 }
 

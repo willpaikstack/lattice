@@ -116,7 +116,9 @@ describe("customer dashboard summary", () => {
 
     expect(metrics.activeRfqs.value).toBe("4");
     expect(metrics.orders.value).toBe("2");
+    expect(metrics.orders.detail).toBe("2 active orders");
     expect(metrics.shipped.value).toBe("1");
+    expect(metrics.shipped.detail).toBe("1 order in transit");
     expect(metrics.actions.value).toBe("4");
   });
 

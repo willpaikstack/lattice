@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileText, ListFilter, Search, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ListFilter, Search } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -143,34 +144,81 @@ function getMaxEnvelope(equipment: VendorEquipment) {
   return dimensions.length > 0 ? Math.max(...dimensions) : 0;
 }
 
-function getDetailValue(equipment: VendorEquipment, pattern: RegExp) {
-  return equipment.details.find((detail) => pattern.test(detail.label))?.value;
+type CompactEquipmentSpec = {
+  label: string;
+  value: string;
+};
+
+function customerFacingSpecValue(label: string, value: string) {
+  const normalized = value
+    .replace(/\+\/-/g, "±")
+    .replace(/Dia\.\s*/gi, "Ø")
+    .replace(/\s+x\s+/gi, " × ");
+
+  if (/rpm/i.test(label) && !/rpm/i.test(normalized)) {
+    return `${normalized} RPM`;
+  }
+
+  return normalized;
 }
 
-function getCollapsedMetrics(equipment: VendorEquipment) {
-  const tolerance = getDetailValue(equipment, /tolerance|accuracy/i);
-  const envelope = getDetailValue(equipment, /5-axis envelope/i) ?? getDetailValue(equipment, /envelope|range|processing|turning/i);
+function getAxisCount(equipment: VendorEquipment) {
+  const match = `${equipment.name} ${equipment.summary}`.match(/\b([345])-axis\b/i);
 
-  return [
-    tolerance ? { label: "Tol", value: tolerance } : null,
-    envelope ? { label: "Env", value: `${envelope.split(" ").slice(0, 3).join(" ")}...` } : null,
-  ].filter((metric): metric is { label: string; value: string } => Boolean(metric));
+  return match ? `${match[1]} axes` : undefined;
 }
 
-function getExpandedSpecs(equipment: VendorEquipment) {
-  const tolerance = getDetailValue(equipment, /tolerance|accuracy/i);
-  const envelope = getDetailValue(equipment, /5-axis envelope/i) ?? getDetailValue(equipment, /envelope|range|processing|turning/i);
-  const rpm = getDetailValue(equipment, /rpm/i);
-  const control = getDetailValue(equipment, /control/i);
-  const power = getDetailValue(equipment, /power/i);
+function getCompactSpecs(equipment: VendorEquipment) {
+  const specs: CompactEquipmentSpec[] = [];
+  const seen = new Set<string>();
+  const addDetail = (pattern: RegExp, label: string) => {
+    const detail = equipment.details.find((candidate) => pattern.test(candidate.label));
 
-  return [
-    tolerance ? { label: "Best Tolerance", value: tolerance } : null,
-    envelope ? { label: "Work Envelope", value: envelope } : null,
-    rpm ? { label: "Max RPM", value: rpm } : null,
-    control ? { label: "Control", value: control } : null,
-    !control && power ? { label: "Power", value: power } : null,
-  ].filter((spec): spec is { label: string; value: string } => Boolean(spec)).slice(0, 4);
+    if (!detail || seen.has(detail.label)) return;
+    specs.push({ label, value: customerFacingSpecValue(detail.label, detail.value) });
+    seen.add(detail.label);
+  };
+
+  addDetail(/tolerance/i, "Supplier-reported capability");
+  addDetail(/accuracy/i, "Supplier-reported accuracy");
+  addDetail(/5-axis envelope/i, "5-axis envelope");
+  addDetail(/3-axis envelope/i, "3-axis envelope");
+
+  if (!specs.some((spec) => /envelope/i.test(spec.label))) {
+    addDetail(/envelope|range|processing|turning/i, "Work envelope");
+  }
+
+  const axisCount = getAxisCount(equipment);
+  if (axisCount) specs.push({ label: "Axis count", value: axisCount });
+
+  addDetail(/rpm/i, "Max spindle speed");
+  addDetail(/control/i, "Control");
+  addDetail(/power/i, "Power");
+
+  for (const detail of equipment.details) {
+    if (specs.length >= 6) break;
+    if (seen.has(detail.label)) continue;
+    specs.push({ label: detail.label, value: customerFacingSpecValue(detail.label, detail.value) });
+    seen.add(detail.label);
+  }
+
+  return specs.slice(0, 6);
+}
+
+function getCustomerGuidance(equipment: VendorEquipment) {
+  return {
+    bestFor: equipment.customerGuidance?.bestFor ?? equipment.fabricatorNotes[0] ?? equipment.summary,
+    limitation: equipment.customerGuidance?.limitation ?? "Additional machine limits are confirmed during RFQ review.",
+    qualificationNote:
+      equipment.customerGuidance?.qualificationNote ??
+      "Potential fit only. Final manufacturability and part tolerance are confirmed from the drawing, material, and inspection requirements.",
+  };
+}
+
+function getImageLabel(equipment: VendorEquipment) {
+  if (equipment.imageKind === "actual") return "Actual machine image";
+  if (equipment.imageKind === "same-model") return "Same-model image";
+  return "Representative image";
 }
 
 function sortEquipment(equipment: VendorEquipment[], sort: SortOption) {
@@ -282,176 +330,101 @@ function EquipmentSectionNav({
 function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolean; equipment: VendorEquipment }) {
   const [isExpanded, setIsExpanded] = useState(defaultOpen);
   const panelId = `${equipment.slug}-details`;
-  const collapsedMetrics = getCollapsedMetrics(equipment);
-  const expandedSpecs = getExpandedSpecs(equipment);
+  const compactSpecs = getCompactSpecs(equipment);
+  const guidance = getCustomerGuidance(equipment);
+  const imageLabel = getImageLabel(equipment);
+  const primaryDataSheet = equipment.dataSheets?.[0];
 
   return (
-    <div className={`mb-4 overflow-hidden rounded-xl border bg-white transition-all duration-200 ${isExpanded ? "border-stone-300 shadow-md ring-1 ring-stone-900/5" : "border-stone-200 shadow-sm hover:border-stone-300 hover:shadow-md"}`}>
-      <div
-        className="group relative flex cursor-pointer select-none flex-col p-4 sm:flex-row sm:items-center sm:p-5"
-        onClick={() => setIsExpanded(!isExpanded)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setIsExpanded((current) => !current);
-          }
-        }}
-        role="button"
-        tabIndex={0}
+    <article className={`mb-4 overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 ${isExpanded ? "border-stone-300 shadow-sm" : "border-stone-200 shadow-sm hover:border-stone-300"}`}>
+      <button
+        aria-controls={panelId}
+        aria-expanded={isExpanded}
+        aria-label={`${isExpanded ? "Hide" : "View"} ${equipment.makeModel} details`}
+        className="group grid w-full select-none grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 text-left outline-none transition-colors hover:bg-stone-50/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stone-900/20 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-6 sm:px-5"
+        onClick={() => setIsExpanded((current) => !current)}
+        type="button"
       >
-        <div className="absolute bottom-0 left-0 top-0 w-1 bg-transparent transition-colors group-hover:bg-stone-200" />
-        {isExpanded && <div className="absolute bottom-0 left-0 top-0 w-1 bg-stone-900 transition-colors" />}
-
-        <div className="mb-4 flex w-full shrink-0 items-center gap-3 pr-4 sm:mb-0 sm:w-auto">
-          <button
-            aria-controls={panelId}
-            aria-expanded={isExpanded}
-            aria-label={`${isExpanded ? "Hide" : "View"} ${equipment.makeModel} details`}
-            className="flex h-6 w-6 flex-shrink-0 items-center justify-center text-stone-400 transition-colors group-hover:text-stone-900"
-            onClick={(event) => {
-              event.stopPropagation();
-              setIsExpanded((current) => !current);
-            }}
-            type="button"
-          >
-            {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-          </button>
-          <div className="flex flex-col">
-            <div className="mb-1 flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-stone-400">{equipment.section}</span>
-            </div>
-            <h3 className="text-lg font-bold leading-none tracking-tight text-stone-900">{equipment.makeModel}</h3>
-            <p className="mt-1.5 text-sm font-medium text-stone-500">{equipment.name}</p>
-          </div>
+        <div className="relative flex h-[76px] items-center justify-center overflow-hidden rounded-lg border border-stone-200 bg-white sm:h-[96px]">
+          <Image
+            alt=""
+            className="h-full w-full object-contain px-1.5 pb-5 pt-1.5"
+            height={240}
+            sizes="(max-width: 640px) 96px, 128px"
+            src={equipment.imagePath}
+            width={320}
+          />
+          <span className="absolute inset-x-0 bottom-0 truncate border-t border-stone-200 bg-white/95 px-1.5 py-1 text-center text-[9px] font-medium text-stone-500 sm:text-[10px]">
+            {imageLabel}
+          </span>
         </div>
 
-        <div className="ml-4 hidden min-w-0 flex-1 flex-col items-start justify-between gap-4 sm:flex sm:flex-row sm:items-center">
-          <div className="min-w-0 flex-1 pr-4">
-            <p className="truncate text-sm text-stone-600">{equipment.summary}</p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="rounded-md border border-stone-200/60 bg-stone-100 px-3 py-1">
-              <span className="text-xs font-bold text-stone-900">{equipment.quantity}</span>
-            </div>
-            {!isExpanded && collapsedMetrics.length > 0 && (
-              <div className="flex gap-2">
-                {collapsedMetrics.map((metric) => (
-                  <MetricBadge key={`${equipment.slug}-${metric.label}`} label={metric.label} value={metric.value} />
-                ))}
-              </div>
-            )}
-          </div>
+        <div className="min-w-0">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">{equipment.section}</span>
+          <h3 className="mt-1 truncate text-[19px] font-semibold leading-tight tracking-tight text-stone-950 sm:text-[26px]">{equipment.makeModel}</h3>
+          <p className="mt-1 truncate text-[13px] text-stone-500 sm:text-[15px]">{equipment.name}</p>
         </div>
-      </div>
+
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="hidden min-h-9 items-center rounded-md border border-stone-200 px-3 text-[13px] font-medium text-stone-700 sm:inline-flex">
+            {equipment.customerQuantityLabel ?? equipment.quantity}
+          </span>
+          <ChevronDown className={`text-stone-700 transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} strokeWidth={1.8} />
+        </div>
+      </button>
 
       {isExpanded && (
-        <div className="animate-in fade-in slide-in-from-top-4 border-t border-stone-100 bg-stone-50/50 p-5 duration-300 sm:p-6" id={panelId}>
-          <div className="flex flex-col gap-8 lg:flex-row">
-            <div className="flex w-full shrink-0 flex-col gap-3 lg:w-72">
-              <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-stone-200 bg-white">
-                <Image alt={equipment.makeModel} className="h-full w-full object-cover" height={760} src={equipment.imagePath} width={1200} />
-                <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded border border-stone-200/50 bg-white/90 px-2 py-1 shadow-sm backdrop-blur-sm">
-                  <ShieldCheck size={12} className="text-emerald-600" />
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-stone-800">Verified Machine</span>
+        <div className="border-t border-stone-200" id={panelId} role="region" aria-label={`${equipment.makeModel} qualification details`}>
+          {compactSpecs.length > 0 && (
+            <dl className="grid grid-cols-2 border-b border-stone-200 sm:grid-cols-3 xl:grid-cols-6">
+              {compactSpecs.map((spec, index) => (
+                <div
+                  className={`min-w-0 px-4 py-3.5 sm:px-5 ${index % 2 !== 0 ? "border-l border-stone-200" : ""} ${index >= 2 ? "border-t border-stone-200 sm:border-t-0" : ""} sm:[&:not(:nth-child(3n+1))]:border-l sm:[&:nth-child(3n+1)]:border-l-0 xl:border-t-0 xl:[&:not(:first-child)]:border-l xl:[&:first-child]:border-l-0`}
+                  key={`${equipment.slug}-${spec.label}`}
+                >
+                  <dt className="text-[12px] font-medium leading-4 text-stone-500">{spec.label}</dt>
+                  <dd className="mt-1 break-words text-[15px] font-semibold leading-5 text-stone-950">{spec.value}</dd>
                 </div>
+              ))}
+            </dl>
+          )}
+
+          <dl className="grid border-b border-stone-200 lg:grid-cols-3">
+            {[
+              { label: "Best for", value: guidance.bestFor },
+              { label: "Limitation", value: guidance.limitation },
+              { label: "Qualification note", value: guidance.qualificationNote },
+            ].map((item, index) => (
+              <div className={`px-4 py-3.5 sm:px-5 ${index > 0 ? "border-t border-stone-200 lg:border-l lg:border-t-0" : ""}`} key={`${equipment.slug}-${item.label}`}>
+                <dt className="text-[12px] font-medium leading-4 text-stone-500">{item.label}</dt>
+                <dd className="mt-1 text-[13px] leading-[1.45] text-stone-800">{item.value}</dd>
               </div>
+            ))}
+          </dl>
+
+          <div className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            {primaryDataSheet ? (
               <a
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white py-2 text-sm font-medium text-stone-700 shadow-sm transition-colors hover:bg-stone-50 hover:text-stone-900"
-                href={equipment.imageSourceUrl}
+                className="w-fit text-[13px] font-medium text-blue-700 underline-offset-4 transition-colors hover:text-blue-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700/30"
+                href={primaryDataSheet.url}
                 rel="noreferrer"
                 target="_blank"
               >
-                <ExternalLink size={14} />
-                View machine on manufacturer site
+                View technical data sheet
               </a>
-            </div>
-
-            <div className="flex min-w-0 flex-1 flex-col gap-6">
-              {expandedSpecs.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  {expandedSpecs.map((detail) => (
-                    <DetailBox key={`${equipment.slug}-${detail.label}`} label={detail.label} value={detail.value} />
-                  ))}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-6 border-t border-stone-200/60 pt-2 md:grid-cols-2">
-                {equipment.fabricatorNotes.length > 0 && (
-                  <div>
-                    <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Fabricator Note</h4>
-                    <div className="relative overflow-hidden rounded-lg border border-stone-200 bg-white p-3 text-sm leading-relaxed text-stone-700 shadow-sm">
-                      <div className="absolute left-0 top-0 h-full w-1 rounded-l-lg bg-blue-500" />
-                      <ul className="space-y-2">
-                        {equipment.fabricatorNotes.map((note) => (
-                          <li key={note}>{note}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-4">
-                  {equipment.dataSheets && equipment.dataSheets.length > 0 && (
-                    <div>
-                      <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Supplier Data Sheet</h4>
-                      <div className="grid gap-2">
-                        {equipment.dataSheets.map((dataSheet) => (
-                          <a
-                            className="group flex items-center gap-2 rounded-lg border border-stone-200 bg-white p-3 shadow-sm transition-colors hover:border-stone-300 hover:bg-stone-50"
-                            href={dataSheet.url}
-                            key={`${equipment.slug}-${dataSheet.url}`}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            <div className="flex h-8 w-8 items-center justify-center rounded bg-stone-100 text-stone-500 transition-colors group-hover:text-stone-900">
-                              <FileText size={16} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-stone-800">{dataSheet.label}</p>
-                              <p className="mt-0.5 text-xs uppercase tracking-wider text-stone-500">PDF Document</p>
-                            </div>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-stone-400">Source / Provenance</h4>
-                    <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-white p-3 shadow-sm">
-                      <CheckCircle2 size={16} className="text-stone-400" />
-                      <div className="flex min-w-0 flex-1 items-center justify-between">
-                        <span className="truncate text-sm font-medium text-stone-800">{equipment.source.vendor}</span>
-                        <span className="shrink-0 text-xs text-stone-500">{equipment.source.documentDate}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            ) : (
+              <span aria-hidden="true" />
+            )}
+            <Link
+              className="inline-flex min-h-10 items-center justify-center rounded-md bg-stone-950 px-5 text-[13px] font-semibold text-white transition-colors hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/30 focus-visible:ring-offset-2"
+              href="/requests/new"
+            >
+              Evaluate my part
+            </Link>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function MetricBadge({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col justify-center rounded-md border border-stone-200/80 bg-stone-50 px-2.5 py-1">
-      <span className="mb-0.5 text-[9px] font-bold uppercase leading-none tracking-widest text-stone-400">{label}</span>
-      <span className="max-w-[80px] truncate text-xs font-medium leading-none text-stone-800">{value}</span>
-    </div>
-  );
-}
-
-function DetailBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col justify-center rounded-lg border border-stone-200 bg-white p-3 shadow-sm">
-      <span className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-stone-400">{label}</span>
-      <span className="break-words text-sm font-semibold leading-snug text-stone-900">{value}</span>
-    </div>
+    </article>
   );
 }
 

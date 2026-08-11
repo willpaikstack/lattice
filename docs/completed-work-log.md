@@ -13,6 +13,88 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Verification: command or smoke test run, if applicable.
 ```
 
+## 2026-08-08
+
+- Populated the Stainless steel long-tail directory with researched machining profiles: free-machining grades show Good, conventional austenitic/martensitic/PH and specialty grades show Fair, and duplex grades show Difficult. Supporting references are retained from Carpenter Technology and Outokumpu machining literature; condition-sensitive selection guidance is included in expanded rows.
+- Replaced the non-Aluminum long-tail directory's unsupported `Review` machinability placeholder with an explicit blank state while source-backed per-grade research and coverage tracking are built out.
+- Standardized all material-family long-tail catalogs on the Aluminum directory template: shared collapsible group cards, grade rows, expanded selection detail, and condition/availability language now replace the old grade-chip layouts.
+- Restyled the material-family RFQ action as a subdued outlined link with a directional arrow, retaining the direct Request Quote path without competing with the material content.
+- Removed the Aluminum long-tail search and filter controls, leaving a simpler collapsible series directory beneath the Common grades reference layer.
+- Reduced the visual weight of Common-grade property data: the five values now sit in a light, unboxed reference strip with a small source link and condition note, keeping material selection guidance primary.
+- Verification: focused Materials detail/view-model tests, typecheck, lint, diff validation, and desktop browser overflow review passed.
+
+## 2026-08-07
+
+- Added source-linked, condition-specific reference-property strips to every curated Common grade across the twelve material-family guides. Each shows yield, tensile, elongation, hardness, and density and is explicitly framed as typical room-temperature reference data—not design allowables or certification.
+- Replaced the Aluminum long-tail directory's generic designation/temper subtitle with a mapped UNS alloy number (for example, `UNS A96060`); records without a verified mapping are now explicitly marked pending verification.
+- Replaced the Aluminum long-tail grade-chip catalog with the selected searchable series directory: working series/form/temper/machinability filters, collapsible series cards, compact grade rows, and a nested expanded-grade selection subcard.
+- Added a Xometry-inspired five-column mechanical-properties table to the expanded subcard, removed the comparison and grade-level RFQ actions, and limited published values to exact checked grade/temper references with a not-for-design caveat and an explicit unverified state.
+- Verification: focused directory/detail tests, typecheck, lint, desktop browser review, removal checks for both retired actions, and 390 x 844 responsive/table-overflow QA passed.
+- Extended the Aluminum family-guide art direction to Stainless steel, Mild steel, Brass, Titanium, and Inconel/Incoloy with 25 purpose-generated images: one raw-stock/CNC hero and four application-specific common-grade photographs per family.
+- Replaced generic featured-grade content for those five guides with family-specific UNS identifiers, forms, use cases, machinability guidance, and selection notes while retaining RFQ confirmation language for availability.
+- Verification: six focused view-model/detail-page tests, typecheck, lint, five-family desktop browser capture, mobile Stainless steel QA, and runtime console review passed.
+
+- Built the selected Option 1 material-family workflow: removed the card-level `View grades` action, made every family card navigate as one target, and added reusable `/materials/[slug]` guides with a hero, common-grade comparison, complete grouped catalog, and RFQ actions.
+- Art-directed the Aluminum guide with five purpose-generated raw-stock and CNC-part images for the family hero and the 6061-T6, 7075-T6, 5052-H32, and 2024-T3 profiles.
+- Verification: focused Materials tests, typecheck, lint, exact-viewport source comparison, card navigation, all-grades anchor behavior, and 390 x 844 responsive browser QA pass.
+
+- Rebuilt `/materials` as the selected family-first material atlas: a responsive three-column card grid with exact unique grade counts, curated grade examples, generated material swatches, grade/family search, dedicated family guides, and direct listed/unlisted RFQ actions. Refined the desktop breakpoint, card density, and swatch width so every material card retains the original design's slim vertical side ribbon at the annotated viewport. Regenerated and pre-cropped the ribbon assets with stronger material-specific grain so horizontal brushing, diagonal machining, crosshatch, raw nickel-alloy mill grain, crystalline metal, and polymer facets survive browser downsampling.
+- Replaced the Inconel/Incoloy ribbon's woven pattern with a solid raw nickel-alloy mill finish—longitudinal machining lines, subtle mottling, and no perforated-sheet appearance.
+- Verification: focused materials-page tests, `npm run typecheck`, `npm run lint`, `git diff --check`, and Codex in-app browser design QA at 1536 x 1024 and 390 x 844 passed.
+- Archived the original HAYNES 617 and HAYNES 625 alloy brochures received from Dominic at ZYTC, with provenance in the vendor-source registry and manifest. The files are material-reference evidence and are not treated as a current stock or availability commitment.
+- Reorganized `docs/vendor-sources/` into vendor-specific subfolders and added archive instructions covering reusable-reference eligibility, naming, manifest/registry updates, source links, and validation. Verification: every manifest path resolves after the move.
+- Archived reusable vendor reference documents from Outlook in `docs/vendor-sources/` and registered their provenance: Yijin equipment and ISO certificates, Best Parts equipment/inspection/material references, Jucheng's traceability procedure, and the Zintilon factory-profile package.
+- Replaced the two Zintilon `not-yet-archived` source placeholders with their original processing-equipment and sheet-metal capability PDFs. Order-specific supplier quotes and inspection reports remain in workflow storage rather than the reference archive.
+- Added `Inspection & Certificates` to the customer sidebar's `Your Resources` section, linking directly to the quality documentation guide with an inspection-document icon.
+- Verification: `npm run typecheck` and `git diff --check` passed.
+- Expanded the quality-documentation guide with output, method, and sampling detail: dimensional reports now explain the critical-dimension table and 100%/sampled inspection policy; CMM Inspection Report now references ZEISS CONTURA and ACCURA capacity; FAIR AS9102 and Custom Inspection now describe their respective methodologies and customer-defined scope.
+- Renamed the customer-facing RFQ option from `CMM Inspection with Dimensional Report` to `CMM Inspection Report` to distinguish it cleanly from the standard dimensional-report choice.
+- Redesigned `/quality-documentation` as a single, Notion-inspired documentation page with a restrained title block, inline reading flow, subtle section dividers, and a desktop contents rail; retained Lattice typography and color tokens.
+- Updated the RFQ inspection/documentation selector: Standard Inspection is always included, source inspection and build-and-hold first article were removed, Custom Inspection now points buyers to Manufacturing notes, and a subtle info link opens the new `/quality-documentation` definitions page.
+- Added plain-language definitions for dimensional reports, CMM inspection, FAIR AS9102, custom inspection, and MTRs in the app and the existing Notion Request Quote guide, including the distinction between a CMM method and a dimensional-report deliverable.
+- Verification: 23 request-form tests passed and `npm run typecheck` passed.
+- Added backdrop dismissal to the `/requests/new` technical-drawing review modal. Clicking the dimmed area now follows the same close-and-validate path as Done, while clicks inside the PDF/specification panel leave it open.
+- Added focused regression coverage and verified both inside-click and backdrop-click behavior in the live request form. Verification: all 22 request-form tests, `npm run typecheck`, targeted lint, and `git diff --check` passed.
+- Fixed the `/requests/new` technical-drawing modal so changing the general tolerance or drawing-required checkboxes no longer recreates the attached PDF's browser object URL and flashes/reloads the embedded viewer.
+- Added regression coverage that holds the PDF preview URL stable through both tolerance and checkbox updates.
+- Verification: focused request-form tests, `npm run typecheck`, targeted lint, and `git diff --check` passed; live in-app browser testing confirmed the PDF retained the same `blob:` URL while the selected tolerance and Engineering Fits state changed.
+
+## 2026-08-06
+
+- Reworked the customer quote detail Parts and pricing card into a quote-sheet-style line table with Part / File, Specifications, Qty, Unit price, Line total, Lead time, and subtotal, plus a stacked mobile fallback and contained horizontal scrolling for constrained desktop widths.
+- Verification: `npm run typecheck`, `npm run lint`, `npm test -- src/components/operator-request-detail.test.tsx`, and Codex in-app browser visual QA on `/quotes/demo_quoted_brackets` passed, including a 1436px desktop overflow check.
+- Aligned `/materials` material family cards to the same content width as the catalog intro copy.
+- Verification: focused materials-page test and lint passed.
+- Renamed the customer sidebar Roadmap resource link to `Lattice OS Roadmap`.
+- Verification: focused app-shell test and lint passed.
+- Added an Archive action to `/requests/new` draft continuation rows. Saved drafts now archive through a customer/admin-scoped API route with an optional reason prompt, while browser-local incomplete drafts are removed from local draft recovery.
+- Verification: `npm test -- src/components/request-form.test.tsx`, `npm run typecheck`, `npm run lint`, and `git diff --check` passed.
+- Refined the Notion/ChatGPT-style notification sidebar interaction so the Lattice sidebar header/ribbon stays stable and only the content below it changes into a newest-first chronological notification feed when the bell is active.
+- Updated the bell panel to remove search/refresh controls, add Notion-style row dividers, group rows into This week, Last week, and Older, and show compact relative day labels for this-week notifications.
+- Removed repeated per-row bell icons from the notification sidebar preview so each notification row is a cleaner text-and-timestamp item.
+- Kept the notification sidebar preview open after notification-row navigation so users leave activity view explicitly by toggling the bell/close control.
+- Added notification-sidebar exit behavior for clicking the Lattice home mark or anywhere in the main content area, while keeping notification-row navigation persistent.
+- Verification: `npm test -- src/components/app-shell.test.tsx src/app/notifications/page.test.tsx src/lib/customer-notifications.test.ts`, `npm run typecheck`, `npm run lint`, and `git diff --check` passed.
+- Replaced the active admin sidebar nav red inset stripe with a normal bordered selected state that preserves item spacing.
+- Verification: `npm test -- src/components/app-shell.test.tsx` and `npm run lint -- src/components/app-shell.tsx` passed.
+- Simplified dashboard KPI detail copy so active orders read as `X active orders` and shipped/in-transit work reads as `X orders in transit` based on `SHIPPED` supplier-order status.
+- Added focused customer-dashboard summary assertions for the revised KPI copy.
+- Verification: `npm test -- src/lib/customer-dashboard.test.ts` and `npm run typecheck` passed.
+- Added a Notion-style customer notification sidebar preview: the global bell now swaps the left navigation into a newest-first notification feed on desktop and opens a mobile overlay with the latest derived notification rows and a `View all notifications` link.
+- Added `/api/customer-notifications` so the app shell can lazy-load a customer/admin-scoped notification preview without moving the full `/notifications` page into the client shell.
+- Updated notification/sidebar documentation in `docs/app-feature-map.md` and `docs/customer-inbox-notification-spec.md`.
+- Verification: `npm test -- src/components/app-shell.test.tsx src/app/notifications/page.test.tsx src/lib/customer-notifications.test.ts`, `npm run typecheck`, and `npm run lint` passed.
+- Updated the customer sidebar profile card so the card opens account settings, the account action popup closes on outside click, and the card has a stronger bordered treatment matching the workspace shortcut style.
+- Added focused app-shell regression coverage for profile-card navigation and outside-click menu dismissal.
+- Verification: `npm test -- src/components/app-shell.test.tsx` and `npm run typecheck` passed.
+- Added environment-driven customer/mock data mode separation. Customer mode keeps `.data/requests.json` customer-safe and hides artificial `demo_`/`fixture_` RFQs; mock mode uses `.data/mock/requests.json` and can load demo RFQ/order fixtures for product and UI iteration.
+- Added `src/lib/data-mode.ts`, mode-aware local request fallback loading, explicit `npm run dev:mock` and `npm run dev:customer` commands, and documentation for deployment/local toggling.
+- Updated durable project memory in `README.md`, `PROJECT_CONTEXT.md`, `DECISIONS.md`, and `docs/app-feature-map.md`.
+- Replaced the small mock RFQ set with a mature customer-account scenario covering a saved draft, clarification request, supplier-ready RFQ, expiring and long-lived quotes, active production, quality-document review, shipment tracking, supplier acknowledgment, and delivered history.
+- Kept all records isolated behind mock data mode and aligned them to William's local customer session so the customer workspace can be inspected end to end.
+- Verification: focused customer dashboard/action-center/repository tests, typecheck, and lint pass.
+- Verification: focused data-mode/request-repository tests, `npm run typecheck`, `npm run lint`, and `git diff --check` passed.
+
 ## 2026-08-01
 
 - Redesigned the customer `/requests/new` first screen around the selected upload-first concept: clear RFQ progress, autosave reassurance, a more focused CAD upload surface, and a draft continuation table that excludes submitted requests.
@@ -328,3 +410,84 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Verification recorded in git history: commit `92dd2f2`.
 
 Initial backfill note: this log was created on 2026-06-17. Entries before then were reconstructed from local Codex thread summaries, `DECISIONS.md`, `PROJECT_CONTEXT.md`, and git history, so older daily history is selective rather than exhaustive.
+
+## 2026-08-07 — Completed remaining material-family photography
+
+- Extended the approved Aluminum family-guide visual system to Copper, Alloy steel, Tool steel, Precision alloys, Magnesium / zinc alloys, and Plastics / polymers.
+- Added 30 built-in ImageGen assets: one art-directed hero and four application-specific grade images for each of the six remaining families.
+- Added dedicated common-grade profiles, selection notes, machinability guidance, and cautious specification-review language for designations that do not map cleanly to UNS identifiers.
+- Fixed duplicate React keys in grouped long-tail grade lists discovered during browser QA.
+- Verification: 12 focused tests pass, typecheck passes, lint passes, production build passes, desktop browser checks pass for all six routes, mobile QA passes at 390 × 844, every displayed image reports a nonzero natural size, and the clean QA tab has no console warnings or errors.
+
+## 2026-08-08 — Audited the customer Equipment reference page
+
+- Captured and reviewed the desktop equipment catalog, QC and inspection inventory, an expanded ZEISS CMM record, and the 390 × 844 mobile layout.
+- Audited the 83-record equipment dataset for source concentration, field completeness, record-type consistency, claim strength, and customer trust risks.
+- Documented prioritized UX, equipment-data, provenance, precision-language, responsive, and accessibility recommendations under `docs/audits/equipment-page-2026-08-08/`.
+- Added a deterministic Figma-import package with a 4096 × 1620 overview board and four 2048 × 2800 audit-card PNGs; visually verified all five exports for sequence, legibility, and cropping.
+
+## 2026-08-08 — Added traceable long-tail mechanical-property coverage
+
+- Added canonical, condition-specific mechanical-property records and alias resolution for Stainless, Mild, Alloy, and Tool steels; Titanium; and Inconel / Incoloy directory rows.
+- Normalized the expanded directory table to yield, tensile, elongation, hardness, and density so it uses the same property vocabulary as the common-grade cards.
+- Added a visible source link and condition label for every populated record; unsupported exact labels retain blank values instead of a generic or invented value.
+- Added `docs/material-mechanical-property-sources.md` with source hierarchy, coverage counts, and the explicit held-blank backlog.
+- Added condition-aware Mild steel machinability ratings for mapped carbon and structural grades, retaining blanks for coated and otherwise unsourced trade labels.
+- Extended sourced machinability ratings across every material family, surfaced the per-rating source in expanded grade detail, and added a complete 379/418 coverage report with the 39 intentionally unresolved labels.
+- Added a condition-specific EN AW-6060 T6 extruded-product reference record after catalog review, using its source minimum values rather than an unstated generic temper.
+- Added a live 214-label mechanical-property coverage report, separated from machinability coverage, to make every currently blank property row auditable and researchable.
+
+## 2026-08-09 — Normalized customer-facing material-grade aliases
+
+- Consolidated documented supplier and marketplace aliases into a canonical customer catalog while preserving raw labels in the source datasets.
+- Reduced the Aluminum directory from 50 source labels to 38 distinct customer-facing grades; `Al 6061-T6` and `6061-T6 Aluminum` now render as one `6061-T6 Aluminum` row, while T6 and T651 remain separate.
+- Applied the same explicit-alias approach to clear equivalents across Stainless, Steel, Brass/Copper, Titanium, Nickel-family, and Precision-alloy directories; removed misclassified Cast Iron from Magnesium / zinc and Inconel 625 from Precision alloys.
+- Made material-card and family-header counts derive from the normalized directory, and refreshed the mechanical-property backlog to 190 canonical grades.
+
+## 2026-08-09 — Grouped Aluminum catalog by alloy offering and condition
+
+- Replaced Aluminum’s peer temper rows with 21 alloy offerings, following the marketplace pattern of presenting `6061 Aluminum` once with its supported conditions rather than listing bare 6061, T6, and T651 independently.
+- Expanded Aluminum offerings now expose the supported temper chips and switch the reference-property table to the selected condition; unsupported conditions remain visibly blank instead of inheriting another temper’s values.
+- Updated customer-facing counts and the mechanical-property/machinability coverage reports for the 312-record normalized catalog.
+
+## 2026-08-09 — Reconciled Aluminum condition-level mechanical properties
+
+- Added source-linked reference records for every currently surfaced Aluminum temper, including 6063-T6, 2014-T6/T651, 2017-T4, 2024-T351, 5083-H111, 6061-T651, 6082-T6/T651, and 7075-T651/T7351.
+- Retained bare alloy offerings as intentionally blank until the supplier-supported condition and product form are known; no family-level values are inferred.
+- Added an automated assertion that every supported Aluminum condition resolves to a directory property record.
+
+## 2026-08-10 — Researched the remaining Aluminum reference-property gaps
+
+- Researched and added source-linked reference conditions for the eleven previously blank Aluminum offerings: 1070, 2A12, 2A14, 3003, A413, MIC-6, 2007, 2017A, 5251, 5754, and 7050.
+- Preserved the distinction between a network offering and a referenced condition: the UI now labels a condition from literature as a reference condition when the supplier listing itself does not state a temper or product form.
+- Generalized the table heading from `Hardness (Brinell)` to `Hardness`, so data sheets reporting Vickers hardness are not mislabelled. 1070-H14 and 2007-T4 explicitly show `Not published` because their selected references omit hardness.
+- Updated the mechanical-property source log, coverage report, feature map, and product decision record; added regression coverage for all 21 Aluminum offerings.
+
+## 2026-08-10 — Added source-backed Mild, Alloy, and Tool-steel reference rows
+
+- Added condition-labelled mechanical-property rows for CSA 44WT / 44W, 40CrNiMo, 11SMnPb37 / 1.0737, 30CrNiMo8 / 1.6580, 34CrNiMo6 / 1.6582, 17-4PH H900, Toolox 33, and 1.2085.
+- Used producer or supplier data sheets where available and preserved source gaps as explicit `Not published` table cells instead of merging values from incompatible material conditions.
+- Reduced the source-backed property backlog to six Mild-steel labels, one Alloy-steel label, and no Tool-steel labels. The remaining Alloy entry, `18CrNiMo7-6 / 1.6587`, requires the supplier's delivery condition before a responsible reference row can be chosen.
+- Verification: focused Materials-directory tests, TypeScript typecheck, and ESLint all pass.
+
+## 2026-08-10 — Reconciled remaining material-property aliases and generic polymers
+
+- Resolved 58 additional customer-facing labels to condition-specific source records across Brass/Copper, Stainless, Titanium, Precision alloys, Magnesium/Zinc, Tool steel, Inconel/Incoloy, and unfilled engineering polymers.
+- Kept 91 labels blank only where the designation is a family, a coating/trade name, a filled or modified polymer, a composite, an elastomer, a proprietary resin, or a grade without an exact documented delivery condition.
+- Rewrote the coverage report as the source-of-truth missing-data report, with the exact remaining labels and reason each family remains blank.
+
+## 2026-08-10 — Reframed plastics selection around functional traits
+
+- Replaced the customer-facing Plastics / polymers mechanical-property strips with the approved functional-selection rail: heat tolerance, moisture response, chemical resistance, and wear / friction.
+- Kept forms, machinability, application context, and selection notes intact; added a concise RFQ guidance note to confirm the specific resin grade and data sheet.
+- Omitted reference mechanical-property tables from expanded long-tail plastic records, while retaining those records internally for source audit and operator research.
+- Verification: focused Material page/directory tests, TypeScript typecheck, browser console check, and source-to-implementation desktop visual comparison passed.
+
+## 2026-08-08 — Implemented compact equipment qualification cards
+
+- Replaced the customer Equipment catalog's tall provenance-heavy expanded rows with the selected compact qualification-card design.
+- Added a unified six-field technical rail with consistent label/value typography, responsive two/three/six-column layouts, qualified supplier-reported precision language, best-fit guidance, limitations, and an explicit manufacturability qualification note.
+- Removed customer-facing supplier identity, source/review dates, generic verification badges, and manufacturer-source actions while retaining internal provenance data.
+- Added representative-image labeling, customer-safe quantity/guidance fields for the Jingdiao JDGR200T, a technical data-sheet link, and an `Evaluate my part` route into the RFQ workflow.
+- Replaced the nested interactive accordion markup with one accessible disclosure button per machine card and preserved filters, sorting, and open/closed states.
+- Verification: focused Equipment tests, typecheck, lint, production build, desktop visual comparison, 390 px mobile responsive checks, accordion interaction checks, and a clean browser console.

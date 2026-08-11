@@ -90,10 +90,11 @@ function lineItemNotesWithoutGeneratedDrawingPrompts(notes: string | undefined) 
 
 export function isResumeCandidate(request: LatticeRequest) {
   return (
-    request.status === "DRAFT" ||
-    request.status === "SUBMITTED" ||
-    request.status === "NEEDS_INFO" ||
-    request.status === "READY_FOR_SUPPLIER_RFQ"
+    !request.isArchived &&
+    (request.status === "DRAFT" ||
+      request.status === "SUBMITTED" ||
+      request.status === "NEEDS_INFO" ||
+      request.status === "READY_FOR_SUPPLIER_RFQ")
   );
 }
 

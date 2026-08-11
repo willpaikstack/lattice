@@ -48,6 +48,8 @@ V1 does not use separate workflow/notification tables, read/unread persistence, 
 - Dashboard summary builder: `src/lib/customer-dashboard.ts`
 - Dashboard page: `src/app/dashboard/page.tsx`
 - Notification center page: `src/app/notifications/page.tsx`
+- Notification sidebar preview: `src/components/app-shell.tsx`
+- Notification preview API: `src/app/api/customer-notifications/route.ts`
 
 ## Proposed Editing Area
 

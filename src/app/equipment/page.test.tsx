@@ -46,11 +46,19 @@ describe("EquipmentPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "CNC Milling" }));
 
     expect(screen.queryByRole("heading", { name: "Coverage notes" })).not.toBeInTheDocument();
-    expect(screen.getByText("Verified Machine")).toBeInTheDocument();
-    expect(screen.getByText("Supplier Data Sheet")).toBeInTheDocument();
-    expect(screen.getByText("Source / Provenance")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Jingdiao JDGR200T high-speed machining center/ })).toHaveAttribute("href", "https://en.jingdiao.com/resource/JDGR/JDGR200T.pdf");
-    expect(screen.getByRole("link", { name: "View machine on manufacturer site" })).toHaveAttribute("href", "https://en.jingdiao.com/machines/high-speed-machining-centers/5-axis-series/jdgr200t");
+    const jingdiaoCardElement = screen.getByRole("button", { name: "Hide Beijing Jingdiao JDGR200T details" }).closest("article");
+    expect(jingdiaoCardElement).not.toBeNull();
+    const jingdiaoCard = within(jingdiaoCardElement!);
+    expect(jingdiaoCard.getByText("Representative image")).toBeInTheDocument();
+    expect(jingdiaoCard.getByText("Supplier-reported capability")).toBeInTheDocument();
+    expect(jingdiaoCard.getByText("±0.005 mm")).toBeInTheDocument();
+    expect(jingdiaoCard.getByText("Fine features, multi-face geometry, and small precision components.")).toBeInTheDocument();
+    expect(jingdiaoCard.getByText("Small work envelope; orientation and fixturing require review.")).toBeInTheDocument();
+    expect(screen.queryByText("Verified Machine")).not.toBeInTheDocument();
+    expect(screen.queryByText("Source / Provenance")).not.toBeInTheDocument();
+    expect(screen.queryByText("Zintilon")).not.toBeInTheDocument();
+    expect(jingdiaoCard.getByRole("link", { name: "View technical data sheet" })).toHaveAttribute("href", "https://en.jingdiao.com/resource/JDGR/JDGR200T.pdf");
+    expect(jingdiaoCard.getByRole("link", { name: "Evaluate my part" })).toHaveAttribute("href", "/requests/new");
     expect(screen.queryByRole("heading", { name: "Need a process match?" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Start an RFQ" })).not.toBeInTheDocument();
   });
@@ -84,7 +92,7 @@ describe("EquipmentPage", () => {
 
     fireEvent.click(within(millingSection).getByRole("button", { name: "View Hermle C650 details" }));
 
-    expect(within(millingSection).getByText("Work Envelope")).toBeInTheDocument();
+    expect(within(millingSection).getByText("Supplier-reported capability")).toBeInTheDocument();
     expect(within(millingSection).getByRole("button", { name: "Hide Hermle C650 details" })).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.click(within(millingSection).getByRole("button", { name: "Hide Hermle C650 details" }));

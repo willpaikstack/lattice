@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Equipment Page Audit — Figma Export</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f4f1;
+        color: #1c1917;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body { background: #f5f4f1; }
+
+      .card {
+        width: 2048px;
+        height: 2800px;
+        padding: 112px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 88% 7%, rgba(59, 130, 246, 0.10), transparent 23%),
+          #f7f6f3;
+      }
+
+      .eyebrow {
+        margin: 0 0 24px;
+        color: #78716c;
+        font-size: 25px;
+        font-weight: 750;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 52px;
+      }
+
+      h1 {
+        max-width: 1420px;
+        margin: 0;
+        font-size: 74px;
+        line-height: 1.02;
+        letter-spacing: -0.048em;
+      }
+
+      .health {
+        flex: 0 0 auto;
+        margin-top: 8px;
+        border-radius: 999px;
+        padding: 16px 26px;
+        font-size: 24px;
+        font-weight: 750;
+      }
+
+      .health.refine { background: #fff7ed; color: #9a3412; border: 2px solid #fed7aa; }
+      .health.risk { background: #fef2f2; color: #b91c1c; border: 2px solid #fecaca; }
+      .health.healthy { background: #ecfdf5; color: #047857; border: 2px solid #a7f3d0; }
+
+      .summary {
+        max-width: 1580px;
+        margin: 34px 0 56px;
+        color: #57534e;
+        font-size: 31px;
+        line-height: 1.5;
+      }
+
+      .screenshot-shell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 1260px;
+        padding: 30px;
+        overflow: hidden;
+        border: 2px solid #d6d3d1;
+        border-radius: 34px;
+        background: white;
+        box-shadow: 0 22px 60px rgba(28, 25, 23, 0.10);
+      }
+
+      .screenshot-shell img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 18px;
+      }
+
+      .screenshot-shell.mobile img { width: auto; max-width: 46%; }
+
+      .notes-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 36px;
+        margin-top: 54px;
+      }
+
+      .note-panel {
+        min-height: 450px;
+        padding: 36px 40px;
+        border: 2px solid #dedbd6;
+        border-radius: 26px;
+        background: rgba(255,255,255,0.82);
+      }
+
+      .note-panel h2 {
+        margin: 0 0 24px;
+        color: #57534e;
+        font-size: 22px;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      ul { margin: 0; padding-left: 30px; }
+      li {
+        margin: 0 0 18px;
+        color: #292524;
+        font-size: 27px;
+        line-height: 1.42;
+      }
+
+      .recommendation {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 28px;
+        align-items: start;
+        margin-top: 36px;
+        padding: 32px 38px;
+        border: 2px solid #bfdbfe;
+        border-left: 10px solid #3b82f6;
+        border-radius: 22px;
+        background: #eff6ff;
+      }
+
+      .recommendation strong {
+        color: #1d4ed8;
+        font-size: 21px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .recommendation span {
+        color: #1e3a5f;
+        font-size: 28px;
+        line-height: 1.42;
+      }
+
+      .board {
+        width: 4096px;
+        height: 1620px;
+        padding: 72px;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 12% 8%, rgba(59,130,246,0.12), transparent 24%),
+          #efeee9;
+      }
+
+      .board-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 56px;
+        height: 150px;
+        margin-bottom: 42px;
+      }
+
+      .board h1 { max-width: none; font-size: 60px; }
+      .board .board-subtitle {
+        max-width: 1500px;
+        margin: 0 0 6px;
+        color: #57534e;
+        font-size: 22px;
+        line-height: 1.45;
+        text-align: right;
+      }
+
+      .board-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 64px;
+      }
+
+      .board-cards img {
+        display: block;
+        width: 100%;
+        height: 1286px;
+        object-fit: contain;
+        object-position: top;
+        border: 2px solid #d6d3d1;
+        border-radius: 28px;
+        background: white;
+        box-shadow: 0 28px 70px rgba(28,25,23,0.13);
+      }
+    </style>
+  </head>
+  <body>
+    <main id="root"></main>
+    <script>
+      const cards = [
+        {
+          id: "01",
+          title: "Catalog overview",
+          health: "Needs refinement",
+          healthClass: "refine",
+          screenshot: "01-equipment-catalog-overview.png",
+          summary: "A credible, proof-rich equipment repository that still behaves more like an internal inventory than a customer decision aid.",
+          strengths: [
+            "Real models, quantities, envelopes, controls, source dates, and selected data sheets build uncommon credibility.",
+            "Search, process filters, and sorting make a large catalog navigable."
+          ],
+          risks: [
+            "The 36-row milling list starts alphabetically instead of with the customer's part, tolerance, size, material, or inspection need.",
+            "“Best Tolerance” is presented without distinguishing machine specification, supplier capability, and a quoted part guarantee."
+          ],
+          recommendation: "Add a part-first capability summary and qualify every tolerance claim before polishing the inventory presentation."
+        },
+        {
+          id: "02",
+          title: "QC & inspection inventory",
+          health: "Needs refinement",
+          healthClass: "refine",
+          screenshot: "02-qc-inspection-section.png",
+          summary: "Inspection is treated as first-class manufacturing capacity, but different tools and evidence packages are mixed into one flat list.",
+          strengths: [
+            "CMM, optical measurement, roughness, XRF material identification, gauges, and hand tools are all represented.",
+            "The section gives precision-conscious buyers a visible quality-system entry point."
+          ],
+          risks: [
+            "Customers cannot tell which records produce a dimensional report, CMM report, FAI, material verification, or surface-finish evidence.",
+            "Global sorts such as Max RPM remain available even when they are irrelevant to inspection equipment."
+          ],
+          recommendation: "Group equipment by inspection output and connect each group to the customer deliverables available on an RFQ."
+        },
+        {
+          id: "03",
+          title: "ZEISS CMM detail",
+          health: "High-risk claims",
+          healthClass: "risk",
+          screenshot: "03-zeiss-cmm-detail.png",
+          summary: "The strongest precision proof point is visually convincing, but its verification and manufacturer-link claims exceed the evidence shown.",
+          strengths: [
+            "The image, recent source date, and fabricator note connect the CMM to tolerance-critical work.",
+            "The expanded record is calm, legible, and easy to scan."
+          ],
+          risks: [
+            "“Verified Machine” does not define what was verified, by whom, when, or whether the image shows the supplier's actual asset.",
+            "The manufacturer-site action points to a third-party used-machine page and omits measurement volume, uncertainty, probe, and calibration evidence."
+          ],
+          recommendation: "Replace the universal badge with evidence statuses and publish the metrology facts a precision buyer needs to assess inspection confidence."
+        },
+        {
+          id: "04",
+          title: "Mobile overview",
+          health: "Generally healthy",
+          healthClass: "healthy",
+          screenshot: "04-equipment-mobile.png",
+          mobile: true,
+          summary: "The catalog reflows into a readable single column, with a few density and navigation issues that increase comparison cost.",
+          strengths: [
+            "Heading hierarchy, description, search, sort, and filters remain clear at 390 × 844.",
+            "The horizontal section rail keeps nine process categories compact."
+          ],
+          risks: [
+            "The fixed header consumes meaningful vertical space and the clipped section rail hides the breadth of available processes.",
+            "The first machine opens by default, creating a long detail interruption before users can compare the fleet."
+          ],
+          recommendation: "Keep rows collapsed by default on small screens, strengthen the process-navigation affordance, and validate detail modules at 200% zoom."
+        }
+      ];
+
+      function cardMarkup(card) {
+        return `
+          <section class="card">
+            <p class="eyebrow">Equipment page audit · Step ${card.id}</p>
+            <div class="title-row">
+              <h1>${card.title}</h1>
+              <span class="health ${card.healthClass}">${card.health}</span>
+            </div>
+            <p class="summary">${card.summary}</p>
+            <div class="screenshot-shell ${card.mobile ? "mobile" : ""}">
+              <img src="${card.screenshot}" alt="${card.title}" />
+            </div>
+            <div class="notes-grid">
+              <section class="note-panel">
+                <h2>What works</h2>
+                <ul>${card.strengths.map(item => `<li>${item}</li>`).join("")}</ul>
+              </section>
+              <section class="note-panel">
+                <h2>Primary risks</h2>
+                <ul>${card.risks.map(item => `<li>${item}</li>`).join("")}</ul>
+              </section>
+            </div>
+            <div class="recommendation">
+              <strong>Recommendation</strong>
+              <span>${card.recommendation}</span>
+            </div>
+          </section>`;
+      }
+
+      const selection = new URLSearchParams(location.search).get("export") || "01";
+      const root = document.getElementById("root");
+
+      if (selection === "board") {
+        root.innerHTML = `
+          <section class="board">
+            <div class="board-head">
+              <div>
+                <p class="eyebrow">Lattice OS · Customer reference audit</p>
+                <h1>Equipment page audit</h1>
+              </div>
+              <p class="board-subtitle">Strong proof-oriented foundation. Highest priority: distinguish supplier-reported specifications from verified, part-level capability.</p>
+            </div>
+            <div class="board-cards">
+              ${cards.map(card => `<img src="figma-import/${card.id}-equipment-audit-card.png" alt="${card.title}" />`).join("")}
+            </div>
+          </section>`;
+      } else {
+        const card = cards.find(item => item.id === selection) || cards[0];
+        root.innerHTML = cardMarkup(card);
+      }
+    </script>
+  </body>
+</html>

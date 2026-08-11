@@ -12,14 +12,18 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
+  Archive,
   Check,
   CheckCircle2,
   ChevronDown,
   Download,
   Eye,
   FileUp,
+  Info,
   Paperclip,
+  PencilLine,
   Search,
   Trash2,
   Upload,
@@ -164,7 +168,7 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   surfaceFinishColor: defaultSurfaceFinishColor("as_machined_ra_3_2"),
   surfaceFinishCosmeticRequirement: defaultSurfaceFinishCosmeticRequirement("as_machined_ra_3_2"),
   surfaceFinishCustomColor: "",
-  qualityDocumentation: ["standard_inspection"],
+  qualityDocumentation: normalizedQualityDocumentation(),
   notes: "",
   fileName: "",
   fileSizeBytes: 0,
@@ -279,6 +283,16 @@ function qualityDocumentationRequiresDrawing(optionValue: string) {
   return Boolean(
     qualityDocumentationOptions.find((option) => option.value === optionValue)
       ?.metadata?.requiresDrawing,
+  );
+}
+
+function normalizedQualityDocumentation(values?: string[]) {
+  const supportedValues = new Set(qualityDocumentationOptions.map((option) => option.value));
+  return Array.from(
+    new Set([
+      "standard_inspection",
+      ...(values ?? []).filter((value) => supportedValues.has(value)),
+    ]),
   );
 }
 
@@ -708,9 +722,7 @@ function lineItemFromInitialLineItem(
       initialState?.surfaceFinishCosmeticRequirement,
     ),
     surfaceFinishCustomColor: initialState?.surfaceFinishCustomColor ?? "",
-    qualityDocumentation: initialState?.qualityDocumentation ?? [
-      "standard_inspection",
-    ],
+    qualityDocumentation: normalizedQualityDocumentation(initialState?.qualityDocumentation),
     notes: initialState?.notes ?? "",
     fileName: initialState?.fileName ?? "",
     fileSizeBytes: initialState?.fileSizeBytes ?? 0,
@@ -855,6 +867,11 @@ function TechnicalDrawingReviewModal({
     <div
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/35 px-4 py-6"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          handleDone();
+        }
+      }}
       role="dialog"
     >
       <div className="grid w-full max-w-[1320px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -1143,8 +1160,100 @@ function UploadCadDropZone({
   );
 }
 
-function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
+function ArchiveDraftModal({
+  error,
+  isArchiving,
+  onCancel,
+  onConfirm,
+  reason,
+  request,
+  setReason,
+}: {
+  error: string | null;
+  isArchiving: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+  reason: string;
+  request: LatticeRequest;
+  setReason: (reason: string) => void;
+}) {
+  return (
+    <div
+      aria-labelledby="archive-draft-title"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/45 px-4 py-6"
+      role="dialog"
+    >
+      <div className="w-full max-w-lg rounded-lg border border-[#dedede] bg-white p-5 shadow-xl">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e4e4e4] bg-[#fafafa] text-[#555b64]">
+            <Archive aria-hidden="true" className="h-5 w-5" strokeWidth={1.8} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[18px] font-semibold text-[#202020]" id="archive-draft-title">
+              Archive draft quote?
+            </h2>
+            <p className="mt-1 text-[13px] leading-5 text-[#656b74]">
+              This removes <span className="font-medium text-[#30343a]">{request.title}</span> from your draft requests. You can add a reason for the archive, but it is optional.
+            </p>
+          </div>
+        </div>
+
+        <label className="mt-5 block">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6d737c]">
+            Reason for archiving
+          </span>
+          <textarea
+            className="mt-2 min-h-28 w-full resize-y rounded-md border border-[#d8dce2] bg-white px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none transition placeholder:text-[#a0a6af] focus:border-[#171717] focus:ring-2 focus:ring-[#ededed]"
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Optional"
+            value={reason}
+          />
+        </label>
+
+        {error ? (
+          <p className="mt-3 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-[13px] font-medium text-red-700">
+            {error}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            className="inline-flex min-h-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-4 text-[14px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={isArchiving}
+            onClick={onCancel}
+            type="button"
+          >
+            Cancel
+          </button>
+          <button
+            className="inline-flex min-h-10 items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#303030] disabled:cursor-not-allowed disabled:bg-[#cfcfcf]"
+            disabled={isArchiving}
+            onClick={onConfirm}
+            type="button"
+          >
+            {isArchiving ? "Archiving..." : "Archive quote"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResumeQuotePanel({
+  onArchived,
+  onArchiveDraft,
+  requests,
+}: {
+  onArchived: (requestId: string) => void;
+  onArchiveDraft: (request: LatticeRequest, reason: string) => Promise<void>;
+  requests: LatticeRequest[];
+}) {
   const [pageIndex, setPageIndex] = useState(0);
+  const [archiveRequest, setArchiveRequest] = useState<LatticeRequest | null>(null);
+  const [archiveReason, setArchiveReason] = useState("");
+  const [archiveError, setArchiveError] = useState<string | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
   const pageCount = Math.max(1, Math.ceil(requests.length / resumeDraftPageSize));
   const clampedPageIndex = Math.min(pageIndex, pageCount - 1);
   const firstVisibleIndex = clampedPageIndex * resumeDraftPageSize;
@@ -1156,6 +1265,43 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
 
   if (!requests.length) {
     return null;
+  }
+
+  function openArchiveModal(request: LatticeRequest) {
+    setArchiveRequest(request);
+    setArchiveReason("");
+    setArchiveError(null);
+  }
+
+  function closeArchiveModal() {
+    if (isArchiving) {
+      return;
+    }
+
+    setArchiveRequest(null);
+    setArchiveReason("");
+    setArchiveError(null);
+  }
+
+  async function confirmArchiveDraft() {
+    if (!archiveRequest) {
+      return;
+    }
+
+    setIsArchiving(true);
+    setArchiveError(null);
+
+    try {
+      await onArchiveDraft(archiveRequest, archiveReason);
+      const archivedId = archiveRequest.id;
+      setArchiveRequest(null);
+      setArchiveReason("");
+      onArchived(archivedId);
+    } catch (caught) {
+      setArchiveError(caught instanceof Error ? caught.message : "Unable to archive this draft.");
+    } finally {
+      setIsArchiving(false);
+    }
   }
 
   return (
@@ -1174,7 +1320,7 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_96px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-lg:hidden">
+      <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_88px] gap-5 border-b border-[#eeeeee] bg-[#fafafa] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#80858d] max-lg:hidden">
         <span>RFQ draft</span>
         <span>Last edited</span>
         <span>Completion</span>
@@ -1189,7 +1335,7 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
 
           return (
             <div
-              className="grid gap-5 px-5 py-4 transition hover:bg-[#fbfbfb] lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_96px] lg:items-center"
+              className="grid gap-5 px-5 py-4 transition hover:bg-[#fbfbfb] lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_88px] lg:items-center"
               key={request.id}
             >
               <a
@@ -1248,19 +1394,41 @@ function ResumeQuotePanel({ requests }: { requests: LatticeRequest[] }) {
                 </span>
               </a>
 
-              <div className="flex items-center justify-between gap-2 lg:justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-2 lg:justify-end">
+                <button
+                  aria-label={`Archive draft for ${request.title}`}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-transparent bg-white text-[#8a8f98] transition hover:border-[#e2e2e2] hover:bg-[#f7f8fa] hover:text-[#30343a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
+                  onClick={() => openArchiveModal(request)}
+                  title="Archive draft"
+                  type="button"
+                >
+                  <Archive aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
+                </button>
                 <a
                   aria-label={`Continue draft for ${request.title}`}
-                  className="inline-flex min-h-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white px-3 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#f7f8fa]"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white text-[#30343a] transition hover:bg-[#f7f8fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
                   href={href}
+                  title="Continue draft"
                 >
-                  Continue
+                  <PencilLine aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
                 </a>
               </div>
             </div>
           );
         })}
       </div>
+
+      {archiveRequest ? (
+        <ArchiveDraftModal
+          error={archiveError}
+          isArchiving={isArchiving}
+          onCancel={closeArchiveModal}
+          onConfirm={confirmArchiveDraft}
+          reason={archiveReason}
+          request={archiveRequest}
+          setReason={setArchiveReason}
+        />
+      ) : null}
 
       {hasMultiplePages ? (
         <div className="flex flex-col gap-3 border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86] sm:flex-row sm:items-center sm:justify-between">
@@ -2148,6 +2316,10 @@ function QualityDocumentationSelect({
   }, [isOpen]);
 
   function toggleOption(optionValue: string) {
+    if (optionValue === "standard_inspection") {
+      return;
+    }
+
     const isSelected = selectedValues.includes(optionValue);
 
     const nextValues = isSelected
@@ -2183,6 +2355,7 @@ function QualityDocumentationSelect({
             {selectedValues.length > 0 ? (
               selectedValues.map((optionValue) => {
                 const label = optionLabel(qualityDocumentationOptions, optionValue);
+                const isRequired = optionValue === "standard_inspection";
 
                 return (
                   <span
@@ -2191,17 +2364,19 @@ function QualityDocumentationSelect({
                     onClick={(event) => event.stopPropagation()}
                   >
                     <span className="min-w-0 truncate">{label}</span>
-                    <button
-                      aria-label={`Remove ${label}`}
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#a1a1aa] transition hover:bg-slate-200 hover:text-[#52525b]"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        toggleOption(optionValue);
-                      }}
-                      type="button"
-                    >
-                      <X aria-hidden="true" className="h-4 w-4" />
-                    </button>
+                    {isRequired ? null : (
+                      <button
+                        aria-label={`Remove ${label}`}
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#a1a1aa] transition hover:bg-slate-200 hover:text-[#52525b]"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleOption(optionValue);
+                        }}
+                        type="button"
+                      >
+                        <X aria-hidden="true" className="h-4 w-4" />
+                      </button>
+                    )}
                   </span>
                 );
               })
@@ -2243,10 +2418,12 @@ function QualityDocumentationSelect({
             <div className="max-h-[360px] overflow-y-auto">
               {qualityDocumentationOptions.map((option) => {
                 const isSelected = selectedValues.includes(option.value);
+                const isRequired = option.value === "standard_inspection";
 
                 return (
                   <button
                     aria-selected={isSelected}
+                    aria-disabled={isRequired ? "true" : undefined}
                     className={[
                       "flex w-full items-center gap-3 border-none px-5 py-3 text-left transition-colors duration-100",
                       isSelected
@@ -2271,7 +2448,11 @@ function QualityDocumentationSelect({
                     </span>
                     <span className="min-w-0 text-[15px] font-semibold leading-5">
                       <span>{option.label}</span>
-                      {qualityDocumentationRequiresDrawing(option.value) ? (
+                      {isRequired ? (
+                        <span className="ml-2 whitespace-nowrap text-[12px] font-medium text-slate-500">
+                          (included)
+                        </span>
+                      ) : qualityDocumentationRequiresDrawing(option.value) ? (
                         <span className="ml-2 whitespace-nowrap text-[12px] font-medium text-slate-500">
                           (drawing required)
                         </span>
@@ -2411,9 +2592,19 @@ function LineItemConfigurationCard({
             </div>
 
             <div className="mt-8">
-              <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
-                Inspections & Certificates
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
+                  Inspections & Certificates
+                </h3>
+                <Link
+                  aria-label="Learn about quality documentation"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  href="/quality-documentation"
+                  title="Learn what each quality document entails"
+                >
+                  <Info aria-hidden="true" className="h-4 w-4" />
+                </Link>
+              </div>
               <div className="mt-3">
                 <QualityDocumentationSelect
                   value={lineItem.qualityDocumentation}
@@ -2421,6 +2612,11 @@ function LineItemConfigurationCard({
                     updateLineItem(lineItem.id, "qualityDocumentation", value)
                   }
                 />
+                {lineItem.qualityDocumentation.includes("custom_inspection") ? (
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Describe the custom inspection in the Manufacturing notes section below.
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -2707,9 +2903,10 @@ export function RequestForm({
   resumeRequests = [],
 }: RequestFormProps = {}) {
   const router = useRouter();
-  const [localResumeRequests] = useState<LatticeRequest[]>(
+  const [localResumeRequests, setLocalResumeRequests] = useState<LatticeRequest[]>(
     readLocalIncompleteResumeRequests,
   );
+  const [archivedResumeRequestIds, setArchivedResumeRequestIds] = useState<Set<string>>(() => new Set());
   const localDraftInitialState =
     !initialState && localDraftId
       ? readIncompleteRfqs().find((draft) => draft.id === localDraftId)?.initialState
@@ -2746,6 +2943,14 @@ export function RequestForm({
   const activeDrawingLineItem =
     lineItems.find((lineItem) => lineItem.id === drawingReviewLineItemId) ??
     null;
+  const activeDrawingFile = activeDrawingLineItem?.selectedDrawingFile ?? null;
+  const activeDrawingStorageKey =
+    activeDrawingLineItem?.technicalDrawingStorageKey;
+  const activeDrawingName = activeDrawingLineItem?.technicalDrawingName ?? "";
+  const activeDrawingType =
+    activeDrawingFile?.type ||
+    activeDrawingLineItem?.technicalDrawingType ||
+    "";
   const resumeChoices = useMemo(() => {
     const localIds = new Set(localResumeRequests.map((request) => request.id));
 
@@ -2753,7 +2958,7 @@ export function RequestForm({
       ...localResumeRequests,
       ...resumeRequests.filter((request) => !localIds.has(request.id)),
     ]
-      .filter((request) => request.status === "DRAFT")
+      .filter((request) => request.status === "DRAFT" && !request.isArchived && !archivedResumeRequestIds.has(request.id))
       .sort((a, b) => {
         const aTime = new Date(a.updatedAt || a.createdAt).getTime();
         const bTime = new Date(b.updatedAt || b.createdAt).getTime();
@@ -2764,38 +2969,39 @@ export function RequestForm({
         );
       })
       .slice(0, 5);
-  }, [localResumeRequests, resumeRequests]);
+  }, [archivedResumeRequestIds, localResumeRequests, resumeRequests]);
   const drawingPreviewUrl = useMemo(() => {
-    if (!activeDrawingLineItem) {
-      return null;
-    }
-
-    if (activeDrawingLineItem.selectedDrawingFile) {
+    if (activeDrawingFile) {
       if (
-        !drawingCanPreview(activeDrawingLineItem.selectedDrawingFile) ||
+        !drawingCanPreview(activeDrawingFile) ||
         typeof URL === "undefined" ||
         !URL.createObjectURL
       ) {
         return null;
       }
 
-      return URL.createObjectURL(activeDrawingLineItem.selectedDrawingFile);
+      return URL.createObjectURL(activeDrawingFile);
     }
 
     if (
-      activeDrawingLineItem.technicalDrawingStorageKey &&
-      (activeDrawingLineItem.technicalDrawingType === "application/pdf" ||
-        activeDrawingLineItem.technicalDrawingType.startsWith("image/"))
+      activeDrawingStorageKey &&
+      (activeDrawingType === "application/pdf" ||
+        activeDrawingType.startsWith("image/"))
     ) {
       return localFileHref(
-        activeDrawingLineItem.technicalDrawingStorageKey,
-        activeDrawingLineItem.technicalDrawingName,
-        activeDrawingLineItem.technicalDrawingType,
+        activeDrawingStorageKey,
+        activeDrawingName,
+        activeDrawingType,
       );
     }
 
     return null;
-  }, [activeDrawingLineItem]);
+  }, [
+    activeDrawingFile,
+    activeDrawingName,
+    activeDrawingStorageKey,
+    activeDrawingType,
+  ]);
   const configuredLineItems = lineItems.filter((lineItem) =>
     lineItem.fileName.trim(),
   );
@@ -3599,6 +3805,33 @@ export function RequestForm({
     }
   }
 
+  async function archiveResumeRequest(request: LatticeRequest, reason: string) {
+    const isLocalDraft = localResumeRequests.some((draft) => draft.id === request.id);
+
+    if (isLocalDraft) {
+      removeIncompleteRfq(request.id);
+      return;
+    }
+
+    const response = await fetch(`/api/requests/${encodeURIComponent(request.id)}/archive`, {
+      body: JSON.stringify({ reason }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+    });
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(typeof payload.error === "string" ? payload.error : "Unable to archive this draft.");
+    }
+  }
+
+  function removeArchivedResumeRequest(requestId: string) {
+    setLocalResumeRequests((current) => current.filter((draft) => draft.id !== requestId));
+    setArchivedResumeRequestIds((current) => new Set([...current, requestId]));
+  }
+
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -3771,7 +4004,11 @@ export function RequestForm({
         </section>
 
         {shouldShowResumePanel ? (
-          <ResumeQuotePanel requests={resumeChoices} />
+          <ResumeQuotePanel
+            onArchived={removeArchivedResumeRequest}
+            onArchiveDraft={archiveResumeRequest}
+            requests={resumeChoices}
+          />
         ) : null}
       </form>
 

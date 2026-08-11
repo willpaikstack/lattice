@@ -1,4 +1,5 @@
 import { buildAdminCustomerSummaries } from "./admin-customers";
+import { isMockDataMode } from "./data-mode";
 import { listLocalRequests } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import type { LatticeRequest, RequestStatus } from "./request-model";
@@ -129,15 +130,17 @@ function isArtificialRequestId(id: string) {
   return id.startsWith("demo_") || id.startsWith("fixture_");
 }
 
+function requestsForDataMode<T extends { id: string }>(requests: T[]) {
+  return isMockDataMode() ? requests : requests.filter((request) => !isArtificialRequestId(request.id));
+}
+
 function profileFromStoredCompany(company: StoredCompany): CustomerProfile {
-  const requests = company.requests
-    .filter((request) => !isArtificialRequestId(request.id))
-    .map((request) =>
-      mapStoredRequest({
-        ...request,
-        buyerCompany: request.buyerCompany ?? { name: company.name },
-      }),
-    );
+  const requests = requestsForDataMode(company.requests).map((request) =>
+    mapStoredRequest({
+      ...request,
+      buyerCompany: request.buyerCompany ?? { name: company.name },
+    }),
+  );
   const summary = buildAdminCustomerSummaries(requests)[0];
 
   return {
@@ -169,7 +172,7 @@ function profileFromStoredCompany(company: StoredCompany): CustomerProfile {
 }
 
 function profilesFromRequests(requestsSource: LatticeRequest[]) {
-  const realRequests = requestsSource.filter((request) => !isArtificialRequestId(request.id));
+  const realRequests = requestsForDataMode(requestsSource);
 
   return buildAdminCustomerSummaries(realRequests).map<CustomerProfile>((summary) => {
     const requests = realRequests

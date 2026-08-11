@@ -43,7 +43,19 @@ describe("CNC material library", () => {
 
     expect(gradesBySlug.aluminum).toContain("7050 Aluminum");
     expect(gradesBySlug["stainless-steel"]).toContain("2205 Duplex Stainless Steel");
-    expect(gradesBySlug["magnesium-zinc"]).toContain("Cast Iron");
+    expect(gradesBySlug["magnesium-zinc"]).not.toContain("Cast Iron");
     expect(gradesBySlug["plastics-polymers"]).toContain("ULTEM 2300");
+  });
+
+  it("consolidates equivalent aluminum supplier labels into one customer-facing grade", () => {
+    const aluminum = customerMaterialCatalog.find((material) => material.slug === "aluminum");
+    const grades = aluminum?.materialGroups.flatMap((group) => group.grades) ?? [];
+
+    expect(aluminum?.gradeCount).toBe(21);
+    expect(grades).toContain("6061 Aluminum");
+    expect(grades).not.toContain("6061-T6 Aluminum");
+    expect(aluminum?.materialGroups.flatMap((group) => group.conditionsByGrade?.["6061 Aluminum"] ?? []).map((condition) => condition.label)).toEqual(["T6", "T651"]);
+    expect(grades).not.toContain("Al 6061-T6");
+    expect(grades).not.toContain("6061-T6 Aluminum Aluminum");
   });
 });

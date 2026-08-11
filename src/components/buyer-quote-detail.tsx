@@ -106,6 +106,23 @@ function formatSummaryPrice(cents: number | null) {
   return cents === null ? "-" : formatPrice(cents);
 }
 
+function formatFileSize(bytes: number | undefined) {
+  if (!bytes || bytes <= 0) {
+    return "Size pending";
+  }
+
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1).replace(/\.0$/, "")} MB`;
+}
+
+function fileExtension(fileName: string | undefined) {
+  const extension = fileName?.split(".").pop()?.trim();
+  return extension ? extension.toUpperCase() : "CAD";
+}
+
 function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {
   const labels: Record<LatticeRequest["statusEvents"][number]["actor"], string> = {
     buyer: "Buyer",
@@ -165,6 +182,10 @@ function quoteReference(request: LatticeRequest) {
   return `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
+function quotedLineForItem(item: RequestLineItem, request: LatticeRequest) {
+  return quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
+}
+
 function lineItemUnitCents(item: RequestLineItem, totalCents: number | null) {
   if (totalCents === null || item.quantity <= 0) {
     return null;
@@ -174,7 +195,7 @@ function lineItemUnitCents(item: RequestLineItem, totalCents: number | null) {
 }
 
 function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
-  const customerLine = quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
+  const customerLine = quotedLineForItem(item, request);
 
   if (customerLine) {
     return Math.round(customerLine.unitPrice * customerLine.quantity * 100);
@@ -185,6 +206,20 @@ function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
   }
 
   return null;
+}
+
+function lineItemLeadTime(item: RequestLineItem, request: LatticeRequest) {
+  const customerLine = quotedLineForItem(item, request);
+
+  if (customerLine?.leadTimeDays) {
+    return `${customerLine.leadTimeDays} business days`;
+  }
+
+  if (request.quote.leadTimeDays) {
+    return `${request.quote.leadTimeDays} business days`;
+  }
+
+  return request.customerQuotes.at(-1)?.leadTime || "Pending";
 }
 
 function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][number] | undefined; index: number }) {
@@ -287,8 +322,8 @@ export function BuyerQuoteDetail({
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-12">
-        <main className="space-y-5 xl:col-span-8">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <main className="space-y-5">
           <section className="rounded-md border border-[#dfe3e8] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
@@ -312,70 +347,205 @@ export function BuyerQuoteDetail({
               <span className="text-[12px] font-medium text-[#7b8088]">{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"}</span>
             </div>
 
-            <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_70px_100px] gap-4 border-b border-[#eeeeee] bg-[#fbfbfc] px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#80858d] 2xl:grid">
-              <span>Name</span>
-              <span>Configuration</span>
-              <span className="text-center">Qty</span>
-              <span className="text-right">Price</span>
-            </div>
+            <div className="overflow-x-auto" data-testid="quote-line-items-responsive">
+              <table className="hidden min-w-[880px] w-full table-fixed border-collapse xl:table">
+                <colgroup>
+                  <col className="w-[39%]" />
+                  <col className="w-[20%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[16%]" />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-[#e1e4e8] text-left text-[12px] font-semibold text-[#30343a]">
+                    <th className="px-5 py-4 font-semibold">Part / File</th>
+                    <th className="px-3 py-4 font-semibold">Specifications</th>
+                    <th className="px-3 py-4 text-center font-semibold">Qty</th>
+                    <th className="whitespace-nowrap px-3 py-4 text-right font-semibold">Unit price</th>
+                    <th className="whitespace-nowrap px-3 py-4 text-right font-semibold">Line total</th>
+                    <th className="whitespace-nowrap px-3 py-4 text-left font-semibold">Lead time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e1e4e8]">
+                  {request.lineItems.map((item, index) => {
+                    const total = lineItemTotalCents(item, request);
+                    const unit = lineItemUnitCents(item, total);
+                    const files = lineItemFiles[index];
+                    const file = files?.cadFile ?? request.files[index] ?? request.files[0];
+                    const drawingFile = files?.drawingFile;
+                    const fileName = customerFacingFileName(file?.name, item.partName);
+                    const downloadHref = fileDownloadHref(file);
+                    const customerLine = quotedLineForItem(item, request);
+                    const process = customerLine?.process || request.process || "CNC";
+                    const material = customerLine?.material || item.material;
+                    const finish = customerLine?.finish || item.surfaceFinish || "As machined";
+                    const tolerance = item.generalTolerance || "ISO 2768-m";
+                    const inspection = (item.qualityDocumentation ?? []).length > 0 ? (item.qualityDocumentation ?? []).join(", ") : "Standard Inspection";
+                    const notes = item.notes?.trim() || "";
 
-            <div className="divide-y divide-[#e2e5e9]" data-testid="quote-line-items-responsive">
-              {request.lineItems.map((item, index) => {
-                const total = lineItemTotalCents(item, request);
-                const unit = lineItemUnitCents(item, total);
-                const files = lineItemFiles[index];
-                const file = files?.cadFile ?? request.files[index] ?? request.files[0];
-                const drawingFile = files?.drawingFile;
-                const fileName = customerFacingFileName(file?.name, item.partName);
-                const downloadHref = fileDownloadHref(file);
+                    return (
+                      <tr className="align-top" key={item.id}>
+                        <td className="px-5 py-6">
+                          <div className="flex min-w-0 items-start gap-4">
+                            <CadRenderPreview file={file} index={index} />
+                            <div className="min-w-0 pt-1">
+                              {downloadHref ? (
+                                <a className="block truncate text-[14px] font-semibold text-[#3d6fe8] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
+                                  {fileName}
+                                </a>
+                              ) : (
+                                <p className="truncate text-[14px] font-semibold text-[#3d6fe8]">{fileName}</p>
+                              )}
+                              <p className="mt-2 text-[13px] font-medium leading-5 text-[#4f5660]">{item.partName}</p>
+                              <p className="mt-3 text-[12px] font-medium text-[#7b8088]">{fileExtension(file?.name)} · {formatFileSize(file?.sizeBytes)} · Rev 1</p>
+                              {drawingFile ? (
+                                <span className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#3d6fe8]">
+                                  <span className="truncate">{drawingFile.name}</span>
+                                  <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-6 text-[13px] leading-5">
+                          <dl className="space-y-3">
+                            <div>
+                              <dt className="font-semibold text-[#30343a]">Process</dt>
+                              <dd className="mt-0.5 text-[#5f6670]">{process}</dd>
+                            </div>
+                            <div>
+                              <dt className="font-semibold text-[#30343a]">Material</dt>
+                              <dd className="mt-0.5 text-[#5f6670]">{material}</dd>
+                            </div>
+                            <div>
+                              <dt className="font-semibold text-[#30343a]">Finish</dt>
+                              <dd className="mt-0.5 text-[#5f6670]">{finish}</dd>
+                            </div>
+                            <div>
+                              <dt className="font-semibold text-[#30343a]">Tolerance</dt>
+                              <dd className="mt-0.5 text-[#5f6670]">{tolerance}</dd>
+                            </div>
+                            <div>
+                              <dt className="font-semibold text-[#30343a]">Inspection</dt>
+                              <dd className="mt-0.5 text-[#5f6670]">{inspection}</dd>
+                            </div>
+                            {notes ? (
+                              <div>
+                                <dt className="font-semibold text-[#30343a]">Notes</dt>
+                                <dd className="mt-0.5 line-clamp-2 text-[#5f6670]">{notes}</dd>
+                              </div>
+                            ) : null}
+                          </dl>
+                        </td>
+                        <td className="px-3 py-6 text-center text-[16px] font-semibold text-[#30343a]">{item.quantity}</td>
+                        <td className="px-3 py-6 text-right">
+                          <p className="text-[16px] font-semibold text-[#30343a]">{unit === null ? "Pending" : formatPrice(unit)}</p>
+                          <p className="mt-1 text-[12px] font-medium text-[#6f737a]">/ea</p>
+                        </td>
+                        <td className="px-3 py-6 text-right text-[16px] font-semibold text-[#30343a]">{formatSummaryPrice(total)}</td>
+                        <td className="px-3 py-6 text-[13px] leading-5">
+                          <p className="whitespace-nowrap text-[12px] font-semibold text-[#30343a]">{lineItemLeadTime(item, request)}</p>
+                          <p className="mt-2 text-[#5f6670]">Est. ship by {formatDate(request.quote.estimatedDeliveryDate)}</p>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-[#d8dde5]">
+                    <td className="px-5 py-5" colSpan={4} />
+                    <th className="px-3 py-5 text-right text-[14px] font-semibold text-[#30343a]" scope="row">Subtotal <span className="text-[12px] font-semibold text-[#6f737a]">(USD)</span></th>
+                    <td className="px-5 py-5 text-right text-[18px] font-semibold text-[#202020]">{formatSummaryPrice(subtotalCents)}</td>
+                  </tr>
+                </tfoot>
+              </table>
 
-                return (
-                  <article className="grid grid-cols-2 gap-5 px-5 py-5 sm:px-6 2xl:grid-cols-[minmax(0,1.4fr)_minmax(180px,1fr)_70px_100px] 2xl:items-start 2xl:gap-4" key={item.id}>
-                    <div className="col-span-2 min-w-0 2xl:col-span-1">
+              <div className="divide-y divide-[#e1e4e8] xl:hidden">
+                {request.lineItems.map((item, index) => {
+                  const total = lineItemTotalCents(item, request);
+                  const unit = lineItemUnitCents(item, total);
+                  const files = lineItemFiles[index];
+                  const file = files?.cadFile ?? request.files[index] ?? request.files[0];
+                  const drawingFile = files?.drawingFile;
+                  const fileName = customerFacingFileName(file?.name, item.partName);
+                  const downloadHref = fileDownloadHref(file);
+                  const customerLine = quotedLineForItem(item, request);
+                  const process = customerLine?.process || request.process || "CNC";
+                  const material = customerLine?.material || item.material;
+                  const finish = customerLine?.finish || item.surfaceFinish || "As machined";
+                  const tolerance = item.generalTolerance || "ISO 2768-m";
+                  const inspection = (item.qualityDocumentation ?? []).length > 0 ? (item.qualityDocumentation ?? []).join(", ") : "Standard Inspection";
+                  const notes = item.notes?.trim() || "";
+
+                  return (
+                    <article className="px-5 py-5 sm:px-6" key={item.id}>
                       <div className="flex items-start gap-4">
                         <CadRenderPreview file={file} index={index} />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           {downloadHref ? (
-                            <a className="block break-words text-[15px] font-semibold text-[#4f7cff] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
+                            <a className="block break-words text-[15px] font-semibold text-[#3d6fe8] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
                               {fileName}
                             </a>
                           ) : (
-                            <p className="break-words text-[15px] font-semibold text-[#4f7cff]">{fileName}</p>
+                            <p className="break-words text-[15px] font-semibold text-[#3d6fe8]">{fileName}</p>
                           )}
+                          <p className="mt-1 text-[13px] font-medium leading-5 text-[#4f5660]">{item.partName}</p>
+                          <p className="mt-2 text-[12px] font-medium text-[#7b8088]">{fileExtension(file?.name)} · {formatFileSize(file?.sizeBytes)} · Rev 1</p>
                           {drawingFile ? (
-                            <span className="mt-2 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[13px] font-medium text-[#4f7cff]">
+                            <span className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#3d6fe8]">
                               <span className="truncate">{drawingFile.name}</span>
                               <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
                             </span>
                           ) : null}
                         </div>
                       </div>
-                    </div>
-                    <div className="col-span-2 text-[13px] leading-5 text-[#30343a] 2xl:col-span-1">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] 2xl:hidden">Configuration</p>
-                      <p className="mt-1 font-semibold 2xl:mt-0">{request.process || "CNC"}</p>
-                      <p className="text-[#5f6670]">{item.material}</p>
-                      <p className="text-[#5f6670]">{item.surfaceFinish || "No finish (As machined)"}</p>
-                      {(item.qualityDocumentation ?? []).length > 0 ? <p className="text-[#5f6670]">{(item.qualityDocumentation ?? []).join(", ")}</p> : null}
-                    </div>
-                    <div className="2xl:text-center" aria-label={`Quantity for ${item.partName}`}>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] 2xl:hidden">Quantity</p>
-                      <p className="mt-1 text-[16px] font-semibold text-[#262a30] 2xl:mt-0">{item.quantity}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] 2xl:hidden">Price</p>
-                      <p className="mt-1 text-[18px] font-semibold text-[#262a30] 2xl:mt-0">{formatSummaryPrice(total)}</p>
-                      <p className="mt-1 text-[12px] text-[#5f6670]">{unit === null ? "Pending" : `${formatPrice(unit)}/ea`}</p>
-                    </div>
-                  </article>
-                );
-              })}
+                      <dl className="mt-5 grid gap-4 text-[13px] leading-5 sm:grid-cols-2">
+                        <div>
+                          <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Specifications</dt>
+                          <dd className="mt-2 space-y-2 text-[#5f6670]">
+                            <p><span className="font-semibold text-[#30343a]">Process</span><br />{process}</p>
+                            <p><span className="font-semibold text-[#30343a]">Material</span><br />{material}</p>
+                            <p><span className="font-semibold text-[#30343a]">Finish</span><br />{finish}</p>
+                            <p><span className="font-semibold text-[#30343a]">Tolerance</span><br />{tolerance}</p>
+                            <p><span className="font-semibold text-[#30343a]">Inspection</span><br />{inspection}</p>
+                            {notes ? <p><span className="font-semibold text-[#30343a]">Notes</span><br />{notes}</p> : null}
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 sm:block sm:space-y-4">
+                          <div>
+                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Qty</dt>
+                            <dd className="mt-1 text-[16px] font-semibold text-[#30343a]">{item.quantity}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Unit price</dt>
+                            <dd className="mt-1 text-[16px] font-semibold text-[#30343a]">{unit === null ? "Pending" : `${formatPrice(unit)}/ea`}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Line total</dt>
+                            <dd className="mt-1 text-[18px] font-semibold text-[#30343a]">{formatSummaryPrice(total)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Lead time</dt>
+                            <dd className="mt-1 text-[13px] font-semibold text-[#30343a]">{lineItemLeadTime(item, request)}</dd>
+                            <dd className="mt-1 text-[12px] text-[#5f6670]">Est. ship by {formatDate(request.quote.estimatedDeliveryDate)}</dd>
+                          </div>
+                        </div>
+                      </dl>
+                    </article>
+                  );
+                })}
+                <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
+                  <p className="text-[14px] font-semibold text-[#30343a]">Subtotal <span className="text-[12px] font-semibold text-[#6f737a]">(USD)</span></p>
+                  <p className="text-[18px] font-semibold text-[#202020]">{formatSummaryPrice(subtotalCents)}</p>
+                </div>
+              </div>
             </div>
           </section>
 
         </main>
 
-        <aside className="space-y-5 xl:col-span-4">
+        <aside className="space-y-5">
           <section className="rounded-md border border-[#e7e7e7] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-6">
             <div className="border-b border-[#eeeeee] px-6 py-5">
               <h2 className="text-[16px] font-semibold text-[#202020]">Summary</h2>
