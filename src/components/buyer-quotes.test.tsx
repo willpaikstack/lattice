@@ -100,23 +100,22 @@ describe("BuyerQuotes", () => {
     expect(screen.getByRole("heading", { name: "Quotes in progress" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Quote received" })).toBeInTheDocument();
     expect(screen.getAllByText("Last edited").length).toBeGreaterThan(0);
-    expect(screen.getByText("Motor plate draft")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Edit incomplete quote for Motor plate draft" })).toHaveAttribute("href", "/requests/new?draft=demo_incomplete");
+    expect(screen.getByText("Pump cover revision C")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Edit incomplete quote for Pump cover revision C" })).toHaveAttribute("href", "/requests/new?draft=demo_draft_pump_cover");
     expect(screen.getByText("Draft")).toBeInTheDocument();
     expect(screen.getAllByText("Quote Requested").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Quote Received").length).toBeGreaterThan(0);
-    expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
-    expect(screen.getByText("Pump housing prototype")).toBeInTheDocument();
-    expect(screen.getAllByRole("img", { name: "CAD render snapshot for Mounting bracket" }).length).toBeGreaterThan(0);
+    expect(screen.getByText("Gearbox mounting plate")).toBeInTheDocument();
+    expect(screen.getByText("Valve body prototype")).toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: "CAD render snapshot for CNC mounting bracket set" }).length).toBeGreaterThan(0);
     expect(screen.getByText("LQ-DEMO_NEE")).toBeInTheDocument();
-    expect(screen.queryByText("Valve manifold order")).not.toBeInTheDocument();
+    expect(screen.queryByText("Battery tray fixture")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Quote status filters")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Needs info" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Search quotes")).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Search RFQ, part, or material...")).not.toBeInTheDocument();
-    expect(screen.getByText("Sensor enclosure production run")).toBeInTheDocument();
-    expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
-    expect(screen.getByText("Pump housing prototype")).toBeInTheDocument();
+    expect(screen.getByText("CNC mounting bracket set")).toBeInTheDocument();
+    expect(screen.getByText("Fluid manifold production run")).toBeInTheDocument();
   });
 
   it("shows an additional part count next to quote preview thumbnails", () => {
