@@ -110,6 +110,32 @@ model RoadmapInterest {
   @@index([userEmail, updatedAt])
 }
 
+enum MaterialInquiryStatus {
+  NEW
+  REVIEWING
+  RESOLVED
+}
+
+model MaterialInquiry {
+  id             String                @id @default(cuid())
+  materialName   String
+  specification  String                @default("")
+  stockForm      String                @default("")
+  quantity       String                @default("")
+  intendedUse    String
+  notes          String                @default("")
+  requesterName  String
+  requesterEmail String
+  company        String
+  status         MaterialInquiryStatus @default(NEW)
+  operatorNotes  String                @default("")
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([status, createdAt])
+  @@index([requesterEmail, createdAt])
+}
+
 model AccountDefaults {
   id                         String   @id
   name                       String   @default("")

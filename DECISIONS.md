@@ -2,6 +2,19 @@
 
 Durable project decisions for Lattice OS. Add new entries at the top.
 
+## 2026-08-11 - Route Unlisted Materials Through A Dedicated Inquiry Workflow
+
+Decision: remove search from the family-level Materials atlas and route `Request an unlisted material` to a dedicated customer inquiry form. Persist each inquiry through PostgreSQL with a development-only local fallback, and expose an admin queue with `New`, `Reviewing`, and `Resolved` states plus internal sourcing notes.
+
+Reason: the atlas is intended to help buyers browse established material families, while an unlisted material needs structured qualification before it can be treated as an RFQ-ready network offering. Sending that request directly into the CAD-first quote form loses the designation, stock-form, quantity, application, and sourcing context needed for responsible follow-up.
+
+Implications:
+
+- `/materials/inquiry` collects the material name, optional specification, company, stock form, quantity, application requirements, and additional notes from an authenticated customer/admin session.
+- `/admin/material-inquiries` is the operator queue for supplier validation, internal notes, and workflow status.
+- `MaterialInquiry` records belong in PostgreSQL for production and fall back to `.data/material-inquiries.json` only when Prisma is unavailable in development.
+- Repeatable validated offerings can later be promoted into the customer catalog; an inquiry does not itself claim availability.
+
 ## 2026-08-10 - Present Plastics Through Functional Selection Traits
 
 Decision: the customer-facing Plastics / polymers family guide does not display mechanical-property tables. Its curated common grades instead show a compact functional-selection rail: heat tolerance, moisture response, chemical resistance, and wear / friction. The long-tail directory likewise omits mechanical-property tables and directs the buyer to confirm the exact resin data sheet during RFQ review.
@@ -1038,3 +1051,15 @@ Implications:
 - The active request handoff path should not depend on `localStorage`.
 - Request persistence belongs in `src/lib/request-repository.ts`, `src/lib/request-persistence.ts`, and `prisma/schema.prisma`.
 - Workflow tests should cover validation, persistence mapping, and queue behavior.
+## 2026-08-11 - Public Entry Leads With Manufacturing Proof And Account-Free Quoting
+
+Decision: replace the invite-only public entry screen with a manufacturing-specific landing page that makes the account-free simple quote the primary conversion path.
+
+Reason: prospects need to understand Lattice's overflow-capacity value, quality controls, and managed workflow before being asked to create an account or request access. A relatable CNC close-up and concrete inspection evidence make the network model more credible to manufacturing buyers.
+
+Implications:
+
+- `/` leads with `Start your quote` into `/simple-quote`; account access remains available but secondary.
+- Public navigation exposes capabilities, materials, quality documentation, and the on-page workflow explanation.
+- The dark technical visual system remains appropriate for the public site, while authenticated workspace surfaces remain a light B2B operations console.
+- The 2026-05-26 invite-only public-entry decision and the invite-only implications of the 2026-06-01 visual-system decision are superseded for `/`.

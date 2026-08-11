@@ -127,11 +127,16 @@ describe("MaterialGradeDirectory", () => {
     expect(getDirectoryMechanicalProperties("Stainless steel", "SS 300 series")).toBeUndefined();
   });
 
-  it("does not show mechanical-property tables for the plastics directory", () => {
+  it("shows plastic functional traits directly in each directory card without a grade dropdown", () => {
     render(<MaterialGradeDirectory familyName="Plastics / polymers" groups={[{ name: "Engineering thermoplastics", grades: ["PEEK"] }]} totalCount={1} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /PEEK/ }));
     expect(screen.queryByText("Reference mechanical properties")).not.toBeInTheDocument();
-    expect(screen.getByText(/Functional characteristics vary by resin grade/i)).toBeInTheDocument();
+    expect(screen.getByText("Heat tolerance:")).toBeInTheDocument();
+    expect(screen.getByText("Moisture response:")).toBeInTheDocument();
+    expect(screen.getByText("Chemical resistance:")).toBeInTheDocument();
+    expect(screen.getByText("Wear / friction:")).toBeInTheDocument();
+    expect(screen.getByText("High")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /PEEK/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Typical applications")).not.toBeInTheDocument();
   });
 });

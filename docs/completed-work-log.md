@@ -491,3 +491,22 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Added representative-image labeling, customer-safe quantity/guidance fields for the Jingdiao JDGR200T, a technical data-sheet link, and an `Evaluate my part` route into the RFQ workflow.
 - Replaced the nested interactive accordion markup with one accessible disclosure button per machine card and preserved filters, sorting, and open/closed states.
 - Verification: focused Equipment tests, typecheck, lint, production build, desktop visual comparison, 390 px mobile responsive checks, accordion interaction checks, and a clean browser console.
+## 2026-08-11 — Implemented the manufacturing-proof public landing page
+
+- Replaced the prior invite-only entry screen with the selected manufacturing-proof concept: a close CNC-machine hero, overflow-capacity positioning, account-free quote CTA, managed-service proof strip, and inspection-document workflow section.
+- Added responsive generated raster assets for the CNC hero and inspection-report proof, with accessible image descriptions and existing icon-library controls.
+- Connected public navigation and conversion paths to capabilities, materials, quality documentation, login, the on-page workflow, and `/simple-quote`.
+- Added focused landing-page regression coverage and verified the desktop/mobile layouts, anchor behavior, simple-quote navigation, and a clean browser console.
+
+## 2026-08-11 — Added the unlisted-material inquiry workflow
+
+- Removed search from the family-level Materials atlas and routed `Request an unlisted material` to a dedicated authenticated inquiry form.
+- Added PostgreSQL-first `MaterialInquiry` persistence with a development local fallback, customer confirmation state, and an admin queue with New/Reviewing/Resolved status plus internal sourcing notes.
+- Added Material Inquiries to admin navigation and documented the new customer/admin routes, data source, and rollout requirement.
+- Verification: Prisma client generation, four focused test files (7 tests), TypeScript typecheck, focused ESLint, full customer submission/confirmation smoke test, admin queue/status-update smoke test, and desktop visual review passed. The synthetic browser QA record was removed after verification.
+
+## 2026-08-11 — Integrated functional traits into plastic directory cards
+
+- Removed the expandable plastic-grade subcard that repeated typical applications and carried the now-retired mechanical-property treatment.
+- Applied the four-item functional-selection rail from Common grades directly to every plastic directory card: heat tolerance, moisture response, chemical resistance, and wear / friction.
+- Kept application context, common forms, and machinability in the main card, so each plastic grade is scannable without an additional interaction.

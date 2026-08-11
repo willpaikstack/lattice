@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import MaterialsPage from "./page";
@@ -8,8 +8,8 @@ describe("MaterialsPage", () => {
     render(<MaterialsPage />);
 
     expect(screen.getByRole("heading", { name: "Materials" })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search by grade, alloy, or family")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Request an unlisted material/ })).toHaveAttribute("href", "/requests/new");
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Request an unlisted material/ })).toHaveAttribute("href", "/materials/inquiry");
     expect(screen.getByLabelText("Material families")).toHaveClass("lg:grid-cols-3");
     expect(screen.getByRole("heading", { name: "Aluminum" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Aluminum 21 offerings/ })).toHaveAttribute("href", "/materials/aluminum");
@@ -17,14 +17,4 @@ describe("MaterialsPage", () => {
     expect(screen.getByRole("heading", { name: "Plastics / polymers" })).toBeInTheDocument();
     expect(screen.queryByText("View grades")).not.toBeInTheDocument();
   });
-
-  it("filters families by grade as the buyer searches", () => {
-    render(<MaterialsPage />);
-
-    fireEvent.change(screen.getByPlaceholderText("Search by grade, alloy, or family"), { target: { value: "PEEK" } });
-
-    expect(screen.getByRole("heading", { name: "Plastics / polymers" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Aluminum" })).not.toBeInTheDocument();
-  });
-
 });

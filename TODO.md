@@ -5,6 +5,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 ## Next Priorities
 
 - Apply the order-progress schema changes (`SupplierOrderStatus.DELIVERED`, `Request.orderNextMilestone`, `Request.orderNextMilestoneDate`, `Request.orderResponsibleParty`, and `SupplierUpdate.actor`) to local and production PostgreSQL with `npm run db:push`, then smoke test a manual admin update through `/admin/orders/[requestId]`.
+- Apply the new `MaterialInquiry` model and `MaterialInquiryStatus` enum to local and production PostgreSQL with `npm run db:push` before rolling out the unlisted-material inquiry workflow; development currently falls back to `.data/material-inquiries.json` when Prisma is unavailable.
 - Decide the correction/override policy for an incorrectly recorded order milestone before broader operator rollout; v1 intentionally prevents backward status changes.
 
 - Append to `docs/completed-work-log.md` at the end of substantial sessions so completed tasks, features, fixes, and docs changes stay visible by date across computers.

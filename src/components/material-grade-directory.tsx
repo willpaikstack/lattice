@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Droplets, FlaskConical, Gauge, Thermometer } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { CustomerMaterialCondition, CustomerMaterialSubGroup } from "@/lib/customer-material-catalog";
@@ -9,6 +9,12 @@ import { getDirectoryMechanicalProperties, materialMechanicalProperties, type Ma
 type GradeProfile = {
   applications: string;
   forms: string;
+  functionalTraits?: {
+    chemicalResistance: string;
+    heatTolerance: string;
+    moistureResponse: string;
+    wearFriction: string;
+  };
   machinability: "Difficult" | "Fair" | "Good" | "Review" | "Unspecified";
   machinabilitySourceLabel?: string;
   machinabilitySourceUrl?: string;
@@ -297,9 +303,26 @@ function plasticProfile(grade: string): GradeProfile {
   const difficult = /PTFE|Teflon|UHMW/i.test(grade) || filledOrLaminate;
   const fair = /Nylon|\bPA\b|PA12|HDPE|\bPE\b|\bPP\b|PVDF|Torlon|ESD|100 AF/i.test(grade);
   const missing = /ASTM D6100|Bakelite|EPDM|Overmolded|Photopolymer|PU8150|PU8400|PX233|PX521|PX527/i.test(grade);
-  if (missing) return { applications: "Polymer components selected for the required service environment and application.", forms: "Stock form confirmed during RFQ review", machinability: "Unspecified", selectionGuidance: "This is a standard, elastomer, proprietary resin, or multi-material assembly without one traceable machining condition.", temper: "As listed", uns: null };
+  if (missing) return { applications: "Polymer components selected for the required service environment and application.", forms: "Stock form confirmed during RFQ review", functionalTraits: { heatTolerance: "Confirm", moistureResponse: "Confirm", chemicalResistance: "Confirm", wearFriction: "Confirm" }, machinability: "Unspecified", selectionGuidance: "This is a standard, elastomer, proprietary resin, or multi-material assembly without one traceable machining condition.", temper: "As listed", uns: null };
   const rating = difficult ? "Difficult" : fair ? "Fair" : "Good";
-  return sourcedProfile("Polymer", rating, "Ensinger machining-material guidance", "https://www.ensingerplastics.com/en-us/machining/machining-materials", filledOrLaminate ? "Fiber-filled and laminate stock is abrasive and needs material-specific tooling and dust control." : difficult ? "Low stiffness, heat sensitivity, or chip control make this polymer more demanding to machine." : fair ? "Modified, hygroscopic, or lower-stiffness polymers need condition-aware workholding and thermal control." : "This polymer family is generally well suited to conventional machining; confirm filler, grade, and stress-relief needs.", "Plate, rod, tube");
+  return {
+    ...sourcedProfile("Polymer", rating, "Ensinger machining-material guidance", "https://www.ensingerplastics.com/en-us/machining/machining-materials", filledOrLaminate ? "Fiber-filled and laminate stock is abrasive and needs material-specific tooling and dust control." : difficult ? "Low stiffness, heat sensitivity, or chip control make this polymer more demanding to machine." : fair ? "Modified, hygroscopic, or lower-stiffness polymers need condition-aware workholding and thermal control." : "This polymer family is generally well suited to conventional machining; confirm filler, grade, and stress-relief needs.", "Plate, rod, tube"),
+    functionalTraits: functionalTraitsForPlastic(grade),
+  };
+}
+
+function functionalTraitsForPlastic(grade: string): NonNullable<GradeProfile["functionalTraits"]> {
+  if (/PEEK|PEI|ULTEM|Torlon/i.test(grade)) return { heatTolerance: "High", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Good" };
+  if (/PPSU|PPS/i.test(grade)) return { heatTolerance: "High", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Moderate" };
+  if (/PTFE|Teflon/i.test(grade)) return { heatTolerance: "High", moistureResponse: "Very low", chemicalResistance: "Excellent", wearFriction: "Very low" };
+  if (/PVDF|PVC/i.test(grade)) return { heatTolerance: "Medium", moistureResponse: "Low", chemicalResistance: "Excellent", wearFriction: "Moderate" };
+  if (/UHMW/i.test(grade)) return { heatTolerance: "Low", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Very low" };
+  if (/Nylon|\bPA\b/i.test(grade)) return { heatTolerance: "Medium", moistureResponse: "High", chemicalResistance: "Fair", wearFriction: "Good" };
+  if (/POM|Acetal|Delrin/i.test(grade)) return { heatTolerance: "Medium", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Low" };
+  if (/HDPE|Polyethylene|\bPE\b|\bPP\b|Polypropylene/i.test(grade)) return { heatTolerance: "Low", moistureResponse: "Low", chemicalResistance: "Excellent", wearFriction: "Low" };
+  if (/PC|Polycarbonate|PMMA|Acrylic|PET|PBT/i.test(grade)) return { heatTolerance: "Medium", moistureResponse: "Low", chemicalResistance: "Fair", wearFriction: "Moderate" };
+  if (/GF|Glass Filled|Carbon Fibre|Fibre glass|FR4|Garolite/i.test(grade)) return { heatTolerance: "Medium", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Good" };
+  return { heatTolerance: "Low", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Moderate" };
 }
 
 export function profileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
@@ -354,6 +377,41 @@ function MachinabilityScale({ value }: { value: GradeProfile["machinability"] })
   );
 }
 
+function FunctionalTraitRail({ traits }: { traits: NonNullable<GradeProfile["functionalTraits"]> }) {
+  return (
+    <div className="grid gap-3 border-t border-[#e8e7e4] pt-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+      {[
+        [Thermometer, "Heat tolerance", traits.heatTolerance],
+        [Droplets, "Moisture response", traits.moistureResponse],
+        [FlaskConical, "Chemical resistance", traits.chemicalResistance],
+        [Gauge, "Wear / friction", traits.wearFriction],
+      ].map(([Icon, label, value]) => {
+        const TraitIcon = Icon as typeof Thermometer;
+        return (
+          <div className="flex min-w-0 items-center gap-2" key={label as string}>
+            <TraitIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[#787a7d]" strokeWidth={1.7} />
+            <p className="text-[12px] leading-5 text-[#67696d]"><span className="text-[#77797d]">{label as string}:</span> <span className="font-medium text-[#4d4f53]">{value as string}</span></p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PlasticDirectoryGradeCard({ grade, profile }: { grade: string; profile: GradeProfile }) {
+  if (!profile.functionalTraits) return null;
+
+  return (
+    <article className="grid w-full gap-3 border-b border-[#e7e6e3] px-4 py-4 last:border-b-0 md:min-w-[820px] md:grid-cols-[130px_minmax(190px,1.2fr)_minmax(160px,1fr)_150px] md:gap-4">
+      <div><p className="text-[14px] font-semibold text-[#242527]">{displayGradeName(grade)}</p><p className="mt-0.5 text-[11px] text-[#77797d]">Designation as listed</p></div>
+      <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Best suited for</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
+      <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Common forms</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.forms}</p></div>
+      <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">â€”</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}</div>
+      <div className="md:col-span-4"><FunctionalTraitRail traits={profile.functionalTraits} /></div>
+    </article>
+  );
+}
+
 export function MaterialGradeDirectory({ familyName, groups, totalCount }: { familyName: string; groups: CustomerMaterialSubGroup[]; totalCount: number }) {
   const catalogNoun = familyName === "Aluminum" ? "offerings" : "grades";
   const usesFunctionalTraits = familyName === "Plastics / polymers";
@@ -396,6 +454,7 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
           <span className="text-[13px] font-medium text-[#66686c]">{totalCount} {familyName === "Aluminum" ? "offerings" : "total"}</span>
         </div>
         <p className="mt-2 text-[13px] leading-5 text-[#686a6e]">Availability depends on condition, stock form, dimensions, quantity, and documentation requirements.</p>
+        {usesFunctionalTraits ? <p className="mt-2 text-[11px] leading-4 text-[#73757a]">Functional traits are qualitative selection guidance. Confirm the specific resin data sheet during RFQ review.</p> : null}
       </div>
 
       <div className="mt-5 space-y-3">
@@ -424,6 +483,10 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                     const selectedCondition = conditions.find((condition) => condition.grade === selectedConditionByGrade[grade]) ?? conditions[0];
                     const mechanicalProperties = mechanicalPropertiesForGrade(familyName, grade, selectedCondition);
                     const isExpanded = expandedGrade === grade;
+
+                    if (usesFunctionalTraits && profile.functionalTraits) {
+                      return <PlasticDirectoryGradeCard grade={grade} key={`${group.name}-${grade}`} profile={profile} />;
+                    }
 
                     return (
                       <article className="border-b border-[#e7e6e3] last:border-b-0" key={`${group.name}-${grade}`}>

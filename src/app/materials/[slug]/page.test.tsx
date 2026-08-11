@@ -33,16 +33,17 @@ describe("MaterialFamilyPage", () => {
     expect(screen.getByRole("button", { name: /Brass 360/ })).toHaveTextContent("Good");
   });
 
-  it("uses functional selection traits instead of mechanical-property tables for plastics", async () => {
+  it("uses the functional-trait rail for both common and directory plastic grades", async () => {
     const page = await MaterialFamilyPage({ params: Promise.resolve({ slug: "plastics-polymers" }) });
     render(page);
 
     expect(screen.getByRole("heading", { level: 1, name: "Plastics / polymers" })).toBeInTheDocument();
     expect(screen.queryByText("Reference properties")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Heat tolerance:")).toHaveLength(4);
-    expect(screen.getAllByText("Moisture response:")).toHaveLength(4);
-    expect(screen.getAllByText("Chemical resistance:")).toHaveLength(4);
-    expect(screen.getAllByText("Wear / friction:")).toHaveLength(4);
+    expect(screen.getAllByText("Heat tolerance:").length).toBeGreaterThan(4);
+    expect(screen.getAllByText("Moisture response:").length).toBeGreaterThan(4);
+    expect(screen.getAllByText("Chemical resistance:").length).toBeGreaterThan(4);
+    expect(screen.getAllByText("Wear / friction:").length).toBeGreaterThan(4);
+    expect(screen.queryByText("Typical applications")).not.toBeInTheDocument();
     expect(screen.getByText(/confirm the specific resin grade and data sheet during RFQ/i)).toBeInTheDocument();
   });
 });
