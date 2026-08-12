@@ -1,6 +1,55 @@
 # Decisions
 
+## 2026-08-11 - Keep Customer Stainless Offerings Grade-Specific
+
+Decision: place 303Se and 303Sulf in the 300-series austenitic group and remove the generic `SS 300 series` record from the material library.
+
+Reason: the selenium- and sulfur-modified 303 variants are specific free-machining grades. `SS 300 series` is only a family description and does not identify a material that can be reliably quoted, certified, or machined.
+
+Implications:
+
+- Customers see 303Se and 303Sulf alongside the other 300-series austenitic offerings.
+- The customer catalog and RFQ material library no longer present an umbrella family label as a selectable material.
+
+## 2026-08-11 - Present Standard 304 and 316 as Dual-Certified Offerings
+
+- Customer-facing stainless coverage consolidates standard 304/304L and 316/316L entries into one dual-certified offering each.
+- 304LVM, 316LVM, 316Ti, 304H, and 316H remain distinct because their melt practice, stabilization, or elevated-temperature specification can materially affect selection.
+- Supplier prefixes such as `SS` are removed from canonical customer-facing grade names.
+
+## 2026-08-11 - Display Verified UNS Designations Where Available
+
+- The customer catalog displays verified UNS designations for standard materials and distinguishes proprietary product names from missing data.
+- When a supplier label combines two recognized grades, the interface displays both UNS numbers rather than silently choosing one.
+
+## 2026-08-11 - Group Wrought Aluminum by Numbered Series
+
+- Standard wrought aluminum offerings belong in the series defined by their first digit; the catalog must not place them in `Other grades` because the initial rule omitted a known designation.
+- `Other grades` remains only for labels that cannot responsibly be assigned to a numbered wrought series or a dedicated cast/tooling grouping.
+
+## 2026-08-11 - Keep One Polymer Behavior Panel Open
+
+- Polymer behavior disclosures share one page-level open state: opening a different material closes the previously opened panel.
+- This prevents long catalog pages from accumulating expanded regions and keeps comparison focused on one material at a time.
+
+## 2026-08-11 - Anchor Polymer Behavior Details to Machinability
+
+- The polymer catalog keeps behavior information on demand, but its trigger now lives beneath the corresponding row's machinability signal rather than in a detached centered strip.
+- The revealed 2 × 2 functional-trait panel continues to span the full material row, retaining a readable comparison surface without sacrificing row ownership.
+
 Durable project decisions for Lattice OS. Add new entries at the top.
+
+## 2026-08-11 - Reveal Polymer Behavior On Demand
+
+Decision: polymer functional traits are disclosed through a centered `Material behavior` control rather than remaining permanently visible in every row. When opened, four traits appear as a flush 2 × 2 editorial detail within the same card: heat tolerance, moisture response, chemical resistance, and wear / friction.
+
+Reason: the traits add useful early-selection context, but keeping them open on every row makes the catalog unnecessarily dense. A quiet disclosure preserves comparison depth without obscuring the material name, forms, machinability, and primary selection note.
+
+Implications:
+
+- The component uses native disclosure behavior, so it remains keyboard-accessible without a custom interaction layer.
+- The expanded content has no tinted or nested subcard treatment; it remains a continuation of the parent material card.
+- The same interaction and content hierarchy applies to curated common grades and long-tail polymer directory rows.
 
 ## 2026-08-11 - Route Unlisted Materials Through A Dedicated Inquiry Workflow
 
@@ -54,6 +103,7 @@ Implications:
 - Customer-facing tolerance and accuracy values must state their claim basis, such as `Supplier-reported capability`, and must not guarantee final-part results.
 - Final manufacturability and achievable part tolerance are confirmed from the drawing, material, setup, fixturing, and inspection requirements during RFQ review.
 - Equipment images must distinguish representative, same-model, and actual-machine imagery when that classification is known.
+- Every customer-facing equipment record must carry an explicit image classification. Available imagery may render as a visual reference, but representative or unverified images must carry a light-yellow `Photo pending verification` label; only actual-machine and verified same-model images receive a stronger classification.
 - Vendor documents, review metadata, and field-level provenance remain in internal repositories so operators can audit and improve the customer claims.
 - Equipment specifications should be rendered from known values only; missing fields must not be replaced with invented placeholders or inferred capabilities.
 
@@ -198,6 +248,18 @@ Implications:
 - Future feature changes should update `docs/app-feature-map.md` in the same work session when routes, behavior, data sources, status, or limitations change.
 - `AGENTS.md`, `README.md`, `PROJECT_CONTEXT.md`, and `TODO.md` now point agents back to the feature map so it does not drift.
 - Durable architecture/product decisions still belong in this file; detailed next work still belongs in `TODO.md`.
+
+## 2026-08-11 - Keep Manufacturing Partner Identity Internal
+
+Decision: customer-facing routes must not disclose the identity, contact details, or unfiltered free-text operational notes of Lattice's manufacturing partners. Customer copy uses neutral Lattice-network language, while underlying supplier records remain available to authorized admin and supplier workflows.
+
+Reason: Lattice's vendor network is proprietary platform and business infrastructure. Exposing partner identities would undermine the platform's commercial model.
+
+Implications:
+
+- Customer equipment guidance must not repeat source-vendor names.
+- Customer order, shipment, support, dashboard, and notification routes must use the customer-safe request projection before rendering or serializing data.
+- Admin and supplier surfaces retain exact shop, contact, quote, and operational data.
 
 ## 2026-06-16 - Derive Buyer Dashboard Activity From Existing Request Records
 
@@ -1063,3 +1125,13 @@ Implications:
 - Public navigation exposes capabilities, materials, quality documentation, and the on-page workflow explanation.
 - The dark technical visual system remains appropriate for the public site, while authenticated workspace surfaces remain a light B2B operations console.
 - The 2026-05-26 invite-only public-entry decision and the invite-only implications of the 2026-06-01 visual-system decision are superseded for `/`.
+## 2026-08-11 - Describe Stainless Families by Material State
+
+Decision: label the stainless catalog family as `Precipitation-hardened stainless steels`, rather than `Precipitation hardening`.
+
+Reason: precipitation hardening is the treatment process; the catalog heading should describe the material family a customer is selecting.
+
+Implications:
+
+- The directory continues to group 13-8 PH, 15-5 PH, 17-4 PH, and Custom 455 together.
+- The customer-facing terminology is precise without changing the underlying grade data or grouping rules.

@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, ListFilter, Search } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { customerEquipmentGuidance } from "@/lib/customer-partner-privacy";
 import {
   equipmentSections,
   vendorEquipment,
@@ -18,8 +18,6 @@ type PresetFilter = {
   matches: (equipment: VendorEquipment) => boolean;
 };
 
-type SortOption = "make-model" | "quantity-desc" | "tolerance-asc" | "rpm-desc";
-
 const sectionSummaries: Record<EquipmentSection, string> = {
   "CNC Milling": "5-axis, 4-axis, and vertical machining centers for tight-tolerance prismatic parts.",
   "CNC Lathe": "Turning, Swiss-type, and turn-mill capacity for round parts and small precision features.",
@@ -31,13 +29,6 @@ const sectionSummaries: Record<EquipmentSection, string> = {
   "Die Casting": "Die casting presses and furnace capacity for aluminum, zinc, and magnesium alloy parts.",
   "Additive Manufacturing": "SLA, SLM, and nylon additive manufacturing equipment for prototypes and selected end-use parts.",
 };
-
-const sortOptions: { label: string; value: SortOption }[] = [
-  { label: "Make / model", value: "make-model" },
-  { label: "Quantity", value: "quantity-desc" },
-  { label: "Best tolerance", value: "tolerance-asc" },
-  { label: "Max RPM", value: "rpm-desc" },
-];
 
 const sectionFilters: Record<EquipmentSection, PresetFilter[]> = {
   "CNC Milling": [
@@ -119,22 +110,11 @@ function searchableText(equipment: VendorEquipment) {
     .toLowerCase();
 }
 
-function getQuantity(equipment: VendorEquipment) {
-  return Number(equipment.quantity.match(/\d+/)?.[0] ?? "0");
-}
-
 function getToleranceNumber(equipment: VendorEquipment) {
   const toleranceDetail = equipment.details.find((detail) => /tolerance|accuracy/i.test(detail.label));
   const value = toleranceDetail?.value.match(/0\.\d+/)?.[0];
 
   return value ? Number(value) : Number.POSITIVE_INFINITY;
-}
-
-function getMaxRpm(equipment: VendorEquipment) {
-  const rpmDetail = equipment.details.find((detail) => /rpm/i.test(detail.label));
-  const value = rpmDetail?.value.match(/[\d,]+/)?.[0]?.replace(/,/g, "");
-
-  return value ? Number(value) : 0;
 }
 
 function getMaxEnvelope(equipment: VendorEquipment) {
@@ -207,36 +187,19 @@ function getCompactSpecs(equipment: VendorEquipment) {
 
 function getCustomerGuidance(equipment: VendorEquipment) {
   return {
-    bestFor: equipment.customerGuidance?.bestFor ?? equipment.fabricatorNotes[0] ?? equipment.summary,
-    limitation: equipment.customerGuidance?.limitation ?? "Additional machine limits are confirmed during RFQ review.",
-    qualificationNote:
-      equipment.customerGuidance?.qualificationNote ??
-      "Potential fit only. Final manufacturability and part tolerance are confirmed from the drawing, material, and inspection requirements.",
+    bestFor: customerEquipmentGuidance(equipment.customerGuidance?.bestFor ?? equipment.fabricatorNotes?.[0] ?? equipment.summary),
+    limitation: customerEquipmentGuidance(equipment.customerGuidance?.limitation ?? "Additional machine limits are confirmed during RFQ review."),
   };
 }
 
 function getImageLabel(equipment: VendorEquipment) {
   if (equipment.imageKind === "actual") return "Actual machine image";
   if (equipment.imageKind === "same-model") return "Same-model image";
-  return "Representative image";
+  return "Photo pending verification";
 }
 
-function sortEquipment(equipment: VendorEquipment[], sort: SortOption) {
-  return [...equipment].sort((a, b) => {
-    if (sort === "quantity-desc") {
-      return getQuantity(b) - getQuantity(a) || a.makeModel.localeCompare(b.makeModel);
-    }
-
-    if (sort === "tolerance-asc") {
-      return getToleranceNumber(a) - getToleranceNumber(b) || a.makeModel.localeCompare(b.makeModel);
-    }
-
-    if (sort === "rpm-desc") {
-      return getMaxRpm(b) - getMaxRpm(a) || a.makeModel.localeCompare(b.makeModel);
-    }
-
-    return a.makeModel.localeCompare(b.makeModel);
-  });
+function alphabetizeEquipment(equipment: VendorEquipment[]) {
+  return [...equipment].sort((a, b) => a.makeModel.localeCompare(b.makeModel));
 }
 
 function EquipmentSectionNav({
@@ -272,7 +235,7 @@ function EquipmentSectionNav({
   };
 
   return (
-    <nav aria-label="Equipment sections" className="relative mb-12 flex items-center rounded-xl border border-stone-200/50 bg-stone-100/50 p-1.5">
+    <nav aria-label="Equipment sections" className="relative mb-12 inline-flex w-fit max-w-full items-center rounded-xl border border-stone-200/50 bg-stone-100/50 p-1.5">
       {showLeftArrow && (
         <div className="absolute bottom-0 left-0 top-0 z-10 flex items-center rounded-l-xl bg-gradient-to-r from-stone-100 via-stone-100 to-transparent pl-1 pr-4">
           <button
@@ -287,7 +250,7 @@ function EquipmentSectionNav({
       )}
 
       <div
-        className="relative z-0 flex flex-1 gap-1 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        className="relative z-0 flex min-w-0 flex-1 gap-1 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
         onScroll={checkScroll}
         ref={scrollRef}
       >
@@ -334,6 +297,11 @@ function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolea
   const guidance = getCustomerGuidance(equipment);
   const imageLabel = getImageLabel(equipment);
   const primaryDataSheet = equipment.dataSheets?.[0];
+  const specificationLink = primaryDataSheet
+    ? { label: "View technical data sheet", url: primaryDataSheet.url }
+    : equipment.onlineSpecificationUrl
+      ? { label: "View online specifications", url: equipment.onlineSpecificationUrl }
+      : undefined;
 
   return (
     <article className={`mb-4 overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 ${isExpanded ? "border-stone-300 shadow-sm" : "border-stone-200 shadow-sm hover:border-stone-300"}`}>
@@ -341,31 +309,32 @@ function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolea
         aria-controls={panelId}
         aria-expanded={isExpanded}
         aria-label={`${isExpanded ? "Hide" : "View"} ${equipment.makeModel} details`}
-        className="group grid w-full select-none grid-cols-[96px_minmax(0,1fr)_auto] items-center gap-4 px-4 py-4 text-left outline-none transition-colors hover:bg-stone-50/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stone-900/20 sm:grid-cols-[128px_minmax(0,1fr)_auto] sm:gap-6 sm:px-5"
+        className="group grid w-full select-none grid-cols-[96px_minmax(0,1fr)_auto] items-stretch gap-0 text-left outline-none transition-colors hover:bg-stone-50/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stone-900/20 sm:grid-cols-[144px_minmax(0,1fr)_auto]"
         onClick={() => setIsExpanded((current) => !current)}
         type="button"
       >
-        <div className="relative flex h-[76px] items-center justify-center overflow-hidden rounded-lg border border-stone-200 bg-white sm:h-[96px]">
-          <Image
-            alt=""
-            className="h-full w-full object-contain px-1.5 pb-5 pt-1.5"
-            height={240}
-            sizes="(max-width: 640px) 96px, 128px"
-            src={equipment.imagePath}
-            width={320}
-          />
-          <span className="absolute inset-x-0 bottom-0 truncate border-t border-stone-200 bg-white/95 px-1.5 py-1 text-center text-[9px] font-medium text-stone-500 sm:text-[10px]">
-            {imageLabel}
-          </span>
+        <div className="relative flex min-h-[108px] items-center justify-center overflow-hidden border-r border-stone-200 bg-stone-50/60 sm:min-h-[126px]">
+          {equipment.imagePath ? (
+            <Image
+              alt={`${imageLabel}: ${equipment.makeModel}`}
+              className="h-full w-full object-contain p-2.5 sm:p-3"
+              height={240}
+              sizes="(max-width: 640px) 96px, 144px"
+              src={equipment.imagePath}
+              width={320}
+            />
+          ) : (
+            <span aria-hidden="true" className="px-3 text-center text-[10px] font-medium leading-4 text-stone-400 sm:text-[11px]">No photo available</span>
+          )}
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 self-center px-4 py-4 sm:px-6">
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">{equipment.section}</span>
           <h3 className="mt-1 truncate text-[19px] font-semibold leading-tight tracking-tight text-stone-950 sm:text-[26px]">{equipment.makeModel}</h3>
           <p className="mt-1 truncate text-[13px] text-stone-500 sm:text-[15px]">{equipment.name}</p>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 self-center px-4 py-4 sm:gap-4 sm:px-5">
           <span className="hidden min-h-9 items-center rounded-md border border-stone-200 px-3 text-[13px] font-medium text-stone-700 sm:inline-flex">
             {equipment.customerQuantityLabel ?? equipment.quantity}
           </span>
@@ -389,11 +358,10 @@ function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolea
             </dl>
           )}
 
-          <dl className="grid border-b border-stone-200 lg:grid-cols-3">
+          <dl className="grid border-b border-stone-200 lg:grid-cols-2">
             {[
               { label: "Best for", value: guidance.bestFor },
               { label: "Limitation", value: guidance.limitation },
-              { label: "Qualification note", value: guidance.qualificationNote },
             ].map((item, index) => (
               <div className={`px-4 py-3.5 sm:px-5 ${index > 0 ? "border-t border-stone-200 lg:border-l lg:border-t-0" : ""}`} key={`${equipment.slug}-${item.label}`}>
                 <dt className="text-[12px] font-medium leading-4 text-stone-500">{item.label}</dt>
@@ -402,26 +370,18 @@ function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolea
             ))}
           </dl>
 
-          <div className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            {primaryDataSheet ? (
+          {specificationLink && (
+            <div className="flex min-h-16 items-center px-4 py-3 sm:px-5">
               <a
                 className="w-fit text-[13px] font-medium text-blue-700 underline-offset-4 transition-colors hover:text-blue-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700/30"
-                href={primaryDataSheet.url}
+                href={specificationLink.url}
                 rel="noreferrer"
                 target="_blank"
               >
-                View technical data sheet
+                {specificationLink.label}
               </a>
-            ) : (
-              <span aria-hidden="true" />
-            )}
-            <Link
-              className="inline-flex min-h-10 items-center justify-center rounded-md bg-stone-950 px-5 text-[13px] font-semibold text-white transition-colors hover:bg-stone-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/30 focus-visible:ring-offset-2"
-              href="/requests/new"
-            >
-              Evaluate my part
-            </Link>
-          </div>
+            </div>
+          )}
         </div>
       )}
     </article>
@@ -429,23 +389,15 @@ function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolea
 }
 
 function SectionEquipment({ section }: { section: EquipmentSection }) {
-  const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [sort, setSort] = useState<SortOption>("make-model");
   const equipmentBySection = vendorEquipment.filter((equipment) => equipment.section === section);
   const filters = sectionFilters[section];
   const activePreset = filters.find((filter) => filter.id === activeFilter) ?? filters[0];
   const filteredEquipment = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    const matchedEquipment = equipmentBySection.filter((equipment) => {
-      const text = searchableText(equipment);
-      const matchesQuery = normalizedQuery.length === 0 || text.includes(normalizedQuery);
+    const matchedEquipment = equipmentBySection.filter((equipment) => activePreset.matches(equipment));
 
-      return matchesQuery && activePreset.matches(equipment);
-    });
-
-    return sortEquipment(matchedEquipment, sort);
-  }, [activePreset, equipmentBySection, query, sort]);
+    return alphabetizeEquipment(matchedEquipment);
+  }, [activePreset, equipmentBySection]);
 
   const headingId = `${sectionId(section)}-heading`;
 
@@ -461,47 +413,8 @@ function SectionEquipment({ section }: { section: EquipmentSection }) {
         </div>
       </div>
 
-      <div className="mb-8 flex flex-col gap-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <label className="sr-only" htmlFor={`${sectionId(section)}-search`}>
-              Search
-            </label>
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Search size={16} className="text-stone-400" />
-            </div>
-            <input
-              className="w-full rounded-lg border border-stone-200 bg-stone-50 py-2.5 pl-10 pr-4 text-sm text-stone-900 placeholder-stone-500 transition-shadow focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-900/10"
-              id={`${sectionId(section)}-search`}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`Search ${section.toLowerCase()}...`}
-              type="text"
-              value={query}
-            />
-          </div>
-
-          <div className="relative shrink-0 sm:w-56">
-            <label className="sr-only" htmlFor={`${sectionId(section)}-sort`}>
-              Sort
-            </label>
-            <select
-              className="w-full appearance-none rounded-lg border border-stone-200 bg-stone-50 py-2.5 pl-10 pr-8 text-sm font-medium text-stone-800 transition-colors hover:bg-stone-100 focus:outline-none"
-              id={`${sectionId(section)}-sort`}
-              onChange={(event) => setSort(event.target.value as SortOption)}
-              value={sort}
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  Sort: {option.label}
-                </option>
-              ))}
-            </select>
-            <ListFilter size={16} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-500" />
-            <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-stone-500" />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 border-t border-stone-100 pt-2">
+      <div className="mb-8 flex flex-wrap gap-2 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap gap-2">
           {filters.map((filter) => {
             const isActive = filter.id === activeFilter;
 

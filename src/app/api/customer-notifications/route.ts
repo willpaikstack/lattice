@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildCustomerActivityFeed } from "@/lib/customer-notifications";
+import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { requireRouteRole } from "@/lib/route-authorization";
@@ -18,7 +19,7 @@ export async function GET() {
     filterCustomerVisibleRequestsForCurrentSession(await listBuyerQuotes()),
     filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders()),
   ]);
-  const notificationItems = buildCustomerActivityFeed({ orders, quotes });
+  const notificationItems = buildCustomerActivityFeed({ orders: orders.map(customerSafeRequest), quotes: quotes.map(customerSafeRequest) });
   const items = notificationItems.slice(0, 12).map((item) => ({
     actionRequired: item.actionRequired,
     detail: item.detail,

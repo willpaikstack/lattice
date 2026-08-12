@@ -1,13 +1,14 @@
 import Link from "next/link";
 
 import { BuyerOrders } from "@/components/buyer-orders";
+import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShippedPage() {
-  const orders = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders());
+  const orders = (await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders())).map(customerSafeRequest);
   const shippedOrders = orders.filter((order) => order.supplierOrder.status === "SHIPPED");
   const withTrackingCount = shippedOrders.filter((order) => order.supplierOrder.trackingNumber).length;
 

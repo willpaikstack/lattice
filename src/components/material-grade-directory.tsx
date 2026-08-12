@@ -1,9 +1,10 @@
 "use client";
 
-import { ChevronDown, ChevronUp, Droplets, FlaskConical, Gauge, Thermometer } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { CustomerMaterialCondition, CustomerMaterialSubGroup } from "@/lib/customer-material-catalog";
+import { PlasticFunctionalProfile } from "@/components/plastic-functional-profile";
 import { getDirectoryMechanicalProperties, materialMechanicalProperties, type MaterialMechanicalProperties } from "@/lib/material-grade-properties";
 
 type GradeProfile = {
@@ -140,12 +141,23 @@ const unsByDesignation: Array<[RegExp, string]> = [
   [/\b6061\b/i, "A96061"],
   [/\b6063\b/i, "A96063"],
   [/\b6082\b/i, "A96082"],
+  [/\bA413\b/i, "A04130"],
   [/\b7050\b/i, "A97050"],
   [/\b7075\b/i, "A97075"],
 ];
 
 function unsForGrade(grade: string) {
+  if (/\b316\/316L\b/i.test(grade)) return "S31600 / S31603";
+  if (/\b316LVM\b/i.test(grade)) return "S31673";
+  if (/\b316Ti\b/i.test(grade)) return "S31635";
+  if (/\b316L\b/i.test(grade)) return "S31603";
+  if (/\b316\b/i.test(grade)) return "S31600";
   return unsByDesignation.find(([designation]) => designation.test(grade))?.[1] ?? null;
+}
+
+function aluminumDesignationLabel(grade: string, uns: string | null) {
+  if (/\bMIC-?6\b/i.test(grade)) return "Proprietary tooling plate · no UNS";
+  return uns ? `UNS ${uns}` : "UNS pending verification";
 }
 
 function stainlessProfile(groupName: string, grade: string): GradeProfile {
@@ -339,7 +351,7 @@ export function profileForGrade(familyName: string, groupName: string, grade: st
     };
   }
 
-  if (familyName === "Stainless steel") return stainlessProfile(groupName, grade);
+  if (familyName === "Stainless steel") return { ...stainlessProfile(groupName, grade), uns: unsForGrade(grade) };
   if (familyName === "Mild steel") return mildSteelProfile(grade);
   if (familyName === "Brass") return brassProfile(grade);
   if (familyName === "Copper") return copperProfile(grade);
@@ -377,27 +389,6 @@ function MachinabilityScale({ value }: { value: GradeProfile["machinability"] })
   );
 }
 
-function FunctionalTraitRail({ traits }: { traits: NonNullable<GradeProfile["functionalTraits"]> }) {
-  return (
-    <div className="grid gap-3 border-t border-[#e8e7e4] pt-3 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
-      {[
-        [Thermometer, "Heat tolerance", traits.heatTolerance],
-        [Droplets, "Moisture response", traits.moistureResponse],
-        [FlaskConical, "Chemical resistance", traits.chemicalResistance],
-        [Gauge, "Wear / friction", traits.wearFriction],
-      ].map(([Icon, label, value]) => {
-        const TraitIcon = Icon as typeof Thermometer;
-        return (
-          <div className="flex min-w-0 items-center gap-2" key={label as string}>
-            <TraitIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[#787a7d]" strokeWidth={1.7} />
-            <p className="text-[12px] leading-5 text-[#67696d]"><span className="text-[#77797d]">{label as string}:</span> <span className="font-medium text-[#4d4f53]">{value as string}</span></p>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function PlasticDirectoryGradeCard({ grade, profile }: { grade: string; profile: GradeProfile }) {
   if (!profile.functionalTraits) return null;
 
@@ -407,7 +398,7 @@ function PlasticDirectoryGradeCard({ grade, profile }: { grade: string; profile:
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Best suited for</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Common forms</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.forms}</p></div>
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">â€”</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}</div>
-      <div className="md:col-span-4"><FunctionalTraitRail traits={profile.functionalTraits} /></div>
+      <PlasticFunctionalProfile detailsClassName="md:col-span-4" summaryClassName="md:ml-auto md:w-[150px]" traits={profile.functionalTraits} />
     </article>
   );
 }
@@ -491,7 +482,7 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                     return (
                       <article className="border-b border-[#e7e6e3] last:border-b-0" key={`${group.name}-${grade}`}>
                         <button aria-expanded={isExpanded} className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-[#fafaf8] md:min-w-[820px] md:grid-cols-[130px_minmax(190px,1.2fr)_minmax(160px,1fr)_150px] md:gap-4" onClick={() => setExpandedGrade(isExpanded ? "" : grade)} type="button">
-                          <div className="pr-6 md:pr-0"><p className="text-[14px] font-semibold text-[#242527]">{displayGradeName(grade)}</p><p className="mt-0.5 text-[11px] text-[#77797d]">{profile.uns ? `UNS ${profile.uns}` : familyName === "Aluminum" ? "UNS pending verification" : "Designation as listed"}</p>{familyName === "Aluminum" ? <p className="mt-1 text-[11px] font-medium text-[#5f6165]">{conditions.length > 0 ? `Available: ${conditions.map((condition) => condition.label).join(" · ")}` : "Condition confirmed in RFQ"}</p> : null}</div>
+                          <div className="pr-6 md:pr-0"><p className="text-[14px] font-semibold text-[#242527]">{displayGradeName(grade)}</p><p className="mt-0.5 text-[11px] text-[#77797d]">{familyName === "Aluminum" ? aluminumDesignationLabel(grade, profile.uns) : profile.uns ? `UNS ${profile.uns}` : "Designation as listed"}</p>{familyName === "Aluminum" ? <p className="mt-1 text-[11px] font-medium text-[#5f6165]">{conditions.length > 0 ? `Available: ${conditions.map((condition) => condition.label).join(" · ")}` : "Condition confirmed in RFQ"}</p> : null}</div>
                           <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Best suited for</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
                           <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Common forms</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.forms}</p></div>
                           <div className="relative"><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">—</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}{isExpanded ? <ChevronUp aria-hidden="true" className="absolute right-0 top-0 h-4 w-4" /> : <ChevronDown aria-hidden="true" className="absolute right-0 top-0 h-4 w-4" />}</div>

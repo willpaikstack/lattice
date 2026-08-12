@@ -31,6 +31,8 @@ export type EquipmentCustomerGuidance = {
   qualificationNote?: string;
 };
 
+export type EquipmentImageKind = "actual" | "same-model" | "representative";
+
 export type VendorEquipment = {
   slug: string;
   vendor: string;
@@ -39,9 +41,9 @@ export type VendorEquipment = {
   makeModel: string;
   quantity: string;
   customerQuantityLabel?: string;
-  imagePath: string;
+  imagePath?: string;
   imageSourceUrl: string;
-  imageKind?: "actual" | "same-model" | "representative";
+  imageKind: EquipmentImageKind;
   summary: string;
   details: {
     label: string;
@@ -50,6 +52,8 @@ export type VendorEquipment = {
   fabricatorNotes: string[];
   customerGuidance?: EquipmentCustomerGuidance;
   dataSheets?: EquipmentDataSheet[];
+  /** A public manufacturer or distributor page that names this exact model. */
+  onlineSpecificationUrl?: string;
   machineUrl: string;
   source: EquipmentSource;
 };
@@ -89,12 +93,7 @@ export const equipmentSections: EquipmentSection[] = [
   "CNC Milling",
   "CNC Lathe",
   "QC & Inspection",
-  "Manual Machines",
   "Sheet Metal",
-  "Finishing",
-  "EDM",
-  "Die Casting",
-  "Additive Manufacturing",
 ];
 
 const millingImage = "/equipment/hermle-five-axis-cell.jpg";
@@ -154,72 +153,78 @@ const jingdiaoDataSheets = {
   },
 } satisfies Record<string, EquipmentDataSheet>;
 
-function millingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string }) {
+function millingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; imageKind?: EquipmentImageKind; machineUrl?: string }): VendorEquipment {
   return {
     vendor: "Zintilon",
     section: "CNC Milling" as const,
     imagePath: input.imagePath ?? millingImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://www.hermleusa.net/machining-centres-automation/models/machining-centre-c-400-gen2/",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://www.hermle.de/en/machining-centres-automation/models/overview/",
     source: equipmentSources.zintilonProcessing,
     ...input,
   };
 }
 
-function latheCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string }) {
+function latheCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; imageKind?: EquipmentImageKind; machineUrl?: string }): VendorEquipment {
   return {
     vendor: "Zintilon",
     section: "CNC Lathe" as const,
     imagePath: input.imagePath ?? latheImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://www.industrysearch.com.au/hardinge-turning-machine-gs-200/p/200045",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://www.hardinge.com/turning/turning-centers/",
     source: equipmentSources.zintilonProcessing,
     ...input,
   };
 }
 
-function qcCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string }) {
+function qcCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; imageKind?: EquipmentImageKind; machineUrl?: string }): VendorEquipment {
   return {
     vendor: "Zintilon",
     section: "QC & Inspection" as const,
     imagePath: input.imagePath ?? inspectionImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://www.zeiss.com/metrology/us/systems/cmms/bridge-type-cmms/contura.html",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://www.zeiss.com/metrology/us/systems/cmms.html",
     source: equipmentSources.zintilonQc,
     ...input,
   };
 }
 
-function manualCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string; source?: EquipmentSource }) {
+function manualCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; imageKind?: EquipmentImageKind; machineUrl?: string; source?: EquipmentSource }): VendorEquipment {
   return {
     vendor: "Zintilon",
     section: "Manual Machines" as const,
     imagePath: input.imagePath ?? secondaryImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://www.zintilon.com/",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://www.zintilon.com/",
     source: input.source ?? equipmentSources.zintilonSheetMetal,
     ...input,
   };
 }
 
-function sheetMetalCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string; source?: EquipmentSource }) {
+function sheetMetalCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; imageKind?: EquipmentImageKind; machineUrl?: string; source?: EquipmentSource }): VendorEquipment {
   return {
     vendor: "Zintilon",
     section: "Sheet Metal" as const,
     imagePath: input.imagePath ?? pressBrakeImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://www.zintilon.com/",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://www.zintilon.com/",
     source: input.source ?? equipmentSources.zintilonSheetMetal,
     ...input,
   };
 }
 
-function finishingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; machineUrl?: string; source?: EquipmentSource }) {
+function finishingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source"> & { imagePath?: string; imageSourceUrl?: string; imageKind?: EquipmentImageKind; machineUrl?: string; source?: EquipmentSource }): VendorEquipment {
   return {
     vendor: "Zintilon",
     section: "Finishing" as const,
     imagePath: input.imagePath ?? finishingImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://thermal-mech.com/product/panasonic-yc-350wx5/",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://industry.panasonic.eu/welding",
     source: input.source ?? equipmentSources.zintilonProcessing,
     ...input,
@@ -228,24 +233,28 @@ function finishingCard(input: Omit<VendorEquipment, "vendor" | "section" | "imag
 
 function bestPrototypesCard(
   section: EquipmentSection,
-  input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "machineUrl" | "source"> & {
+  input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source" | "fabricatorNotes"> & {
     imagePath?: string;
     imageSourceUrl?: string;
+    imageKind?: EquipmentImageKind;
     machineUrl?: string;
+    fabricatorNotes?: string[];
   },
-) {
+): VendorEquipment {
   return {
     vendor: "Best Prototypes",
     section,
     imagePath: input.imagePath ?? millingImage,
     imageSourceUrl: input.imageSourceUrl ?? "https://best-prototypes.com/",
+    imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://best-prototypes.com/",
     source: bestPrototypesSource,
+    fabricatorNotes: input.fabricatorNotes ?? [],
     ...input,
   };
 }
 
-export const vendorEquipment: VendorEquipment[] = [
+const vendorEquipmentRecords: VendorEquipment[] = [
   millingCard({
     slug: "hermle-c400",
     name: "5-axis CNC milling machine",
@@ -344,6 +353,7 @@ export const vendorEquipment: VendorEquipment[] = [
     imagePath: "/equipment/dmg-mori-dmu-50.jpg",
     imageSourceUrl: "https://us.dmgmori.com/products/machines/milling/5-axis-milling/dmu/dmu-50",
     machineUrl: "https://us.dmgmori.com/products/machines/milling/5-axis-milling/dmu/dmu-50",
+    onlineSpecificationUrl: "https://us.dmgmori.com/products/machines/milling/5-axis-milling/dmu/dmu-50",
     summary: "Flexible DMG 5-axis capacity for prototype through production milling.",
     details: [
       { label: "3-axis envelope", value: "650 x 520 x 475 mm" },
@@ -491,8 +501,8 @@ export const vendorEquipment: VendorEquipment[] = [
     name: "CNC milling machine",
     makeModel: "Shandong Shengyu 850",
     quantity: "10 sets",
-    imagePath: "/equipment/vmc850.jpg",
-    imageSourceUrl: "https://www.ncmillingmachine.com/vertical-machining-center-vmc-855a-product/",
+    imagePath: "/equipment/generic-vmc850-uniontech.png",
+    imageSourceUrl: "supplier-provided VMC-850 visual reference (unverified model match)",
     summary: "Shared Shengyu 850 make/model listed across 5-axis and 4-axis CNC milling capacity.",
     details: [
       { label: "Processing envelope", value: "800 x 500 x 700 mm" },
@@ -714,28 +724,12 @@ export const vendorEquipment: VendorEquipment[] = [
     fabricatorNotes: ["Use where 1500 mm travel is more important than 5-axis capability."],
   }),
   millingCard({
-    slug: "fanuc-31i-model-b-plus",
-    name: "3-axis CNC milling machine",
-    makeModel: "FANUC 31i-MODEL B Plus",
-    quantity: "10 sets",
-    imagePath: "/equipment/fanuc-31i-model-b-plus.jpg",
-    imageSourceUrl: "https://www.fanuc.co.jp/en/product/cnc/fs_30i-bplus.html",
-    summary: "High-count FANUC-controlled 3-axis capacity for smaller production work.",
-    details: [
-      { label: "Processing envelope", value: "500 x 400 x 330 mm" },
-      { label: "Best tolerance", value: "+/-0.01 mm" },
-      { label: "Max RPM", value: "24,000" },
-      { label: "Control", value: "Fanuc 0i MF" },
-    ],
-    fabricatorNotes: ["Ten-machine count and high spindle speed support repeat small-part work."],
-  }),
-  millingCard({
     slug: "jingrui-wh-866",
     name: "3-axis CNC milling machine",
     makeModel: "Shenzhen JingRui WH-866 (BT40)",
     quantity: "2 sets",
-    imagePath: "/equipment/vmc850.jpg",
-    imageSourceUrl: "https://www.ncmillingmachine.com/vertical-machining-center-vmc-855a-product/",
+    imagePath: "/equipment/generic-vmc-866.webp",
+    imageSourceUrl: "https://njnewsiv.en.made-in-china.com/product/VGzRaWTrulki/China-3-Axis-CNC-Milling-Machine-Vmc-866-CNC-Vertical-Machining-Center.html",
     summary: "3-axis milling capacity with strong tolerance listing.",
     details: [
       { label: "Processing envelope", value: "860 x 600 x 600 mm" },
@@ -753,6 +747,7 @@ export const vendorEquipment: VendorEquipment[] = [
     imagePath: "/equipment/makino-ps105.jpg",
     imageSourceUrl: "https://www.makino.com/en-us/machine-technology/machines/vertical-machining-centers-3-axis/ps105-vertical-machining-center",
     machineUrl: "https://www.makino.com/en-us/machine-technology/machines/vertical-machining-centers-3-axis/ps105-vertical-machining-center",
+    onlineSpecificationUrl: "https://www.makino.com/en-us/machine-technology/machines/vertical-machining-centers-3-axis/ps105-vertical-machining-center",
     summary: "Makino vertical milling capacity for accurate repeat jobs.",
     details: [
       { label: "Processing envelope", value: "1050 x 510 x 460 mm" },
@@ -1158,6 +1153,7 @@ export const vendorEquipment: VendorEquipment[] = [
     imagePath: "/equipment/dazu-mps3015c.jpg",
     imageSourceUrl: "https://www.hansmplaser.com/products/detail-18.html",
     machineUrl: "https://www.hansmplaser.com/products/detail-18.html",
+    onlineSpecificationUrl: "https://www.hansmplaser.com/products/detail-18.html",
     summary: "Higher-power 3015-format laser listed in the sheet metal capability deck.",
     details: [
       { label: "Processing range", value: "1500 x 3000 mm" },
@@ -1208,6 +1204,7 @@ export const vendorEquipment: VendorEquipment[] = [
     imagePath: "/equipment/eko-es3512.jpg",
     imageSourceUrl: "https://www.dplasers.com/ES3512-35ton-1200mm-6-axis-CNC-Press-Brake-for-Sheet-metal-pd42529559.html",
     machineUrl: "https://www.dplasers.com/ES3512-35ton-1200mm-6-axis-CNC-Press-Brake-for-Sheet-metal-pd42529559.html",
+    onlineSpecificationUrl: "https://www.dplasers.com/ES3512-35ton-1200mm-6-axis-CNC-Press-Brake-for-Sheet-metal-pd42529559.html",
     source: equipmentSources.zintilonProcessing,
     summary: "Short-bed press brake capacity for sheet metal forming.",
     details: [
@@ -1480,36 +1477,299 @@ export const vendorEquipment: VendorEquipment[] = [
     fabricatorNotes: ["Useful as a high-capacity 5-axis routing option; confirm machine availability before quoting large programs."],
   }),
   bestPrototypesCard("CNC Milling", {
-    slug: "best-prototypes-jingdiao-five-axis",
-    name: "5-axis Jingdiao machining centers",
-    makeModel: "SmartCNC500-DRTD / JDGR400-A13S / JDCT800T",
-    quantity: "11 sets",
+    slug: "best-prototypes-smartcnc500-drtd",
+    name: "5-axis machining center",
+    makeModel: "Beijing Jingdiao SmartCNC500-DRTD",
+    quantity: "5 sets",
     imagePath: millingImage,
     imageSourceUrl: "https://en.jingdiao.com/",
     machineUrl: "https://en.jingdiao.com/",
-    summary: "Aggregated Beijing Jingdiao 5-axis machining centers listed by Best Prototypes.",
+    summary: "Beijing Jingdiao 5-axis machining center listed by Best Prototypes.",
     details: [
-      { label: "Models", value: "SmartCNC500-DRTD, JDGR400-A13S, JDCT800T" },
-      { label: "Envelope range", value: "450 x 680 x 400 mm to 800 x 800 x 350 mm" },
-      { label: "Max RPM", value: "24,000 to 28,000" },
+      { label: "Envelope", value: "500 x 320 x 260 mm" },
+      { label: "Max RPM", value: "28,000" },
       { label: "Machining accuracy", value: "+/-0.02 mm" },
     ],
-    fabricatorNotes: ["Aggregated to avoid duplicate cards while preserving the source model families."],
   }),
   bestPrototypesCard("CNC Milling", {
-    slug: "best-prototypes-three-axis-vmc-fleet",
-    name: "3-axis vertical machining center fleet",
-    makeModel: "FANUC Robodrill / Chenggong / Siemens / Mitsubishi VMCs",
-    quantity: "40+ sets",
+    slug: "best-prototypes-jdgr400-a13s",
+    name: "5-axis machining center",
+    makeModel: "Beijing Jingdiao JDGR400-A13S",
+    quantity: "5 sets",
     imagePath: millingImage,
-    summary: "Broad 3-axis VMC capacity covering small and mid-size machined parts.",
+    imageSourceUrl: "https://en.jingdiao.com/",
+    machineUrl: "https://en.jingdiao.com/",
+    summary: "Beijing Jingdiao 5-axis machining center listed by Best Prototypes.",
     details: [
-      { label: "Representative envelopes", value: "600 x 500 x 350 mm through 1100 x 600 x 600 mm" },
-      { label: "Max RPM range", value: "10,000 to 24,000" },
-      { label: "Machining accuracy", value: "+/-0.01 to +/-0.02 mm where listed" },
-      { label: "Positioning / repeatability", value: "0.005 to +/-0.003 mm where listed" },
+      { label: "Envelope", value: "450 x 680 x 400 mm" },
+      { label: "Max RPM", value: "24,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
     ],
-    fabricatorNotes: ["Grouped because the source lists many similar VMC rows across brands and model numbers."],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-jdct800t",
+    name: "5-axis machining center",
+    makeModel: "Beijing Jingdiao JDCT800T",
+    quantity: "1 set",
+    imagePath: millingImage,
+    imageSourceUrl: "https://en.jingdiao.com/",
+    machineUrl: "https://en.jingdiao.com/",
+    onlineSpecificationUrl: "https://en.jingdiao.com/machines/cnc-machining-centers/jdct-series/jdct800t-a15sh-jdct800th-a15sh",
+    summary: "Beijing Jingdiao 5-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "800 x 800 x 350 mm" },
+      { label: "Max RPM", value: "28,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-fanuc-robodrill-a-d14mib",
+    name: "3-axis machining center",
+    makeModel: "FANUC ROBODRILL α-D14MiB",
+    quantity: "4 sets",
+    imagePath: millingImage,
+    summary: "Compact 3-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "600 x 500 x 350 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.01 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-jiatie-jtgk-600i",
+    name: "3-axis engraving and milling machine",
+    makeModel: "Jiatie JTGK-600I",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "High-speed 3-axis engraving and milling machine listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "500 x 600 x 300 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-jiatie-jtgk-600c",
+    name: "3-axis engraving and milling machine",
+    makeModel: "Jiatie JTGK-600C",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis engraving and milling machine listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "500 x 600 x 250 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-taizhen-t-l650",
+    name: "3-axis engraving and milling machine",
+    makeModel: "Taizhen T-L650",
+    quantity: "3 sets",
+    imagePath: millingImage,
+    summary: "3-axis engraving and milling machine listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "600 x 500 x 350 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-baoling-pmd-850",
+    name: "3-axis engraving and milling machine",
+    makeModel: "Baoling PMD-850",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis engraving and milling machine listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "620 x 780 x 340 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-cg-650",
+    name: "3-axis engraving and milling machine",
+    makeModel: "Chenggong CG-650",
+    quantity: "3 sets",
+    imagePath: millingImage,
+    summary: "3-axis engraving and milling machine listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "620 x 500 x 280 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-zhenhui-vmc-850",
+    name: "3-axis machining center",
+    makeModel: "Zhenhui VMC 850",
+    quantity: "1 set",
+    imagePath: millingImage,
+    summary: "3-axis vertical machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "800 x 500 x 500 mm" },
+      { label: "Max RPM", value: "12,000" },
+      { label: "Machining accuracy", value: "+/-0.01 mm" },
+      { label: "Repeatability", value: "0.005 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-t600",
+    name: "3-axis machining center",
+    makeModel: "Chenggong T600",
+    quantity: "3 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "600 x 500 x 300 mm" },
+      { label: "Max RPM", value: "24,000" },
+      { label: "Machining accuracy", value: "+/-0.01 mm" },
+      { label: "Repeatability", value: "0.01 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-t850",
+    name: "3-axis machining center",
+    makeModel: "Chenggong T850",
+    quantity: "4 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "800 x 500 x 500 mm" },
+      { label: "Max RPM", value: "12,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+      { label: "Repeatability", value: "0.01 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-t1160",
+    name: "3-axis machining center",
+    makeModel: "Chenggong T1160",
+    quantity: "3 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "1100 x 600 x 600 mm" },
+      { label: "Max RPM", value: "12,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+      { label: "Repeatability", value: "0.01 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-vmc-1160",
+    name: "3-axis machining center",
+    makeModel: "Chenggong VMC 1160",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "1100 x 600 x 500 mm" },
+      { label: "Max RPM", value: "10,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+      { label: "Repeatability", value: "+/-0.003 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-vmc-850",
+    name: "3-axis machining center",
+    makeModel: "Chenggong VMC 850",
+    quantity: "4 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "800 x 500 x 450 mm" },
+      { label: "Max RPM", value: "10,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+      { label: "Repeatability", value: "+/-0.003 mm" },
+    ],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-chenggong-vmc-850-four-axis",
+    name: "4-axis machining center",
+    makeModel: "Chenggong VMC 850 (4-axis)",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "4-axis-labeled VMC 850 row listed by Best Prototypes.",
+    details: [
+      { label: "Envelope", value: "800 x 500 x 450 mm" },
+      { label: "Max RPM", value: "10,000" },
+      { label: "Machining accuracy", value: "+/-0.02 mm" },
+      { label: "Repeatability", value: "+/-0.003 mm" },
+    ],
+    fabricatorNotes: ["The source row is titled 4-axis while its machine-type column reads 3-axis; confirm configuration during RFQ review."],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-siemens-t-v640",
+    name: "3-axis machining center",
+    makeModel: "Siemens T-V640",
+    quantity: "1 set",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "450 x 420 x 300 mm" }, { label: "Max RPM", value: "20,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-siemens-ht710",
+    name: "3-axis machining center",
+    makeModel: "Siemens HT710",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "710 x 440 x 380 mm" }, { label: "Max RPM", value: "20,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-siemens-t-v800",
+    name: "3-axis machining center",
+    makeModel: "Siemens T-V800",
+    quantity: "1 set",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "800 x 500 x 500 mm" }, { label: "Max RPM", value: "12,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-siemens-t-v1000",
+    name: "3-axis machining center",
+    makeModel: "Siemens T-V1000",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "1100 x 600 x 550 mm" }, { label: "Max RPM", value: "12,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-mitsubishi-v-800",
+    name: "3-axis machining center",
+    makeModel: "Mitsubishi V-800",
+    quantity: "1 set",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "800 x 500 x 550 mm" }, { label: "Max RPM", value: "12,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-mitsubishi-v966",
+    name: "3-axis machining center",
+    makeModel: "Mitsubishi V966",
+    quantity: "1 set",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "900 x 590 x 600 mm" }, { label: "Max RPM", value: "12,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-mitsubishi-v855c",
+    name: "3-axis machining center",
+    makeModel: "Mitsubishi V855C",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "800 x 500 x 450 mm" }, { label: "Max RPM", value: "12,000" }],
+  }),
+  bestPrototypesCard("CNC Milling", {
+    slug: "best-prototypes-mitsubishi-v850c",
+    name: "3-axis machining center",
+    makeModel: "Mitsubishi V850C",
+    quantity: "2 sets",
+    imagePath: millingImage,
+    summary: "3-axis machining center listed by Best Prototypes.",
+    details: [{ label: "Envelope", value: "800 x 500 x 550 mm" }, { label: "Max RPM", value: "12,000" }],
   }),
   bestPrototypesCard("CNC Lathe", {
     slug: "best-prototypes-meike-cnc-lathe",
@@ -1594,3 +1854,52 @@ export const vendorEquipment: VendorEquipment[] = [
     fabricatorNotes: ["Treat material properties, finish, and post-processing as external-source data until verified against current vendor process sheets."],
   }),
 ];
+
+const sameModelImageSlugs = new Set([
+  "hermle-c400",
+  "hermle-c250",
+  "hermle-c42u",
+  "hermle-c22u",
+  "hermle-c650",
+  "dmg-mori-dmu-50",
+  "kmc-kmc1250",
+  "kmc-kmc600s-umt",
+  "kmc-kmc800s-umt",
+  "afming-gmu-800",
+  "jingdiao-jdgr200t",
+  "jingdiao-jdgr400t",
+  "guohe-mvx3205ax",
+  "youjia-fvp-1000a",
+  "tongzhen-taizhen-850",
+  "jingdiao-jdhgt400t",
+  "guohe-mv1000",
+  "jiafa-jf-m1166",
+  "yangsen-ysv-1580",
+  "makino-ps105",
+  "gromax-grm-3022x",
+  "shuofang-sz-325f1",
+  "shuofang-sz-255e1",
+  "shuofang-sz-206f",
+  "shuofang-sc-46yd",
+  "hardinge-gs-200-plus",
+  "heideman-t55my",
+  "puma-4005lm",
+  "zeiss-contura-7106-rds",
+  "zeiss-accura-9168",
+  "oxford-xmet7500",
+  "libo-uee941",
+  "mitutoyo-calipers",
+  "mahr-tesa-height-gauges",
+  "dazu-mps3015c",
+  "eko-es3512",
+]);
+
+export const vendorEquipment: VendorEquipment[] = vendorEquipmentRecords.map((equipment) => {
+  const imageKind: EquipmentImageKind = sameModelImageSlugs.has(equipment.slug) ? "same-model" : "representative";
+
+  return {
+    ...equipment,
+    imageKind,
+    imagePath: equipment.imagePath,
+  };
+});

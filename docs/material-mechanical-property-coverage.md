@@ -6,12 +6,12 @@ This is the live directory backlog: labels without a condition-specific, source-
 
 ## Summary
 
-**91 customer-facing catalog records are currently unresolved.** The count is offering-level for Aluminum: a single alloy offering can expose multiple supported conditions, and its property table follows the condition the buyer is viewing. A bare Aluminum offering is not counted as unresolved when it has a cited reference condition, or when one of its displayed conditions has a source-backed row.
+**90 customer-facing catalog records are currently unresolved.** The count is offering-level for Aluminum: a single alloy offering can expose multiple supported conditions, and its property table follows the condition the buyer is viewing. A bare Aluminum offering is not counted as unresolved when it has a cited reference condition, or when one of its displayed conditions has a source-backed row.
 
 | Family | Missing labels |
 | --- | ---: |
 | Aluminum | 0 |
-| Stainless steel | 11 |
+| Stainless steel | 10 |
 | Mild steel | 6 |
 | Brass | 3 |
 | Copper | 4 |
@@ -27,7 +27,7 @@ This is the live directory backlog: labels without a condition-specific, source-
 
 - **Aluminum (0 offerings):** All 21 Aluminum offerings have a source-backed reference row. For `1070` and `2007`, the selected source does not publish hardness; the UI explicitly says `Not published` rather than fabricating a value. See [the source log](./material-mechanical-property-sources.md) for the reference conditions and caveat.
 
-- **Stainless steel (11):** `302`, `SS 304H`, `SS 316H`, `Nitronic 40`, `Custom 455`, `253MA`, `254SMO`, `817M40T`, `Nitronic 50`, `Nitronic 60`, `SS 300 series`. These are distinct stainless specifications, heat-resisting variants, or umbrella labels. A 304/316 room-temperature row would be a misleading substitute for most of them.
+- **Stainless steel (10):** `302`, `SS 304H`, `SS 316H`, `Nitronic 40`, `Custom 455`, `253MA`, `254SMO`, `817M40T`, `Nitronic 50`, `Nitronic 60`. These are distinct stainless specifications or heat-resisting variants. A 304/316 room-temperature row would be a misleading substitute for most of them.
 
 - **Mild steel (6):** `1.033`, `SECC`, `SGCC`, `SPCC`, `SPHC`, `SPTE`. `44W Steel` now uses the published SSAB CSA 44WT plate condition; the source does not publish hardness or density, so those two cells state `Not published`.
 

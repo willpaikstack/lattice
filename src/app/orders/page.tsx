@@ -1,11 +1,12 @@
 import { BuyerOrders } from "@/components/buyer-orders";
+import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders } from "@/lib/request-repository";
 
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
-  const orders = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders());
+  const orders = (await filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders())).map(customerSafeRequest);
   const activeOrderCount = orders.filter((order) => order.supplierOrder.status !== "DELIVERED").length;
   const inProductionCount = orders.filter((order) => order.supplierOrder.status === "IN_PRODUCTION").length;
   const documentReadyCount = orders.filter((order) => order.supplierOrder.status === "DOCUMENTS_UPLOADED").length;

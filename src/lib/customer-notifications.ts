@@ -286,7 +286,7 @@ export function buildCustomerActivityFeed({
       return [
         {
           actionRequired: update.status === "DOCUMENTS_UPLOADED",
-          detail: update.note || orderStatusDetail(order, update.status),
+          detail: orderStatusDetail(order, update.status),
           href: `/orders/${order.id}`,
           id: `${isShipment ? "shipment" : "supplier-update"}:${order.id}:${update.id}`,
           meta: isShipment ? "Shipping" : update.status === "DOCUMENTS_UPLOADED" ? "Documents uploaded" : "Order progress",

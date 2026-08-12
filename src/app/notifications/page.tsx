@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { buildCustomerActionWorkflows } from "@/lib/customer-action-center";
 import { buildCustomerActivityFeed } from "@/lib/customer-notifications";
+import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 
@@ -12,8 +13,8 @@ export default async function NotificationsPage() {
     filterCustomerVisibleRequestsForCurrentSession(await listBuyerQuotes()),
     filterCustomerVisibleRequestsForCurrentSession(await listBuyerOrders()),
   ]);
-  const notificationItems = buildCustomerActivityFeed({ orders, quotes });
-  const actionWorkflows = buildCustomerActionWorkflows({ orders, quotes });
+  const notificationItems = buildCustomerActivityFeed({ orders: orders.map(customerSafeRequest), quotes: quotes.map(customerSafeRequest) });
+  const actionWorkflows = buildCustomerActionWorkflows({ orders: orders.map(customerSafeRequest), quotes: quotes.map(customerSafeRequest) });
 
   return (
     <div className="mx-auto max-w-[960px] space-y-5">

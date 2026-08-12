@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarDays, Download, ExternalLink, FileText, HelpCircle, 
 import type { ReactNode } from "react";
 
 import { packageTrackingLink } from "@/lib/package-tracking";
+import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 import { customerOrderStatusLabel, isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type SupplierDocumentCategory, type SupplierOrderStatus } from "@/lib/request-model";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
@@ -264,14 +265,15 @@ export function BuyerOrderDetail({
   const structuredSupplierQuoteReady = hasPricedSupplierQuoteLines(selectedSupplier);
   const status = supplierStatusLabels[order.supplierOrder.status];
   const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
-  const latestQuote = order.customerQuotes.at(-1);
   const trackingNumber = order.supplierOrder.trackingNumber || "Pending shipment";
   const tracking = packageTrackingLink(order.supplierOrder.trackingNumber);
-  const supplierName = order.supplierOrder.shopName || selectedSupplier?.shopName || "Supplier pending";
-  const supplierContact = order.supplierOrder.contactName || selectedSupplier?.contactName || "Not recorded";
   const milestoneLate = isOrderMilestoneLate(order);
-  const latestCustomerUpdate = order.supplierOrder.updates.at(-1)?.note || order.supplierOrder.notes || "Lattice is coordinating the next supplier milestone and will post updates here.";
   const isCustomerView = routeConfig === undefined;
+  const supplierName = isCustomerView ? customerPartnerPrivacy.networkLabel : order.supplierOrder.shopName || selectedSupplier?.shopName || "Supplier pending";
+  const supplierContact = isCustomerView ? customerPartnerPrivacy.partnerLabel : order.supplierOrder.contactName || selectedSupplier?.contactName || "Not recorded";
+  const latestCustomerUpdate = isCustomerView
+    ? customerPartnerPrivacy.progressUpdate
+    : order.supplierOrder.updates.at(-1)?.note || order.supplierOrder.notes || customerPartnerPrivacy.progressUpdate;
   const waitingOn = !order.supplierOrder.nextMilestone && order.supplierOrder.status === "AWAITING_ACKNOWLEDGMENT"
     ? "Supplier"
     : order.supplierOrder.responsibleParty;
@@ -370,7 +372,7 @@ export function BuyerOrderDetail({
                 <DefinitionRow label="Carrier" value={tracking?.carrier ?? "Pending booking"} />
                 <DefinitionRow label="Tracking number" value={trackingNumber} />
                 <DefinitionRow label="Tracking source" value={tracking?.carrier ?? "Pending shipment"} />
-                <DefinitionRow label="Supplier" value={supplierName} />
+                <DefinitionRow label="Production" value={customerPartnerPrivacy.networkLabel} />
               </dl>
               <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Package tracking</p>
@@ -505,7 +507,7 @@ export function BuyerOrderDetail({
                 order.supplierOrder.updates.map((update) => (
                   <li className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4" key={update.id}>
                     <p className="text-[13px] font-semibold text-[#202020]">{supplierStatusLabels[update.status]}</p>
-                    {update.note ? <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">{update.note}</p> : null}
+                    <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">{isCustomerView ? customerPartnerPrivacy.progressUpdate : update.note || customerPartnerPrivacy.progressUpdate}</p>
                     <p className="mt-2 text-[11px] text-[#8a8f98]">{formatDateTime(update.createdAt)}{update.trackingNumber ? ` - Tracking ${update.trackingNumber}` : ""}</p>
                   </li>
                 ))
@@ -629,15 +631,15 @@ export function BuyerOrderDetail({
             ) : null}
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Supplier contact</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Lattice production coordination</p>
               <div className="mt-4 flex gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#f1f2ff] text-[#4d55a8]">
                   <User aria-hidden="true" className="h-4 w-4" />
                 </span>
                 <div>
                   <p className="text-[13px] font-semibold text-[#202020]">{supplierContact}</p>
-                  <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Selected manufacturing partner</p>
-                  <p className="mt-2 text-[12px] leading-5 text-[#6f737a]">{order.supplierOrder.notes || latestQuote?.notes || "Production updates will appear here as the supplier posts progress."}</p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">{isCustomerView ? "Lattice coordinates production, quality, and delivery updates with its manufacturing network." : "Selected manufacturing partner"}</p>
+                  <p className="mt-2 text-[12px] leading-5 text-[#6f737a]">{isCustomerView ? customerPartnerPrivacy.progressUpdate : order.supplierOrder.notes || latestCustomerUpdate}</p>
                 </div>
               </div>
             </div>

@@ -58,4 +58,48 @@ describe("CNC material library", () => {
     expect(grades).not.toContain("Al 6061-T6");
     expect(grades).not.toContain("6061-T6 Aluminum Aluminum");
   });
+
+  it("consolidates standard 304 and 316 stainless variants into dual-certified offerings", () => {
+    const stainless = customerMaterialCatalog.find((material) => material.slug === "stainless-steel");
+    const grades = stainless?.materialGroups.flatMap((group) => group.grades) ?? [];
+
+    expect(grades).toContain("304/304L Stainless Steel");
+    expect(grades).toContain("316/316L Stainless Steel");
+    expect(grades).not.toEqual(expect.arrayContaining(["304", "304L", "316", "316L"]));
+    expect(grades).toContain("304H");
+    expect(grades).toContain("316H");
+    expect(grades).not.toEqual(expect.arrayContaining(["SS 304H", "SS 316H"]));
+  });
+
+  it("uses the material-family term for precipitation-hardened stainless steels", () => {
+    const stainless = customerMaterialCatalog.find((material) => material.slug === "stainless-steel");
+    const groupNames = stainless?.materialGroups.map((group) => group.name) ?? [];
+    const precipitationGroup = stainless?.materialGroups.find(
+      (group) => group.name === "Precipitation-hardened stainless steels",
+    );
+
+    expect(groupNames).toContain("Precipitation-hardened stainless steels");
+    expect(groupNames).not.toContain("Precipitation hardening");
+    expect(precipitationGroup?.grades).toEqual(expect.arrayContaining(["17-4 PH"]));
+  });
+
+  it("places 303 free-machining variants in the 300 series and omits generic family labels", () => {
+    const stainless = customerMaterialCatalog.find((material) => material.slug === "stainless-steel");
+    const austeniticGrades = stainless?.materialGroups.find((group) => group.name === "300 series austenitic")?.grades ?? [];
+    const catalogLabels = cncMaterialLibrary.map((material) => material.label);
+
+    expect(austeniticGrades).toEqual(expect.arrayContaining(["303Se", "303Sulf"]));
+    expect(austeniticGrades).not.toContain("SS 300 series");
+    expect(catalogLabels).not.toContain("SS 300 series");
+  });
+
+  it("places every standard wrought aluminum offering in its numbered series", () => {
+    const aluminum = customerMaterialCatalog.find((material) => material.slug === "aluminum");
+    const groupsByName = new Map(aluminum?.materialGroups.map((group) => [group.name, group.grades]) ?? []);
+
+    expect(groupsByName.get("2000 series")).toEqual(expect.arrayContaining(["2007 Aluminum", "2017A Aluminum"]));
+    expect(groupsByName.get("5000 series")).toEqual(expect.arrayContaining(["5251 Aluminum", "5754 Aluminum"]));
+    expect(groupsByName.get("7000 series")).toEqual(expect.arrayContaining(["7050 Aluminum"]));
+    expect(groupsByName.get("Other grades")).toBeUndefined();
+  });
 });

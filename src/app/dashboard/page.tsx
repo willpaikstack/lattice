@@ -8,6 +8,7 @@ import {
   type CustomerDashboardActivityRow,
   type CustomerDashboardMetric,
 } from "@/lib/customer-dashboard";
+import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { filterCustomerVisibleRequests } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
@@ -196,8 +197,8 @@ export default async function Home({ searchParams }: DashboardPageProps = {}) {
   const scenario = process.env.NODE_ENV !== "production" && isCustomerDashboardScenario(requestedScenario) ? requestedScenario : null;
   const [liveQuotes, liveOrders, session] = await Promise.all([listBuyerQuotes(), listBuyerOrders(), getCurrentSession()]);
   const scenarioData = scenario ? getCustomerDashboardScenario(scenario) : null;
-  const quotes = scenarioData?.quotes ?? liveQuotes;
-  const orders = scenarioData?.orders ?? liveOrders;
+  const quotes = (scenarioData?.quotes ?? liveQuotes).map(customerSafeRequest);
+  const orders = (scenarioData?.orders ?? liveOrders).map(customerSafeRequest);
   const dashboard = buildCustomerDashboardSummary(filterCustomerVisibleRequests(quotes, session), filterCustomerVisibleRequests(orders, session));
   const userName = session?.user.name || "there";
   const actionWorkflows = dashboard.actionWorkflows.slice(0, 5);

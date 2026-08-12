@@ -50,7 +50,7 @@ All 21 currently surfaced Aluminum offerings now have a reference row. Existing 
 
 | Family | Sourced labels | Labels held blank | Notes |
 | --- | ---: | ---: | --- |
-| Stainless steel | 74 / 87 | 13 | Covers common austenitic, martensitic/ferritic, PH, duplex, and 904L / Alloy 20 records. |
+| Stainless steel | 74 / 86 | 12 | Covers common austenitic, martensitic/ferritic, PH, duplex, and 904L / Alloy 20 records. |
 | Mild steel | 18 / 24 | 6 | Coated/sheet trade labels remain blank because grade and coating condition are not specific enough. |
 | Alloy steel | 28 / 29 | 1 | Common Cr-Mo, high-strength, bearing, and carburizing records are condition-specific. |
 | Tool steel | 12 / 12 | 0 | Annealed or prehardened condition is shown where it is the cited source condition. |
@@ -63,8 +63,8 @@ All 21 currently surfaced Aluminum offerings now have a reference row. Existing 
 
 ## Held-blank labels in this pass
 
-- Stainless: `302`, `SS 304H`, `SS 316H`, `Nitronic 40`, `Custom 455`, `1.2085`, `253MA`, `254SMO`, `817M40T`, `Nitronic 50`, `Nitronic 60`, `SS 300 series`.
-- Stainless: `302`, `SS 304H`, `SS 316H`, `Nitronic 40`, `Custom 455`, `253MA`, `254SMO`, `817M40T`, `Nitronic 50`, `Nitronic 60`, `SS 300 series`.
+- Stainless: `302`, `SS 304H`, `SS 316H`, `Nitronic 40`, `Custom 455`, `1.2085`, `253MA`, `254SMO`, `817M40T`, `Nitronic 50`, `Nitronic 60`.
+- Stainless: `302`, `SS 304H`, `SS 316H`, `Nitronic 40`, `Custom 455`, `253MA`, `254SMO`, `817M40T`, `Nitronic 50`, `Nitronic 60`.
 - Mild: `1.033`, `SECC`, `SGCC`, `SPCC`, `SPHC`, `SPTE`.
 - Brass: `Brass`, `Brass H59`, `Brass H62`.
 - Copper: `Beryllium Copper`, `Bronze`, `QSN6-6-3 / CuSn6Zn6`, `QSN6.5-0.1 / CuSn6`.

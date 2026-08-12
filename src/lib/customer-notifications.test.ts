@@ -317,7 +317,7 @@ describe("customer notifications", () => {
     expect(feed).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          detail: "Quality checks are complete and Lattice is arranging pickup.",
+          detail: "Supplier status changed to ready to ship.",
           title: "PO-MANUAL_U updated: Ready to ship",
         }),
       ]),

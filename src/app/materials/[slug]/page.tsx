@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { ArrowRight, Droplets, FlaskConical, Gauge, Thermometer } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { MaterialGradeDirectory } from "@/components/material-grade-directory";
+import { PlasticFunctionalProfile } from "@/components/plastic-functional-profile";
+import { PlasticFunctionalProfileGroup } from "@/components/plastic-functional-profile-group";
 import { getMaterialFamilyDetail, materialFamilies } from "@/lib/material-family-view-models";
 
 type MaterialFamilyPageProps = {
@@ -72,22 +74,7 @@ function GradeProfileRow({ grade, usesFunctionalTraits = false }: { grade: NonNu
       </div>
 
       {usesFunctionalTraits && grade.functionalTraits ? (
-        <div className="grid gap-3 border-t border-[#e8e7e4] pt-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-4 lg:gap-5">
-          {[
-            [Thermometer, "Heat tolerance", grade.functionalTraits.heatTolerance],
-            [Droplets, "Moisture response", grade.functionalTraits.moistureResponse],
-            [FlaskConical, "Chemical resistance", grade.functionalTraits.chemicalResistance],
-            [Gauge, "Wear / friction", grade.functionalTraits.wearFriction],
-          ].map(([Icon, label, value]) => {
-            const TraitIcon = Icon as typeof Thermometer;
-            return (
-              <div className="flex min-w-0 items-center gap-2" key={label as string}>
-                <TraitIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[#787a7d]" strokeWidth={1.7} />
-                <p className="text-[12px] leading-5 text-[#67696d]"><span className="text-[#77797d]">{label as string}:</span> <span className="font-medium text-[#4d4f53]">{value as string}</span></p>
-              </div>
-            );
-          })}
-        </div>
+        <PlasticFunctionalProfile detailsClassName="sm:col-span-2 lg:col-span-5" summaryClassName="lg:ml-auto lg:w-[122px]" traits={grade.functionalTraits} />
       ) : grade.mechanicalProperties ? (
         <div className="pt-2.5 sm:col-span-2 lg:col-span-5">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -123,7 +110,7 @@ export default async function MaterialFamilyPage({ params }: MaterialFamilyPageP
 
   const requestLabel = material.name.replace(" / ", " ").toLowerCase();
 
-  return (
+  const content = (
     <main className="min-h-screen bg-[#fbfbfa] pb-16">
       <div className="max-w-[1120px]">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 pt-1 text-[14px] text-[#74767a]">
@@ -168,4 +155,8 @@ export default async function MaterialFamilyPage({ params }: MaterialFamilyPageP
       </div>
     </main>
   );
+
+  return material.slug === "plastics-polymers"
+    ? <PlasticFunctionalProfileGroup>{content}</PlasticFunctionalProfileGroup>
+    : content;
 }

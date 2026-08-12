@@ -483,6 +483,13 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Omitted reference mechanical-property tables from expanded long-tail plastic records, while retaining those records internally for source audit and operator research.
 - Verification: focused Material page/directory tests, TypeScript typecheck, browser console check, and source-to-implementation desktop visual comparison passed.
 
+## 2026-08-11 — Added on-demand polymer behavior disclosures
+
+- Replaced the always-visible plastics trait rail with the selected `Material behavior` disclosure treatment.
+- The expanded detail is a flush 2 × 2 editorial grid within the same material card, including concise guidance for each qualitative trait; no tinted or nested subcard was introduced.
+- Shared the component between the curated common-polymer cards and long-tail plastics directory rows, with native accessible disclosure behavior.
+- Verification: focused Materials tests, TypeScript typecheck, ESLint, desktop/mobile disclosure interaction, no horizontal overflow at 390 px, and a clean browser console.
+
 ## 2026-08-08 — Implemented compact equipment qualification cards
 
 - Replaced the customer Equipment catalog's tall provenance-heavy expanded rows with the selected compact qualification-card design.
@@ -510,3 +517,118 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Removed the expandable plastic-grade subcard that repeated typical applications and carried the now-retired mechanical-property treatment.
 - Applied the four-item functional-selection rail from Common grades directly to every plastic directory card: heat tolerance, moisture response, chemical resistance, and wear / friction.
 - Kept application context, common forms, and machinability in the main card, so each plastic grade is scannable without an additional interaction.
+
+## 2026-08-11 — Refined polymer behavior disclosure details
+
+- Reduced the `Material behavior` disclosure to a shorter, quieter 27 px control with lower-contrast type and a smaller chevron.
+- Replaced the ambiguous responsive border utility combination in the open two-column trait grid with explicit positional dividers, removing the unintended dark bottom borders from the right-hand cells.
+- Verification: focused Materials tests, TypeScript typecheck, ESLint, and a live expanded-disclosure inspection passed.
+
+## 2026-08-11 — Anchored polymer behavior controls to their rows
+
+- Moved the shared `Behavior details` trigger beneath each polymer row's machinability rating in both Common grades and the long-tail catalog.
+- Kept the expanded functional-trait panel full-width, making the row association explicit without losing the 2 × 2 comparison layout.
+- Verification: focused Materials tests, TypeScript typecheck, ESLint, and live browser interaction/overflow checks passed.
+
+## 2026-08-11 — Made polymer behavior disclosures mutually exclusive
+
+- Added page-level disclosure coordination so only one polymer `Behavior details` panel can remain open across Common grades and the long-tail catalog.
+- Opening a different material automatically closes the prior expanded panel.
+- Verification: focused Materials tests, TypeScript typecheck, ESLint, and a live two-disclosure browser check passed.
+
+## 2026-08-11 — Corrected Aluminum numbered-series grouping
+
+- Moved `2007` and `2017A` to 2000 series, `5251` and `5754` to 5000 series, and `7050` to 7000 series.
+- Removed the resulting erroneous Aluminum `Other grades` fallback bucket and added regression coverage for the series mapping.
+- Verification: focused catalog/directory tests, TypeScript typecheck, ESLint, and live guide review passed.
+
+## 2026-08-11 — Added verified UNS labels for cast and 316 stainless grades
+
+- Added `UNS A04130` for A413 and labelled MIC-6 accurately as proprietary tooling plate with no standard UNS.
+- Added `S31600`, `S31603`, `S31673`, and `S31635` to the corresponding 316, 316L, 316LVM, and 316Ti directory rows; the dual-certified 316/316L listing shows both applicable identifiers.
+- Verification: focused catalog/directory tests, TypeScript typecheck, ESLint, and live stainless guide review passed.
+
+## 2026-08-11 — Consolidated customer-facing 304 and 316 stainless offerings
+
+- Merged standard 304 and 304L into one `304/304L Stainless Steel` offering, and standard 316 and 316L into one `316/316L Stainless Steel` offering.
+- Retained 304LVM, 316LVM, and 316Ti as distinct specification-sensitive materials; normalized `SS 304H` and `SS 316H` to `304H` and `316H`.
+- Verification: focused catalog/directory tests, TypeScript typecheck, ESLint, and live directory label checks passed.
+
+## 2026-08-11 — Temporarily narrowed the customer Equipment catalog
+
+- Removed Manual Machines, Finishing, EDM, Die Casting, and Additive Manufacturing from the customer-facing Equipment section selector.
+- Preserved their underlying equipment records so the sections can return after their photo and data quality are remediated.
+- Retained CNC Milling, CNC Lathe, QC & Inspection, and Sheet Metal as the current customer-visible scope.
+- Removed free-text search and customer-controlled sorting from the Equipment catalog, retained curated section filters, and kept cards alphabetized by make/model.
+- Shrink-wrapped the desktop Equipment section switcher around its visible tabs while preserving narrow-screen horizontal overflow.
+
+## 2026-08-11 — Enforced customer-safe equipment imagery
+
+- Classified all 83 equipment records as `same-model` or `representative`; no record is presented as an actual supplier-machine photo without supplier-facility evidence.
+- Retained only model-specific same-model imagery on named cards, including priority CNC, inspection, and sheet-metal records.
+- Removed representative, duplicated, and mismatched card photos—including the logo and manufactured-part imagery—from customer rendering and replaced them with a neutral `Photo pending verification` state.
+- Added regression coverage to prevent representative images from reappearing on customer cards without an explicit same-model or actual-machine classification.
+
+## 2026-08-11 — Restored visual references for unverified equipment imagery
+
+- Restored the existing local image assets to cards with representative/unverified imagery so operators can still scan the catalog visually.
+- Kept the explicit `Photo pending verification` label for those images and styled it with a light-yellow background to distinguish it from same-model imagery.
+
+## 2026-08-11 — Added a generic VMC-866 reference image
+
+- Replaced the unrelated logo shown for the Shenzhen JingRui WH-866 (BT40) with a generic VMC-866 machine photograph from a public VMC-866 listing.
+- Retained its light-yellow `Photo pending verification` label and documented the complete actual-machine-photo gap list: no catalog record is currently backed by a supplier-facility/actual-machine image.
+
+## 2026-08-11 — Added a cleaned VMC-850 reference image
+
+- Used the user-provided VMC-850 visual reference to produce a clean, machine-only product image and applied it to the Shandong Shengyu 850 card.
+- Preserved the card's `Photo pending verification` status because the image is a generic VMC-850 reference rather than verified Shengyu equipment.
+
+## 2026-08-11 — Split ambiguous equipment fleet records
+
+- Removed the controller-only FANUC 31i-MODEL B Plus record from the customer Equipment catalog.
+- Replaced the combined three-model Jingdiao entry with separate SmartCNC500-DRTD, JDGR400-A13S, and JDCT800T cards with their individual quantities and specifications.
+- Replaced the broad 40+ 3-axis VMC fleet with its 21 source-backed individual machine-model cards, preserving listed counts, envelopes, speeds, and accuracy data; any source ambiguity remains visible in the related card note.
+
+## 2026-08-11 — Integrated equipment imagery into catalog rows
+
+- Replaced the bordered thumbnail treatment with a full-height integrated left image column in every Equipment row.
+- Hid customer-facing image-status captions while retaining the image classification metadata and descriptive image alt text in the dataset/UI.
+
+## 2026-08-11 — Simplified equipment-card actions
+
+- Removed the repeated `Evaluate my part` action from all expanded Equipment cards.
+- Kept the technical data-sheet link where a record includes one.
+
+## 2026-08-11 — Made equipment specification links model-specific
+
+- Removed the generic fallback from expanded Equipment cards: an online specification link now appears only when a public page explicitly names the model.
+- Withheld generic manufacturer and supplier home pages, including the Jingdiao home-page link previously shown for JDGR400-A13S.
+- Retained verified technical PDFs and added audited direct model pages for DMU 50, Makino PS105, Dazu MPS-3015C, EKO ES3512, and Jingdiao JDCT800T.
+- Verification: focused Equipment tests, TypeScript typecheck, and ESLint passed.
+
+## 2026-08-11 — Protected proprietary manufacturing partner identities
+
+- Added a customer-safe supplier projection that redacts underlying manufacturing shop names, contacts, and free-text partner updates before customer order, shipment, dashboard, and notification routes render or serialize them.
+- Replaced customer order labels with neutral Lattice manufacturing-network language while retaining exact partner records for admin and supplier workflows.
+- Sanitized Equipment guidance to prevent internal source-vendor names from appearing in buyer-facing cards.
+
+## 2026-08-11 — Simplified Equipment guidance
+
+- Removed the repeated `Qualification note` disclaimer from expanded Equipment cards.
+- Retained the model-specific `Best for` and `Limitation` guidance, which provide the actionable routing context.
+
+## 2026-08-11 — Added specification links to every equipment card
+
+- Preserved the `View technical data sheet` label for records with an archived or model-specific PDF.
+- Added `View online specifications` to all remaining expanded records, using the best available model/manufacturer reference URL without labelling a general or supplier page as a data sheet.
+## 2026-08-11 — Corrected the precipitation-hardened stainless family label
+
+- Renamed the stainless catalog group from `Precipitation hardening` to `Precipitation-hardened stainless steels` so the heading describes the family rather than its heat-treatment process.
+- Added regression coverage confirming the existing PH grades remain grouped there.
+
+## 2026-08-11 — Corrected 303 stainless catalog placement
+
+- Moved 303Se and 303Sulf into the 300-series austenitic customer group.
+- Removed the generic `SS 300 series` family label from the RFQ material library and customer catalog because it is not a quoteable grade.
+- Updated the mechanical-property coverage counts and regression coverage for the grouping and removal.

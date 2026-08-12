@@ -1074,7 +1074,8 @@ describe("BuyerOrderDetail", () => {
 
     expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
     expect(screen.getAllByText("In production").length).toBeGreaterThan(0);
-    expect(screen.getByText("Shenzhen Precision Manufacturing")).toBeInTheDocument();
+    expect(screen.getByText("Lattice manufacturing network")).toBeInTheDocument();
+    expect(screen.queryByText("Shenzhen Precision Manufacturing")).not.toBeInTheDocument();
     expect(screen.getAllByText("1Z999AA10123456784").length).toBeGreaterThan(0);
     expect(screen.getAllByText("UPS").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Track package/ })).toHaveAttribute(
@@ -1114,7 +1115,8 @@ describe("BuyerOrderDetail", () => {
 
     expect(screen.getByRole("heading", { name: "Request help with this order" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to order" })).toHaveAttribute("href", `/orders/${order.id}`);
-    expect(screen.getByText("Shenzhen Precision Manufacturing")).toBeInTheDocument();
+    expect(screen.getByText("Lattice manufacturing network")).toBeInTheDocument();
+    expect(screen.queryByText("Shenzhen Precision Manufacturing")).not.toBeInTheDocument();
     expect(screen.getByText("mounting-bracket.step")).toBeInTheDocument();
     expect(screen.getByLabelText("Issue type")).toHaveDisplayValue("Production or delivery update");
     expect(screen.getByLabelText("Message")).toBeRequired();

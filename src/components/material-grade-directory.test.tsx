@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import { customerMaterialCatalog } from "@/lib/customer-material-catalog";
 import { getDirectoryMechanicalProperties } from "@/lib/material-grade-properties";
+import { PlasticFunctionalProfileGroup } from "./plastic-functional-profile-group";
 import { MaterialGradeDirectory } from "./material-grade-directory";
 
 const groups = [
@@ -117,26 +118,65 @@ describe("MaterialGradeDirectory", () => {
     });
   });
 
-  it("resolves a supplier alias to a condition-specific property record and leaves unmatched labels blank", () => {
-    render(<MaterialGradeDirectory familyName="Stainless steel" groups={[{ name: "300 series austenitic", grades: ["304 Stainless Steel", "SS 300 series"] }]} totalCount={2} />);
+  it("resolves a supplier alias to a condition-specific property record", () => {
+    render(<MaterialGradeDirectory familyName="Stainless steel" groups={[{ name: "300 series austenitic", grades: ["304 Stainless Steel", "303Se"] }]} totalCount={2} />);
 
     fireEvent.click(screen.getByRole("button", { name: /304 Stainless Steel/ }));
     expect(screen.getByText("Outokumpu Core range data sheet")).toBeInTheDocument();
     expect(screen.getAllByText("515 MPa")).toHaveLength(2);
 
-    expect(getDirectoryMechanicalProperties("Stainless steel", "SS 300 series")).toBeUndefined();
+    expect(getDirectoryMechanicalProperties("Stainless steel", "303Se")).toMatchObject({
+      condition: "Annealed bar",
+      sourceLabel: "ASM / MatWeb reference data",
+    });
   });
 
-  it("shows plastic functional traits directly in each directory card without a grade dropdown", () => {
+  it("uses a disclosure for plastic functional traits without a grade dropdown", () => {
     render(<MaterialGradeDirectory familyName="Plastics / polymers" groups={[{ name: "Engineering thermoplastics", grades: ["PEEK"] }]} totalCount={1} />);
 
     expect(screen.queryByText("Reference mechanical properties")).not.toBeInTheDocument();
-    expect(screen.getByText("Heat tolerance:")).toBeInTheDocument();
-    expect(screen.getByText("Moisture response:")).toBeInTheDocument();
-    expect(screen.getByText("Chemical resistance:")).toBeInTheDocument();
-    expect(screen.getByText("Wear / friction:")).toBeInTheDocument();
+    const behavior = screen.getByText("Behavior details");
+    expect(behavior).toBeInTheDocument();
+    expect(behavior.closest("details")).not.toHaveAttribute("open");
+    behavior.click();
+    expect(behavior.closest("details")).toHaveAttribute("open");
+    expect(screen.getByText("Heat tolerance")).toBeInTheDocument();
     expect(screen.getByText("High")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /PEEK/ })).not.toBeInTheDocument();
     expect(screen.queryByText("Typical applications")).not.toBeInTheDocument();
+  });
+
+  it("keeps only one plastic behavior disclosure open at a time", () => {
+    render(
+      <PlasticFunctionalProfileGroup>
+        <MaterialGradeDirectory familyName="Plastics / polymers" groups={[{ name: "Engineering thermoplastics", grades: ["PEEK", "PTFE"] }]} totalCount={2} />
+      </PlasticFunctionalProfileGroup>,
+    );
+
+    const behaviorDetails = screen.getAllByText("Behavior details").map((trigger) => trigger.closest("details")!);
+    behaviorDetails[0].querySelector("summary")?.click();
+    expect(behaviorDetails[0]).toHaveAttribute("open");
+
+    behaviorDetails[1].querySelector("summary")?.click();
+    expect(behaviorDetails[0]).not.toHaveAttribute("open");
+    expect(behaviorDetails[1]).toHaveAttribute("open");
+  });
+
+  it("shows the verified cast-alloy UNS and distinguishes proprietary tooling plate", () => {
+    render(<MaterialGradeDirectory familyName="Aluminum" groups={[{ name: "Casting and tooling plate", grades: ["A413 Aluminum", "MIC-6 Aluminum"] }]} totalCount={2} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Casting and tooling plate/ }));
+    expect(screen.getByText("UNS A04130")).toBeInTheDocument();
+    expect(screen.getByText("Proprietary tooling plate · no UNS")).toBeInTheDocument();
+  });
+
+  it("shows UNS identifiers for common 316-family stainless variants", () => {
+    render(<MaterialGradeDirectory familyName="Stainless steel" groups={[{ name: "300 series austenitic", grades: ["316", "316/316L Stainless Steel", "316L", "316LVM", "316Ti"] }]} totalCount={5} />);
+
+    expect(screen.getByText("UNS S31600")).toBeInTheDocument();
+    expect(screen.getByText("UNS S31600 / S31603")).toBeInTheDocument();
+    expect(screen.getByText("UNS S31603")).toBeInTheDocument();
+    expect(screen.getByText("UNS S31673")).toBeInTheDocument();
+    expect(screen.getByText("UNS S31635")).toBeInTheDocument();
   });
 });

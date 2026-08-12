@@ -86,6 +86,10 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Keep the RFQ material selector aligned with researched marketplace and supplier-network material coverage; the current CNC selector is sourced from `src/lib/cnc-material-library.ts` and browsed through Hubs-style customer-facing material families.
 - Build admin/operator source-trace views for material and equipment repositories so each standardized customer-facing claim can be audited back to vendor, document, and extraction notes.
 - Continue deduplicating vendor-provided material/equipment entries across Zintilon, Saky Steel, ZYTC, Best Prototypes, and future vendor documents.
+- Collect supplier-facility photographs for the customer-visible CNC, QC, and sheet-metal equipment, then upgrade their classifications from `same-model` to `actual` only after operator verification.
+- Collect and verify model-specific photos for the 24 newly separated Best Prototypes CNC cards; their current visual reference remains representative until supplier/facility evidence is available.
+- Collect verified model-specific specification pages or PDFs for Equipment cards that intentionally have no customer-facing specification link; do not restore generic manufacturer home-page fallbacks.
+- Before adding any new customer route or API payload that includes request/order data, use `customerSafeRequest` so proprietary manufacturing-partner details remain internal.
 - Add the original source files for previously entered Zintilon processing and sheet metal capability data into `docs/vendor-sources/` when available; the registry currently records placeholders for those older sources.
 - Add or update tests whenever request status, persistence, queue filtering, or role-specific views change.
 - Keep artificial RFQ fixture seeding disabled during real workflow commissioning; move live upload sharing to R2/S3 when production-style storage is needed.

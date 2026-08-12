@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
 import { isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
+import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 
 const supplierStatusCopy: Record<SupplierOrderStatus, { label: string; tone: string; nextAction: string }> = {
   AWAITING_ACKNOWLEDGMENT: {
@@ -81,7 +82,6 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
         order.process,
         order.buyerCompany,
         orderReference(order),
-        order.supplierOrder.shopName,
         order.supplierOrder.trackingNumber,
         primaryLine?.partName,
         primaryLine?.material,
@@ -173,8 +173,8 @@ export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
               </div>
 
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Supplier</p>
-                <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{order.supplierOrder.shopName || "Supplier pending"}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Production</p>
+                <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{customerPartnerPrivacy.networkLabel}</p>
                 <p className="mt-1 text-[12px] text-[#8a8f98]">{order.supplierOrder.trackingNumber ? `Tracking ${order.supplierOrder.trackingNumber}` : order.process}</p>
               </div>
 

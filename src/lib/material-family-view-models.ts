@@ -12,15 +12,17 @@ export type MaterialFamilyCardData = {
   texture: string;
 };
 
+export type FunctionalTraits = {
+  chemicalResistance: string;
+  heatTolerance: string;
+  moistureResponse: string;
+  wearFriction: string;
+};
+
 export type MaterialGradeProfile = {
   applications: string;
   commonStartingPoint?: boolean;
-  functionalTraits?: {
-    chemicalResistance: string;
-    heatTolerance: string;
-    moistureResponse: string;
-    wearFriction: string;
-  };
+  functionalTraits?: FunctionalTraits;
   forms: string;
   image: string;
   imageAlt: string;

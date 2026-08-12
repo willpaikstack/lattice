@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { BuyerOrderDetail } from "@/components/buyer-order-detail";
+import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";
@@ -17,5 +18,5 @@ export default async function BuyerOrderDetailPage({ params }: BuyerOrderDetailP
     notFound();
   }
 
-  return <BuyerOrderDetail order={order} />;
+  return <BuyerOrderDetail order={customerSafeRequest(order)} />;
 }

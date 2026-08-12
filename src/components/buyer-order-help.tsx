@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle2, FileText, MessageSquare, PackageCheck, Truck }
 import { FormEvent, useState } from "react";
 
 import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
+import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 
 const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   AWAITING_ACKNOWLEDGMENT: "Awaiting supplier acknowledgment",
@@ -54,7 +55,6 @@ function HelpCard({ label, value }: { label: string; value: string }) {
 export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
   const [submitted, setSubmitted] = useState(false);
   const primaryLine = order.lineItems[0];
-  const supplierName = order.supplierOrder.shopName || "Supplier pending";
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,7 +86,7 @@ export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
 
       <section aria-label="Order help context" className="grid gap-3 md:grid-cols-4">
         <HelpCard label="Status" value={supplierStatusLabels[order.supplierOrder.status]} />
-        <HelpCard label="Supplier" value={supplierName} />
+        <HelpCard label="Production" value={customerPartnerPrivacy.networkLabel} />
         <HelpCard label="Reference quote" value={quoteReference(order)} />
         <HelpCard label="Updated" value={formatDate(order.updatedAt)} />
       </section>
