@@ -689,3 +689,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Organized the public one-pager into explicit `01 · The problem` and `02 · The solution` sections, with the four-step workflow nested under the solution.
 - Updated the desktop contents rail to reflect the problem/solution narrative hierarchy.
+
+# 2026-08-13 - Clarified capacity-expansion constraints
+
+- Updated the Problem section to state that adding people, machines, or floor space takes time, capital, and risk, particularly for cyclical demand.
+- Clarified that work may not fit either the schedule or the shop's available capacity.

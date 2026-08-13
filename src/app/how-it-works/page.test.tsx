@@ -13,6 +13,8 @@ describe("How it works page", () => {
     expect(screen.getByText("02 · The solution")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lattice bridges the gap." })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "How the workflow works" })).toBeInTheDocument();
+    expect(screen.getByText(/adding human capital, machines, or floor space takes time, capital, and risk/i)).toBeInTheDocument();
+    expect(screen.getByText(/cannot fit the schedule or available capacity/i)).toBeInTheDocument();
     expect(screen.getByText("Share the work that needs coverage")).toBeInTheDocument();
     expect(screen.getAllByText("Review before shipment").length).toBeGreaterThan(0);
     for (const requestAccountLink of screen.getAllByRole("link", { name: "Request an account" })) {

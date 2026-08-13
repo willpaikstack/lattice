@@ -92,10 +92,10 @@ export default function HowItWorksPage() {
                 <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="the-problem">More work, less room to take it on.</h3>
                 <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
                   <p>
-                    Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but hiring skilled machinists takes time and adding machines does not immediately create the people or flexibility needed to run them.
+                    Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but adding human capital, machines, or floor space takes time, capital, and risk&mdash;especially when demand is cyclical. Hiring skilled machinists and bringing on equipment does not immediately create the flexibility needed to run more work.
                   </p>
                   <p>
-                    When a job cannot fit the schedule, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition. Lattice was built to give shops another option.
+                    When a job cannot fit the schedule or available capacity, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition. Lattice was built to give shops another option.
                   </p>
                 </div>
               </section>
