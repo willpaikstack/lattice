@@ -651,3 +651,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-13 - Clarified pre-shipment quality-document review
 
 - Updated the public landing-page quality section to state that requested inspection reports and material documentation are uploaded to Lattice for customer review before shipment.
+
+# 2026-08-13 - Restored invite-only landing-page entry
+
+- Replaced the public landing header's `Get a quote` action with `Request an account`, routing it to the existing `/waiting-list` access-request flow.
+- Added regression coverage and documented that the remaining public simple-quote routes need separate route-level access-policy hardening before future promotion.

@@ -1146,3 +1146,14 @@ Implications:
 - The public landing-page hero does not offer an account-free quote action; login remains available in the header.
 - The disabled controls preserve the approved header composition without routing or prefetching customers into the app.
 - Re-enable each control only after its destination has the intended public or authenticated access policy and regression coverage.
+
+# 2026-08-13 - Public Landing Page Requests Accounts Instead Of Quotes
+
+Decision: make the public landing page invite-only by routing its primary header action to the existing account-request flow, rather than the public simple-quote flow.
+
+Reason: prospective users should request access before entering the Lattice workspace or quoting workflow.
+
+Implications:
+
+- The header's primary action is `Request an account` and routes to `/waiting-list`; `Log in` remains available to approved users.
+- This landing-page change does not itself replace route-level access control; the remaining public simple-quote routes require their own access-policy decision before they are promoted again.

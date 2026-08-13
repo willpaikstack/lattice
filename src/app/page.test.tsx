@@ -13,9 +13,8 @@ describe("Landing page", () => {
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
-    for (const link of screen.getAllByRole("link", { name: "Get a quote" })) {
-      expect(link).toHaveAttribute("href", "/simple-quote");
-    }
+    expect(screen.getByRole("link", { name: "Request an account" })).toHaveAttribute("href", "/waiting-list");
+    expect(screen.queryByRole("link", { name: "Get a quote" })).not.toBeInTheDocument();
     for (const label of ["Capabilities", "Materials", "Quality", "How it works"]) {
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
