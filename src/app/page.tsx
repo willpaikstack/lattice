@@ -70,11 +70,11 @@ export default function LandingPage() {
           <div className="relative z-20 flex items-center px-6 py-16 sm:px-10 lg:translate-y-9 lg:py-14 lg:pl-[96px] lg:pr-0">
             <div className="max-w-[700px]">
               <h1 className="text-[48px] font-semibold leading-[1.06] tracking-[-0.045em] text-white sm:text-[58px]">
-                <span className="block">More capacity.</span>{" "}
-                <span className="block">The same quality standard.</span>
+                <span className="block">Additional capacity</span>{" "}
+                <span className="block">when you need it.</span>
               </h1>
               <p className="mt-7 max-w-[580px] text-lg leading-8 text-stone-300 sm:text-xl">
-                Send overflow CNC and fabrication work through Lattice&apos;s vetted supplier network. We coordinate quoting, inspection, documentation, and delivery.
+                Access Lattice&apos;s global network of qualified CNC machining and fabrication partners to help manage overflow and cyclical demand—without disrupting the commitments already on your schedule. We coordinate production, documentation, and delivery so you can protect lead times and stay responsive to customers.
               </p>
 
               <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">

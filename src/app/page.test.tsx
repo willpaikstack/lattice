@@ -9,7 +9,7 @@ describe("Landing page", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "More capacity. The same quality standard.",
+        name: "Additional capacity when you need it.",
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");

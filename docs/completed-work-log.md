@@ -642,3 +642,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Removed the `Start your quote` action and the `No account required` message from the public landing-page hero.
 - Kept the hero layout and its secondary visual treatment intact, while updating regression coverage and project records to reflect the account-required direction.
+
+# 2026-08-13 - Refined the landing-page capacity message for machine-shop owners
+
+- Replaced the generic capacity headline with `Additional capacity when you need it.`
+- Updated hero copy to address overflow and cyclical demand, scheduled commitments, lead times, and customer responsiveness through Lattice's qualified global CNC machining and fabrication partner network.
