@@ -39,18 +39,18 @@ function LandingHeader() {
         </Link>
 
         <nav aria-label="Public navigation" className="hidden items-center gap-10 text-[15px] font-medium text-stone-800 md:flex">
-          <Link className="rounded-md transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4" href="/capabilities">
+          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
             Capabilities
-          </Link>
-          <Link className="rounded-md transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4" href="/materials">
+          </button>
+          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
             Materials
-          </Link>
-          <Link className="rounded-md transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4" href="/quality-documentation">
+          </button>
+          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
             Quality
-          </Link>
-          <Link className="rounded-md transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4" href="#how-it-works">
+          </button>
+          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
             How it works
-          </Link>
+          </button>
         </nav>
 
         <div className="flex items-center gap-3 sm:gap-6">

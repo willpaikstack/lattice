@@ -1,6 +1,6 @@
 # Lattice OS App Feature Map
 
-Last updated: 2026-08-09
+Last updated: 2026-08-13
 
 This is the living map of what exists inside Lattice OS, how each area works, what data powers it, and what is still prototype or future work. Update this file whenever a feature is added, removed, renamed, moved to a new route, connected to a new data source, or promoted from static/prototype behavior to operational behavior.
 
@@ -26,7 +26,7 @@ The current source-of-truth workflow is `Request`/`LatticeRequest`: a buyer subm
 
 | Feature | Routes | What It Does | Data Source | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Manufacturing proof landing page | `/` | Positions Lattice as overflow CNC and fabrication capacity, leads account-free prospects into the simple-quote flow, and previews the managed RFQ, inspection, and production-update model. | Static public page, generated manufacturing imagery, and links into the public catalogs/auth flows. | Operational | Responsive desktop/mobile presentation; primary CTA goes directly to `/simple-quote`, while navigation exposes capabilities, materials, quality documentation, workflow proof, and login. |
+| Manufacturing proof landing page | `/` | Positions Lattice as overflow CNC and fabrication capacity, leads account-free prospects into the simple-quote flow, and previews the managed RFQ, inspection, and production-update model. | Static public page and generated manufacturing imagery. | Operational | Responsive desktop/mobile presentation; primary CTA goes directly to `/simple-quote`. The header retains the capabilities, materials, quality, and workflow design but those controls are disabled until those surfaces are protected by the intended public-access policy. |
 | Login | `/login` | Presents work email and password together, with Google Workspace SSO available when configured, plus accessible errors, pending feedback, password visibility, and destination preservation. | Signed session cookie, Google OAuth env vars, local fallback auth. | Partial | Multi-user durable auth, organization-owned identity policy, MFA/passkeys, and durable role records remain future hardening. |
 | Forgot password | `/forgot-password` | Supports password-reset request flow for the interim credential gate with pending feedback, non-enumerating confirmation, and a direct return to sign-in. | Password reset support where configured. | Partial | Does not reveal whether an email exists; production email delivery and durable identity recovery remain provider/configuration work. |
 | Waiting list | `/waiting-list` | Captures access requests and blocks exact duplicate emails. | Prisma/Neon when available, local fallback store in development, Resend/local outbox for email. | Operational | Production email sending still depends on Resend/domain setup. |

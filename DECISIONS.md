@@ -1135,3 +1135,14 @@ Implications:
 
 - The directory continues to group 13-8 PH, 15-5 PH, 17-4 PH, and Custom 455 together.
 - The customer-facing terminology is precise without changing the underlying grade data or grouping rules.
+# 2026-08-13 - Keep Public Landing Navigation Disabled Until Access Policy Is Explicit
+
+Decision: retain the visual public-navigation controls on the manufacturing-proof landing page but render capabilities, materials, quality, and workflow controls as disabled controls for now.
+
+Reason: the current routes can enter customer-oriented app surfaces without the intended login/access boundary. The landing page must not expose those paths until their public-access policy is explicitly reviewed and enforced.
+
+Implications:
+
+- The public landing page continues to offer the account-free `/simple-quote` conversion lane and login.
+- The disabled controls preserve the approved header composition without routing or prefetching customers into the app.
+- Re-enable each control only after its destination has the intended public or authenticated access policy and regression coverage.

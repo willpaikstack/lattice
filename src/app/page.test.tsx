@@ -16,9 +16,10 @@ describe("Landing page", () => {
     for (const link of screen.getAllByRole("link", { name: "Get a quote" })) {
       expect(link).toHaveAttribute("href", "/simple-quote");
     }
-    expect(screen.getByRole("link", { name: "Capabilities" })).toHaveAttribute("href", "/capabilities");
-    expect(screen.getByRole("link", { name: "Materials" })).toHaveAttribute("href", "/materials");
-    expect(screen.getByRole("link", { name: "Quality" })).toHaveAttribute("href", "/quality-documentation");
+    for (const label of ["Capabilities", "Materials", "Quality", "How it works"]) {
+      expect(screen.getByRole("button", { name: label })).toBeDisabled();
+      expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
+    }
     expect(screen.getByRole("link", { name: "Start your quote" })).toHaveAttribute("href", "/simple-quote");
     expect(screen.getByRole("heading", { name: "Quality you can verify." })).toBeInTheDocument();
   });
