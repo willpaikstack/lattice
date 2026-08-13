@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import LandingPage from "./page";
 
 describe("Landing page", () => {
-  it("presents the quote-first public entry points", () => {
+  it("keeps unauthenticated entry points limited to login and the header quote action", () => {
     render(<LandingPage />);
 
     expect(
@@ -20,7 +20,8 @@ describe("Landing page", () => {
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();
     }
-    expect(screen.getByRole("link", { name: "Start your quote" })).toHaveAttribute("href", "/simple-quote");
+    expect(screen.queryByRole("link", { name: "Start your quote" })).not.toBeInTheDocument();
+    expect(screen.queryByText("No account required")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Quality you can verify." })).toBeInTheDocument();
   });
 });

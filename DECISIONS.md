@@ -1143,6 +1143,6 @@ Reason: the current routes can enter customer-oriented app surfaces without the 
 
 Implications:
 
-- The public landing page continues to offer the account-free `/simple-quote` conversion lane and login.
+- The public landing-page hero does not offer an account-free quote action; login remains available in the header.
 - The disabled controls preserve the approved header composition without routing or prefetching customers into the app.
 - Re-enable each control only after its destination has the intended public or authenticated access policy and regression coverage.

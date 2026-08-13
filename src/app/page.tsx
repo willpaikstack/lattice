@@ -1,13 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  ClipboardCheck,
-  Diamond,
-  FileSearch,
-  LockKeyhole,
-} from "lucide-react";
+import { BarChart3, ClipboardCheck, Diamond, FileSearch } from "lucide-react";
 
 import { TechnicalBackground } from "@/components/public-entry";
 
@@ -85,21 +78,11 @@ export default function LandingPage() {
               </p>
 
               <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">
-                <Link className="group inline-flex min-h-14 items-center justify-center gap-5 rounded-lg bg-white px-7 text-base font-semibold text-stone-950 shadow-lg transition hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-stone-950" href="/simple-quote">
-                  Start your quote
-                  <ArrowRight className="transition-transform group-hover:translate-x-0.5" size={20} />
-                </Link>
                 <Link className="inline-flex min-h-14 items-center justify-center rounded-lg border border-white/30 px-7 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-stone-950" href="/capabilities">
                   Explore capabilities
                 </Link>
               </div>
 
-              <p className="mt-6 flex items-center gap-3 text-sm text-stone-300">
-                <LockKeyhole aria-hidden="true" size={16} strokeWidth={1.7} />
-                <span>No account required</span>
-                <span aria-hidden="true" className="text-stone-600">•</span>
-                <span>CAD files stay private</span>
-              </p>
             </div>
           </div>
 

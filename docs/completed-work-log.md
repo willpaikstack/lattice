@@ -637,3 +637,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Replaced the landing header's Capabilities, Materials, Quality, and How it works links with visually retained disabled controls so they cannot route customers into app surfaces without the required access-policy decision.
 - Preserved the account-free `/simple-quote` and login conversion paths.
 - Updated the feature map, project context, decision record, and next-action list; added landing-page regression coverage for the disabled controls.
+
+# 2026-08-13 - Removed the account-free hero quote action
+
+- Removed the `Start your quote` action and the `No account required` message from the public landing-page hero.
+- Kept the hero layout and its secondary visual treatment intact, while updating regression coverage and project records to reflect the account-required direction.
