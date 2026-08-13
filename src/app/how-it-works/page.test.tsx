@@ -7,13 +7,14 @@ describe("How it works page", () => {
   it("explains the invite-only workflow without exposing a public RFQ action", () => {
     render(<HowItWorksPage />);
 
-    expect(screen.getByRole("heading", { name: "How Lattice extends your capacity." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "From overflow to delivery, in four clear steps." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How Lattice works" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "The workflow" })).toBeInTheDocument();
     expect(screen.getByText("Share the work that needs coverage")).toBeInTheDocument();
-    expect(screen.getByText("Review before shipment")).toBeInTheDocument();
+    expect(screen.getAllByText("Review before shipment").length).toBeGreaterThan(0);
     for (const requestAccountLink of screen.getAllByRole("link", { name: "Request an account" })) {
       expect(requestAccountLink).toHaveAttribute("href", "/waiting-list");
     }
     expect(screen.queryByRole("link", { name: /quote/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "On this page" })).toBeInTheDocument();
   });
 });

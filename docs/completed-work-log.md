@@ -674,3 +674,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-13 - Made the How It Works page standalone
 
 - Added `/how-it-works` to the app shell's public routes so the explainer does not render the authenticated workspace sidebar or application chrome, even for an already signed-in visitor.
+
+# 2026-08-13 - Restyled the public How It Works page as documentation
+
+- Reworked `/how-it-works` into the same editorial, documentation-style hierarchy as the Quality Documentation guide: breadcrumb, page header, structured sections, and a sticky desktop contents rail.
+- Retained the standalone public layout and account-request-only conversion path.
