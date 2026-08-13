@@ -22,6 +22,7 @@ describe("Landing page", () => {
     expect(screen.queryByRole("link", { name: "Start your quote" })).not.toBeInTheDocument();
     expect(screen.queryByText("No account required")).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Quality you can verify." })).toBeInTheDocument();
+    expect(screen.queryByText("QUALITY YOU CAN VERIFY")).not.toBeInTheDocument();
     expect(screen.getByText("Requested inspection reports and material documentation are uploaded to Lattice for your review before shipment.")).toBeInTheDocument();
   });
 });

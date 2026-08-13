@@ -656,3 +656,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Replaced the public landing header's `Get a quote` action with `Request an account`, routing it to the existing `/waiting-list` access-request flow.
 - Added regression coverage and documented that the remaining public simple-quote routes need separate route-level access-policy hardening before future promotion.
+
+# 2026-08-13 - Simplified the landing-page quality section
+
+- Removed the redundant `QUALITY YOU CAN VERIFY` eyebrow and retained the larger `Quality you can verify.` heading as the single visual message.

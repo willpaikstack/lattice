@@ -120,8 +120,7 @@ export default function LandingPage() {
       <section className="overflow-hidden bg-[#171817]" id="how-it-works">
         <div className="mx-auto grid max-w-[1440px] items-stretch lg:grid-cols-[0.39fr_0.61fr]">
           <div className="flex flex-col justify-center px-6 py-16 sm:px-10 lg:py-14 lg:pl-[72px] lg:pr-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Quality you can verify</p>
-            <h2 className="mt-5 text-[38px] font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-[44px]">
+            <h2 className="text-[38px] font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-[44px]">
               Quality you can verify.
             </h2>
             <p className="mt-5 max-w-[420px] text-lg leading-8 text-stone-300">
