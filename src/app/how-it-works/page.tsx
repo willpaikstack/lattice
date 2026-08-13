@@ -82,60 +82,68 @@ export default function HowItWorksPage() {
               <p className="mt-5 text-sm text-slate-400">Lattice workflow overview &middot; Invite-only access</p>
             </header>
 
-            <section aria-labelledby="the-problem" className="border-b border-slate-200 py-8">
-              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="the-problem">Demand is growing faster than shop capacity.</h2>
-              <div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-600">
-                <p>
-                  Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but hiring skilled machinists takes time and adding machines does not immediately create the people or flexibility needed to run them.
-                </p>
-                <p>
-                  When a job cannot fit the schedule, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition. Lattice was built to give shops another option.
-                </p>
-              </div>
+            <section aria-labelledby="problem-heading" className="border-b border-slate-200 py-10" id="problem">
+              <header className="border-b border-slate-200 pb-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">01 &middot; The problem</p>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="problem-heading">Demand is growing faster than shop capacity.</h2>
+              </header>
+
+              <section aria-labelledby="the-problem" className="border-b border-slate-200 py-7">
+                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="the-problem">More work, less room to take it on.</h3>
+                <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
+                  <p>
+                    Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but hiring skilled machinists takes time and adding machines does not immediately create the people or flexibility needed to run them.
+                  </p>
+                  <p>
+                    When a job cannot fit the schedule, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition. Lattice was built to give shops another option.
+                  </p>
+                </div>
+              </section>
+
+              <section aria-labelledby="available-capacity" className="pt-7">
+                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="available-capacity">Capable capacity exists, but access requires confidence.</h3>
+                <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
+                  <p>
+                    Large overseas production facilities can have skilled operators and machines available even when their overall utilization is high. Their challenge is reaching domestic work that matches their capability and production windows.
+                  </p>
+                  <p>
+                    For a domestic shop, using overseas capacity requires more than finding a supplier. It requires confidence in the facility, material controls, quality process, and production coordination behind the work.
+                  </p>
+                </div>
+              </section>
             </section>
 
-            <section aria-labelledby="available-capacity" className="border-b border-slate-200 py-8">
-              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="available-capacity">Capable capacity exists, but access requires confidence.</h2>
-              <div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-600">
-                <p>
-                  Large overseas production facilities can have skilled operators and machines available even when their overall utilization is high. Their challenge is reaching domestic work that matches their capability and production windows.
-                </p>
-                <p>
-                  For a domestic shop, using overseas capacity requires more than finding a supplier. It requires confidence in the facility, material controls, quality process, and production coordination behind the work.
-                </p>
-              </div>
-            </section>
-
-            <section aria-labelledby="what-lattice-solves" className="border-b border-slate-200 py-8">
-              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="what-lattice-solves">Lattice bridges the gap.</h2>
-              <div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-600">
-                <p>
+            <section aria-labelledby="solution-heading" className="py-10" id="solution">
+              <header className="border-b border-slate-200 pb-7">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">02 &middot; The solution</p>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="solution-heading">Lattice bridges the gap.</h2>
+                <p className="mt-4 text-[15px] leading-7 text-slate-600">
                   Lattice gives domestic machine shops a managed way to extend capacity through a vetted, qualified manufacturing network. We coordinate production, requested documentation, and delivery so shops can protect their customer relationships and stay responsive when demand exceeds what their floor can support.
                 </p>
-              </div>
-            </section>
+              </header>
 
-            <section aria-labelledby="workflow-steps" className="mt-8">
-              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="workflow-steps">The workflow</h2>
-              <div className="mt-2 divide-y divide-slate-200">
-                {steps.map((step, index) => {
-                  const Icon = step.icon;
+              <section aria-labelledby="workflow-steps" className="pt-8">
+                <h3 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="workflow-steps">How the workflow works</h3>
+                <div className="mt-2 divide-y divide-slate-200">
+                  {steps.map((step, index) => {
+                    const Icon = step.icon;
 
-                  return (
-                    <section className="scroll-mt-24 py-7" id={step.id} key={step.id}>
-                      <div className="flex items-start gap-4">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600"><Icon aria-hidden="true" size={19} strokeWidth={1.7} /></span>
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Step {index + 1}</p>
-                          <h3 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-slate-950 sm:text-[21px]">{step.title}</h3>
-                          <p className="mt-2 text-[15px] font-medium leading-6 text-slate-500">{step.summary}</p>
-                          <p className="mt-3 text-[15px] leading-7 text-slate-600">{step.description}</p>
+                    return (
+                      <section className="scroll-mt-24 py-7" id={step.id} key={step.id}>
+                        <div className="flex items-start gap-4">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600"><Icon aria-hidden="true" size={19} strokeWidth={1.7} /></span>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Step {index + 1}</p>
+                            <h4 className="mt-1 text-xl font-semibold tracking-[-0.02em] text-slate-950 sm:text-[21px]">{step.title}</h4>
+                            <p className="mt-2 text-[15px] font-medium leading-6 text-slate-500">{step.summary}</p>
+                            <p className="mt-3 text-[15px] leading-7 text-slate-600">{step.description}</p>
+                          </div>
                         </div>
-                      </div>
-                    </section>
-                  );
-                })}
-              </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </section>
             </section>
 
             <aside className="mt-8 flex gap-3 border-l-2 border-[#1d73ff] bg-slate-50 px-4 py-4 text-[14px] leading-6 text-slate-600">
@@ -153,13 +161,14 @@ export default function HowItWorksPage() {
             <nav aria-label="On this page" className="sticky top-24 border-l border-slate-200 pl-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">On this page</p>
               <div className="mt-4 space-y-3 text-sm leading-5">
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#the-problem">The problem</a>
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#available-capacity">Available capacity</a>
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#what-lattice-solves">What Lattice solves</a>
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#share-your-work">Share your work</a>
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#align-production-plan">Production plan</a>
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#production-coordination">Production coordination</a>
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#review-before-shipment">Review before shipment</a>
+                <a className="block font-semibold text-slate-700 transition hover:text-slate-950" href="#problem">The problem</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#the-problem">Demand pressure</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#available-capacity">Available capacity</a>
+                <a className="block pt-2 font-semibold text-slate-700 transition hover:text-slate-950" href="#solution">The solution</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#share-your-work">Share your work</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#align-production-plan">Production plan</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#production-coordination">Production coordination</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#review-before-shipment">Review before shipment</a>
               </div>
             </nav>
           </aside>

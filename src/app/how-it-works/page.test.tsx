@@ -8,9 +8,11 @@ describe("How it works page", () => {
     render(<HowItWorksPage />);
 
     expect(screen.getByRole("heading", { name: "How Lattice works" })).toBeInTheDocument();
+    expect(screen.getByText("01 · The problem")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demand is growing faster than shop capacity." })).toBeInTheDocument();
+    expect(screen.getByText("02 · The solution")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lattice bridges the gap." })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "The workflow" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How the workflow works" })).toBeInTheDocument();
     expect(screen.getByText("Share the work that needs coverage")).toBeInTheDocument();
     expect(screen.getAllByText("Review before shipment").length).toBeGreaterThan(0);
     for (const requestAccountLink of screen.getAllByRole("link", { name: "Request an account" })) {
@@ -18,6 +20,7 @@ describe("How it works page", () => {
     }
     expect(screen.queryByRole("link", { name: /quote/i })).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "On this page" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "The problem" })).toHaveAttribute("href", "#the-problem");
+    expect(screen.getByRole("link", { name: "The problem" })).toHaveAttribute("href", "#problem");
+    expect(screen.getByRole("link", { name: "The solution" })).toHaveAttribute("href", "#solution");
   });
 });

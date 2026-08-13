@@ -684,3 +684,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Reframed the one-pager around domestic demand outpacing machine-shop capacity, the need for confidence when accessing overseas production capacity, and Lattice's managed bridge between them.
 - Retained the four-step workflow as the practical explanation of how that bridge operates.
+
+# 2026-08-13 - Divided How It Works into problem and solution
+
+- Organized the public one-pager into explicit `01 · The problem` and `02 · The solution` sections, with the four-step workflow nested under the solution.
+- Updated the desktop contents rail to reflect the problem/solution narrative hierarchy.
