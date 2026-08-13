@@ -703,3 +703,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-13 - Added operational coordination to qualification work
 
 - Clarified that building confidence in overseas capacity also requires establishing operational coordination, alongside audits, up-front investment, and initial-part risk.
+
+# 2026-08-13 - Clarified overseas subcontracting language
+
+- Updated the capacity-qualification statement to describe domestic shops subcontracting with overseas capacity, using the approved operator wording.
