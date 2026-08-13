@@ -699,3 +699,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Reframed the overseas-capacity message around rigorous vetting needed to access qualified capacity at scale.
 - Added the real qualification costs domestic shops otherwise bear: factory visits/audits, up-front investment, and risk on initial parts.
+
+# 2026-08-13 - Added operational coordination to qualification work
+
+- Clarified that building confidence in overseas capacity also requires establishing operational coordination, alongside audits, up-front investment, and initial-part risk.

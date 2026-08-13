@@ -107,7 +107,7 @@ export default function HowItWorksPage() {
                     Large overseas production facilities can have skilled operators and machines available even when their overall utilization is high. Their challenge is reaching domestic work that matches their capability and production windows.
                   </p>
                   <p>
-                    For a domestic shop, using overseas capacity requires more than finding a supplier. Building that confidence can require valuable time for factory visits and audits, meaningful upfront investment, and accepting risk on the first parts produced. Lattice manages the vetting and coordination needed to make qualified capacity usable at scale.
+                    For a domestic shop, using overseas capacity requires more than finding a supplier. Building that confidence can require valuable time for factory visits and audits, establishing operational coordination, meaningful upfront investment, and accepting risk on the first parts produced. Lattice manages the vetting and coordination needed to make qualified capacity usable at scale.
                   </p>
                 </div>
               </section>
