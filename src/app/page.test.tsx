@@ -15,6 +15,7 @@ describe("Landing page", () => {
     expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
     expect(screen.getByRole("link", { name: "Request an account" })).toHaveAttribute("href", "/waiting-list");
     expect(screen.queryByRole("link", { name: "Get a quote" })).not.toBeInTheDocument();
+    expect(screen.getByText("Access Lattice's qualified global CNC machining and fabrication network for overflow and cyclical demand—without disrupting your schedule. We coordinate production, documentation, and delivery so you can protect lead times and stay responsive to customers.")).toBeInTheDocument();
     for (const label of ["Capabilities", "Materials", "Quality", "How it works"]) {
       expect(screen.getByRole("button", { name: label })).toBeDisabled();
       expect(screen.queryByRole("link", { name: label })).not.toBeInTheDocument();

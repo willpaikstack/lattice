@@ -660,3 +660,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-13 - Simplified the landing-page quality section
 
 - Removed the redundant `QUALITY YOU CAN VERIFY` eyebrow and retained the larger `Quality you can verify.` heading as the single visual message.
+
+# 2026-08-13 - Tightened landing-page capacity copy
+
+- Reduced the main capacity paragraph from 42 to 34 words while retaining the qualified global CNC/fabrication network, overflow and cyclical-demand, schedule protection, managed delivery, lead-time, and customer-responsiveness messages.

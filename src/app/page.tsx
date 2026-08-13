@@ -74,7 +74,7 @@ export default function LandingPage() {
                 <span className="block">when you need it.</span>
               </h1>
               <p className="mt-7 max-w-[580px] text-lg leading-8 text-stone-300 sm:text-xl">
-                Access Lattice&apos;s global network of qualified CNC machining and fabrication partners to help manage overflow and cyclical demand—without disrupting the commitments already on your schedule. We coordinate production, documentation, and delivery so you can protect lead times and stay responsive to customers.
+                Access Lattice&apos;s qualified global CNC machining and fabrication network for overflow and cyclical demand—without disrupting your schedule. We coordinate production, documentation, and delivery so you can protect lead times and stay responsive to customers.
               </p>
 
               <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">
