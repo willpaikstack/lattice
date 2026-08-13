@@ -8,6 +8,8 @@ describe("How it works page", () => {
     render(<HowItWorksPage />);
 
     expect(screen.getByRole("heading", { name: "How Lattice works" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Demand is growing faster than shop capacity." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lattice bridges the gap." })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "The workflow" })).toBeInTheDocument();
     expect(screen.getByText("Share the work that needs coverage")).toBeInTheDocument();
     expect(screen.getAllByText("Review before shipment").length).toBeGreaterThan(0);
@@ -16,5 +18,6 @@ describe("How it works page", () => {
     }
     expect(screen.queryByRole("link", { name: /quote/i })).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "On this page" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "The problem" })).toHaveAttribute("href", "#the-problem");
   });
 });

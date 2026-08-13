@@ -679,3 +679,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Reworked `/how-it-works` into the same editorial, documentation-style hierarchy as the Quality Documentation guide: breadcrumb, page header, structured sections, and a sticky desktop contents rail.
 - Retained the standalone public layout and account-request-only conversion path.
+
+# 2026-08-13 - Added the Lattice founding problem to How It Works
+
+- Reframed the one-pager around domestic demand outpacing machine-shop capacity, the need for confidence when accessing overseas production capacity, and Lattice's managed bridge between them.
+- Retained the four-step workflow as the practical explanation of how that bridge operates.

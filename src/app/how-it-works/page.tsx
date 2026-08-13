@@ -77,19 +77,40 @@ export default function HowItWorksPage() {
               </span>
               <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-[44px]">How Lattice works</h1>
               <p className="mt-4 max-w-[680px] text-[16px] leading-7 text-slate-600">
-                Lattice helps machine shops cover overflow and cyclical demand with qualified CNC machining and fabrication capacity&mdash;without disrupting the commitments already on the schedule.
+                Lattice connects domestic machine shops facing sustained demand with qualified overseas manufacturing capacity&mdash;without disrupting the commitments already on the schedule.
               </p>
               <p className="mt-5 text-sm text-slate-400">Lattice workflow overview &middot; Invite-only access</p>
             </header>
 
-            <section aria-labelledby="workflow-overview" className="border-b border-slate-200 py-8">
-              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="workflow-overview">A managed capacity handoff</h2>
+            <section aria-labelledby="the-problem" className="border-b border-slate-200 py-8">
+              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="the-problem">Demand is growing faster than shop capacity.</h2>
               <div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-600">
                 <p>
-                  When a customer needs a faster answer than your people or machines can support, Lattice gives your shop a structured way to add capacity while keeping your existing operations on track.
+                  Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but hiring skilled machinists takes time and adding machines does not immediately create the people or flexibility needed to run them.
                 </p>
                 <p>
-                  The workflow is designed to make the production plan, updates, and requested quality documentation easy to review from the initial request through shipment.
+                  When a job cannot fit the schedule, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition. Lattice was built to give shops another option.
+                </p>
+              </div>
+            </section>
+
+            <section aria-labelledby="available-capacity" className="border-b border-slate-200 py-8">
+              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="available-capacity">Capable capacity exists, but access requires confidence.</h2>
+              <div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-600">
+                <p>
+                  Large overseas production facilities can have skilled operators and machines available even when their overall utilization is high. Their challenge is reaching domestic work that matches their capability and production windows.
+                </p>
+                <p>
+                  For a domestic shop, using overseas capacity requires more than finding a supplier. It requires confidence in the facility, material controls, quality process, and production coordination behind the work.
+                </p>
+              </div>
+            </section>
+
+            <section aria-labelledby="what-lattice-solves" className="border-b border-slate-200 py-8">
+              <h2 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="what-lattice-solves">Lattice bridges the gap.</h2>
+              <div className="mt-4 space-y-4 text-[15px] leading-7 text-slate-600">
+                <p>
+                  Lattice gives domestic machine shops a managed way to extend capacity through a vetted, qualified manufacturing network. We coordinate production, requested documentation, and delivery so shops can protect their customer relationships and stay responsive when demand exceeds what their floor can support.
                 </p>
               </div>
             </section>
@@ -132,7 +153,9 @@ export default function HowItWorksPage() {
             <nav aria-label="On this page" className="sticky top-24 border-l border-slate-200 pl-5">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">On this page</p>
               <div className="mt-4 space-y-3 text-sm leading-5">
-                <a className="block text-slate-500 transition hover:text-slate-950" href="#workflow-overview">Overview</a>
+                <a className="block text-slate-500 transition hover:text-slate-950" href="#the-problem">The problem</a>
+                <a className="block text-slate-500 transition hover:text-slate-950" href="#available-capacity">Available capacity</a>
+                <a className="block text-slate-500 transition hover:text-slate-950" href="#what-lattice-solves">What Lattice solves</a>
                 <a className="block text-slate-500 transition hover:text-slate-950" href="#share-your-work">Share your work</a>
                 <a className="block text-slate-500 transition hover:text-slate-950" href="#align-production-plan">Production plan</a>
                 <a className="block text-slate-500 transition hover:text-slate-950" href="#production-coordination">Production coordination</a>
