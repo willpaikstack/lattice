@@ -647,3 +647,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Replaced the generic capacity headline with `Additional capacity when you need it.`
 - Updated hero copy to address overflow and cyclical demand, scheduled commitments, lead times, and customer responsiveness through Lattice's qualified global CNC machining and fabrication partner network.
+
+# 2026-08-13 - Clarified pre-shipment quality-document review
+
+- Updated the public landing-page quality section to state that requested inspection reports and material documentation are uploaded to Lattice for customer review before shipment.

@@ -125,7 +125,7 @@ export default function LandingPage() {
               Quality you can verify.
             </h2>
             <p className="mt-5 max-w-[420px] text-lg leading-8 text-stone-300">
-              Inspection reports and material documentation stay with every order.
+              Requested inspection reports and material documentation are uploaded to Lattice for your review before shipment.
             </p>
 
             <ol className="mt-9 grid grid-cols-3 gap-3" aria-label="Lattice order workflow">
