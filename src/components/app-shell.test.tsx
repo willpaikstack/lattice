@@ -190,6 +190,20 @@ describe("AppShell", () => {
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
+  it("leaves the public how it works page outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/how-it-works");
+
+    render(
+      <AppShell>
+        <div>how it works content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("how it works content")).toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
+  });
+
   it("keeps customer navigation separate from admin pages", () => {
     render(
       <AppShell>

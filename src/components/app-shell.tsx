@@ -93,7 +93,7 @@ const adminNavSections: NavSection[] = [
 ];
 
 const adminRoutePrefixes = ["/admin", "/analytics", "/projects", "/operator"];
-const publicRoutes = new Set(["/", "/login", "/forgot-password", "/waiting-list"]);
+const publicRoutes = new Set(["/", "/how-it-works", "/login", "/forgot-password", "/waiting-list"]);
 const navOrderStoragePrefix = "lattice:sidebar-nav-order";
 const iconByName: Record<IconName, LucideIcon> = {
   admin: Settings,

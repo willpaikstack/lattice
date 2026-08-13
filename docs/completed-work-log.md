@@ -670,3 +670,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Reactivated only the landing-page `How it works` link and routed it to `/how-it-works`.
 - Added a four-step one-pager covering approved-account work sharing, production-plan alignment, managed production coordination, and pre-shipment review of requested inspection and material documentation.
 - Kept the page invite-only in practice: its only conversion path is `Request an account`; it exposes no guest RFQ action.
+
+# 2026-08-13 - Made the How It Works page standalone
+
+- Added `/how-it-works` to the app shell's public routes so the explainer does not render the authenticated workspace sidebar or application chrome, even for an already signed-in visitor.
