@@ -694,3 +694,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Updated the Problem section to state that adding people, machines, or floor space takes time, capital, and risk, particularly for cyclical demand.
 - Clarified that work may not fit either the schedule or the shop's available capacity.
+
+# 2026-08-13 - Clarified overseas-capacity qualification work
+
+- Reframed the overseas-capacity message around rigorous vetting needed to access qualified capacity at scale.
+- Added the real qualification costs domestic shops otherwise bear: factory visits/audits, up-front investment, and risk on initial parts.

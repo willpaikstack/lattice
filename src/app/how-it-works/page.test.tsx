@@ -10,11 +10,13 @@ describe("How it works page", () => {
     expect(screen.getByRole("heading", { name: "How Lattice works" })).toBeInTheDocument();
     expect(screen.getByText("01 · The problem")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demand is growing faster than shop capacity." })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Qualified capacity exists—but accessing it at scale requires rigorous vetting." })).toBeInTheDocument();
     expect(screen.getByText("02 · The solution")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lattice bridges the gap." })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "How the workflow works" })).toBeInTheDocument();
     expect(screen.getByText(/adding human capital, machines, or floor space takes time, capital, and risk/i)).toBeInTheDocument();
     expect(screen.getByText(/cannot fit the schedule or available capacity/i)).toBeInTheDocument();
+    expect(screen.getByText(/factory visits and audits, meaningful upfront investment, and accepting risk on the first parts produced/i)).toBeInTheDocument();
     expect(screen.getByText("Share the work that needs coverage")).toBeInTheDocument();
     expect(screen.getAllByText("Review before shipment").length).toBeGreaterThan(0);
     for (const requestAccountLink of screen.getAllByRole("link", { name: "Request an account" })) {

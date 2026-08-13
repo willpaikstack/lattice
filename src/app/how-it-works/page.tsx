@@ -101,13 +101,13 @@ export default function HowItWorksPage() {
               </section>
 
               <section aria-labelledby="available-capacity" className="pt-7">
-                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="available-capacity">Capable capacity exists, but access requires confidence.</h3>
+                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="available-capacity">Qualified capacity exists&mdash;but accessing it at scale requires rigorous vetting.</h3>
                 <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
                   <p>
                     Large overseas production facilities can have skilled operators and machines available even when their overall utilization is high. Their challenge is reaching domestic work that matches their capability and production windows.
                   </p>
                   <p>
-                    For a domestic shop, using overseas capacity requires more than finding a supplier. It requires confidence in the facility, material controls, quality process, and production coordination behind the work.
+                    For a domestic shop, using overseas capacity requires more than finding a supplier. Building that confidence can require valuable time for factory visits and audits, meaningful upfront investment, and accepting risk on the first parts produced. Lattice manages the vetting and coordination needed to make qualified capacity usable at scale.
                   </p>
                 </div>
               </section>
