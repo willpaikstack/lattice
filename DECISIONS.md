@@ -1157,3 +1157,15 @@ Implications:
 
 - The header's primary action is `Request an account` and routes to `/waiting-list`; `Log in` remains available to approved users.
 - This landing-page change does not itself replace route-level access control; the remaining public simple-quote routes require their own access-policy decision before they are promoted again.
+
+# 2026-08-13 - Public How-It-Works Page Is An Account-Safe Navigation Exception
+
+Decision: reactivate only the landing header's `How it works` control, routing it to a static public one-pager at `/how-it-works`.
+
+Reason: prospective machine-shop owners need a clear explanation of the Lattice workflow before deciding whether to request access. A static explainer can do that without exposing customer workspace or account-free RFQ routes.
+
+Implications:
+
+- The page explains the approved-account flow: share requirements, align the production plan, receive coordinated production updates, and review requested documentation before shipment.
+- Its only conversion action is `Request an account` to `/waiting-list`, alongside `Log in` for approved users.
+- Capabilities, Materials, and Quality remain disabled pending their own public-access-policy decisions.

@@ -41,9 +41,12 @@ function LandingHeader() {
           <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
             Quality
           </button>
-          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
+          <Link
+            className="rounded-md transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4"
+            href="/how-it-works"
+          >
             How it works
-          </button>
+          </Link>
         </nav>
 
         <div className="flex items-center gap-3 sm:gap-6">

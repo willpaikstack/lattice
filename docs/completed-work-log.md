@@ -664,3 +664,9 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-13 - Tightened landing-page capacity copy
 
 - Reduced the main capacity paragraph from 42 to 34 words while retaining the qualified global CNC/fabrication network, overflow and cyclical-demand, schedule protection, managed delivery, lead-time, and customer-responsiveness messages.
+
+# 2026-08-13 - Added an account-safe public How It Works page
+
+- Reactivated only the landing-page `How it works` link and routed it to `/how-it-works`.
+- Added a four-step one-pager covering approved-account work sharing, production-plan alignment, managed production coordination, and pre-shipment review of requested inspection and material documentation.
+- Kept the page invite-only in practice: its only conversion path is `Request an account`; it exposes no guest RFQ action.
