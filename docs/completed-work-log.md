@@ -718,3 +718,27 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Renamed the demand-pressure subheading to emphasize the gap between customer demand and productive capacity.
 - Moved the section's Lattice value statement into a separate bold closing sentence.
 - Replaced the global-capacity follow-up paragraph with the concise managed coordination and delivery statement.
+
+# 2026-08-14 - Reframed How It Works around managed capacity
+
+- Refocused the public page on profitable demand, constrained internal capacity, and global capacity that Lattice qualifies and manages against the customer&apos;s requirements.
+- Updated the four-step workflow to customer job intake, supply planning, managed production, and pre-shipment quality review.
+- Added concise first-job guidance, a four-point managed-capacity value grid, and backlog-focused CTAs that reuse the existing waiting-list contact flow.
+- Softened the problem-section capacity-gap statement into a bold continuation of the body copy rather than a callout treatment.
+- Applied the same subdued inline treatment to the global-capacity closing statement.
+
+# 2026-08-14 - Refined approved How It Works conversion and navigation details
+
+- Replaced the global-capacity opening with a more measured supplier-qualification statement.
+- Moved the practical first-job guidance ahead of the workflow and aligned the desktop contents rail with the resulting section order and current labels.
+- Added sticky-header-safe anchor offsets, consolidated the repeated closing CTA and invite-only note, and retained desktop CTA wording while shortening the mobile header CTA and keeping login visible.
+
+# 2026-08-14 - Added the customer origin behind Lattice
+
+- Added a concise, customer-facing credibility note before the closing CTA: Lattice was built after domestic quote and lead-time constraints on high-temperature ammonia reforming work led the team to qualify overseas manufacturing capacity through audits, process validation, and supplier management.
+- Kept the detailed origin story and investment history out of the workflow page so the page stays focused on the buyer’s practical next step.
+
+# 2026-08-14 - Expanded the customer-origin context on How It Works
+
+- Reframed the origin section around the proposition that global manufacturing should not require building a global supply chain.
+- Added the approved customer context: domestic constraints on price, lead time, and process requirements; the work of qualifying overseas production; and Lattice’s formation while sourcing high-temperature ammonia reforming components.

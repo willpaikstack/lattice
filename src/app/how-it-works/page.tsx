@@ -1,34 +1,34 @@
 import Link from "next/link";
-import { ArrowRight, ClipboardCheck, Diamond, Factory, FileCheck2, FileUp, Info } from "lucide-react";
+import { ArrowRight, ClipboardCheck, Diamond, Factory, FileCheck2, FileUp } from "lucide-react";
 
 const steps = [
   {
     id: "share-your-work",
     icon: FileUp,
-    title: "Share the work that needs coverage",
-    summary: "Start with the files, quantities, material requirements, and timing that matter to your customer.",
-    description: "After your account is approved, bring in the work your shop needs help covering. Lattice uses the request details to understand the process, specifications, quality requirements, and delivery window before coordinating production capacity.",
+    title: "Send us the job",
+    summary: "Give us the drawing, quantity, requirements, and delivery date.",
+    description: "Share the drawing, CAD, or print; quantity; material specification; approved material-source requirements when applicable; inspection and quality requirements; and required delivery date.",
   },
   {
     id: "align-production-plan",
     icon: ClipboardCheck,
-    title: "Align on the production plan",
-    summary: "Review a clear quote before any work moves forward.",
-    description: "Lattice reviews the request, coordinates qualified CNC machining and fabrication capacity, and returns the quote details needed to protect your schedule. The final plan reflects the scope, lead time, documentation, and delivery requirements for the job.",
+    title: "We build the supply plan",
+    summary: "Confirm the viable production path before work moves forward.",
+    description: "Lattice matches the work to qualified manufacturing capacity and confirms price, lead time, material requirements, the production plan, and quality requirements.",
   },
   {
     id: "production-coordination",
     icon: Factory,
-    title: "Keep production moving",
-    summary: "Use additional capacity without disrupting the commitments already on your floor.",
-    description: "Once the plan is approved, Lattice coordinates production and provides updates while your team stays focused on the work already in motion. This gives your shop a way to respond to overflow and cyclical demand without overloading its operating rhythm.",
+    title: "We manage production",
+    summary: "Keep your own floor focused on the work already committed to it.",
+    description: "Lattice coordinates the supplier, tracks execution, and manages production without forcing you to reshuffle the work already committed to your own floor.",
   },
   {
     id: "review-before-shipment",
     icon: FileCheck2,
-    title: "Review before shipment",
-    summary: "See requested quality evidence before the order ships.",
-    description: "Requested inspection reports and material documentation are uploaded to Lattice for your review before shipment. This keeps the quality requirements visible through the handoff and supports confident communication with your customer.",
+    title: "Review quality before shipment",
+    summary: "Review the evidence before parts leave the supplier.",
+    description: "Inspection reports, material certifications, and required quality documentation are available for review before parts leave the supplier.",
   },
 ];
 
@@ -52,11 +52,12 @@ export default function HowItWorksPage() {
             <BrandMark />
           </Link>
           <div className="flex items-center gap-3 sm:gap-6">
-            <Link className="hidden rounded-md text-[15px] font-medium text-slate-700 transition hover:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-4 sm:block" href="/login">
+            <Link className="rounded-md text-sm font-medium text-slate-700 transition hover:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-4 sm:text-[15px]" href="/login">
               Log in
             </Link>
-            <Link className="rounded-lg bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 sm:px-5" href="/waiting-list">
-              Request an account
+            <Link className="rounded-lg bg-stone-950 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 sm:px-5" href="/waiting-list">
+              <span className="sm:hidden">Talk to us</span>
+              <span className="hidden sm:inline">Talk to us about your backlog</span>
             </Link>
           </div>
         </div>
@@ -82,48 +83,58 @@ export default function HowItWorksPage() {
               <p className="mt-5 text-sm text-slate-400">Lattice workflow overview &middot; Invite-only access</p>
             </header>
 
-            <section aria-labelledby="problem-heading" className="border-b border-slate-200 py-10" id="problem">
+            <section aria-labelledby="problem-heading" className="scroll-mt-24 border-b border-slate-200 py-10" id="problem">
               <header className="border-b border-slate-200 pb-7">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">01 &middot; The problem</p>
                 <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="problem-heading">Demand is growing faster than shop capacity.</h2>
               </header>
 
-              <section aria-labelledby="the-problem" className="border-b border-slate-200 py-7">
+              <section aria-labelledby="the-problem" className="scroll-mt-24 border-b border-slate-200 py-7">
                 <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="the-problem">More customer demand. Not enough productive capacity.</h3>
                 <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
                   <p>
                     When a job cannot fit the schedule or available capacity, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition.
                   </p>
                   <p>
-                    Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but adding human capital, machines, or floor space takes time, capital, and risk&mdash;especially when demand is cyclical. Skilled machinists are difficult to hire, new employees take time to train, and additional machines, automation, and floor space require significant capital.
+                    Adding capacity is not simple. Skilled machinists are difficult to hire, new employees take time to train, and new machines, automation, and floor space require significant capital and ramp time.
                   </p>
-                  <p className="font-semibold text-slate-700">Lattice was built to give shops another option.</p>
+                  <p className="text-[15px] font-semibold leading-7 text-slate-700">Demand exists. Customers are ready to buy. But the capacity to fulfill that demand does not.</p>
                 </div>
               </section>
 
-              <section aria-labelledby="available-capacity" className="pt-7">
+              <section aria-labelledby="available-capacity" className="scroll-mt-24 pt-7">
                 <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="available-capacity">Global capacity exists. Making it trustworthy is the hard part.</h3>
                 <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
                   <p>
-                    Finding an overseas machine shop is easy. Qualifying the right supplier, validating process capability, managing material requirements, reviewing quality documentation, coordinating production, and getting conforming parts delivered is not.
+                    Finding a supplier is only the first step. Knowing whether it can consistently meet your drawings, material requirements, quality standards, and delivery commitments requires qualification.
                   </p>
                   <p>
                     Lattice handles the work required to make global capacity usable: supplier qualification, process validation, material coordination, production oversight, quality documentation, and delivery.
                   </p>
+                  <p className="text-[15px] font-semibold leading-7 text-slate-700">You get access to additional capacity without having to build and manage an overseas supply chain yourself.</p>
                 </div>
               </section>
             </section>
 
-            <section aria-labelledby="solution-heading" className="py-10" id="solution">
+            <section aria-labelledby="solution-heading" className="scroll-mt-24 py-10" id="solution">
               <header className="border-b border-slate-200 pb-7">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">02 &middot; The solution</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="solution-heading">You keep control of the requirements. Lattice manages the supply chain.</h2>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="solution-heading">Add capacity without building it yourself.</h2>
                 <p className="mt-4 text-[15px] leading-7 text-slate-600">
-                  Your drawings, specifications, material requirements, inspection requirements, and delivery expectations define the job. Lattice coordinates qualified suppliers against those requirements and surfaces quality documentation before parts are shipped.
+                  Lattice gives manufacturers another production path when internal capacity is constrained. We coordinate qualified suppliers, material requirements, quality documentation, production, logistics, and delivery so your team can stay focused on the work that belongs on your own floor.
                 </p>
               </header>
 
-              <section aria-labelledby="workflow-steps" className="pt-8">
+              <section aria-labelledby="starting-work" className="scroll-mt-24 pt-8" id="start-with">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">A practical first job</p>
+                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="starting-work">Start with predictable, lower-risk overflow work.</h3>
+                <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
+                  <p>Repeat production, stable drawings, sufficient lead time, clear material requirements, and objective inspection criteria are strong starting points.</p>
+                  <p>Use Lattice to free your internal team for the complex, urgent, and high-value work that belongs on your floor.</p>
+                </div>
+              </section>
+
+              <section aria-labelledby="workflow-steps" className="border-t border-slate-200 pt-8">
                 <h3 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="workflow-steps">How the workflow works</h3>
                 <div className="mt-2 divide-y divide-slate-200">
                   {steps.map((step, index) => {
@@ -145,17 +156,51 @@ export default function HowItWorksPage() {
                   })}
                 </div>
               </section>
+
+              <section aria-labelledby="value-heading" className="scroll-mt-24 border-t border-slate-200 pt-8" id="value">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">What Lattice adds</p>
+                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="value-heading">Capacity without the fixed expansion.</h3>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["More capacity", "Accept work your current floor cannot support."],
+                    ["Less fixed expansion", "Avoid scaling headcount, equipment, and floor space in lockstep with demand."],
+                    ["Managed quality", "Coordinate production and documentation against your requirements."],
+                    ["One accountable partner", "Use Lattice instead of building and managing an overseas supply chain yourself."],
+                  ].map(([title, description]) => (
+                    <section className="rounded-md border border-slate-200 bg-slate-50 px-4 py-4" key={title}>
+                      <h4 className="text-[15px] font-semibold text-slate-900">{title}</h4>
+                      <p className="mt-1 text-[14px] leading-6 text-slate-600">{description}</p>
+                    </section>
+                  ))}
+                </div>
+              </section>
             </section>
 
-            <aside className="mt-8 flex gap-3 border-l-2 border-[#1d73ff] bg-slate-50 px-4 py-4 text-[14px] leading-6 text-slate-600">
-              <Info aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-[#1d73ff]" />
-              <p><strong className="font-semibold text-slate-800">Lattice is invite-only.</strong> Request an account to discuss your shop&apos;s capacity needs and whether the network is a fit for the work you want to support.</p>
+            <section aria-labelledby="why-lattice-heading" className="mt-8 border-t border-slate-200 pt-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Why Lattice exists</p>
+              <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="why-lattice-heading">Global manufacturing shouldn&apos;t require building a global supply chain.</h3>
+              <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
+                <p>
+                  For many parts, domestic capacity cannot consistently meet the price, lead-time, or process requirements customers face. But accessing qualified overseas production has traditionally meant building supplier relationships from scratch—conducting factory audits, validating processes, managing quality, and navigating communication and logistics across borders.
+                </p>
+                <p>
+                  Lattice was built by a team that learned this firsthand while sourcing critical components for high-temperature ammonia reforming systems. We built the overseas production network, validated the suppliers, and developed the operating discipline required to make it dependable.
+                </p>
+                <p>
+                  Lattice gives manufacturers access to that hard-won capacity—without requiring them to build an international supply chain from scratch.
+                </p>
+              </div>
+            </section>
+
+            <aside className="mt-8 border-l-2 border-[#1d73ff] bg-slate-50 px-5 py-5">
+              <p className="text-lg font-semibold tracking-[-0.02em] text-slate-950">Have work you can&apos;t fit on the floor?</p>
+              <p className="mt-2 text-[14px] leading-6 text-slate-600">Talk with Lattice about the backlog or overflow work you need to evaluate. Lattice is invite-only; we&apos;ll help determine whether the network fits your requirements.</p>
+              <Link className="mt-4 inline-flex items-center gap-2 rounded-md bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2" href="/waiting-list">
+                Talk to us about your backlog
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </Link>
             </aside>
 
-            <Link className="mt-9 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 transition hover:text-slate-950" href="/waiting-list">
-              Request an account
-              <ArrowRight aria-hidden="true" className="h-4 w-4" />
-            </Link>
           </article>
 
           <aside className="hidden lg:block">
@@ -164,12 +209,14 @@ export default function HowItWorksPage() {
               <div className="mt-4 space-y-3 text-sm leading-5">
                 <a className="block font-semibold text-slate-700 transition hover:text-slate-950" href="#problem">The problem</a>
                 <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#the-problem">Demand pressure</a>
-                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#available-capacity">Available capacity</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#available-capacity">Global capacity</a>
                 <a className="block pt-2 font-semibold text-slate-700 transition hover:text-slate-950" href="#solution">The solution</a>
-                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#share-your-work">Share your work</a>
-                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#align-production-plan">Production plan</a>
-                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#production-coordination">Production coordination</a>
-                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#review-before-shipment">Review before shipment</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#start-with">Good first job</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#share-your-work">Send us the job</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#align-production-plan">Build the supply plan</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#production-coordination">Manage production</a>
+                <a className="block pl-3 text-slate-500 transition hover:text-slate-950" href="#review-before-shipment">Quality review</a>
+                <a className="block pt-2 font-semibold text-slate-700 transition hover:text-slate-950" href="#value">Capacity without fixed expansion</a>
               </div>
             </nav>
           </aside>
