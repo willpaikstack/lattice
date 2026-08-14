@@ -707,3 +707,14 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-13 - Clarified overseas subcontracting language
 
 - Updated the capacity-qualification statement to describe domestic shops subcontracting with overseas capacity, using the approved operator wording.
+
+# 2026-08-14 - Sharpened How It Works capacity messaging
+
+- Reframed the public explainer around access to qualified global production capacity while protecting customer relationships and production schedules.
+- Clarified that the difficult work is qualifying suppliers, validating process capability, managing requirements and documentation, coordinating production, and delivering conforming parts.
+- Reordered the demand-pressure narrative to lead with the consequence of a job that cannot fit the schedule or available capacity.
+- Reframed the solution around customer-controlled requirements and Lattice-managed supply-chain coordination, including pre-shipment quality documentation.
+- Clarified the sustained-demand paragraph with the hiring, training, automation, and capital constraints of adding productive capacity.
+- Renamed the demand-pressure subheading to emphasize the gap between customer demand and productive capacity.
+- Moved the section's Lattice value statement into a separate bold closing sentence.
+- Replaced the global-capacity follow-up paragraph with the concise managed coordination and delivery statement.

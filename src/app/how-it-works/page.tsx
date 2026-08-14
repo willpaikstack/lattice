@@ -77,7 +77,7 @@ export default function HowItWorksPage() {
               </span>
               <h1 className="mt-5 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-[44px]">How Lattice works</h1>
               <p className="mt-4 max-w-[680px] text-[16px] leading-7 text-slate-600">
-                Lattice connects domestic machine shops facing sustained demand with qualified overseas manufacturing capacity&mdash;without disrupting the commitments already on the schedule.
+                Lattice gives domestic manufacturers access to qualified global production capacity, helping shops fulfill overflow demand while keeping their customer relationships and existing production schedules intact.
               </p>
               <p className="mt-5 text-sm text-slate-400">Lattice workflow overview &middot; Invite-only access</p>
             </header>
@@ -89,25 +89,26 @@ export default function HowItWorksPage() {
               </header>
 
               <section aria-labelledby="the-problem" className="border-b border-slate-200 py-7">
-                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="the-problem">More work, less room to take it on.</h3>
+                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="the-problem">More customer demand. Not enough productive capacity.</h3>
                 <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
                   <p>
-                    Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but adding human capital, machines, or floor space takes time, capital, and risk&mdash;especially when demand is cyclical. Hiring skilled machinists and bringing on equipment does not immediately create the flexibility needed to run more work.
+                    When a job cannot fit the schedule or available capacity, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition.
                   </p>
                   <p>
-                    When a job cannot fit the schedule or available capacity, the choices are difficult: extend the lead time, raise the price, disrupt committed work, or send a customer to the competition. Lattice was built to give shops another option.
+                    Domestic manufacturers are seeing sustained demand from growing industrial sectors. Capable machine shops can have full sales pipelines, but adding human capital, machines, or floor space takes time, capital, and risk&mdash;especially when demand is cyclical. Skilled machinists are difficult to hire, new employees take time to train, and additional machines, automation, and floor space require significant capital.
                   </p>
+                  <p className="font-semibold text-slate-700">Lattice was built to give shops another option.</p>
                 </div>
               </section>
 
               <section aria-labelledby="available-capacity" className="pt-7">
-                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="available-capacity">Qualified capacity exists&mdash;but accessing it at scale requires rigorous vetting.</h3>
+                <h3 className="text-xl font-semibold tracking-[-0.02em] text-slate-950" id="available-capacity">Global capacity exists. Making it trustworthy is the hard part.</h3>
                 <div className="mt-3 space-y-4 text-[15px] leading-7 text-slate-600">
                   <p>
-                    Large overseas production facilities can have skilled operators and machines available even when their overall utilization is high. Their challenge is reaching domestic work that matches their capability and production windows.
+                    Finding an overseas machine shop is easy. Qualifying the right supplier, validating process capability, managing material requirements, reviewing quality documentation, coordinating production, and getting conforming parts delivered is not.
                   </p>
                   <p>
-                    For a domestic shop, sub-contracting with overseas capacity requires more than finding a supplier. Building that confidence requires valuable time for factory visits and audits, establishing operational coordination, meaningful upfront investment, and accepting risk on the first parts produced. Lattice manages the vetting and coordination needed to make qualified capacity usable at scale.
+                    Lattice handles the work required to make global capacity usable: supplier qualification, process validation, material coordination, production oversight, quality documentation, and delivery.
                   </p>
                 </div>
               </section>
@@ -116,9 +117,9 @@ export default function HowItWorksPage() {
             <section aria-labelledby="solution-heading" className="py-10" id="solution">
               <header className="border-b border-slate-200 pb-7">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">02 &middot; The solution</p>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="solution-heading">Lattice bridges the gap.</h2>
+                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-950" id="solution-heading">You keep control of the requirements. Lattice manages the supply chain.</h2>
                 <p className="mt-4 text-[15px] leading-7 text-slate-600">
-                  Lattice gives domestic machine shops a managed way to extend capacity through a vetted, qualified manufacturing network. We coordinate production, requested documentation, and delivery so shops can protect their customer relationships and stay responsive when demand exceeds what their floor can support.
+                  Your drawings, specifications, material requirements, inspection requirements, and delivery expectations define the job. Lattice coordinates qualified suppliers against those requirements and surfaces quality documentation before parts are shipped.
                 </p>
               </header>
 
