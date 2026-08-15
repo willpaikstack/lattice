@@ -742,3 +742,121 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Reframed the origin section around the proposition that global manufacturing should not require building a global supply chain.
 - Added the approved customer context: domestic constraints on price, lead time, and process requirements; the work of qualifying overseas production; and Lattice’s formation while sourcing high-temperature ammonia reforming components.
+
+# 2026-08-14 - Refined the Why Lattice exists section
+
+- Updated the section to lead with managed access to global manufacturing capacity and to explain the qualification, validation, material, quality, communication, and logistics work required to make it dependable.
+- Preserved the firsthand ammonia-reforming sourcing context and emphasized that Lattice provides the resulting manufacturing infrastructure without asking customers to build it themselves.
+
+# 2026-08-14 - Positioned Lattice as strengthening domestic manufacturers
+
+- Clarified that the overseas network was built to augment and fortify the domestic manufacturing team, not displace the work that belongs on its floor.
+- Replaced the origin section&apos;s final statement with the approved domestic-manufacturer outcome: retain customer relationships, protect internal capacity, and accept more of the work already being won.
+
+# 2026-08-14 - Clarified the How It Works workflow
+
+- Updated the four steps to reflect complete manufacturing-package intake, validation before supplier quoting, customer approval before production launch, and order-attached quality documentation for pre-shipment review.
+- Added the multi-part RFQ specificity, supplier-backed quote, order-tracking, and manufacturing-package documentation details; aligned the desktop contents rail with the new step names.
+
+# 2026-08-15 - Simplified the How It Works page index
+
+- Reduced the desktop page index to three primary anchors: The problem, How Lattice works, and Why Lattice exists.
+- Removed the visual sidebar rule and added a sticky-header-safe origin-section anchor, so the navigation remains useful without competing with the short page content.
+
+# 2026-08-15 - Collapsed the How It Works page index by default
+
+- Replaced the always-visible desktop index with a compact three-line rail that expands to the three primary links on hover or keyboard focus.
+- Kept the index out of the mobile layout and preserved the existing sticky anchor behavior.
+
+# 2026-08-15 - Restored the detailed How It Works page index
+
+- Kept the compact collapsed rail while restoring the problem, solution, workflow, value, and origin links inside its expanded state.
+
+# 2026-08-15 - Widened the How It Works reading column
+
+- Increased the desktop article column from 740px to 820px and modestly tightened the desktop grid gap so the page uses the available space more comfortably while retaining the responsive layout and index rail.
+
+# 2026-08-15 - Added expandable Lattice benefit details
+
+- Replaced the static two-column `What Lattice adds` card grid with four full-width disclosure rows that retain their benefit summaries while revealing more operational detail on demand.
+- Added one-panel-at-a-time behavior, relevant icons, open-state styling, keyboard-visible focus, reduced-motion handling, responsive layouts, and interaction coverage for the benefit controls.
+
+# 2026-08-15 - Redesigned the How It Works workflow
+
+- Replaced the desktop workflow stack with a wider four-column sequence connected by a restrained directional curve and numbered milestones.
+- Matched each step with a compact semantic icon, retained the approved operational copy, and preserved the vertical step layout on narrower screens.
+- Expanded the public-page container for the horizontal composition, kept the desktop contents rail at the extra-large breakpoint, and verified the section at desktop and 390px mobile sizes without horizontal overflow.
+
+# 2026-08-15 - Docked the How It Works index to the viewport edge
+
+- Moved the collapsed desktop page index from the centered content grid to the right edge of the browser window.
+- Kept the compact rail and made its detailed link panel expand inward so it no longer floats between the article and viewport edge.
+
+# 2026-08-15 - Reframed the How It Works problem section
+
+- Converted the paired demand-pressure and global-capacity narratives into balanced desktop columns under the existing section headline.
+- Retained the original stacked order, dividers, and text treatment below the medium breakpoint for a familiar mobile reading flow.
+
+# 2026-08-15 - Matched the solution section to the two-column page rhythm
+
+- Placed the solution overview and practical-first-job guidance side by side at wider breakpoints, using the same vertical divider and spacing treatment as the problem section above.
+- Preserved the existing stacked reading order on narrower screens and kept the workflow presentation below unchanged.
+
+# 2026-08-15 - Aligned How It Works introduction width
+
+- Removed the hero summary&apos;s narrower reading cap so it now aligns with the widened content column used by the rest of the page.
+
+# 2026-08-15 - Refined the How It Works page marker
+
+- Replaced the introductory clipboard symbol with a route icon that more directly conveys the page&apos;s managed production path and matches the workflow timeline.
+
+# 2026-08-15 - Removed the duplicate workflow heading
+
+- Kept the compact `How the workflow works` eyebrow as the section label and anchor while removing the repeated large heading immediately below it.
+
+# 2026-08-15 - Reframed the service delivery label
+
+- Renamed the production-steps section label from `How the workflow works` to `How Lattice delivers` so the page describes an accountable managed service rather than an internal workflow.
+
+# 2026-08-15 - Added China network-reach proof to How It Works
+
+- Added a restrained China map beneath the value disclosures to make the qualified manufacturing network tangible without presenting a supplier directory.
+- The illustration shows regional clusters only and explicitly keeps supplier identities and exact facility locations confidential.
+
+# 2026-08-15 - Aligned the solution heading scale
+
+- Reduced the `Add capacity without building it yourself` heading from the page-section scale to the same type scale as the neighboring content headers.
+
+# 2026-08-15 - Added source-backed network statistics
+
+- Added current equipment-catalog counts to the `More capacity` and `Managed quality` benefit rows on `/how-it-works`.
+- Derived the public counts from `src/lib/vendor-equipment.ts` at render time so they stay aligned with the app's documented network records.
+- Left the fixed-expansion and accountable-partner benefits unnumbered because the app does not yet hold defensible outcome statistics for those claims.
+
+# 2026-08-15 - Expanded CNC and quality evidence
+
+- Added a dynamically calculated CNC snapshot to the expanded `More capacity` benefit: 212 documented machines, a 192 / 20 milling-to-turning split, and 82 machines explicitly listed as 5-axis in the normalized equipment catalog.
+- Added high-level process coverage and documented maximum milling/turning envelopes, with an availability-at-quote caveat.
+- Researched current official quality claims for Zintilon, Best Prototypes, Jucheng Precision, ZYTC Alloy, and Huaxiao Metal, then summarized the evidence without exposing supplier identities on the public page.
+- Distinguished verified/source-held certificates, ISO-based quality-program claims, and material-traceability documentation; the public copy requires scope, currency, heat traceability, and job applicability to be confirmed during qualification.
+
+# 2026-08-15 - Tightened How Lattice delivers workflow copy
+
+- Removed the redundant supporting lines from the first three delivery steps so each title leads directly into its operational detail.
+- Kept the quality-evidence summary in the final step because it remains a distinct pre-shipment trust signal.
+
+# 2026-08-15 - Clarified pre-shipment quality control
+
+- Added the requested hold point: when requested, shipment is held until the substantiation documents are approved.
+
+# 2026-08-15 - Consolidated Step 4 quality copy
+
+- Combined the quality-review lead-in and documentation detail into one operational statement, keeping the pre-shipment hold point while removing repeated evidence language.
+
+# 2026-08-15 - Renamed first-job guidance
+
+- Renamed the practical first-job section to `Where to start with Lattice` for a clearer, more approachable entry point.
+
+# 2026-08-15 - Added Network reach to the page index
+
+- Added a direct `Network reach` anchor to the expanded desktop page index, linking to the China regional-capacity map.
