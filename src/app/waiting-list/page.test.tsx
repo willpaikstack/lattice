@@ -9,12 +9,13 @@ describe("Waiting list page", () => {
 
     expect(screen.getByRole("heading", { name: "Request access to Lattice" })).toBeInTheDocument();
     expect(screen.getByRole("form", { name: "Waiting list request form" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Name")).toHaveAttribute("name", "name");
+    expect(screen.getByLabelText("Full name")).toHaveAttribute("name", "name");
     expect(screen.getByLabelText("Work email")).toHaveAttribute("type", "email");
     expect(screen.getByLabelText("Company")).toHaveAttribute("name", "company");
-    expect(screen.getByLabelText("Procurement needs")).toHaveAttribute("name", "procurementNeeds");
-    expect(screen.getByRole("button", { name: "Submit request" })).toHaveAttribute("type", "submit");
-    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
+    expect(screen.getByLabelText("What kind of work do you need support with?")).toHaveAttribute("name", "procurementNeeds");
+    expect(screen.getByRole("button", { name: "Request access" })).toHaveAttribute("type", "submit");
+    expect(screen.getAllByRole("link", { name: "Log in" })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "Log in" })[0]).toHaveAttribute("href", "/login");
   });
 
   it("tells exact duplicate requesters that they already requested access", async () => {
@@ -36,7 +37,8 @@ describe("Waiting list page", () => {
 
     expect(screen.getByRole("heading", { name: "Request received" })).toBeInTheDocument();
     expect(screen.queryByRole("form", { name: "Waiting list request form" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
-    expect(screen.queryByRole("link", { name: "Log in" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Return to Lattice" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "See how Lattice works" })).toHaveAttribute("href", "/how-it-works");
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
   });
 });

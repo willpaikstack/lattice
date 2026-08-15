@@ -860,3 +860,153 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 # 2026-08-15 - Added Network reach to the page index
 
 - Added a direct `Network reach` anchor to the expanded desktop page index, linking to the China regional-capacity map.
+
+# 2026-08-15 - Strengthened What Lattice Adds disclosures
+
+- Reframed the section around `More capacity. Less infrastructure to manage.` and made every collapsed row a concise customer outcome.
+- Expanded each benefit with grounded manufacturing details, moving dynamic equipment and inspection counts into secondary proof positions rather than leading with internal-record language.
+- Added concrete capacity, fixed-expansion, managed-quality, and accountable-partner guidance while retaining the existing one-panel accordion behavior.
+
+# 2026-08-15 - Warmed the What Lattice Adds visual treatment
+
+- Replaced the accordion’s cool blue/slate surfaces and expanded-state accent with the page’s warm stone neutrals and a restrained charcoal state marker.
+
+# 2026-08-15 - Tightened More capacity detail
+
+- Removed the redundant expanded-panel lead-in so the capability snapshot appears immediately after the customer-facing summary.
+
+# 2026-08-15 - Simplified More capacity proof
+
+- Removed the trailing equipment-record count because the machine snapshot is the clearer proof of available capacity.
+
+# 2026-08-15 - Stabilized the network map asset
+
+- Configured the China map as an unoptimized local image so the browser loads the verified PNG directly rather than relying on the image-optimization route.
+
+# 2026-08-15 - Simplified the CNC capacity snapshot
+
+- Replaced the inset metric card with a borderless three-column definition list, using only subtle rules and separators so the data reads as part of the expanded panel.
+
+# 2026-08-15 - Updated network workforce coverage
+
+- Updated the public partner-network workforce figure from 300+ to 400+ across machining, quality control, shipping and receiving, and related production support.
+
+# 2026-08-15 - Simplified the Managed quality panel
+
+- Removed the nested card surfaces from the four-step quality flow and qualification evidence, replacing them with lightweight rules, compact step numbers, and responsive inline columns.
+- Removed the trailing inspection-equipment record count so the panel ends on the customer-facing quality outcome.
+
+# 2026-08-15 - Added machine and workforce proof to More capacity
+
+- Added the dynamically derived CNC machine total to the expanded milling-capability bullet so the public copy stays aligned with the normalized equipment catalog.
+- Replaced the redundant turning-process bullet with a 300+ combined partner-network workforce statement spanning machining, quality control, shipping/receiving, and related production support.
+
+# 2026-08-15 - Added source-backed QC capability proof
+
+- Replaced the generic measurement-capability bullet with a dynamically derived 12-CMM network aggregate plus documented vision, material-analysis, surface, hardness, ultrasonic, and traceability controls.
+- Grounded the public aggregate in the supplied Zintilon and Best Prototypes inspection-equipment lists and Jucheng's identification and traceability procedure, while keeping supplier identities confidential on the public page.
+
+# 2026-08-15 - Reframed Managed quality around qualification
+
+- Rebuilt the expanded `Managed quality` disclosure around four customer-protection stages: vet the supplier, qualify the job, control production, and verify evidence before shipment.
+- Repositioned certification, inspection-equipment, and traceability records as supporting qualification evidence rather than the primary story.
+- Added a clear customer promise that released parts remain tied to the approved drawing, material, inspection, and documentation requirements.
+
+# 2026-08-15 - Reframed fixed expansion as capacity on demand
+
+- Renamed the `Less fixed expansion` disclosure to `Capacity on demand` and centered it on job-by-job access to qualified CNC capacity.
+- Clarified that customers can scale outsourced production with backlog demand without a long-term volume commitment or year-round headcount, equipment, and floor-space costs.
+- Preserved the quote-and-approval gate so the public copy does not imply that unreviewed work is released directly to production.
+
+# 2026-08-15 - Clarified the accountable-partner value
+
+- Reframed the `One accountable partner` summary around access to qualified overseas capacity through a single accountable manufacturing partner.
+
+# 2026-08-15 - Made supplier vetting more tangible
+
+- Clarified that supplier approval includes Lattice-funded onsite facility visits, QMS and supply-chain audits, and sample-part production used to verify process and inspection performance.
+
+# 2026-08-15 - Put qualification evidence in Lattice's direct voice
+
+- Rewrote the supplier-certification and inspection-capability proof to use `we` and `our`, making Lattice accountable for matching, qualification, and verification rather than describing the partner base from a distance.
+
+# 2026-08-15 - Clarified Lattice ownership across quality controls
+
+- Made the final three quality-protection stages explicit Lattice actions—qualifying the job, controlling production, and verifying evidence before shipment—so customers are not implied to manage those steps themselves.
+
+# 2026-08-15 - Varied quality-control copy rhythm
+
+- Reworked the three quality-control descriptions to lead with the job stage while retaining clear Lattice ownership, avoiding repetitive sentence openings.
+
+# 2026-08-15 - Explained China network reach
+
+- Added concise public context for China&apos;s dense industrial clusters and manufacturing specialization across machining, materials, finishing, and inspection, explaining why Lattice qualifies capacity there.
+
+# 2026-08-15 - Clarified Lattice&apos;s customer-origin story
+
+- Updated the credibility note to trace Lattice&apos;s qualification experience to sourcing critical components for high-temperature chemical reactor systems, while retaining the domestic-team augmentation message.
+
+# 2026-08-15 - Connected quality evidence to vendor selection
+
+- Clarified that the listed certifications are held across the supplier network and that customer-requested standards are used to shortlist eligible vendors.
+- Rewrote the inspection proof around matching each job to the right inspection resources before award, then requiring the selected vendor to provide requested reports and maintain traceability through shipment.
+
+# 2026-08-15 - Tightened the Managed quality outcome
+
+- Replaced the defensive closing claim with a direct customer outcome centered on approved requirements, inspection evidence, and expected documentation.
+
+# 2026-08-15 - Corrected the China network map
+
+- Replaced the illustration's baked-in decorative pins with code-positioned markers for the five operator-confirmed network cities: Shenzhen, Dongguan, Beijing, Shanghai, and Tianjin.
+- Added a visible city legend and clarified that supplier identities and exact facility addresses remain confidential.
+
+# 2026-08-15 - Corrected XRF inspection terminology
+
+- Replaced generic X-ray material-analysis language with the specific `X-ray fluorescence (XRF)` method across the public capacity and quality disclosures.
+
+# 2026-08-15 - Simplified the China network map
+
+- Removed the public city-name legend while retaining the corrected network markers and the general facility-confidentiality statement.
+
+# 2026-08-15 - Refined the China network copy
+
+- Tightened the network-reach description to refer to qualification across the region rather than multiple regions.
+
+# 2026-08-15 - Moved the China map note
+
+- Relocated the city-marker and facility-confidentiality note beneath the map as a subtitle, keeping the adjacent network description focused on context.
+
+# 2026-08-15 - Added supplier disqualification to the origin story
+
+- Clarified that Lattice built its network by qualifying capable suppliers and disqualifying prospective suppliers that could not demonstrate the quality systems, process controls, and execution discipline each job requires.
+
+# 2026-08-15 - Reframed the closing CTA around platform access
+
+- Replaced the backlog prompt with an access-request invitation for readers who see Lattice as a fit for how they manage capacity.
+
+# 2026-08-15 - Simplified the map caption
+
+- Removed the caption background and facility-confidentiality sentence, retaining only a smaller verified-city marker note.
+
+# 2026-08-15 - Simplified the platform-access CTA
+
+- Removed the closing CTA headline so the access-request explanation and action can stand alone.
+
+# 2026-08-15 - Unified How Lattice works access CTAs
+
+- Changed the header action to `Request access` so it matches the closing platform-access CTA at every responsive breakpoint.
+
+# 2026-08-15 - Clarified the China map caption
+
+- Updated the caption to describe the pins as locations of partner manufacturers.
+
+# 2026-08-15 - Tightened the platform-access prompt
+
+- Removed the follow-up promise from the closing access-request copy.
+
+# 2026-08-15 - Redesigned the waiting-list access request
+
+- Audited the legacy waiting-list page against the current public landing page and How Lattice works experience, then replaced the old dark procurement-workspace presentation with the warm, editorial Lattice public design system.
+- Repositioned the page around invite-only access for domestic manufacturers seeking qualified overflow and out-of-capability production capacity, with concise proof for managed execution and pre-shipment quality evidence.
+- Kept the existing server-action persistence and duplicate-company behavior, added a pending submit state through the shared form-status control, improved the duplicate-request announcement semantics, and redesigned the successful-request confirmation state.
+- Verification: four focused waiting-list tests and targeted ESLint passed; desktop browser QA covered the request, duplicate-request, and confirmation states. Repository-wide typecheck remains blocked by a pre-existing unchecked indexed access in `src/app/how-it-works/page.test.tsx:76`.

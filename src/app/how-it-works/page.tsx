@@ -12,6 +12,7 @@ function listedEquipmentQuantity(quantity: string) {
 }
 
 const cncEquipment = vendorEquipment.filter((equipment) => equipment.section === "CNC Milling" || equipment.section === "CNC Lathe");
+const inspectionEquipment = vendorEquipment.filter((equipment) => equipment.section === "QC & Inspection");
 const networkStatistics = {
   cncFiveAxisMachines: cncEquipment
     .filter((equipment) => equipment.name.toLowerCase().includes("5-axis"))
@@ -23,10 +24,21 @@ const networkStatistics = {
   cncTurningMachines: cncEquipment
     .filter((equipment) => equipment.section === "CNC Lathe")
     .reduce((total, equipment) => total + listedEquipmentQuantity(equipment.quantity), 0),
+  cmmMachines: inspectionEquipment
+    .filter((equipment) => equipment.name.toLowerCase().includes("coordinate measuring") || equipment.name.toLowerCase().includes("cmm"))
+    .reduce((total, equipment) => total + listedEquipmentQuantity(equipment.quantity), 0),
   equipmentCategories: new Set(vendorEquipment.map((equipment) => equipment.section)).size,
   equipmentRecords: vendorEquipment.length,
-  inspectionRecords: vendorEquipment.filter((equipment) => equipment.section === "QC & Inspection").length,
+  inspectionRecords: inspectionEquipment.length,
 };
+
+const networkLocations = [
+  { city: "Shenzhen", left: "63.2%", top: "81.4%" },
+  { city: "Dongguan", left: "62.6%", top: "79.9%" },
+  { city: "Beijing", left: "75.3%", top: "35.4%" },
+  { city: "Shanghai", left: "73%", top: "59.7%" },
+  { city: "Tianjin", left: "76.1%", top: "37.1%" },
+] as const;
 
 const steps = [
   {
@@ -83,8 +95,7 @@ export default function HowItWorksPage() {
               Log in
             </Link>
             <Link className="rounded-lg bg-stone-950 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 sm:px-5" href="/waiting-list">
-              <span className="sm:hidden">Talk to us</span>
-              <span className="hidden sm:inline">Talk to us about your backlog</span>
+              Request access
             </Link>
           </div>
         </div>
@@ -212,26 +223,40 @@ export default function HowItWorksPage() {
 
               <section aria-labelledby="value-heading" className="scroll-mt-24 border-t border-slate-200 pt-8" id="value">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">What Lattice adds</p>
-                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="value-heading">Capacity without the fixed expansion.</h3>
+                <h3 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="value-heading">More capacity. Less infrastructure to manage.</h3>
                 <ValueBenefits statistics={networkStatistics} />
 
                 <section aria-labelledby="network-heading" className="mt-8 grid gap-7 border-t border-slate-200 pt-8 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:items-center lg:gap-10" id="network">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Network reach</p>
                     <h4 className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-slate-950" id="network-heading">Qualified manufacturing capacity across China.</h4>
-                    <p className="mt-3 text-[15px] leading-7 text-slate-600">Lattice coordinates qualified production capacity across established manufacturing regions, then matches the right path to the technical and commercial requirements of each job.</p>
-                    <p className="mt-4 text-sm leading-6 text-slate-500">Pins indicate regional network clusters. Supplier identities and exact locations remain confidential.</p>
+                    <p className="mt-3 text-[15px] leading-7 text-slate-600">China&apos;s manufacturing base combines dense industrial clusters with deep specialization across machining, materials, finishing, and inspection. Lattice qualifies capability across the region, then matches the right production path to the technical and commercial requirements of each job.</p>
                   </div>
                   <figure className="overflow-hidden rounded-md border border-slate-200 bg-slate-50">
-                    <Image
-                      alt="Map of China with regional manufacturing network clusters"
-                      className="h-auto w-full"
-                      height={1024}
-                      loading="eager"
-                      sizes="(min-width: 1024px) 55vw, 100vw"
-                      src="/how-it-works/china-network-map.png"
-                      width={1536}
-                    />
+                    <div className="relative">
+                      <Image
+                        alt="Map of China showing Lattice network cities"
+                        className="h-auto w-full"
+                        height={1024}
+                        loading="eager"
+                        sizes="(min-width: 1024px) 55vw, 100vw"
+                        src="/how-it-works/china-network-map-base.png"
+                        unoptimized
+                        width={1536}
+                      />
+                      <div aria-hidden="true" className="absolute inset-0">
+                        {networkLocations.map((location) => (
+                          <span
+                            className="absolute flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-blue-500/15"
+                            key={location.city}
+                            style={{ left: location.left, top: location.top }}
+                          >
+                            <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_1px_rgba(255,255,255,0.9)]" />
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <figcaption className="border-t border-slate-200 px-4 py-2 text-xs leading-5 text-slate-400">Pins indicate locations of partner manufacturers.</figcaption>
                   </figure>
                 </section>
               </section>
@@ -248,7 +273,7 @@ export default function HowItWorksPage() {
                   <strong className="font-semibold text-slate-800">We learned this firsthand.</strong>
                 </p>
                 <p>
-                  While sourcing critical components for high-temperature ammonia reforming systems, our team built and qualified an overseas manufacturing network, developed supplier relationships, and learned the operating discipline required to make global production dependable. We did this to augment and fortify our domestic manufacturing team&apos;s ability to meet customer requirements without displacing the work that belongs on its floor.
+                  While sourcing critical components for high-temperature (&gt;1,000 F) chemical reactor systems, our team built and qualified an overseas manufacturing network, developed supplier relationships, and learned the operating discipline required to make global production dependable. That work also meant disqualifying prospective suppliers that could not demonstrate the quality systems, process controls, and execution discipline each job requires. We did this to augment and fortify our domestic manufacturing team&apos;s ability to meet customer requirements without displacing the work that belongs on our floor.
                 </p>
                 <p className="font-semibold text-slate-700">
                   Lattice helps domestic manufacturers stay strong: keep customer relationships, protect internal capacity, and accept more of the work they are already winning.
@@ -257,10 +282,9 @@ export default function HowItWorksPage() {
             </section>
 
             <aside className="mt-8 border-l-2 border-[#1d73ff] bg-slate-50 px-5 py-5">
-              <p className="text-lg font-semibold tracking-[-0.02em] text-slate-950">Have work you can&apos;t fit on the floor?</p>
-              <p className="mt-2 text-[14px] leading-6 text-slate-600">Talk with Lattice about the backlog or overflow work you need to evaluate. Lattice is invite-only; we&apos;ll help determine whether the network fits your requirements.</p>
+              <p className="text-[14px] leading-6 text-slate-600">If this model fits how you manage capacity, request access to the platform.</p>
               <Link className="mt-4 inline-flex items-center gap-2 rounded-md bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2" href="/waiting-list">
-                Talk to us about your backlog
+                Request access
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </aside>
