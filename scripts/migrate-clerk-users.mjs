@@ -14,13 +14,17 @@ function usage(message) {
 }
 
 const envFile = valueFor("--env-file");
+const useCurrentEnvironment = process.argv.includes("--use-current-env");
 const shouldConfirm = process.argv.includes("--confirm");
 const isDryRun = process.argv.includes("--dry-run") || !shouldConfirm;
 
-if (!envFile) usage("--env-file is required so Production credentials are never read from the development environment.");
+if (envFile && useCurrentEnvironment) usage("Use either --env-file or --use-current-env, not both.");
+if (!envFile && !useCurrentEnvironment) usage("--env-file is required so Production credentials are never read from the development environment.");
 
-const loaded = dotenv.config({ path: envFile, override: true });
-if (loaded.error) usage(`Could not read ${envFile}.`);
+if (envFile) {
+  const loaded = dotenv.config({ path: envFile, override: true });
+  if (loaded.error) usage(`Could not read ${envFile}.`);
+}
 
 const databaseUrl = process.env.DATABASE_URL;
 const clerkSecretKey = process.env.CLERK_SECRET_KEY;

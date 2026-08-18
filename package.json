@@ -7,7 +7,7 @@
     "dev:mock": "LATTICE_DATA_MODE=mock next dev",
     "dev:customer": "LATTICE_DATA_MODE=customer next dev",
     "dev:local": "bash scripts/start-local-dev.sh",
-    "build": "next build",
+    "build": "node scripts/run-clerk-user-migration-if-enabled.mjs && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit --incremental false --pretty false",
@@ -20,7 +20,8 @@
     "db:push": "prisma db push",
     "onboard:customer": "node scripts/onboard-customer.mjs",
     "onboard:lattice-admin": "node scripts/onboard-lattice-admin.mjs",
-    "migrate:clerk-users": "node scripts/migrate-clerk-users.mjs"
+    "migrate:clerk-users": "node scripts/migrate-clerk-users.mjs",
+    "migrate:clerk-users:production": "node scripts/run-clerk-user-migration-if-enabled.mjs"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.7.6",

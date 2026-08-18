@@ -1333,3 +1333,9 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Added `npm run migrate:clerk-users`, an idempotent operator script that matches existing Prisma users to Clerk Production users by email, sets the immutable Lattice user ID as Clerk's external ID, and writes the returned Clerk ID back to `User.clerkUserId`.
 - The script requires an explicit Production environment file and `--confirm`; without it, it only reports the planned create/link operations. It never prints credentials or old password hashes.
 - Existing password hashes remain intentionally non-transferable. Migrated users sign in with a matching Google account or use Clerk's recovery flow to choose a new password.
+
+## 2026-08-18 — Added deployment-gated production migration runner
+
+- Added a Vercel-only build runner that does nothing unless `LATTICE_RUN_CLERK_USER_MIGRATION=true` is set explicitly in the Production environment.
+- When enabled, it applies the Prisma schema and runs the idempotent Clerk user migration using Vercel's own Production database and Clerk credentials; it refuses local/non-production execution and requires an `sk_live_` key.
+- The flag must be removed immediately after the successful one-time deployment so future deployments cannot migrate newly created database users implicitly.
