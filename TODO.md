@@ -4,6 +4,9 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Deploy the Clerk Production instance, add its Production `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to Vercel, apply the `User.clerkUserId` schema change with Prisma, and smoke-test a provisioned Lattice Admin plus a provisioned customer account before relying on Clerk in production.
+- Complete the Clerk migration by replacing the legacy custom email-change/password-recovery delivery surfaces with Clerk-native account-management flows and retire the unused Google OAuth callback routes after production cutover.
+
 - Continue enforcing the intended public-versus-authenticated access policy for `/capabilities`, `/materials`, `/quality-documentation`, and related customer-facing surfaces before restoring any account-free landing-page actions.
 
 - Apply the order-progress schema changes (`SupplierOrderStatus.DELIVERED`, `Request.orderNextMilestone`, `Request.orderNextMilestoneDate`, `Request.orderResponsibleParty`, and `SupplierUpdate.actor`) to local and production PostgreSQL with `npm run db:push`, then smoke test a manual admin update through `/admin/orders/[requestId]`.
@@ -15,15 +18,15 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Run the QC/manual test matrix in `docs/qc-testing-plan.md` before external customer/supplier testing, especially the ownership/privacy probes for cross-company RFQ, order, invoice, and supplier access.
 - Run `npm run test:auth-workflows` before each customer-access release. It covers company-scoped RFQ submission, checkout/order mutation guards, document access, and the deliberately-disabled supplier portal mutation path.
 - Continue hardening from the 2026-06-18 manual QC privacy findings:
-  - apply the `WorkspaceRole` and `User.companyId` schema changes to production PostgreSQL with `npm run db:push`; the local schema is applied and the sole Lattice Admin is provisioned. Once Greno Industries' Customer Admin email is confirmed, use `npm run onboard:customer` to create the first customer company/admin and re-run the company-privacy probes in `docs/qc-testing-plan.md`
-  - add a Lattice-admin customer membership-management UI for inviting, promoting, and removing Customer Admin and Customer Member users
+  - apply the current `User` schema (including customer password credentials) to production PostgreSQL with `npm run db:push`, then re-run the company-privacy probes in `docs/qc-testing-plan.md`
   - defer supplier portal/award ownership work until supplier users are deliberately onboarded; suppliers are currently managed internally from email and other operator channels
 - Production launch hardening after the 2026-06-02 Vercel/Neon setup:
   - deploy the `@vercel/analytics` instrumentation change, visit `https://latticeos.co`, then confirm Vercel Analytics leaves the Get Started state and starts showing page views
   - choose the durable production identity platform and organization model, then configure Google Workspace/SAML/OIDC credentials in local, preview, and production and decide when to disable the interim local password fallback
-  - continue replacing the interim single-account credential gate with durable multi-user authentication, organization-owned login policy, role/route authorization, production password recovery, MFA/passkeys, session/device controls, and identity audit events
+  - continue replacing the interim single-account credential gate with durable multi-user authentication, organization-owned login policy, MFA/passkeys, session/device controls, and enterprise identity controls
   - create the durable Lattice Admin user record for the sole operator before enabling Google SSO as the primary login path
   - add invitation delivery, password recovery, MFA/passkeys, session/device controls, and identity audit events before enterprise rollout
+  - add customer invitation/verification emails: Lattice Admin-only invites, one-time expiring activation links, recipient-defined password setup, verified-email activation, resend/revoke controls, and future Customer Admin teammate-invitation policy; retain Google SSO for approved/provisioned accounts only until customer-domain SSO is deliberately introduced
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
   - configure Resend and a verified sending domain for waiting-list emails
   - configure Stripe test/live environment variables (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_BASE_URL`) and register `/api/stripe/webhook` in Stripe for production payment finalization

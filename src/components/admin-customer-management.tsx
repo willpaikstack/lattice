@@ -75,7 +75,7 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
     return (
       <section className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center">
         <h2 className="text-[22px] font-semibold text-[#202020]">Customer companies</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">Companies will appear here after their first RFQ is submitted.</p>
+        <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">Customer companies and their user access will appear here once they are provisioned.</p>
       </section>
     );
   }

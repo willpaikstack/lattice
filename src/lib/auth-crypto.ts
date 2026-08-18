@@ -1,4 +1,4 @@
-import { createHmac, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE_NAME = "lattice_session";
 
@@ -7,9 +7,16 @@ export type LatticeRole = "admin" | "customer" | "supplier";
 export type SessionPayload = {
   email?: string;
   exp: number;
+  iat?: number;
+  mustChangePassword?: boolean;
   name?: string;
   provider?: "google" | "password";
   role?: LatticeRole;
+  supportAdmin?: {
+    email: string;
+    id: string;
+    name: string;
+  };
   userId: string;
 };
 
@@ -134,9 +141,25 @@ export function verifyPassword(email: string, password: string) {
     return false;
   }
 
-  const attemptedHash = scryptSync(password, authorizedUser.passwordSalt, 64).toString("hex");
+  return verifyPasswordHash(password, authorizedUser.passwordHash, authorizedUser.passwordSalt);
+}
+
+export function createPasswordCredentials(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  return {
+    passwordHash: scryptSync(password, salt, 64).toString("hex"),
+    passwordSalt: salt,
+  };
+}
+
+export function verifyPasswordHash(password: string, passwordHash: string, passwordSalt: string) {
+  if (!passwordHash || !passwordSalt) {
+    return false;
+  }
+
+  const attemptedHash = scryptSync(password, passwordSalt, 64).toString("hex");
   const attemptedBuffer = Buffer.from(attemptedHash, "hex");
-  const expectedBuffer = Buffer.from(authorizedUser.passwordHash, "hex");
+  const expectedBuffer = Buffer.from(passwordHash, "hex");
 
   return attemptedBuffer.length === expectedBuffer.length && timingSafeEqual(attemptedBuffer, expectedBuffer);
 }

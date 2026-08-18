@@ -30,6 +30,14 @@ export type CustomerProfile = CustomerProfileInput & {
     id: string;
     name: string;
     email: string;
+    pendingEmail: string | null;
+    role: "LATTICE_ADMIN" | "CUSTOMER_ADMIN" | "CUSTOMER_MEMBER";
+    passwordChangedAt: string | null;
+    passwordEnabled: boolean;
+    mustChangePassword: boolean;
+    temporaryPasswordExpiresAt: string | null;
+    createdAt: string;
+    updatedAt: string;
   }>;
   metrics: {
     totalRequests: number;
@@ -100,6 +108,14 @@ type StoredCompany = {
     id: string;
     name: string;
     email: string;
+    pendingEmail: string | null;
+    role: "LATTICE_ADMIN" | "CUSTOMER_ADMIN" | "CUSTOMER_MEMBER";
+    passwordHash: string;
+    passwordChangedAt: Date | null;
+    mustChangePassword: boolean;
+    temporaryPasswordExpiresAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
   }>;
   requests: StoredRequest[];
 };
@@ -156,7 +172,19 @@ function profileFromStoredCompany(company: StoredCompany): CustomerProfile {
     customerTier: company.customerTier ?? "Standard",
     accountStatus: company.accountStatus ?? "Active",
     notes: company.notes ?? "",
-    users: company.users,
+    users: company.users.map((user) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      pendingEmail: user.pendingEmail,
+      role: user.role,
+      passwordChangedAt: user.passwordChangedAt?.toISOString() ?? null,
+      passwordEnabled: Boolean(user.passwordHash),
+      mustChangePassword: user.mustChangePassword,
+      temporaryPasswordExpiresAt: user.temporaryPasswordExpiresAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    })),
     metrics: {
       totalRequests: summary?.totalRequests ?? 0,
       activeQuoteRequests: summary?.activeQuoteRequests ?? 0,
@@ -196,6 +224,14 @@ function profilesFromRequests(requestsSource: LatticeRequest[]) {
         id: `${encodeURIComponent(summary.name)}_${index}`,
         name: requester,
         email: "",
+        pendingEmail: null,
+        role: "CUSTOMER_MEMBER",
+        passwordChangedAt: null,
+        passwordEnabled: false,
+        mustChangePassword: false,
+        temporaryPasswordExpiresAt: null,
+        createdAt: "",
+        updatedAt: "",
       })),
       metrics: {
         totalRequests: summary.totalRequests,
@@ -236,7 +272,7 @@ export async function listCustomerProfiles() {
         },
       });
 
-      return companies.map(profileFromStoredCompany).filter((profile) => profile.metrics.totalRequests > 0);
+      return companies.map(profileFromStoredCompany);
     },
     async () => profilesFromRequests(await listLocalRequests()),
   );

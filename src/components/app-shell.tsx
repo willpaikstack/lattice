@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LatticeMarkIcon } from "@/components/lattice-brand";
-import { currentUser, initialsForName } from "@/lib/current-user";
+import { initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
 
 type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources" | "quality";
@@ -147,17 +147,17 @@ function applyStoredOrder(section: NavSection, orderedHrefs: string[] | undefine
   };
 }
 
-function navOrderStorageKey(tone: "customer" | "admin") {
-  return `${navOrderStoragePrefix}:${currentUser.email}:${tone}`;
+function navOrderStorageKey(email: string, tone: "customer" | "admin") {
+  return `${navOrderStoragePrefix}:${email}:${tone}`;
 }
 
-function readStoredNavOrder(tone: "customer" | "admin") {
+function readStoredNavOrder(email: string, tone: "customer" | "admin") {
   if (typeof window === "undefined") {
     return {};
   }
 
   try {
-    const savedOrder = window.localStorage.getItem(navOrderStorageKey(tone));
+    const savedOrder = window.localStorage.getItem(navOrderStorageKey(email, tone));
     return savedOrder ? JSON.parse(savedOrder) : {};
   } catch {
     return {};
@@ -471,10 +471,10 @@ function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" 
   );
 }
 
-function ProfileMenu() {
+function ProfileMenu({ user }: { user: { email: string; name: string } }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const initials = initialsForName(currentUser.name);
+  const initials = initialsForName(user.name);
 
   useEffect(() => {
     if (!isOpen) {
@@ -520,7 +520,7 @@ function ProfileMenu() {
 
       <div className="flex items-center gap-1 rounded-2xl border border-[#e4e1dc] bg-white p-2 shadow-sm transition hover:border-[#d8d2c8] hover:bg-[#fbfaf8] focus-within:border-[#cfc7bc]">
         <Link
-          aria-label={`${currentUser.name} ${currentUser.email}`}
+          aria-label={`${user.name} ${user.email}`}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2"
           href="/account/settings"
           onClick={() => setIsOpen(false)}
@@ -529,8 +529,8 @@ function ProfileMenu() {
             {initials}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[14px] font-semibold leading-5 text-[#303036]">{currentUser.name}</span>
-            <span className="block truncate text-[12px] font-medium leading-4 text-[#85858c]">{currentUser.email}</span>
+            <span className="block truncate text-[14px] font-semibold leading-5 text-[#303036]">{user.name}</span>
+            <span className="block truncate text-[12px] font-medium leading-4 text-[#85858c]">{user.email}</span>
           </span>
         </Link>
         <button
@@ -575,7 +575,7 @@ function PageTransition({
   );
 }
 
-export function AppShell({ children, sessionRole }: { children: React.ReactNode; sessionRole?: LatticeRole }) {
+export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: { email: string; name: string }; supportAdmin?: { name: string } }) {
   const pathname = usePathname();
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -604,13 +604,13 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       setStoredNavOrdersByTone({
-        admin: readStoredNavOrder("admin"),
-        customer: readStoredNavOrder("customer"),
+        admin: readStoredNavOrder(sessionUser?.email ?? "anonymous", "admin"),
+        customer: readStoredNavOrder(sessionUser?.email ?? "anonymous", "customer"),
       });
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [sessionUser?.email]);
 
   useEffect(() => {
     if (!pendingHref || pathname !== pendingHref) {
@@ -692,7 +692,7 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
     }));
 
     try {
-      window.localStorage.setItem(navOrderStorageKey(navTone), JSON.stringify(nextStoredOrders));
+      window.localStorage.setItem(navOrderStorageKey(sessionUser?.email ?? "anonymous", navTone), JSON.stringify(nextStoredOrders));
     } catch {
       // Local personalization should not block navigation if storage is unavailable.
     }
@@ -805,13 +805,20 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
           )}
 
           {!isNotificationsPanelOpen ? <div className="mt-auto space-y-4 pt-4">
+            {supportAdmin ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-950">
+                <p className="font-semibold">Support view</p>
+                <p className="mt-1">Viewing this workspace as a customer.</p>
+                <a className="mt-2 inline-flex font-semibold underline" href="/api/support/exit">Exit to admin</a>
+              </div>
+            ) : null}
             {inAdminExperience ? (
               <UtilityLink detail="Use the customer portal for development." href="/dashboard" icon="back" label="Customer workspace" onNavigate={handleNavigate} tone="admin" />
             ) : null}
             {!inAdminExperience && canUseAdminWorkspace ? (
               <UtilityLink detail="Return to internal controls." href="/admin/quotes" icon="admin" label="Admin workspace" onNavigate={handleNavigate} />
             ) : null}
-            <ProfileMenu />
+            <ProfileMenu user={sessionUser ?? { name: "Account", email: "" }} />
           </div> : null}
         </aside>
 

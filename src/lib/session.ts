@@ -1,18 +1,25 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
-import { authorizedUser, createSessionToken, resolveRoleForEmail, SESSION_COOKIE_NAME, verifySessionToken, type LatticeRole } from "./auth-crypto";
-import { customerRoleForWorkspaceRole, findWorkspaceUser, roleForWorkspaceRole } from "./workspace-user";
+import { createSessionToken, SESSION_COOKIE_NAME, verifySessionToken, type LatticeRole } from "./auth-crypto";
+import { customerRoleForWorkspaceRole, findWorkspaceUser, findWorkspaceUserByClerkUserId, linkWorkspaceUserToClerk, roleForWorkspaceRole } from "./workspace-user";
 
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 
 type SessionUserInput = {
   email?: string;
   id: string;
+  mustChangePassword?: boolean;
   name?: string;
   provider?: "google" | "password";
   role?: LatticeRole;
+  supportAdmin?: {
+    email: string;
+    id: string;
+    name: string;
+  };
 };
 
 export function createSessionCookie(user: SessionUserInput) {
@@ -20,16 +27,19 @@ export function createSessionCookie(user: SessionUserInput) {
   const token = createSessionToken({
     email: user.email,
     exp: expires.getTime(),
+    iat: Date.now(),
+    mustChangePassword: user.mustChangePassword,
     name: user.name,
     provider: user.provider,
-    role: user.role ?? resolveRoleForEmail(user.email),
+    role: user.role ?? "customer",
+    supportAdmin: user.supportAdmin,
     userId: user.id,
   });
 
   return { expires, token };
 }
 
-async function createSessionForUser(user: SessionUserInput) {
+export async function createSessionForUser(user: SessionUserInput) {
   const { expires, token } = createSessionCookie(user);
 
   const cookieStore = await cookies();
@@ -43,13 +53,8 @@ async function createSessionForUser(user: SessionUserInput) {
 }
 
 export async function createSession() {
-  await createSessionForUser({
-    email: authorizedUser.email,
-    id: authorizedUser.id,
-    name: authorizedUser.name,
-    provider: "password",
-    role: authorizedUser.role,
-  });
+  // Clerk owns normal sign-in sessions. This remains as a compatibility no-op
+  // while the legacy password pages are retired.
 }
 
 export async function deleteSession() {
@@ -57,27 +62,82 @@ export async function deleteSession() {
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
-export async function getCurrentSession() {
-  const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
-  const session = verifySessionToken(token);
+type SupportAdmin = { email: string; id: string; name: string } | null;
 
-  if (!session) {
-    return null;
+type CurrentSession = {
+  user: {
+    email: string;
+    id: string;
+    name: string;
+    role: LatticeRole;
+    companyId: string | null;
+    companyName: string | null;
+    customerRole: "admin" | "member" | null;
+    mustChangePassword: boolean;
+    supportAdmin: SupportAdmin;
+  };
+};
+
+export async function getCurrentSession(options?: { allowPasswordChange?: boolean }): Promise<CurrentSession | null> {
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) return null;
+
+  let workspaceUser = await findWorkspaceUserByClerkUserId(clerkUserId);
+
+  // Existing Lattice members are linked on their first Clerk sign-in. Clerk
+  // only returns a primary email after its own verification requirements pass.
+  if (!workspaceUser) {
+    const clerkUser = await currentUser();
+    const email = clerkUser?.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
+    if (!email) return null;
+
+    const provisionedUser = await findWorkspaceUser(email);
+    if (!provisionedUser) return null;
+    workspaceUser = await linkWorkspaceUserToClerk(provisionedUser.id, clerkUserId);
   }
 
-  const email = session.email ?? authorizedUser.email;
-  const workspaceUser = await findWorkspaceUser(email);
-  const workspaceRole = workspaceUser ? roleForWorkspaceRole(workspaceUser.role) : null;
+  const supportToken = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
+  const supportSession = verifySessionToken(supportToken);
+  if (workspaceUser.role === "LATTICE_ADMIN" && supportSession?.supportAdmin?.id === workspaceUser.id) {
+    const supportedUser = await findWorkspaceUser(supportSession.email);
+    if (supportedUser && supportedUser.companyId && !supportedUser.mustChangePassword) {
+      return {
+        user: {
+          email: supportedUser.email,
+          id: supportedUser.id,
+          name: supportedUser.name,
+          role: "customer" as LatticeRole,
+          companyId: supportedUser.companyId,
+          companyName: supportedUser.company?.name ?? null,
+          customerRole: customerRoleForWorkspaceRole(supportedUser.role),
+          mustChangePassword: false,
+          supportAdmin: { ...supportSession.supportAdmin },
+        },
+      };
+    }
+  }
+
+  if (workspaceUser.mustChangePassword) {
+    if (workspaceUser.temporaryPasswordExpiresAt && workspaceUser.temporaryPasswordExpiresAt <= new Date()) {
+      return null;
+    }
+
+    if (!options?.allowPasswordChange) {
+      return null;
+    }
+  }
 
   return {
     user: {
-      email,
-      id: workspaceUser?.id ?? session.userId,
-      name: workspaceUser?.name ?? session.name ?? authorizedUser.name,
-      role: workspaceRole ?? session.role ?? resolveRoleForEmail(session.email),
-      companyId: workspaceUser?.companyId ?? null,
-      companyName: workspaceUser?.company?.name ?? null,
-      customerRole: workspaceUser ? customerRoleForWorkspaceRole(workspaceUser.role) : null,
+      email: workspaceUser.email,
+      id: workspaceUser.id,
+      name: workspaceUser.name,
+      role: roleForWorkspaceRole(workspaceUser.role),
+      companyId: workspaceUser.companyId,
+      companyName: workspaceUser.company?.name ?? null,
+      customerRole: customerRoleForWorkspaceRole(workspaceUser.role),
+      mustChangePassword: workspaceUser.mustChangePassword,
+      supportAdmin: null,
     },
   };
 }

@@ -2,7 +2,7 @@ import "server-only";
 
 import type { PrismaClient, WorkspaceRole } from "@prisma/client";
 
-import type { LatticeRole } from "./auth-crypto";
+import { verifyPasswordHash, type LatticeRole } from "./auth-crypto";
 import { getPrismaClient } from "./prisma";
 
 export function roleForWorkspaceRole(role: WorkspaceRole): LatticeRole {
@@ -29,4 +29,41 @@ export async function findWorkspaceUser(email: string | undefined) {
     // The local password bootstrap remains usable before a database is configured.
     return null;
   }
+}
+
+export async function findWorkspaceUserByClerkUserId(clerkUserId: string | undefined) {
+  if (!clerkUserId) return null;
+
+  try {
+    const client = (await getPrismaClient()) as PrismaClient;
+    return await client.user.findUnique({
+      where: { clerkUserId },
+      include: { company: { select: { id: true, name: true } } },
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function linkWorkspaceUserToClerk(userId: string, clerkUserId: string) {
+  const client = (await getPrismaClient()) as PrismaClient;
+  return client.user.update({
+    where: { id: userId },
+    data: { clerkUserId },
+    include: { company: { select: { id: true, name: true } } },
+  });
+}
+
+export async function authenticateWorkspaceUser(email: string, password: string) {
+  const user = await findWorkspaceUser(email);
+
+  if (!user || !verifyPasswordHash(password, user.passwordHash, user.passwordSalt)) {
+    return null;
+  }
+
+  return user;
+}
+
+export function hasExpiredTemporaryPassword(user: { mustChangePassword: boolean; temporaryPasswordExpiresAt: Date | null }) {
+  return user.mustChangePassword && Boolean(user.temporaryPasswordExpiresAt && user.temporaryPasswordExpiresAt <= new Date());
 }

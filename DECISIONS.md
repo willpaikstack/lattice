@@ -10,8 +10,12 @@ Implications:
 
 - `WorkspaceRole` and `User.companyId` persist Lattice admin, customer admin, and customer member access in Prisma.
 - New customer RFQs connect to the signed-in member's company. Admin-created work retains administrator support access.
-- `npm run onboard:lattice-admin` provisions the sole Lattice Admin, and `npm run onboard:customer` provisions the first customer company/admin or adds a user to an existing company after the schema is applied.
-- A customer membership-management UI, production identity hardening, and supplier portal remain later work; supplier updates continue to be handled internally from email and other operator channels.
+- `npm run onboard:lattice-admin` provisions the sole Lattice Admin, and `npm run onboard:customer` remains available for scripted setup when needed.
+- The Lattice Admin manages customer memberships in `/admin/customers`: users are grouped under their company and can be added, removed, assigned a Customer Admin/Member role, or issued a fresh password. The last Customer Admin cannot be removed or demoted until another Customer Admin exists.
+- Passwords are never stored or displayed as plaintext. User credentials use salted password hashes; the generated temporary password is returned only when an admin creates or resets a user. Password and Google sign-in require a provisioned `User` membership, except for the local Lattice Admin bootstrap account.
+- Administrator-generated temporary passwords expire after 72 hours and must be changed at `/account/set-password` before the user can access normal workspace routes. User-chosen passwords from recovery links and administrator-defined custom passwords do not trigger this forced-change state.
+- Customer email changes are Lattice Admin-only for this phase. A requested address is stored as pending and receives a hashed, single-use verification link that expires in 24 hours; only confirmation changes `User.email`. The former email receives a non-reversible security notice after the change.
+- Production identity hardening and supplier portal remain later work; supplier updates continue to be handled internally from email and other operator channels.
 
 ## 2026-08-17 - Retire The Account-Free Simple Quote Workflow
 
@@ -1229,3 +1233,16 @@ Implications:
 - The page explains the approved-account flow: share requirements, align the production plan, receive coordinated production updates, and review requested documentation before shipment.
 - Its only conversion action is `Request an account` to `/waiting-list`, alongside `Log in` for approved users.
 - Capabilities, Materials, and Quality remain disabled pending their own public-access-policy decisions.
+
+## 2026-08-18 - Clerk Owns Authentication; Lattice Owns Authorization
+
+Decision: use Clerk for password, Google, account recovery, and session authentication. Retain Prisma `User`, `Company`, and `WorkspaceRole` as Lattice's authorization source of truth.
+
+Reason: managed authentication removes the application's bespoke credential/session handling while preserving the customer-company access boundary required for RFQs, quotes, orders, and admin access.
+
+Implications:
+
+- A Clerk identity is linked to an existing provisioned Lattice user on first verified sign-in; Clerk sign-up alone grants no Lattice workspace access.
+- Only a Prisma `LATTICE_ADMIN` membership can reach `/admin`; customer memberships remain company-scoped.
+- Customer user creation, temporary-password reset, custom password setting, and forced temporary-password completion synchronize credentials to Clerk.
+- Production requires a deployed Clerk Production instance and its Production API keys in Vercel before the switch can be released.

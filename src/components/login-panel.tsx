@@ -10,6 +10,7 @@ import { loginAction, type LoginActionState } from "@/app/login/actions";
 type LoginPanelProps = {
   initialEmail: string;
   initialErrorMessage: string;
+  initialSuccessMessage?: string;
   next: string;
   ssoEnabled: boolean;
 };
@@ -17,7 +18,7 @@ type LoginPanelProps = {
 const fieldClassName =
   "w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-stone-900 outline-none transition-colors placeholder:text-stone-400 focus:border-stone-900 focus:ring-2 focus:ring-stone-900/15 disabled:cursor-not-allowed disabled:bg-stone-100";
 
-export function LoginPanel({ initialEmail, initialErrorMessage, next, ssoEnabled }: LoginPanelProps) {
+export function LoginPanel({ initialEmail, initialErrorMessage, initialSuccessMessage = "", next, ssoEnabled }: LoginPanelProps) {
   const initialState: LoginActionState = {
     email: initialEmail,
     message: "",
@@ -65,6 +66,7 @@ export function LoginPanel({ initialEmail, initialErrorMessage, next, ssoEnabled
             <p className="mt-1 leading-5">{errorMessage}</p>
           </div>
         ) : null}
+        {initialSuccessMessage ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900" role="status">{initialSuccessMessage}</div> : null}
 
         {ssoEnabled ? (
           <>

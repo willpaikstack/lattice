@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { authorizedUser } from "./auth-crypto";
+import { createPasswordReset } from "./password-reset";
 
 type PasswordResetEmail = {
   subject: string;
@@ -22,16 +22,20 @@ function senderEmail() {
   return process.env.WAITLIST_EMAIL_FROM || "Lattice <hello@latticeos.com>";
 }
 
-function buildPasswordResetEmail(to: string): PasswordResetEmail {
+function buildPasswordResetEmail(to: string, name: string, token: string): PasswordResetEmail {
+  const baseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
+  const link = `${baseUrl.replace(/\/$/, "")}/reset-password?token=${encodeURIComponent(token)}`;
   return {
     to,
     subject: "Lattice OS password reset request",
     text: [
-      "Hi William,",
+      `Hi ${name},`,
       "",
       "We received a password reset request for your Lattice OS account.",
       "",
-      "For this interim local account gate, contact the Lattice administrator to rotate the stored credential.",
+      `Choose a new password: ${link}`,
+      "",
+      "This link expires in one hour and can be used once.",
       "",
       "If you did not request this, you can ignore this message.",
       "",
@@ -90,12 +94,9 @@ async function sendWithResend(email: PasswordResetEmail) {
 
 export async function requestPasswordReset(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
-
-  if (normalizedEmail !== authorizedUser.email) {
-    return { delivered: false, delivery: "not-applicable" as const };
-  }
-
-  const resetEmail = buildPasswordResetEmail(normalizedEmail);
+  const reset = await createPasswordReset(normalizedEmail);
+  if (!reset) return { delivered: false, delivery: "not-applicable" as const };
+  const resetEmail = buildPasswordResetEmail(reset.email, reset.name, reset.token);
   const id = `password-reset-${Date.now()}`;
 
   try {

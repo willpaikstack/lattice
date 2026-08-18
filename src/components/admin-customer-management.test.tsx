@@ -19,7 +19,21 @@ function makeCustomerProfile(overrides: Partial<CustomerProfile> = {}): Customer
     customerTier: "Standard",
     accountStatus: "Active",
     notes: "Prefers concise quote summaries.",
-    users: [{ id: "user_1", name: "Maya Chen", email: "maya@apex.example" }],
+    users: [
+      {
+        id: "user_1",
+        name: "Maya Chen",
+        email: "maya@apex.example",
+        pendingEmail: null,
+        role: "CUSTOMER_ADMIN",
+        passwordChangedAt: "2026-06-01T10:00:00.000Z",
+        passwordEnabled: true,
+        mustChangePassword: false,
+        temporaryPasswordExpiresAt: null,
+        createdAt: "2026-06-01T10:00:00.000Z",
+        updatedAt: "2026-06-01T10:00:00.000Z",
+      },
+    ],
     metrics: {
       totalRequests: 1,
       activeQuoteRequests: 1,
@@ -85,6 +99,13 @@ describe("AdminCustomerManagement", () => {
     render(<AdminCustomerProfileDetail profile={makeCustomerProfile({ requests: [request] })} />);
 
     expect(screen.getByText("AR")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Business name" })).toHaveValue("Apex Robotics");
+    expect(screen.queryByRole("heading", { name: "Overseas fabrication shops" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Active quotes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Standard tier")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Business users" })).toBeInTheDocument();
+    expect(screen.getByText("Show details")).toBeInTheDocument();
+    expect(screen.getByText("Show details").closest("details")).not.toHaveAttribute("open");
     expect(screen.getByRole("heading", { name: "RFQs and orders" })).toBeInTheDocument();
     expect(screen.getByText("Robot arm bracket RFQ")).toBeInTheDocument();
     expect(screen.getByText("Arm bracket")).toBeInTheDocument();

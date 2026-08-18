@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => {
         companyId: string | null;
         companyName: string | null;
         customerRole: "admin" | "member" | null;
+        mustChangePassword: boolean;
+        supportAdmin: { email: string; id: string; name: string } | null;
       };
     },
   };
@@ -53,6 +55,8 @@ function session(role: "admin" | "customer" | "supplier", email: string, company
       companyId,
       companyName: companyId ? `${companyId} company` : null,
       customerRole: role === "customer" ? ("member" as const) : null,
+      mustChangePassword: false,
+      supportAdmin: null,
     },
   };
 }

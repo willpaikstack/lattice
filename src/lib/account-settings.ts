@@ -1,8 +1,9 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { defaultAccountSettings, type AccountAddress, type AccountSettingsSnapshot, type PaymentCard } from "./account-settings-shared";
 import { getPrismaClient } from "./prisma";
+import { getCurrentSession } from "./session";
 import type { RequestContactSnapshot } from "./request-model";
 import { getStripeClient, isStripeConfigured, stripePaymentMethodCardSnapshot } from "./stripe";
 
@@ -33,8 +34,8 @@ type StoredAccountDefaults = {
   shippingZipCode: string;
 };
 
-const accountDefaultsId = "workspace";
 const localStorePath = path.join(process.cwd(), ".data", "account-settings.json");
+const legacyAccountDefaultsId = "workspace";
 
 function text(value: string | null | undefined) {
   return String(value ?? "").trim();
@@ -124,7 +125,7 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
     billingZipCode: normalized.billingAddress.zipCode,
     companyName: normalized.companyName,
     email: normalized.email,
-    id: accountDefaultsId,
+    id: legacyAccountDefaultsId,
     mfaEnabled: normalized.mfaEnabled,
     name: normalized.name,
     passwordChangedAt: normalized.passwordChangedAt,
@@ -138,21 +139,6 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
     shippingState: normalized.shipping.state,
     shippingZipCode: normalized.shipping.zipCode,
   };
-}
-
-async function readLocalAccountSettings() {
-  try {
-    const raw = await readFile(localStorePath, "utf8");
-    return normalizeAccountSettings({ ...defaultAccountSettings(), ...JSON.parse(raw) } as AccountSettingsSnapshot);
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      return defaultAccountSettings();
-    }
-    if (error instanceof SyntaxError) {
-      return defaultAccountSettings();
-    }
-    throw error;
-  }
 }
 
 async function writeLocalAccountSettings(settings: AccountSettingsSnapshot) {
@@ -169,27 +155,56 @@ async function prisma() {
   };
 }
 
+async function settingsContext() {
+  const session = await getCurrentSession();
+  if (!session) throw new Error("Authentication required.");
+  return { id: `user:${session.user.id}`, name: session.user.name, email: session.user.email, companyName: session.user.companyName ?? "" };
+}
+
+function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<typeof settingsContext>>) {
+  return normalizeAccountSettings({ ...defaults, companyName: context.companyName || defaults.companyName, email: context.email, name: context.name });
+}
+
+function emptyForUser(context: Awaited<ReturnType<typeof settingsContext>>) {
+  const defaults = defaultAccountSettings();
+  return forUser({
+    ...defaults,
+    billing: { email: "", invoiceRoutingNotes: "" },
+    billingAddress: { address1: "", address2: "", city: "", company: context.companyName, name: "", state: "", zipCode: "" },
+    companyName: context.companyName,
+    mfaEnabled: false,
+    passwordChangedAt: "",
+    phone: "",
+    shipping: { address1: "", address2: "", city: "", company: context.companyName, name: "", state: "", zipCode: "" },
+    stripeCustomerId: "",
+    teamMembers: [],
+  }, context);
+}
+
 export async function getAccountSettings() {
+  const context = await settingsContext();
   try {
     const client = await prisma();
-    const stored = await client.accountDefaults.findUnique({ where: { id: accountDefaultsId } });
+    const stored = await client.accountDefaults.findUnique({ where: { id: context.id } });
 
-    return stored ? fromStoredAccountDefaults(stored) : await readLocalAccountSettings();
+    return stored ? forUser(fromStoredAccountDefaults(stored), context) : emptyForUser(context);
   } catch {
-    return readLocalAccountSettings();
+    return emptyForUser(context);
   }
 }
 
 export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
-  const normalized = normalizeAccountSettings(settings);
+  const context = await settingsContext();
+  const normalized = forUser(normalizeAccountSettings(settings), context);
   const stored = toStoredAccountDefaults(normalized);
+  stored.id = context.id;
 
   try {
     const client = await prisma();
     await client.accountDefaults.upsert({
       create: stored,
       update: stored,
-      where: { id: accountDefaultsId },
+      where: { id: context.id },
     });
   } catch {
     await writeLocalAccountSettings(normalized);
@@ -199,6 +214,7 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
 }
 
 export async function ensureStripeCustomerForAccount() {
+  const context = await settingsContext();
   const settings = await getAccountSettings();
 
   if (settings.stripeCustomerId) {
@@ -210,7 +226,7 @@ export async function ensureStripeCustomerForAccount() {
     email: settings.email || undefined,
     name: settings.companyName || settings.name || undefined,
     metadata: {
-      accountDefaultsId,
+      accountDefaultsId: context.id,
       companyName: settings.companyName,
     },
   });

@@ -6,6 +6,14 @@ Update this file at the end of a substantial work session. Keep entries concise,
 
 ## 2026-08-18
 
+- Implemented password recovery with hashed, single-use, one-hour `PasswordResetToken` records and durable `AuthAuditEvent` records. The generic forgot-password response now sends a reset link only for provisioned users, the reset route updates the salted password hash, consumes the token, writes an audit event, and invalidates prior signed sessions. Applied the schema locally; focused tests, typecheck, lint, build, and diff validation passed.
+- Replaced the shared sidebar identity with the server session’s name and email, including per-user navigation-preference keys. Began account-settings isolation by keying persisted settings to the signed-in user, migrating the legacy Amogy settings into its new customer account, and returning blank settings for newly provisioned users instead of the Amogy fixture.
+- Provisioned `william.paik@amogy.co` as the Customer Admin for the canonical Amogy customer company, separate from the sole Lattice Admin account. The Amogy membership is scoped to its two historical RFQs; no password was issued so it can be generated through the admin UI when needed.
+- Consolidated the local test Amogy data into one canonical Amogy customer company. Reassigned its two historical customer-facing RFQs before deleting 12 obsolete duplicate Amogy/Amogy Manufacturing company records; verification confirms the canonical company now owns both RFQs.
+- Added a Lattice Admin custom-password control beside each customer user. It replaces the credential with a newly salted hash and requires at least 12 characters; existing passwords remain unrecoverable by design.
+- Turned `/admin/customers` into the company-grouped customer-user hub: Lattice Admin can add users, monitor membership and password-issued state, promote/demote Customer Admins and Members, reset a password to issue a one-time temporary credential, and remove users while preserving at least one Customer Admin per company. Removed the redundant Quote Submissions shortcut from the page header.
+- Added salted per-user password credentials and provisioned-account authentication. Existing passwords are not readable or retained in plaintext; Google and password sign-in reject unprovisioned customer accounts, customer roles cannot reach `/admin`, and deleting a membership invalidates its server-side session.
+- Verification: Prisma client generation, TypeScript, ESLint, focused customer-management/auth tests, and diff validation passed. Production still needs the current Prisma schema applied before the new credential fields can be used against the production database.
 - Archived the received Jucheng Precision two-page equipment list and registered it in the internal vendor-source registry and manifest.
 - Added 32 normalized records for its CNC/EDM, sheet-metal, manual, and inspection equipment to the customer equipment catalog. The browser now receives an opaque customer-equipment DTO rather than the internal dataset, so supplier/source identifiers, provenance URLs, and supplier-derived slugs cannot be recovered from the customer bundle.
 - Verification: focused equipment catalog test, typecheck, JSON-manifest validation, and diff validation passed.
@@ -1285,3 +1293,37 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 ## 2026-08-18 — Stabilized React test environment
 
 - Configured the Vitest setup globally for React `act` support so component tests do not emit environment warnings when flushing updates.
+
+## 2026-08-18 — Simplified the admin customer profile
+
+- Converted Business details fields on `/admin/customers/[companyId]` to a single label-and-input row layout on desktop, with a compact stacked layout on smaller screens.
+- Removed the Overseas fabrication shops card from the customer profile view and added regression coverage for both changes.
+- Replaced the desktop two-column profile layout with stacked full-width Business details and Business users rows, and removed the summary metrics strip and header status/tier badge.
+- Reordered the profile so Access management appears before Business details, and made the Business details form a collapsed-on-load disclosure toggle.
+
+## 2026-08-18 — Enforced administrator-issued temporary password changes
+
+- Added `mustChangePassword` and `temporaryPasswordExpiresAt` to `User`. New or reset administrator-issued passwords expire after 72 hours and direct password and Google sign-ins to `/account/set-password`.
+- Blocked normal workspace server access and proxy navigation while the forced change remains active; the completion route validates the requirement/expiry, saves the new salted credentials, records `TEMPORARY_PASSWORD_CHANGED`, refreshes the signed session, and clears the lockout.
+- User-chosen recovery-link and administrator-defined custom passwords clear the forced-change state.
+- Verification: Prisma client generation, local schema push, typecheck, focused auth/customer-access tests, lint, and diff validation passed.
+
+## 2026-08-18 — Added verified customer email changes
+
+- Added pending user email state plus hashed, single-use `EmailVerificationToken` records that expire after 24 hours.
+- Lattice Admin can request a customer-email change from the company user-management view. The current email remains the sign-in identity until the new inbox confirms its link; confirmation changes the email, clears the pending state, invalidates old sessions, writes audit events, and sends a security notice to the former address.
+- Reuses Resend when configured and writes a local development outbox when it is not.
+
+## 2026-08-18 — Added Lattice Admin customer support view
+
+- Added an explicit Admin-only `View customer workspace` action for provisioned users. It replaces the current browser session with a signed, company-scoped customer support session while retaining the original admin identity only for the exit path.
+- Customer support view carries a persistent sidebar notice and an `Exit to admin` action that restores the Lattice Admin session; it is intentionally not a per-tab multi-login mechanism.
+- Verification: typecheck, focused authentication/customer-management tests, lint, production build, and diff validation passed. The broader app-shell test file has four pre-existing failures caused by its uncommitted session-user/navigation expectation changes; those changes were preserved.
+# 2026-08-18 - Clerk Development Integration
+
+- Linked the existing Lattice Next.js project to the Clerk development application and installed `@clerk/nextjs`.
+- Added Clerk provider, sign-in/sign-up routes, Clerk middleware, and the required Next.js proxy matcher.
+- Reworked Lattice session hydration to authenticate through Clerk and link the Clerk user ID to an existing provisioned Prisma user on first verified sign-in; unprovisioned Clerk identities receive no Lattice workspace session.
+- Preserved Lattice-owned company and role authorization, and added server layouts that keep `/admin` limited to the Prisma Lattice Admin role and `/supplier` limited to supplier roles.
+- Added `User.clerkUserId`; customer add/reset/custom-password/forced-temporary-password operations now synchronize passwords with Clerk.
+- Deferred production cutover until the schema is applied, the Clerk Production instance is configured, and its production keys are added to Vercel.

@@ -84,17 +84,61 @@ model CustomerSequence {
 }
 
 model User {
-  id        String        @id @default(cuid())
-  name      String
-  email     String        @unique
-  role      WorkspaceRole @default(CUSTOMER_MEMBER)
-  companyId String?
-  company   Company?      @relation(fields: [companyId], references: [id])
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  clerkUserId       String?       @unique
+  name              String
+  email             String        @unique
+  role              WorkspaceRole @default(CUSTOMER_MEMBER)
+  companyId         String?
+  company           Company?      @relation(fields: [companyId], references: [id])
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  authAuditEvents    AuthAuditEvent[]
+  pendingEmail      String?       @unique
+  passwordHash      String        @default("")
+  passwordSalt      String        @default("")
+  passwordChangedAt DateTime?
+  mustChangePassword Boolean      @default(false)
+  temporaryPasswordExpiresAt DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   @@index([companyId])
   @@index([role])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+model AuthAuditEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model WaitingListEntry {

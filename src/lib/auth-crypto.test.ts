@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canRoleAccessPath, defaultHomeForRole, resolveRoleForEmail } from "./auth-crypto";
+import { canRoleAccessPath, createPasswordCredentials, defaultHomeForRole, resolveRoleForEmail, verifyPasswordHash } from "./auth-crypto";
 
 describe("auth route roles", () => {
   it("uses the local password account only as an admin bootstrap", () => {
@@ -32,5 +32,13 @@ describe("auth route roles", () => {
     expect(defaultHomeForRole("admin")).toBe("/admin/quotes");
     expect(defaultHomeForRole("customer")).toBe("/dashboard");
     expect(defaultHomeForRole("supplier")).toBe("/supplier/orders");
+  });
+
+  it("stores credentials as a verifiable hash rather than a readable password", () => {
+    const credentials = createPasswordCredentials("temporary-password");
+
+    expect(credentials.passwordHash).not.toContain("temporary-password");
+    expect(verifyPasswordHash("temporary-password", credentials.passwordHash, credentials.passwordSalt)).toBe(true);
+    expect(verifyPasswordHash("incorrect-password", credentials.passwordHash, credentials.passwordSalt)).toBe(false);
   });
 });
