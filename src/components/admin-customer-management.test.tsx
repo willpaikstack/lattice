@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { AdminCustomerManagement } from "./admin-customer-management";
@@ -74,6 +74,18 @@ describe("AdminCustomerManagement", () => {
     expect(screen.getByText("avery@forgeworks.com")).toBeInTheDocument();
     expect(screen.getByText("ForgeWorks")).toBeInTheDocument();
     expect(screen.getByText("Recurring CNC RFQs and supplier follow-up.")).toBeInTheDocument();
+  });
+
+  it("opens the customer-company provisioning workflow", () => {
+    render(<AdminCustomerManagement customers={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create customer" }));
+
+    expect(screen.getByRole("heading", { name: "Create customer company" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Company name")).toBeRequired();
+    expect(screen.getByLabelText("Full name")).toBeRequired();
+    expect(screen.getByLabelText("Work email")).toBeRequired();
+    expect(screen.getByRole("button", { name: "Create company and admin" })).toBeInTheDocument();
   });
 
   it("opens a customer profile from each customer company row", () => {

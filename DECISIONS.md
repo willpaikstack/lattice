@@ -1246,3 +1246,15 @@ Implications:
 - Only a Prisma `LATTICE_ADMIN` membership can reach `/admin`; customer memberships remain company-scoped.
 - Customer user creation, temporary-password reset, custom password setting, and forced temporary-password completion synchronize credentials to Clerk.
 - Production requires a deployed Clerk Production instance and its Production API keys in Vercel before the switch can be released.
+
+## 2026-08-18 - Customer Companies Are Provisioned by Lattice Admins
+
+Decision: creating a customer company and its initial Customer Admin is a Lattice Admin-only operation performed from `/admin/customers`.
+
+Reason: a Clerk identity alone must never grant access to customer RFQs, quotes, orders, or files; the Company and Prisma membership must be created atomically with the identity.
+
+Implications:
+
+- The initial user is always a `CUSTOMER_ADMIN` and receives a one-time temporary password that must be changed within 72 hours.
+- The provisioning flow creates the Company, Prisma User, and Clerk User, and compensates by removing created records if Clerk identity creation fails.
+- Customer self-service invitations and company creation remain out of scope until explicitly authorized.

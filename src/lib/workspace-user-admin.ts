@@ -10,6 +10,14 @@ import { beginEmailChange } from "./email-change";
 import { getPrismaClient } from "./prisma";
 
 export type CustomerWorkspaceRole = "CUSTOMER_ADMIN" | "CUSTOMER_MEMBER";
+export type CreateCustomerCompanyInput = {
+  billingEmail?: string;
+  companyName: string;
+  industry?: string;
+  primaryAdminEmail: string;
+  primaryAdminName: string;
+  website?: string;
+};
 const temporaryPasswordDurationMs = 72 * 60 * 60 * 1000;
 
 function customerRole(role: string): CustomerWorkspaceRole {
@@ -19,6 +27,22 @@ function customerRole(role: string): CustomerWorkspaceRole {
 
 function normalizedEmail(value: string) {
   return value.trim().toLowerCase();
+}
+
+function requiredText(value: string, label: string) {
+  const normalized = value.trim().replace(/\s+/g, " ");
+  if (!normalized || normalized.length > 160) {
+    throw new Error(`Enter a ${label} between 1 and 160 characters.`);
+  }
+  return normalized;
+}
+
+function validEmail(value: string, label: string) {
+  const email = normalizedEmail(value);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error(`Enter a valid ${label}.`);
+  }
+  return email;
 }
 
 function temporaryPassword() {
@@ -110,6 +134,78 @@ export async function addCustomerUser(companyId: string, input: { email: string;
     return { password, user: await client.user.update({ where: { id: user.id }, data: { clerkUserId: clerkUser.id } }) };
   } catch (error) {
     await client.user.delete({ where: { id: user.id } });
+    throw error;
+  }
+}
+
+export async function createCustomerCompany(input: CreateCustomerCompanyInput) {
+  const companyName = requiredText(input.companyName, "company name");
+  const primaryAdminName = requiredText(input.primaryAdminName, "primary admin name");
+  const primaryAdminEmail = validEmail(input.primaryAdminEmail, "primary admin email");
+  const billingEmail = input.billingEmail?.trim() ? validEmail(input.billingEmail, "billing email") : primaryAdminEmail;
+  const website = input.website?.trim() ?? "";
+  const industry = input.industry?.trim() ?? "";
+  const client = await prisma();
+
+  const [existingCompany, existingUser] = await Promise.all([
+    client.company.findFirst({ where: { name: companyName } }),
+    client.user.findUnique({ where: { email: primaryAdminEmail } }),
+  ]);
+  if (existingCompany) {
+    throw new Error("A customer company with that name already exists.");
+  }
+  if (existingUser) {
+    throw new Error("A user already exists with that primary admin email.");
+  }
+
+  const password = temporaryPassword();
+  const credentials = createPasswordCredentials(password);
+  const company = await client.company.create({
+    data: {
+      billingEmail,
+      industry,
+      name: companyName,
+      primaryContactEmail: primaryAdminEmail,
+      primaryContactName: primaryAdminName,
+      website,
+    },
+  });
+
+  let userId: string | null = null;
+  let clerkUserId: string | null = null;
+  try {
+    const user = await client.user.create({
+      data: {
+        ...credentials,
+        companyId: company.id,
+        email: primaryAdminEmail,
+        mustChangePassword: true,
+        name: primaryAdminName,
+        passwordChangedAt: new Date(),
+        role: WorkspaceRole.CUSTOMER_ADMIN,
+        temporaryPasswordExpiresAt: temporaryPasswordExpiry(),
+      },
+    });
+    userId = user.id;
+
+    const clerkUser = await createClerkUser({
+      email: user.email,
+      externalId: user.id,
+      name: user.name,
+      password,
+    });
+    clerkUserId = clerkUser.id;
+    const linkedUser = await client.user.update({ where: { id: user.id }, data: { clerkUserId: clerkUser.id } });
+
+    return { company, password, user: linkedUser };
+  } catch (error) {
+    if (clerkUserId) {
+      await (await clerkClient()).users.deleteUser(clerkUserId).catch(() => undefined);
+    }
+    if (userId) {
+      await client.user.delete({ where: { id: userId } }).catch(() => undefined);
+    }
+    await client.company.delete({ where: { id: company.id } }).catch(() => undefined);
     throw error;
   }
 }

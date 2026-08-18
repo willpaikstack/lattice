@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
+import { createCustomerCompanyAction, type CreateCustomerCompanyActionState } from "@/app/admin/customers/actions";
 import { CustomerProfileIcon } from "@/components/customer-profile-icon";
 import type { CustomerProfile } from "@/lib/customer-profiles";
 import type { WaitingListEntry } from "@/lib/waiting-list";
@@ -13,6 +14,84 @@ const customerFilters = [
   { label: "Standard", value: "STANDARD" },
   { label: "With orders", value: "WITH_ORDERS" },
 ] as const;
+
+const initialCreateCustomerState: CreateCustomerCompanyActionState = { message: "", status: "idle" };
+
+function CreateCustomerCompany() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [state, formAction, pending] = useActionState(createCustomerCompanyAction, initialCreateCustomerState);
+
+  return (
+    <section className="rounded-md border border-[#e6e6e6] bg-white p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86]">Provisioning</p>
+          <h2 className="mt-1 text-[19px] font-semibold tracking-tight text-[#202020]">Create customer company</h2>
+          <p className="mt-2 max-w-2xl text-[13px] leading-5 text-[#707782]">Create the company, its first Customer Admin, and the matching Clerk sign-in in one secure step.</p>
+        </div>
+        <button className="w-fit rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white hover:bg-[#2f3237]" onClick={() => setIsOpen((open) => !open)} type="button">
+          {isOpen ? "Close" : "Create customer"}
+        </button>
+      </div>
+
+      {isOpen ? (
+        <form action={formAction} className="mt-5 space-y-5 border-t border-[#eeeeee] pt-5">
+          <div>
+            <h3 className="text-[14px] font-semibold text-[#202020]">Customer company</h3>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="text-[12px] font-semibold text-[#4b525b]">
+                Company name
+                <input className="mt-1 h-10 w-full rounded-md border border-[#dddddd] bg-white px-3 text-sm" name="companyName" placeholder="Acme Manufacturing" required />
+              </label>
+              <label className="text-[12px] font-semibold text-[#4b525b]">
+                Website <span className="font-normal text-[#707782]">(optional)</span>
+                <input className="mt-1 h-10 w-full rounded-md border border-[#dddddd] bg-white px-3 text-sm" name="website" placeholder="https://acme.example" type="url" />
+              </label>
+              <label className="text-[12px] font-semibold text-[#4b525b]">
+                Industry <span className="font-normal text-[#707782]">(optional)</span>
+                <input className="mt-1 h-10 w-full rounded-md border border-[#dddddd] bg-white px-3 text-sm" name="industry" placeholder="Precision machining" />
+              </label>
+              <label className="text-[12px] font-semibold text-[#4b525b]">
+                Billing email <span className="font-normal text-[#707782]">(optional)</span>
+                <input className="mt-1 h-10 w-full rounded-md border border-[#dddddd] bg-white px-3 text-sm" name="billingEmail" placeholder="ap@acme.example" type="email" />
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-[14px] font-semibold text-[#202020]">First Customer Admin</h3>
+            <p className="mt-1 text-[13px] text-[#707782]">This user can access the new company workspace. Additional users can be added from the company profile.</p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <label className="text-[12px] font-semibold text-[#4b525b]">
+                Full name
+                <input className="mt-1 h-10 w-full rounded-md border border-[#dddddd] bg-white px-3 text-sm" name="primaryAdminName" placeholder="Avery Chen" required />
+              </label>
+              <label className="text-[12px] font-semibold text-[#4b525b]">
+                Work email
+                <input className="mt-1 h-10 w-full rounded-md border border-[#dddddd] bg-white px-3 text-sm" name="primaryAdminEmail" placeholder="avery@acme.example" required type="email" />
+              </label>
+            </div>
+          </div>
+
+          {state.status !== "idle" ? (
+            <div aria-live="polite" className={`rounded-md border p-3 text-sm ${state.status === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+              <p>{state.message}</p>
+              {state.temporaryPassword ? <p className="mt-3 rounded bg-white px-3 py-2 font-mono text-[14px] font-semibold text-[#171717]">Temporary password: {state.temporaryPassword}</p> : null}
+              {state.customerHref ? <Link className="mt-3 inline-flex font-semibold underline" href={state.customerHref}>Open customer profile</Link> : null}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60" disabled={pending} type="submit">
+              {pending ? "Creating…" : "Create company and admin"}
+            </button>
+            <p className="text-[12px] text-[#707782]">The temporary password is shown once and expires after 72 hours.</p>
+          </div>
+        </form>
+      ) : null}
+    </section>
+  );
+}
 
 function formatJoinedDate(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -283,6 +362,7 @@ function WaitingListTable({ entries }: { entries: WaitingListEntry[] }) {
 export function AdminCustomerManagement({ customers, waitingListEntries = [] }: { customers: CustomerProfile[]; waitingListEntries?: WaitingListEntry[] }) {
   return (
     <div className="space-y-5">
+      <CreateCustomerCompany />
       <WaitingListTable entries={waitingListEntries} />
       <CustomerCompanyTable customers={customers} />
     </div>

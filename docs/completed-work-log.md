@@ -1373,3 +1373,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - The native Account Settings name form now updates the current Clerk identity through an authenticated server action, synchronizes a linked Lattice `User` record, and refreshes the account sidebar/dashboard identity.
 - Stale browser-stored name and email values no longer override the server-provided authenticated identity after a page reload.
+
+## 2026-08-18 — Added admin customer-company provisioning
+
+- Added a Lattice Admin-only Create customer company workflow on `/admin/customers` that collects company details and the first Customer Admin, creates the Company and customer membership, then provisions the matching Clerk identity.
+- The workflow displays a one-time temporary password for secure handoff, forces a personal password change within 72 hours, and compensates by removing the newly created Company/User/Clerk records if provisioning cannot complete.
