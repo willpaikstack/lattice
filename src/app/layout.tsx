@@ -1,10 +1,12 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
+import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
 import { getCurrentSession } from "@/lib/session";
 import "./globals.css";
 
@@ -30,6 +32,13 @@ export default async function RootLayout({
 }>) {
   const [session, requestHeaders] = await Promise.all([getCurrentSession({ allowPasswordChange: true }), headers()]);
   const pathname = requestHeaders.get("x-lattice-pathname") ?? "";
+  const clerkUser = session ? null : await currentUser();
+  const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress?.trim() ?? "";
+  const shellUser = session?.user
+    ? { email: session.user.email, name: session.user.name }
+    : clerkUser
+      ? { email: clerkEmail, name: clerkUserDisplayName(clerkUser) || "Account" }
+      : undefined;
 
   if (session?.user.mustChangePassword && pathname !== "/account/set-password") {
     redirect("/account/set-password");
@@ -42,7 +51,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
-          <AppShell sessionRole={session?.user.role} sessionUser={session?.user ? { email: session.user.email, name: session.user.name } : undefined} supportAdmin={session?.user.supportAdmin ?? undefined}>{children}</AppShell>
+          <AppShell sessionRole={session?.user.role} sessionUser={shellUser} supportAdmin={session?.user.supportAdmin ?? undefined}>{children}</AppShell>
           <Analytics />
         </ClerkProvider>
       </body>
