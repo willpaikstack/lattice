@@ -2,10 +2,12 @@ import { spawnSync } from "node:child_process";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 
-const enabled = process.env.LATTICE_RUN_CLERK_USER_MIGRATION === "true";
+const migrateEnabled = process.env.LATTICE_RUN_CLERK_USER_MIGRATION === "true";
+const bootstrapAdminEnabled = process.env.LATTICE_BOOTSTRAP_LATTICE_ADMIN === "true";
+const enabled = migrateEnabled || bootstrapAdminEnabled;
 
 if (!enabled) {
-  console.log("Skipping one-time Clerk user migration.");
+  console.log("Skipping one-time Clerk user migration and admin bootstrap.");
   process.exit(0);
 }
 
@@ -60,5 +62,18 @@ try {
 console.log("Production duplicate checks passed. Applying the Prisma schema before the one-time Clerk user migration.");
 run("npx", ["prisma", "db", "push", "--accept-data-loss"]);
 
-console.log("Migrating existing Lattice users to Clerk Production.");
+if (bootstrapAdminEnabled) {
+  const name = process.env.LATTICE_BOOTSTRAP_LATTICE_ADMIN_NAME?.trim();
+  const email = process.env.LATTICE_BOOTSTRAP_LATTICE_ADMIN_EMAIL?.trim().toLowerCase();
+
+  if (!name || !email || !email.includes("@")) {
+    console.error("Refusing to bootstrap the Lattice Admin without a name and valid email.");
+    process.exit(1);
+  }
+
+  console.log("Creating the one-time Lattice Admin membership.");
+  run(process.execPath, ["scripts/onboard-lattice-admin.mjs", "--name", name, "--email", email]);
+}
+
+console.log("Migrating provisioned Lattice users to Clerk Production.");
 run(process.execPath, ["scripts/migrate-clerk-users.mjs", "--use-current-env", "--confirm"]);

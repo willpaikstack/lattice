@@ -1,5 +1,11 @@
 # Completed Work Log
 
+## 2026-08-18 — Guarded production Lattice Admin bootstrap
+
+- Extended the existing Vercel-only Clerk migration runner with a one-time, explicitly enabled Lattice Admin bootstrap path.
+- The path refuses to run outside Vercel, requires Clerk Production credentials, applies the Prisma schema after duplicate checks, creates the named `LATTICE_ADMIN` membership, and then creates or links the matching Clerk user.
+- Normal builds skip both migration and bootstrap unless their explicit one-time environment flag is present.
+
 Running daily record of meaningful Lattice OS tasks, features, fixes, and documentation work completed across computers.
 
 Update this file at the end of a substantial work session. Keep entries concise, newest first, and focused on completed work. Open work, blockers, and next actions belong in `TODO.md`.
