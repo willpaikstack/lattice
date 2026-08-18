@@ -96,7 +96,7 @@ const adminRoutePrefixes = ["/admin", "/analytics", "/projects", "/operator"];
 const publicRoutes = new Set(["/", "/how-it-works", "/login", "/forgot-password", "/waiting-list"]);
 
 function isPublicRoute(pathname: string) {
-  return publicRoutes.has(pathname) || pathname === "/account/set-password" || pathname.startsWith("/login/") || pathname.startsWith("/sign-up/");
+  return publicRoutes.has(pathname) || pathname === "/account/set-password" || pathname === "/account/continue" || pathname.startsWith("/login/") || pathname.startsWith("/sign-up/");
 }
 
 const navOrderStoragePrefix = "lattice:sidebar-nav-order";

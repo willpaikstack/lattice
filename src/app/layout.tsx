@@ -36,7 +36,7 @@ export default async function RootLayout({
   // Clerk owns every nested login/sign-up challenge (for example, client
   // trust). Do not resolve Lattice workspace state or render its shell until
   // Clerk has completed that flow.
-  if (pathname === "/login" || pathname.startsWith("/login/") || pathname === "/sign-up" || pathname.startsWith("/sign-up/") || pathname === "/account/set-password") {
+  if (pathname === "/login" || pathname.startsWith("/login/") || pathname === "/sign-up" || pathname.startsWith("/sign-up/") || pathname === "/account/set-password" || pathname === "/account/continue") {
     return (
       <html
         lang="en"

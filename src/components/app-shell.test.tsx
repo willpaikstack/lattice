@@ -190,6 +190,19 @@ describe("AppShell", () => {
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
+  it("leaves the post-sign-in account check outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/account/continue");
+
+    render(
+      <AppShell>
+        <div>account check</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("account check")).toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+  });
+
   it("leaves the public forgot password page outside the app shell", () => {
     mockUsePathname.mockReturnValue("/forgot-password");
 

@@ -19,6 +19,6 @@ describe("Login page", () => {
     expect(signIn).toHaveAttribute("data-path", "/login");
     expect(signIn).toHaveAttribute("data-routing", "path");
     expect(signIn).toHaveAttribute("data-sign-up-url", "/sign-up");
-    expect(signIn).toHaveAttribute("data-force-redirect-url", "/dashboard");
+    expect(signIn).toHaveAttribute("data-force-redirect-url", "/account/continue");
   });
 });
