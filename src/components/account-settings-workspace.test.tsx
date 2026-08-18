@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { defaultAccountSettings } from "@/lib/account-settings-shared";
 import { AccountSettingsWorkspace } from "./account-settings-workspace";
 
 const accountSettingsStorageKey = "lattice.account-settings.v1";
@@ -56,6 +57,24 @@ describe("AccountSettingsWorkspace", () => {
     await waitFor(() => expect(updateDisplayNameAction).toHaveBeenCalledWith("Will Paikkkk"));
     expect(await screen.findByText("Name updated.")).toBeInTheDocument();
     expect(refreshMock).toHaveBeenCalledOnce();
+  });
+
+  it("renders identity dates supplied by the authentication provider without seeded account claims", () => {
+    render(
+      <AccountSettingsWorkspace
+        initialSettings={{
+          ...defaultAccountSettings(),
+          accountCreatedAt: "August 18, 2026",
+          emailVerifiedAt: "August 18, 2026",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Account created on August 18, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Verified on August 18, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Pay by credit card")).toBeInTheDocument();
+    expect(screen.queryByText("Tax-exempt reseller")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Credit card checkout enabled under/)).not.toBeInTheDocument();
   });
 
   it("edits the default buyer company for new RFQs", () => {

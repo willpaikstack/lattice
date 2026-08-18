@@ -43,6 +43,50 @@ function text(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
 
+function displayIdentityDate(value: Date | number | string | null | undefined) {
+  if (!value) return "";
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric",
+  }).format(date);
+}
+
+type ClerkUserResponse = {
+  email_addresses?: Array<{
+    id?: string;
+    verification?: { verified_at_client?: string | null } | null;
+  }>;
+};
+
+async function clerkEmailVerifiedAt(userId: string | null, primaryEmailAddressId: string | undefined) {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!userId || !primaryEmailAddressId || !secretKey) return "";
+
+  try {
+    // The Clerk backend SDK models a verification's status but omits its
+    // `verified_at_client` timestamp. Read the documented user payload so the
+    // customer portal can show the genuine verification date rather than a
+    // seeded date or an inferred account-created date.
+    const response = await fetch(`https://api.clerk.com/v1/users/${encodeURIComponent(userId)}`, {
+      cache: "no-store",
+      headers: { Authorization: `Bearer ${secretKey}` },
+    });
+    if (!response.ok) return "";
+
+    const user = await response.json() as ClerkUserResponse;
+    const primaryEmail = user.email_addresses?.find((email) => email.id === primaryEmailAddressId);
+    return displayIdentityDate(primaryEmail?.verification?.verified_at_client);
+  } catch {
+    return "";
+  }
+}
+
 function normalizeAddress(address: AccountAddress): AccountAddress {
   return {
     address1: text(address.address1),
@@ -57,6 +101,7 @@ function normalizeAddress(address: AccountAddress): AccountAddress {
 
 export function normalizeAccountSettings(settings: AccountSettingsSnapshot): AccountSettingsSnapshot {
   return {
+    accountCreatedAt: text(settings.accountCreatedAt),
     billing: {
       email: text(settings.billing.email),
       invoiceRoutingNotes: text(settings.billing.invoiceRoutingNotes),
@@ -65,6 +110,7 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     cards: settings.cards,
     companyName: text(settings.companyName) || defaultAccountSettings().companyName,
     email: text(settings.email),
+    emailVerifiedAt: text(settings.emailVerifiedAt),
     mfaEnabled: Boolean(settings.mfaEnabled),
     name: text(settings.name),
     passwordChangedAt: text(settings.passwordChangedAt),
@@ -158,17 +204,29 @@ async function prisma() {
 }
 
 async function settingsContext() {
-  const session = await getCurrentSession();
-  if (session) {
-    return { id: `user:${session.user.id}`, name: session.user.name, email: session.user.email, companyName: session.user.companyName ?? "" };
-  }
-
   const { userId } = await auth();
   const clerkUser = await currentUser();
+  const emailVerifiedAt = await clerkEmailVerifiedAt(userId, clerkUser?.primaryEmailAddress?.id);
+  const identityDates = {
+    accountCreatedAt: displayIdentityDate(clerkUser?.createdAt),
+    emailVerifiedAt,
+  };
+  const session = await getCurrentSession();
+  if (session) {
+    return {
+      ...identityDates,
+      id: `user:${session.user.id}`,
+      name: session.user.name,
+      email: session.user.email,
+      companyName: session.user.companyName ?? "",
+    };
+  }
+
   const email = clerkUser?.primaryEmailAddress?.emailAddress?.trim() ?? "";
   if (!userId || !email) throw new Error("Authentication required.");
 
   return {
+    ...identityDates,
     companyName: "",
     email,
     id: `clerk:${userId}`,
@@ -177,7 +235,14 @@ async function settingsContext() {
 }
 
 function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<typeof settingsContext>>) {
-  return normalizeAccountSettings({ ...defaults, companyName: context.companyName || defaults.companyName, email: context.email, name: context.name });
+  return normalizeAccountSettings({
+    ...defaults,
+    accountCreatedAt: context.accountCreatedAt,
+    companyName: context.companyName || defaults.companyName,
+    email: context.email,
+    emailVerifiedAt: context.emailVerifiedAt,
+    name: context.name,
+  });
 }
 
 function emptyForUser(context: Awaited<ReturnType<typeof settingsContext>>) {

@@ -79,31 +79,45 @@ type CurrentSession = {
   };
 };
 
-export async function getCurrentSession(options?: { allowPasswordChange?: boolean }): Promise<CurrentSession | null> {
-  const { userId: clerkUserId } = await auth();
-  if (!clerkUserId) return null;
+export type PasswordSetupState =
+  | { status: "signed-out" }
+  | { status: "not-provisioned" }
+  | { status: "already-complete" }
+  | { status: "expired" }
+  | { status: "ready"; session: CurrentSession };
+
+async function resolveCurrentWorkspaceUser() {
+  const clerkAuth = await auth();
+  if (!clerkAuth.isAuthenticated || !clerkAuth.userId) return null;
+  const clerkUserId = clerkAuth.userId;
 
   let workspaceUser = await findWorkspaceUserByClerkUserId(clerkUserId);
   const clerkUser = await currentUser();
 
-  // Existing Lattice members are linked on their first Clerk sign-in. Clerk
-  // only returns a primary email after its own verification requirements pass.
+  // Existing Lattice members are linked on their first completed Clerk sign-in.
+  // Clerk only returns a primary email after its own verification requirements pass.
   if (!workspaceUser) {
     const email = clerkUser?.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
-    if (!email) return null;
+    if (!email) return { clerkUser, workspaceUser: null };
 
     const provisionedUser = await findWorkspaceUser(email);
-    if (!provisionedUser) return null;
+    if (!provisionedUser) return { clerkUser, workspaceUser: null };
     workspaceUser = await linkWorkspaceUserToClerk(provisionedUser.id, clerkUserId);
   }
-
-  if (!workspaceUser) return null;
 
   const clerkName = clerkUserDisplayName(clerkUser);
   if (clerkName && clerkName !== workspaceUser.name) {
     const syncedUser = await syncWorkspaceUserName(workspaceUser.id, clerkName);
     if (syncedUser) workspaceUser = syncedUser;
   }
+
+  return { clerkUser, workspaceUser };
+}
+
+export async function getCurrentSession(options?: { allowPasswordChange?: boolean }): Promise<CurrentSession | null> {
+  const resolved = await resolveCurrentWorkspaceUser();
+  if (!resolved?.workspaceUser) return null;
+  const workspaceUser = resolved.workspaceUser;
 
   const supportToken = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   const supportSession = verifySessionToken(supportToken);
@@ -149,4 +163,26 @@ export async function getCurrentSession(options?: { allowPasswordChange?: boolea
       supportAdmin: null,
     },
   };
+}
+
+/**
+ * Provides a customer-safe state for the forced-password route. Unlike the
+ * normal session helper, this distinguishes an expired or unprovisioned account
+ * from a normal signed-out state so the route can never fail as a blank page.
+ */
+export async function getPasswordSetupState(): Promise<PasswordSetupState> {
+  const resolved = await resolveCurrentWorkspaceUser();
+  if (!resolved) return { status: "signed-out" };
+  if (!resolved.workspaceUser) return { status: "not-provisioned" };
+
+  const workspaceUser = resolved.workspaceUser;
+  if (!workspaceUser.mustChangePassword) return { status: "already-complete" };
+  if (workspaceUser.temporaryPasswordExpiresAt && workspaceUser.temporaryPasswordExpiresAt <= new Date()) {
+    return { status: "expired" };
+  }
+
+  const session = await getCurrentSession({ allowPasswordChange: true });
+  return session?.user.mustChangePassword
+    ? { status: "ready", session }
+    : { status: "not-provisioned" };
 }

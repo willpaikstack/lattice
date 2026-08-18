@@ -94,6 +94,11 @@ const adminNavSections: NavSection[] = [
 
 const adminRoutePrefixes = ["/admin", "/analytics", "/projects", "/operator"];
 const publicRoutes = new Set(["/", "/how-it-works", "/login", "/forgot-password", "/waiting-list"]);
+
+function isPublicRoute(pathname: string) {
+  return publicRoutes.has(pathname) || pathname === "/account/set-password" || pathname.startsWith("/login/") || pathname.startsWith("/sign-up/");
+}
+
 const navOrderStoragePrefix = "lattice:sidebar-nav-order";
 const iconByName: Record<IconName, LucideIcon> = {
   admin: Settings,
@@ -587,7 +592,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
     items: [],
     totalCount: 0,
   });
-  const isPublicRoute = publicRoutes.has(pathname);
+  const isPublicRoutePath = isPublicRoute(pathname);
   const inAdminExperience = isAdminRoute(pathname);
   const navTone = inAdminExperience ? "admin" : "customer";
   const [storedNavOrdersByTone, setStoredNavOrdersByTone] = useState<Record<"admin" | "customer", Record<string, string[]>>>({
@@ -739,7 +744,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
     setIsNotificationsPanelOpen(false);
   }
 
-  if (isPublicRoute) {
+  if (isPublicRoutePath) {
     return <>{children}</>;
   }
 

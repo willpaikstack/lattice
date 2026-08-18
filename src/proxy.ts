@@ -24,9 +24,11 @@ function isProtectedPath(pathname: string) {
 
 export default clerkMiddleware(async (auth, request) => {
   const pathname = request.nextUrl.pathname;
-  const { userId, redirectToSignIn } = await auth();
+  const { isAuthenticated, redirectToSignIn } = await auth();
 
-  if (isProtectedPath(pathname) && !userId) {
+  // A pending Clerk challenge may carry a user ID before the session is fully
+  // authenticated. Protected Lattice routes require a completed session.
+  if (isProtectedPath(pathname) && !isAuthenticated) {
     return redirectToSignIn({ returnBackUrl: request.url });
   }
 

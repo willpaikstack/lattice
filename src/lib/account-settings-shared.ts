@@ -29,11 +29,13 @@ export type PaymentCard = {
 };
 
 export type AccountSettingsSnapshot = {
+  accountCreatedAt: string;
   billing: BillingContact;
   billingAddress: AccountAddress;
   cards: PaymentCard[];
   companyName: string;
   email: string;
+  emailVerifiedAt: string;
   mfaEnabled: boolean;
   name: string;
   passwordChangedAt: string;
@@ -80,11 +82,13 @@ export const initialBillingContact: BillingContact = {
 
 export function defaultAccountSettings(): AccountSettingsSnapshot {
   return {
+    accountCreatedAt: "",
     billing: initialBillingContact,
     billingAddress: initialBillingAddress,
     cards: initialCards,
     companyName: "Amogy",
     email: "william.paik@amogy.co",
+    emailVerifiedAt: "",
     mfaEnabled: true,
     name: "William Paik",
     passwordChangedAt: "May 12, 2026",

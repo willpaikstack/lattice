@@ -98,6 +98,7 @@ function getStoredAccountSettings(serverInitialSettings?: AccountSettingsSnapsho
   const storedTeamMembers = stored.teamMembers;
 
   return {
+    accountCreatedAt: defaults.accountCreatedAt,
     billing: storedBillingContact(stored.billing, defaults.billing),
     billingAddress: storedAddress(stored.billingAddress, defaults.billingAddress),
     cards: Array.isArray(storedCards) ? (storedCards as PaymentCard[]) : defaults.cards,
@@ -105,6 +106,7 @@ function getStoredAccountSettings(serverInitialSettings?: AccountSettingsSnapsho
     // Authentication identity is always supplied by the server. Ignoring stale
     // browser copies prevents an old demo edit from replacing Clerk data.
     email: defaults.email,
+    emailVerifiedAt: defaults.emailVerifiedAt,
     mfaEnabled: typeof stored.mfaEnabled === "boolean" ? stored.mfaEnabled : defaults.mfaEnabled,
     name: defaults.name,
     passwordChangedAt: storedString(stored, "passwordChangedAt") ?? defaults.passwordChangedAt,
@@ -332,11 +334,13 @@ export function AccountSettingsWorkspace({
 
   function persistSettings(overrides: Partial<AccountSettingsSnapshot>) {
     const nextSettings = {
+      accountCreatedAt: initialSettings.accountCreatedAt,
       billing,
       billingAddress,
       cards,
       companyName,
       email,
+      emailVerifiedAt: initialSettings.emailVerifiedAt,
       mfaEnabled,
       name,
       passwordChangedAt,
@@ -621,7 +625,9 @@ export function AccountSettingsWorkspace({
                 ) : (
                   <>
                     <p>{name}</p>
-                    <p className="text-[#737b86]">Account created on Nov 29, 2022</p>
+                    <p className="text-[#737b86]">
+                      {initialSettings.accountCreatedAt ? `Account created on ${initialSettings.accountCreatedAt}` : "Account creation date unavailable."}
+                    </p>
                   </>
                 )}
               </EditableRow>
@@ -642,7 +648,9 @@ export function AccountSettingsWorkspace({
                 ) : (
                   <>
                     <p>{email}</p>
-                    <StatusLine>Verified on November 29, 2022</StatusLine>
+                    <StatusLine>
+                      {initialSettings.emailVerifiedAt ? `Verified on ${initialSettings.emailVerifiedAt}` : "Email verified"}
+                    </StatusLine>
                   </>
                 )}
               </EditableRow>
@@ -670,9 +678,8 @@ export function AccountSettingsWorkspace({
                   </>
                 )}
               </EditableRow>
-              <EditableRow action={<FieldButton onClick={() => setNotice("Financial permissions are enabled for card checkout and tax-exempt purchasing.")}>Review permissions</FieldButton>} label="Financial permissions">
-                <Permission detail={`Credit card checkout enabled under ${companyName} on April 20, 2023`} title="Pay by credit card" />
-                <Permission detail={`Enabled under ${companyName} on April 24, 2023`} title="Tax-exempt reseller" />
+              <EditableRow label="Financial permissions">
+                <p className="font-semibold text-[#182231]">Pay by credit card</p>
               </EditableRow>
             </Card>
 
@@ -830,7 +837,7 @@ function Summary({ label, value }: { label: string; value: string }) {
   );
 }
 
-function EditableRow({ action, children, label }: { action: React.ReactNode; children: React.ReactNode; label: string }) {
+function EditableRow({ action, children, label }: { action?: React.ReactNode; children: React.ReactNode; label: string }) {
   return (
     <div className="grid gap-3 border-b border-[#e5e8ec] px-6 py-5 last:border-b-0 md:grid-cols-[0.26fr_1fr_auto] md:items-start">
       <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7782]">{label}</p>
@@ -983,15 +990,6 @@ function BillingContactValue({ billing }: { billing: BillingContact }) {
       <p>{billing.email}</p>
       {billing.invoiceRoutingNotes ? <p className="text-[#737b86]">{billing.invoiceRoutingNotes}</p> : null}
     </>
-  );
-}
-
-function Permission({ title, detail }: { title: string; detail: string }) {
-  return (
-    <div className="mb-3 last:mb-0">
-      <p className="font-semibold text-[#182231]">{title}</p>
-      <StatusLine>{detail}</StatusLine>
-    </div>
   );
 }
 

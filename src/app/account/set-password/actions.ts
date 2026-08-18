@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { defaultHomeForRole } from "@/lib/auth-crypto";
-import { createSessionForUser, getCurrentSession } from "@/lib/session";
+import { createSessionForUser, getPasswordSetupState } from "@/lib/session";
 import { completeForcedPasswordChange } from "@/lib/workspace-user-admin";
 
 export async function setTemporaryPasswordAction(formData: FormData) {
@@ -13,10 +13,11 @@ export async function setTemporaryPasswordAction(formData: FormData) {
     redirect("/account/set-password?error=mismatch");
   }
 
-  const session = await getCurrentSession({ allowPasswordChange: true });
-  if (!session?.user.mustChangePassword) {
-    redirect("/login");
+  const state = await getPasswordSetupState();
+  if (state.status !== "ready") {
+    redirect("/account/set-password");
   }
+  const { session } = state;
 
   try {
     await completeForcedPasswordChange(session.user.id, password);

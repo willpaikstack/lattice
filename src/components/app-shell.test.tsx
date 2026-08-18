@@ -162,6 +162,34 @@ describe("AppShell", () => {
     expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
   });
 
+  it("leaves nested Clerk login challenges outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/login/client-trust");
+
+    render(
+      <AppShell>
+        <div>client trust challenge</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("client trust challenge")).toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
+  });
+
+  it("leaves forced password setup outside the app shell", () => {
+    mockUsePathname.mockReturnValue("/account/set-password");
+
+    render(
+      <AppShell>
+        <div>password setup</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("password setup")).toBeInTheDocument();
+    expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+    expect(screen.queryByText("William Paik")).not.toBeInTheDocument();
+  });
+
   it("leaves the public forgot password page outside the app shell", () => {
     mockUsePathname.mockReturnValue("/forgot-password");
 

@@ -30,8 +30,27 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [session, requestHeaders] = await Promise.all([getCurrentSession({ allowPasswordChange: true }), headers()]);
+  const requestHeaders = await headers();
   const pathname = requestHeaders.get("x-lattice-pathname") ?? "";
+
+  // Clerk owns every nested login/sign-up challenge (for example, client
+  // trust). Do not resolve Lattice workspace state or render its shell until
+  // Clerk has completed that flow.
+  if (pathname === "/login" || pathname.startsWith("/login/") || pathname === "/sign-up" || pathname.startsWith("/sign-up/") || pathname === "/account/set-password") {
+    return (
+      <html
+        lang="en"
+        className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      >
+        <body className="min-h-full flex flex-col">
+          <ClerkProvider>{children}</ClerkProvider>
+          <Analytics />
+        </body>
+      </html>
+    );
+  }
+
+  const session = await getCurrentSession({ allowPasswordChange: true });
   const clerkUser = session ? null : await currentUser();
   const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress?.trim() ?? "";
   const shellUser = session?.user

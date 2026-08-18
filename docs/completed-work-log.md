@@ -1382,3 +1382,22 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 ## 2026-08-18 — Expanded the materials catalog at wide desktop sizes
 
 - Removed the fixed catalog-width cap so the Materials heading and family grid fill the customer workspace, with a fourth column added only at the `2xl` breakpoint.
+
+## 2026-08-18 — Made account settings identity metadata operational
+
+- Replaced seeded account-created and email-verified dates with timestamps supplied by the signed-in Clerk identity. The email-verification date is read from Clerk's user payload because the server SDK exposes verification status but omits that timestamp.
+- Removed historical card-checkout copy and the non-operational tax-exempt-reseller claim from the customer account screen. Checkout continues to default to a taxable order.
+- Verification: TypeScript typecheck and focused Account Settings component tests passed.
+
+## 2026-08-18 — Protected Clerk client-trust challenges from the workspace shell
+
+- Updated the Proxy and Lattice session resolver to require Clerk's fully authenticated state rather than accepting a provisional user ID.
+- Nested Clerk sign-in/sign-up challenge routes now render outside the Lattice workspace shell, so a client-trust prompt cannot show a prior account's navigation or profile.
+- Verification: focused nested-login AppShell test, typecheck, and lint passed.
+
+## 2026-08-18 — Resilient Clerk password-setup handoff
+
+- Reworked the forced-password route to distinguish a signed-out session, an unprovisioned Clerk identity, an expired temporary password, and an account whose password is already set. Each state now has a customer-safe recovery screen instead of redirecting through a blank or ambiguous page.
+- Kept first completed Clerk sign-in reconciliation with a pre-provisioned Lattice user (matched by verified primary email) in a shared resolver, including durable `clerkUserId` linking and profile-name synchronization.
+- Rendered `/account/set-password` without the Lattice workspace shell, matching the isolation applied to Clerk’s nested login and verification screens.
+- Added focused password-setup and AppShell coverage. `npm run typecheck` and `npm run lint` pass. The broad AppShell test file retains four pre-existing failures caused by tests that omit the now-required session-user fixture.
