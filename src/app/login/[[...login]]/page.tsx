@@ -7,13 +7,7 @@ export const metadata: Metadata = {
   title: "Sign in | Lattice",
 };
 
-type LoginPageProps = {
-  searchParams?: Promise<Record<string, string | undefined>>;
-};
-
-export default function LoginPage(_props: LoginPageProps = {}) {
-  void _props;
-
+export default function LoginPage() {
   return (
     <main className="min-h-screen bg-stone-50 font-sans text-stone-900 selection:bg-stone-200">
       <PublicHeader />

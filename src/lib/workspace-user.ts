@@ -54,6 +54,18 @@ export async function linkWorkspaceUserToClerk(userId: string, clerkUserId: stri
   });
 }
 
+export async function syncWorkspaceUserName(userId: string, name: string) {
+  const normalizedName = name.trim();
+  if (!normalizedName) return null;
+
+  const client = (await getPrismaClient()) as PrismaClient;
+  return client.user.update({
+    where: { id: userId },
+    data: { name: normalizedName },
+    include: { company: { select: { id: true, name: true } } },
+  });
+}
+
 export async function authenticateWorkspaceUser(email: string, password: string) {
   const user = await findWorkspaceUser(email);
 

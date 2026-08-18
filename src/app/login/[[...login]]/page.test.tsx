@@ -12,7 +12,7 @@ vi.mock("@clerk/nextjs", () => ({
 import LoginPage from "./page";
 
 describe("Login page", () => {
-  it("uses Clerk's sign-in flow inside the Lattice entry page", () => {
+  it("uses Clerk's path-based flow for the sign-in page and its SSO callbacks", () => {
     render(<LoginPage />);
 
     const signIn = screen.getByText("Clerk sign-in");

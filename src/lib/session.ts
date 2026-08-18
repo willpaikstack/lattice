@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { createSessionToken, SESSION_COOKIE_NAME, verifySessionToken, type LatticeRole } from "./auth-crypto";
-import { customerRoleForWorkspaceRole, findWorkspaceUser, findWorkspaceUserByClerkUserId, linkWorkspaceUserToClerk, roleForWorkspaceRole } from "./workspace-user";
+import { clerkUserDisplayName } from "./clerk-user-profile";
+import { customerRoleForWorkspaceRole, findWorkspaceUser, findWorkspaceUserByClerkUserId, linkWorkspaceUserToClerk, roleForWorkspaceRole, syncWorkspaceUserName } from "./workspace-user";
 
 const sessionDurationMs = 7 * 24 * 60 * 60 * 1000;
 
@@ -83,17 +84,25 @@ export async function getCurrentSession(options?: { allowPasswordChange?: boolea
   if (!clerkUserId) return null;
 
   let workspaceUser = await findWorkspaceUserByClerkUserId(clerkUserId);
+  const clerkUser = await currentUser();
 
   // Existing Lattice members are linked on their first Clerk sign-in. Clerk
   // only returns a primary email after its own verification requirements pass.
   if (!workspaceUser) {
-    const clerkUser = await currentUser();
     const email = clerkUser?.primaryEmailAddress?.emailAddress?.trim().toLowerCase();
     if (!email) return null;
 
     const provisionedUser = await findWorkspaceUser(email);
     if (!provisionedUser) return null;
     workspaceUser = await linkWorkspaceUserToClerk(provisionedUser.id, clerkUserId);
+  }
+
+  if (!workspaceUser) return null;
+
+  const clerkName = clerkUserDisplayName(clerkUser);
+  if (clerkName && clerkName !== workspaceUser.name) {
+    const syncedUser = await syncWorkspaceUserName(workspaceUser.id, clerkName);
+    if (syncedUser) workspaceUser = syncedUser;
   }
 
   const supportToken = (await cookies()).get(SESSION_COOKIE_NAME)?.value;

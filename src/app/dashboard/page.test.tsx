@@ -9,9 +9,14 @@ import {
 } from "@/lib/request-model";
 
 const mocks = vi.hoisted(() => ({
+  currentUser: vi.fn(),
   getCurrentSession: vi.fn(),
   listBuyerOrders: vi.fn(),
   listBuyerQuotes: vi.fn(),
+}));
+
+vi.mock("@clerk/nextjs/server", () => ({
+  currentUser: mocks.currentUser,
 }));
 
 vi.mock("@/lib/request-repository", () => ({
@@ -80,6 +85,8 @@ describe("Home dashboard", () => {
     mocks.getCurrentSession.mockReset();
     mocks.listBuyerQuotes.mockReset();
     mocks.listBuyerOrders.mockReset();
+    mocks.currentUser.mockReset();
+    mocks.currentUser.mockResolvedValue(null);
     mocks.getCurrentSession.mockResolvedValue({
       user: {
         email: "will@latticeos.co",
@@ -165,6 +172,17 @@ describe("Home dashboard", () => {
     expect(screen.queryByRole("heading", { name: "Orders" })).not.toBeInTheDocument();
     expect(screen.queryByText("Recent order and quote contacts")).not.toBeInTheDocument();
     expect(screen.queryByText("Frank Bennett")).not.toBeInTheDocument();
+  });
+
+  it("uses the signed-in Clerk name when no Lattice profile has been linked yet", async () => {
+    mocks.getCurrentSession.mockResolvedValue(null);
+    mocks.currentUser.mockResolvedValue({ fullName: "Avery Hoyer" });
+    mocks.listBuyerQuotes.mockResolvedValue([]);
+    mocks.listBuyerOrders.mockResolvedValue([]);
+
+    render(await Home());
+
+    expect(screen.getByRole("heading", { name: "Hi Avery Hoyer" })).toBeInTheDocument();
   });
 
   it("renders lean operational summaries when live records are empty", async () => {

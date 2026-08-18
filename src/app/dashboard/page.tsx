@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { currentUser } from "@clerk/nextjs/server";
 import { ArrowUpRight, Box, CheckCircle2, FileText, ListChecks, ReceiptText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -9,6 +10,7 @@ import {
   type CustomerDashboardMetric,
 } from "@/lib/customer-dashboard";
 import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
 import { filterCustomerVisibleRequests } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
@@ -195,7 +197,7 @@ function QuoteOrderActivityTable({ items }: { items: CustomerDashboardActivityRo
 export default async function Home({ searchParams }: DashboardPageProps = {}) {
   const requestedScenario = (await searchParams)?.scenario;
   const scenario = process.env.NODE_ENV !== "production" && isCustomerDashboardScenario(requestedScenario) ? requestedScenario : null;
-  const [liveQuotes, liveOrders, session] = await Promise.all([listBuyerQuotes(), listBuyerOrders(), getCurrentSession()]);
+  const [liveQuotes, liveOrders, session, clerkUser] = await Promise.all([listBuyerQuotes(), listBuyerOrders(), getCurrentSession(), currentUser()]);
   const scenarioData = scenario ? getCustomerDashboardScenario(scenario) : null;
   const quotes = (scenarioData?.quotes ?? liveQuotes).map(customerSafeRequest);
   const orders = (scenarioData?.orders ?? liveOrders).map(customerSafeRequest);
@@ -204,7 +206,7 @@ export default async function Home({ searchParams }: DashboardPageProps = {}) {
   const visibleQuotes = scenarioData ? quotes : filterCustomerVisibleRequests(quotes, session);
   const visibleOrders = scenarioData ? orders : filterCustomerVisibleRequests(orders, session);
   const dashboard = buildCustomerDashboardSummary(visibleQuotes, visibleOrders);
-  const userName = session?.user.name || "there";
+  const userName = session?.user.name || clerkUserDisplayName(clerkUser) || "there";
   const actionWorkflows = dashboard.actionWorkflows.slice(0, 5);
 
   return (

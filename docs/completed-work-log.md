@@ -1351,3 +1351,18 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - The Vercel-only runner now checks the exact identity columns behind Prisma's additive unique-constraint warning (`Company.customerId`, `User.clerkUserId`, and `User.pendingEmail`) before applying the schema.
 - It proceeds with Prisma's explicit additive-constraint confirmation only when all three duplicate checks return clean; any duplicate group stops the deployment before a schema or user-account change.
 - Newly introduced columns that are not yet present in Production are treated as clean for the duplicate check; the subsequent Prisma schema step is responsible for adding them.
+
+## 2026-08-18 — Repaired local Clerk test-account sign-in
+
+- Applied the current Prisma schema to the local `lattice_os` development database, including the `User.clerkUserId` identity link.
+- Created or linked the three existing local development identities in the Clerk development instance and issued replacement local-only passwords, because legacy password hashes cannot be transferred to Clerk.
+- Verified that the Lattice Admin and both customer test users are now linked to Clerk. No production database or production Clerk account was changed.
+
+## 2026-08-18 — Kept failed Clerk SSO callbacks in the login flow
+
+- Replaced the single `/login` route with an optional catch-all login route so Clerk can render its `/login/sso-callback` path instead of letting it fall through to the authenticated workspace 404.
+
+## 2026-08-18 — Synced Clerk display names into Lattice users
+
+- Lattice now refreshes a linked, provisioned user’s display name from Clerk during session hydration, with safe fallbacks to the Clerk username or email prefix when a full name is unavailable.
+- The dashboard now uses the signed-in Clerk display name immediately while a matching Lattice profile is not yet available.
