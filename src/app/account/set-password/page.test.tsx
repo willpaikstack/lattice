@@ -29,7 +29,7 @@ describe("SetPasswordPage", () => {
     render(await SetPasswordPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByText("Hi Carmen Pascuito Jr,")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Choose your password" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Choose your password" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("New password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save password and continue" })).toBeInTheDocument();
   });

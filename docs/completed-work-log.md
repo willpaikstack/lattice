@@ -1402,4 +1402,5 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Rendered `/account/set-password` without the Lattice workspace shell, matching the isolation applied to Clerk’s nested login and verification screens.
 - The ready-to-configure password screen now greets the authenticated, provisioned user by name, making the account-specific security context explicit before they enter a new password.
 - Clerk now sends every completed sign-in to a bare server-side account check before resolving a workspace route, eliminating the customer-app flash for users who still need to set their initial password.
+- Simplified the normal password-setup card by removing the redundant “Choose your password” heading; the personalized greeting and account-specific instruction remain, while recovery states retain their headings.
 - Added focused password-setup and AppShell coverage. `npm run typecheck` and `npm run lint` pass. The broad AppShell test file retains four pre-existing failures caused by tests that omit the now-required session-user fixture.
