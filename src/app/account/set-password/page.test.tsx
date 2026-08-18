@@ -53,4 +53,16 @@ describe("SetPasswordPage", () => {
     expect(screen.getByRole("heading", { name: "Your temporary password expired" })).toBeInTheDocument();
     expect(screen.getByText(/issue a new password/i)).toBeInTheDocument();
   });
+
+  it("explains Clerk password-policy failures without implying a length-only requirement", async () => {
+    mocks.getPasswordSetupState.mockResolvedValue({
+      session: { user: { mustChangePassword: true, name: "Carmen Pascuito Jr" } },
+      status: "ready",
+    });
+
+    render(await SetPasswordPage({ searchParams: Promise.resolve({ error: "password-policy" }) }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/new, unique password/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/at least 12 characters/i);
+  });
 });

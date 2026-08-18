@@ -102,10 +102,12 @@ async function recordPasswordSetupFailure(client: PrismaClient, userId: string, 
 
 function clerkPasswordPolicyFailure(error: unknown) {
   if (!error || typeof error !== "object") return false;
-  const candidate = error as { errors?: Array<{ code?: string }>; message?: string };
-  const code = candidate.errors?.[0]?.code?.toLowerCase() ?? "";
-  const message = candidate.message?.toLowerCase() ?? "";
-  return code.includes("password") || message.includes("password");
+  const candidate = error as { code?: string; errors?: Array<{ code?: string }> };
+  const code = candidate.errors?.[0]?.code?.toLowerCase() ?? candidate.code?.toLowerCase() ?? "";
+  // Clerk error messages are developer-facing and are not stable. Classify only
+  // Clerk's stable password-validation codes; every other failure remains a
+  // service error instead of incorrectly blaming the submitted password.
+  return ["form_password_validation_failed", "form_password_pwned", "form_password_digest_invalid"].includes(code);
 }
 
 async function ensureCompany(companyId: string) {
