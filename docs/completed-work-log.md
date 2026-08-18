@@ -1339,3 +1339,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Added a Vercel-only build runner that does nothing unless `LATTICE_RUN_CLERK_USER_MIGRATION=true` is set explicitly in the Production environment.
 - When enabled, it applies the Prisma schema and runs the idempotent Clerk user migration using Vercel's own Production database and Clerk credentials; it refuses local/non-production execution and requires an `sk_live_` key.
 - The flag must be removed immediately after the successful one-time deployment so future deployments cannot migrate newly created database users implicitly.
+
+## 2026-08-18 — Added migration duplicate preflight
+
+- The Vercel-only runner now checks the exact identity columns behind Prisma's additive unique-constraint warning (`Company.customerId`, `User.clerkUserId`, and `User.pendingEmail`) before applying the schema.
+- It proceeds with Prisma's explicit additive-constraint confirmation only when all three duplicate checks return clean; any duplicate group stops the deployment before a schema or user-account change.

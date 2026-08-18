@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
 
 const enabled = process.env.LATTICE_RUN_CLERK_USER_MIGRATION === "true";
 
@@ -23,8 +25,35 @@ function run(command, args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-console.log("Applying the Prisma schema before the one-time Clerk user migration.");
-run("npx", ["prisma", "db", "push"]);
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+const prisma = new PrismaClient({ adapter });
+
+async function duplicateGroupCount(table, column) {
+  const rows = await prisma.$queryRawUnsafe(
+    `SELECT COUNT(*)::int AS "count" FROM (SELECT "${column}" FROM "${table}" WHERE "${column}" IS NOT NULL GROUP BY "${column}" HAVING COUNT(*) > 1) AS duplicates`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+try {
+  // Prisma labels the additive unique constraints as potential data loss. Check
+  // the exact affected columns before explicitly accepting that schema change.
+  const duplicateGroups = await Promise.all([
+    duplicateGroupCount("Company", "customerId"),
+    duplicateGroupCount("User", "clerkUserId"),
+    duplicateGroupCount("User", "pendingEmail"),
+  ]);
+
+  if (duplicateGroups.some((count) => count > 0)) {
+    console.error("Refusing the migration because existing duplicate identity values require manual resolution.");
+    process.exit(1);
+  }
+} finally {
+  await prisma.$disconnect();
+}
+
+console.log("Production duplicate checks passed. Applying the Prisma schema before the one-time Clerk user migration.");
+run("npx", ["prisma", "db", "push", "--accept-data-loss"]);
 
 console.log("Migrating existing Lattice users to Clerk Production.");
 run(process.execPath, ["scripts/migrate-clerk-users.mjs", "--use-current-env", "--confirm"]);
