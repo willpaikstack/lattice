@@ -1368,3 +1368,8 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - The dashboard now uses the signed-in Clerk display name immediately while a matching Lattice profile is not yet available.
 - The global sidebar account card now uses the same Clerk identity fallback, including its email and initials.
 - Account Settings now keeps its original Lattice design for a signed-in Clerk identity that has not yet been linked to a Lattice workspace record, storing that user’s settings under their Clerk identity.
+
+## 2026-08-18 — Connected native account-name editing to Clerk
+
+- The native Account Settings name form now updates the current Clerk identity through an authenticated server action, synchronizes a linked Lattice `User` record, and refreshes the account sidebar/dashboard identity.
+- Stale browser-stored name and email values no longer override the server-provided authenticated identity after a page reload.

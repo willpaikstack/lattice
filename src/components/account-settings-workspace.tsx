@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ProfilePictureEditor } from "@/components/profile-picture-editor";
 import {
   accountSettingsStorageKey,
@@ -102,9 +102,11 @@ function getStoredAccountSettings(serverInitialSettings?: AccountSettingsSnapsho
     billingAddress: storedAddress(stored.billingAddress, defaults.billingAddress),
     cards: Array.isArray(storedCards) ? (storedCards as PaymentCard[]) : defaults.cards,
     companyName: storedString(stored, "companyName") ?? defaults.companyName,
-    email: storedString(stored, "email") ?? defaults.email,
+    // Authentication identity is always supplied by the server. Ignoring stale
+    // browser copies prevents an old demo edit from replacing Clerk data.
+    email: defaults.email,
     mfaEnabled: typeof stored.mfaEnabled === "boolean" ? stored.mfaEnabled : defaults.mfaEnabled,
-    name: storedString(stored, "name") ?? defaults.name,
+    name: defaults.name,
     passwordChangedAt: storedString(stored, "passwordChangedAt") ?? defaults.passwordChangedAt,
     phone: storedString(stored, "phone") ?? defaults.phone,
     shipping: storedAddress(stored.shipping, defaults.shipping),
@@ -260,13 +262,16 @@ export function AccountSettingsWorkspace({
   detachCardAction,
   initialSettings: serverInitialSettings,
   saveSettingsAction,
+  updateDisplayNameAction,
 }: {
   createCardSetupAction?: () => void | Promise<void>;
   detachCardAction?: (formData: FormData) => void | Promise<void>;
   initialSettings?: AccountSettingsSnapshot;
   saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<void>;
+  updateDisplayNameAction?: (name: string) => Promise<{ name: string }>;
 }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [initialSettings] = useState(() => serverInitialSettings ?? defaultAccountSettings());
   const [initialEditTarget] = useState<EditableField>(() => (searchParams.get("edit") === "shipping" ? "shipping" : null));
   const [activeTab, setActiveTab] = useState<ActiveTab>("account");
@@ -379,7 +384,7 @@ export function AccountSettingsWorkspace({
     setNotice(message);
   }
 
-  function saveEdit(field: Exclude<EditableField, null>) {
+  async function saveEdit(field: Exclude<EditableField, null>) {
     if (field === "shipping" || field === "billingAddress") {
       const nextAddress = {
         address1: addressDraft.address1.trim(),
@@ -460,8 +465,22 @@ export function AccountSettingsWorkspace({
     }
 
     if (field === "name") {
-      setName(trimmed);
-      persistSettings({ name: trimmed });
+      if (!updateDisplayNameAction) {
+        setName(trimmed);
+        persistSettings({ name: trimmed });
+        finishEdit("Name updated.");
+        return;
+      }
+
+      try {
+        const updated = await updateDisplayNameAction(trimmed);
+        setName(updated.name);
+        persistSettings({ name: updated.name });
+        router.refresh();
+      } catch {
+        setError("We couldn't update your signed-in name. Please try again.");
+        return;
+      }
     }
     if (field === "companyName") {
       setCompanyName(trimmed);
@@ -471,7 +490,7 @@ export function AccountSettingsWorkspace({
       setEmail(trimmed);
       persistSettings({ email: trimmed });
     }
-    finishEdit("Account setting updated for this demo session.");
+    finishEdit(field === "name" ? "Name updated." : "Account setting updated for this demo session.");
   }
 
   function addTeamMember() {

@@ -1,18 +1,21 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AccountSettingsWorkspace } from "./account-settings-workspace";
 
 const accountSettingsStorageKey = "lattice.account-settings.v1";
 const searchParamsMock = vi.hoisted(() => vi.fn(() => new URLSearchParams()));
+const refreshMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: refreshMock }),
   useSearchParams: () => searchParamsMock(),
 }));
 
 describe("AccountSettingsWorkspace", () => {
   beforeEach(() => {
     searchParamsMock.mockReturnValue(new URLSearchParams());
+    refreshMock.mockReset();
     const store = new Map<string, string>();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
@@ -39,7 +42,20 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(screen.getByText("Will Paik")).toBeInTheDocument();
-    expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
+    expect(screen.getByText("Name updated.")).toBeInTheDocument();
+  });
+
+  it("updates the authenticated profile when editing a name", async () => {
+    const updateDisplayNameAction = vi.fn(async (name: string) => ({ name }));
+    render(<AccountSettingsWorkspace updateDisplayNameAction={updateDisplayNameAction} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit name" }));
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Will Paikkkk" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(updateDisplayNameAction).toHaveBeenCalledWith("Will Paikkkk"));
+    expect(await screen.findByText("Name updated.")).toBeInTheDocument();
+    expect(refreshMock).toHaveBeenCalledOnce();
   });
 
   it("edits the default buyer company for new RFQs", () => {

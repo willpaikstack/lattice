@@ -1,6 +1,6 @@
 import { AccountSettingsWorkspace } from "@/components/account-settings-workspace";
 import { getAccountSettings, listStripePaymentCards } from "@/lib/account-settings";
-import { createStripeSetupSessionAction, detachStripePaymentMethodAction, saveAccountSettingsAction } from "./actions";
+import { createStripeSetupSessionAction, detachStripePaymentMethodAction, saveAccountSettingsAction, updateAccountDisplayNameAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ export default async function AccountSettingsPage() {
       detachCardAction={detachStripePaymentMethodAction}
       initialSettings={{ ...settings, cards }}
       saveSettingsAction={saveAccountSettingsAction}
+      updateDisplayNameAction={updateAccountDisplayNameAction}
     />
   );
 }
