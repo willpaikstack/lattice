@@ -4,7 +4,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
-- Deploy the Clerk Production instance, add its Production `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` to Vercel, apply the `User.clerkUserId` schema change with Prisma, and smoke-test a provisioned Lattice Admin plus a provisioned customer account before relying on Clerk in production.
+- Apply the `User.clerkUserId` schema change to Production with Prisma, then run the one-time `migrate:clerk-users` script against the same Production environment file to create/link Clerk accounts for existing Lattice users. Smoke-test a Lattice Admin plus a customer account before relying on Clerk in production.
 - Complete the Clerk migration by replacing the legacy custom email-change/password-recovery delivery surfaces with Clerk-native account-management flows and retire the unused Google OAuth callback routes after production cutover.
 
 - Continue enforcing the intended public-versus-authenticated access policy for `/capabilities`, `/materials`, `/quality-documentation`, and related customer-facing surfaces before restoring any account-free landing-page actions.

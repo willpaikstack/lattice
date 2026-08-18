@@ -1327,3 +1327,9 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Preserved Lattice-owned company and role authorization, and added server layouts that keep `/admin` limited to the Prisma Lattice Admin role and `/supplier` limited to supplier roles.
 - Added `User.clerkUserId`; customer add/reset/custom-password/forced-temporary-password operations now synchronize passwords with Clerk.
 - Deferred production cutover until the schema is applied, the Clerk Production instance is configured, and its production keys are added to Vercel.
+
+# 2026-08-18 - Prepared safe Clerk user migration
+
+- Added `npm run migrate:clerk-users`, an idempotent operator script that matches existing Prisma users to Clerk Production users by email, sets the immutable Lattice user ID as Clerk's external ID, and writes the returned Clerk ID back to `User.clerkUserId`.
+- The script requires an explicit Production environment file and `--confirm`; without it, it only reports the planned create/link operations. It never prints credentials or old password hashes.
+- Existing password hashes remain intentionally non-transferable. Migrated users sign in with a matching Google account or use Clerk's recovery flow to choose a new password.
