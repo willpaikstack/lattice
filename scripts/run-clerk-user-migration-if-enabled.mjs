@@ -29,6 +29,11 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function duplicateGroupCount(table, column) {
+  const existence = await prisma.$queryRawUnsafe(
+    `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '${table}' AND column_name = '${column}') AS "exists"`,
+  );
+  if (!existence[0]?.exists) return 0;
+
   const rows = await prisma.$queryRawUnsafe(
     `SELECT COUNT(*)::int AS "count" FROM (SELECT "${column}" FROM "${table}" WHERE "${column}" IS NOT NULL GROUP BY "${column}" HAVING COUNT(*) > 1) AS duplicates`,
   );

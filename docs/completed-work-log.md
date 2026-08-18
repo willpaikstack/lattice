@@ -1344,3 +1344,4 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - The Vercel-only runner now checks the exact identity columns behind Prisma's additive unique-constraint warning (`Company.customerId`, `User.clerkUserId`, and `User.pendingEmail`) before applying the schema.
 - It proceeds with Prisma's explicit additive-constraint confirmation only when all three duplicate checks return clean; any duplicate group stops the deployment before a schema or user-account change.
+- Newly introduced columns that are not yet present in Production are treated as clean for the duplicate check; the subsequent Prisma schema step is responsible for adding them.
