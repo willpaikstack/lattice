@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { exchangeGoogleCode, GOOGLE_SSO_STATE_COOKIE_NAME, googleSsoConfig, verifyGoogleIdToken, verifyGoogleSsoState } from "@/lib/google-sso";
 import { canRoleAccessPath, defaultHomeForRole, resolveRoleForEmail, SESSION_COOKIE_NAME } from "@/lib/auth-crypto";
 import { createSessionCookie } from "@/lib/session";
+import { findWorkspaceUser, roleForWorkspaceRole } from "@/lib/workspace-user";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,8 @@ export async function GET(request: NextRequest) {
   try {
     const idToken = await exchangeGoogleCode(config, code);
     const claims = await verifyGoogleIdToken(config, idToken, state.nonce);
-    const role = resolveRoleForEmail(claims.email);
+    const workspaceUser = await findWorkspaceUser(claims.email);
+    const role = workspaceUser ? roleForWorkspaceRole(workspaceUser.role) : resolveRoleForEmail(claims.email);
     const sessionCookie = createSessionCookie({
       email: claims.email,
       id: `google:${claims.sub}`,

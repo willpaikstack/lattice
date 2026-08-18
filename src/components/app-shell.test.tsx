@@ -216,7 +216,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Quotes", "/quotes");
     expectAllLinksNamed("Orders", "/orders");
     expect(screen.getAllByRole("button", { name: "Notifications" }).length).toBeGreaterThan(0);
-    expectAllLinksNamed("Lattice OS Roadmap", "/roadmap");
+    expect(screen.queryByRole("link", { name: "Lattice OS Roadmap" })).not.toBeInTheDocument();
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
     expectAllLinksNamed("Inspection & Certificates", "/quality-documentation");
@@ -410,7 +410,7 @@ describe("AppShell", () => {
     window.localStorage.setItem(
       "lattice:sidebar-nav-order:will@latticeos.co:customer",
       JSON.stringify({
-        "Your Resources": ["/equipment", "/materials", "/roadmap", "/capabilities"],
+        "Your Resources": ["/equipment", "/materials", "/capabilities"],
       }),
     );
 
@@ -422,10 +422,10 @@ describe("AppShell", () => {
 
     const customerNav = document.querySelector("aside nav section:nth-child(2) div");
 
-    expect(customerNav?.textContent).toMatch(/Lattice OS Roadmap\s*Materials\s*Capabilities\s*Equipment\s*Inspection & Certificates/);
+    expect(customerNav?.textContent).toMatch(/Materials\s*Capabilities\s*Equipment\s*Inspection & Certificates/);
 
     await waitFor(() => {
-      expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Lattice OS Roadmap\s*Capabilities\s*Inspection & Certificates/);
+      expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Capabilities\s*Inspection & Certificates/);
     });
   });
 
@@ -489,6 +489,19 @@ describe("AppShell", () => {
     expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
   });
 
+  it("opens account actions without navigating from the profile card", () => {
+    render(
+      <AppShell>
+        <div>content</div>
+      </AppShell>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Account menu" }));
+
+    expect(screen.getByRole("button", { name: "Sign Out" })).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
   it("closes account actions when clicking outside the sidebar profile menu", () => {
     render(
       <AppShell>
@@ -504,16 +517,14 @@ describe("AppShell", () => {
     expect(screen.queryByRole("button", { name: "Sign Out" })).not.toBeInTheDocument();
   });
 
-  it("opens account settings when the sidebar profile card is clicked", () => {
+  it("links the sidebar profile card to account settings", () => {
     render(
       <AppShell>
         <div>content</div>
       </AppShell>,
     );
 
-    fireEvent.click(screen.getByRole("link", { name: /William Paik will@latticeos.co/ }));
-
-    expect(mockPush).toHaveBeenCalledWith("/account/settings");
+    expect(screen.getByRole("link", { name: /William Paik will@latticeos.co/ })).toHaveAttribute("href", "/account/settings");
   });
 
   it("returns to the landing page when signing out", () => {

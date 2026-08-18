@@ -3,11 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createGuestQuoteAccess, guestQuoteHref, isGuestSimpleQuoteRequest } from "@/lib/guest-quote-access";
-import { sendGuestQuoteReadyEmail } from "@/lib/guest-quote-email";
 import { buildCustomerQuoteMarkdown } from "@/lib/quote-file";
 import type { OperatorStatusUpdateInput } from "@/lib/request-model";
-import { getRequestById, saveCustomerQuoteForRequest, updateAdminRfqDecision, updateGuestQuoteAccess, type SelectedSupplierQuoteInput } from "@/lib/request-repository";
+import { getRequestById, saveCustomerQuoteForRequest, updateAdminRfqDecision, type SelectedSupplierQuoteInput } from "@/lib/request-repository";
 import { requireActionRole } from "@/lib/route-authorization";
 
 const allowedStatuses = new Set<OperatorStatusUpdateInput["status"]>([
@@ -74,21 +72,6 @@ function formatShippingLabel(costCents: number | null, method: string, terms: st
 
 function shippingDurationDays(method: string) {
   return shippingDurationDaysByMethod[method] ?? 0;
-}
-
-async function sendGuestQuoteReadyLinkIfNeeded(request: Awaited<ReturnType<typeof saveCustomerQuoteForRequest>>) {
-  if (!isGuestSimpleQuoteRequest(request)) {
-    return;
-  }
-
-  const access = createGuestQuoteAccess();
-  const updated = await updateGuestQuoteAccess(request.id, {
-    expiresAt: access.expiresAt,
-    tokenHash: access.tokenHash,
-  });
-
-  await sendGuestQuoteReadyEmail(updated, guestQuoteHref(updated.id, access.token));
-  revalidatePath(`/simple-quote/${request.id}`);
 }
 
 export async function updateAdminQuoteStatusAction(formData: FormData) {
@@ -185,7 +168,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     validUntil: quoteValidUntil,
   };
 
-  const savedQuoteRequest = await saveCustomerQuoteForRequest(requestId, {
+  await saveCustomerQuoteForRequest(requestId, {
     ...quote,
     estimatedDeliveryDate: getString(formData, "estimatedDeliveryDate"),
     estimatedPriceCents,
@@ -197,8 +180,6 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     shippingMethod,
     shippingTerms,
   });
-  await sendGuestQuoteReadyLinkIfNeeded(savedQuoteRequest);
-
   revalidatePath("/admin");
   revalidatePath("/admin/quotes");
   revalidatePath("/quotes");

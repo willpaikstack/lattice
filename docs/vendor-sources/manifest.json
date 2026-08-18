@@ -1,5 +1,14 @@
 [
   {
+    "id": "zintilon-cnc-machining-line-20260817",
+    "vendor": "Zintilon",
+    "title": "CNC Machining Line",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/zintilon/factory-photos/cnc-machining-line.png",
+    "originalFileName": "codex-clipboard-0d765b14-8d15-44f9-9f8b-3bc7badf7f29.png"
+  },
+  {
     "id": "saky-catalog",
     "vendor": "Saky Steel",
     "title": "SAKY STEEL Alloy Bar/Sheet/Strip/Pipe/Flange/Wire Catalog",
@@ -169,5 +178,176 @@
     "receivedDate": "2025-08-25",
     "path": "docs/vendor-sources/jucheng-precision/jucheng-traceability-control-procedure.doc",
     "originalFileName": "JC-QP-16标识与可追溯性控制程序.doc"
+  },
+  {
+    "id": "jucheng-precision-equipment-list-20260414",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Jucheng Precision Equipment List",
+    "documentDate": "2026-04-14",
+    "receivedDate": "2026-08-18",
+    "path": "docs/vendor-sources/jucheng-precision/jucheng-precision-equipment-list-20260414.pdf",
+    "originalFileName": "Jucheng Precision Equipment list.pdf"
+  },
+  {
+    "id": "best-prototypes-factory-floor-01-20260817",
+    "vendor": "Best Prototypes",
+    "title": "Best Prototypes CNC Factory Floor — APMING Machines",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/best-prototypes/factory-photos/cnc-floor-01.jpg",
+    "originalFileName": "factory.jpg"
+  },
+  {
+    "id": "best-prototypes-factory-floor-02-20260817",
+    "vendor": "Best Prototypes",
+    "title": "Best Prototypes CNC Factory Floor — DMG MORI Machines",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/best-prototypes/factory-photos/cnc-floor-02.jpg",
+    "originalFileName": "factory.jpg"
+  },
+  {
+    "id": "jucheng-factory-floor-cnc-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Jucheng CNC Machining Shop",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/cnc-shop.jpg",
+    "originalFileName": "youshipeitu1-1920-1920.jpg"
+  },
+  {
+    "id": "jucheng-factory-inspection-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Jucheng Parts Quality Inspection Workshop",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/inspection-workshop.jpg",
+    "originalFileName": "youshipeitu3-1920-1920.jpg"
+  },
+  {
+    "id": "user-provided-cmm-inspection-station-20260817",
+    "vendor": "Unverified user-provided source",
+    "title": "CMM Inspection Station",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/user-provided/factory-photos/cmm-inspection-station.png",
+    "originalFileName": "codex-clipboard-bddae5b4-eebf-48fc-a7ea-b83658244888.png"
+  },
+  {
+    "id": "user-provided-mazak-5-axis-machining-center-20260817",
+    "vendor": "Unverified user-provided source",
+    "title": "Mazak VARIAXIS C-600 Machining Center",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/user-provided/factory-photos/mazak-5-axis-machining-center.png",
+    "originalFileName": "codex-clipboard-e3a33e77-4ccf-477b-a9d1-d1e21c8f41af.png"
+  },
+  {
+    "id": "user-provided-press-brake-fabrication-floor-20260817",
+    "vendor": "Unverified user-provided source",
+    "title": "Press-Brake Fabrication Floor",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/user-provided/factory-photos/press-brake-fabrication-floor.png",
+    "originalFileName": "codex-clipboard-4e9e9c3d-ec26-4232-9689-1b37006aaa3e.png"
+  },
+  {
+    "id": "jucheng-quality-control-room-wide-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Quality Control Room — Wide View",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/quality-control-room-wide.png",
+    "originalFileName": "codex-clipboard-915a3392-b7cc-4491-8daf-09eb8c600541.png"
+  },
+  {
+    "id": "jucheng-quality-control-room-cmm-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Quality Control Room — CMM Station",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/quality-control-room-cmm.png",
+    "originalFileName": "codex-clipboard-53862c57-ef31-4b1e-a5d3-c03f010aeb01.png"
+  },
+  {
+    "id": "jucheng-cnc-machining-cell-01-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "CNC Machining Cell 01",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/cnc-machining-cell-01.png",
+    "originalFileName": "codex-clipboard-ab2229fc-8faf-4a4b-834f-ce45c71434d2.png"
+  },
+  {
+    "id": "jucheng-cnc-machining-cell-02-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "CNC Machining Cell 02",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/cnc-machining-cell-02.png",
+    "originalFileName": "codex-clipboard-790d286d-f065-4576-bbf3-b3356934f021.png"
+  },
+  {
+    "id": "jucheng-cnc-production-line-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "CNC Production Line",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/cnc-production-line.png",
+    "originalFileName": "codex-clipboard-ec8f7685-12a9-4982-934a-a56a073695c4.png"
+  },
+  {
+    "id": "jucheng-cnc-turning-operation-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "CNC Turning Operation",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/cnc-turning-operation.png",
+    "originalFileName": "codex-clipboard-11911bc6-6c43-4bce-b2b7-f9076e7e86e8.png"
+  },
+  {
+    "id": "jucheng-laser-cutting-floor-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Laser Cutting Floor",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/laser-cutting-floor.png",
+    "originalFileName": "codex-clipboard-aaf06f50-4da8-46c1-be6d-12e06d246173.png"
+  },
+  {
+    "id": "jucheng-press-floor-wide-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Press Floor — Wide View",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/press-floor-wide.png",
+    "originalFileName": "codex-clipboard-15402929-3c91-4903-9e69-e7dd16fa840d.png"
+  },
+  {
+    "id": "jucheng-press-brake-floor-wide-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Press-Brake Floor — Wide View",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/press-brake-floor-wide.png",
+    "originalFileName": "codex-clipboard-9e5ff8c9-b55a-4480-90bc-ee0ea6457406.png"
+  },
+  {
+    "id": "jucheng-press-brake-operation-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Press-Brake Operation",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/press-brake-operation.png",
+    "originalFileName": "codex-clipboard-5579ffd6-ec3a-4d77-a532-24c1f76e202c.png"
+  },
+  {
+    "id": "jucheng-sheet-metal-finishing-detail-20260817",
+    "vendor": "Shenzhen Jucheng Precision Model Co., Ltd.",
+    "title": "Sheet-Metal Finishing Detail",
+    "documentDate": "unknown",
+    "receivedDate": "2026-08-17",
+    "path": "docs/vendor-sources/jucheng-precision/factory-photos/sheet-metal-finishing-detail.png",
+    "originalFileName": "codex-clipboard-43753b19-d4eb-4495-8826-b20fc8ad9f33.png"
   }
 ]

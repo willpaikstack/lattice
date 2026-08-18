@@ -1,5 +1,53 @@
 # Decisions
 
+## 2026-08-17 - Scope Customer Work to Durable Company Membership
+
+Decision: customer RFQs, quotes, orders, invoices, and submitted files belong to a durable customer `Company`, not to the individual requester email. Every provisioned user at that company receives the same customer-workspace visibility. Customer roles are `Customer Admin` and `Customer Member`; Lattice retains a single `Lattice Admin`. Suppliers are operator-managed and do not receive platform accounts in this phase.
+
+Reason: a manufacturing customer's work is shared operationally across its team. Exact-email ownership prevented legitimate coworkers from reviewing the same work and could not support deliberate customer onboarding.
+
+Implications:
+
+- `WorkspaceRole` and `User.companyId` persist Lattice admin, customer admin, and customer member access in Prisma.
+- New customer RFQs connect to the signed-in member's company. Admin-created work retains administrator support access.
+- `npm run onboard:lattice-admin` provisions the sole Lattice Admin, and `npm run onboard:customer` provisions the first customer company/admin or adds a user to an existing company after the schema is applied.
+- A customer membership-management UI, production identity hardening, and supplier portal remain later work; supplier updates continue to be handled internally from email and other operator channels.
+
+## 2026-08-17 - Retire The Account-Free Simple Quote Workflow
+
+Decision: remove `/simple-quote` and its guest confirmation, tokenized review, PDF, success, email, and card-checkout surfaces. Approved customers submit manufacturing RFQs through `/requests/new` inside the authenticated workspace.
+
+Reason: the separate guest quoting lane is no longer needed and duplicated the standard RFQ workflow while adding a second access, notification, and payment path to maintain.
+
+Implications:
+
+- Public conversion remains the invite-only account-request flow rather than account-free RFQ submission.
+- Admin quote issuance no longer generates guest access tokens or emails links to removed guest pages.
+- Existing `GUEST_SIMPLE_QUOTE` data-model values are retained for compatibility with historical records; this decision supersedes the 2026-06-15 guest-lane decision without requiring a destructive database migration.
+
+## 2026-08-17 - Adopt The Outer-Diamond Four-Cell Lattice Mark
+
+Decision: use the outlined outer diamond enclosing four diamond cells as Lattice's official mark across public and authenticated product surfaces.
+
+Reason: the enclosed geometry retains the intended lattice concept while reading as a distinct mark rather than a cross at small sidebar and header sizes.
+
+Implications:
+
+- `LatticeMarkIcon` is the shared source for public headers, waiting-list branding, and workspace navigation.
+- New product surfaces should reuse the shared mark instead of introducing alternate logo geometry.
+
+## 2026-08-17 - Keep Public Navigation Focused on Service Explanation
+
+Decision: archive the public Capabilities, Materials, and Quality explainers. Keep only How Lattice works as a public informational route, linked quietly from the landing-page hero; restore the other three routes to their authenticated workspace resources.
+
+Reason: the public surface should stay concise and centered on the service model until a broader public-content strategy is approved.
+
+Implications:
+
+- `/how-it-works` remains outside the authenticated workspace shell.
+- `/capabilities` and `/materials` again use their customer-workspace experiences, and the standalone `/quality` route is removed.
+- Public claims remain limited to the landing page and How Lattice works; supplier, customer, and job-specific information stays confidential.
+
 ## 2026-08-11 - Keep Customer Stainless Offerings Grade-Specific
 
 Decision: place 303Se and 303Sulf in the 300-series austenitic group and remove the generic `SS 300 series` record from the material library.
@@ -224,6 +272,18 @@ Implications:
 - Roadmap items live in `src/lib/product-roadmap.ts`; customer selections are written through `src/lib/roadmap-interest.ts`.
 - Production databases need the new Prisma model applied before live customer interest signals are durable.
 - A future admin/reporting surface can aggregate `RoadmapInterest` records for prioritization review.
+
+## 2026-08-17 - Temporarily Withhold the Customer Roadmap
+
+Decision: hide `/roadmap` from customer navigation and deny it to customer-role sessions while retaining the route, roadmap data, and interest persistence in source for later reintroduction. Admin sessions retain access for internal review.
+
+Reason: the roadmap is not ready to be a customer-facing product commitment, but its implementation and future prioritization data should not be discarded.
+
+Implications:
+
+- Customer deep links to `/roadmap` redirect to the customer home.
+- The customer sidebar no longer includes a Lattice OS Roadmap link.
+- Reintroduction requires restoring the customer route permission and navigation item, then deciding whether to apply the production `RoadmapInterest` schema.
 
 ## 2026-06-17 - Keep A Daily Completed-Work Log
 

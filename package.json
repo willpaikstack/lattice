@@ -13,10 +13,13 @@
     "typecheck": "tsc --noEmit --incremental false --pretty false",
     "lint": "eslint",
     "test": "vitest run",
+    "test:auth-workflows": "vitest run src/app/api/requests/route.qc.test.ts 'src/app/quotes/[requestId]/actions.ownership.test.ts' src/app/customer-direct-url-ownership.test.ts 'src/app/api/local-files/[...storageKey]/route.test.ts' src/lib/request-access-policy.test.ts src/lib/route-authorization.qc.test.ts 'src/app/supplier/orders/[requestId]/actions.test.ts'",
     "test:watch": "vitest",
     "dead-code": "knip --reporter compact",
     "prisma:generate": "prisma generate",
-    "db:push": "prisma db push"
+    "db:push": "prisma db push",
+    "onboard:customer": "node scripts/onboard-customer.mjs",
+    "onboard:lattice-admin": "node scripts/onboard-lattice-admin.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

@@ -21,7 +21,7 @@ export default async function MaterialInquiryPage({ searchParams }: MaterialInqu
 
   if (params?.status === "submitted") {
     return (
-      <div className="min-h-screen bg-[#fbfbfa] pb-14">
+      <div className="min-h-screen pb-14">
         <div className="max-w-[760px]">
           <div className="rounded-[8px] border border-[#d9ded9] bg-white p-7 sm:p-9">
             <CheckCircle2 aria-hidden="true" className="h-8 w-8 text-[#4f6a55]" strokeWidth={1.7} />
@@ -44,7 +44,7 @@ export default async function MaterialInquiryPage({ searchParams }: MaterialInqu
   }
 
   return (
-    <div className="min-h-screen bg-[#fbfbfa] pb-14">
+    <div className="min-h-screen pb-14">
       <div className="max-w-[980px]">
         <Link className="inline-flex items-center gap-2 text-[13px] font-medium text-[#626469] transition hover:text-[#202020]" href="/materials">
           <ArrowLeft aria-hidden="true" className="h-4 w-4" />

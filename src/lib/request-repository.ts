@@ -144,11 +144,11 @@ export function quoteCheckoutAmountCents(request: LatticeRequest) {
   return checkoutAmountCents(request);
 }
 
-export async function createSubmittedRequest(input: DraftRequestInput) {
+export async function createSubmittedRequest(input: DraftRequestInput, options?: { buyerCompanyId?: string }) {
   try {
     const client = await prisma();
     const stored = await client.request.create({
-      data: buildSubmittedRequestCreateInput(input),
+      data: buildSubmittedRequestCreateInput(input, options),
       include: storedRequestInclude,
     });
 
@@ -156,51 +156,7 @@ export async function createSubmittedRequest(input: DraftRequestInput) {
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma is unavailable; saving submitted request locally.", error);
-      return saveLocalRequest(submitDraftRequest(buildDraftRequest(input)));
-    }
-
-    throw error;
-  }
-}
-
-export async function updateGuestQuoteAccess(
-  id: string,
-  input: {
-    expiresAt: string;
-    tokenHash: string;
-  },
-) {
-  const current = await getRequestById(id);
-
-  if (!current) {
-    throw new Error("Request not found");
-  }
-
-  if (current.requestOrigin !== "GUEST_SIMPLE_QUOTE") {
-    return current;
-  }
-
-  try {
-    const client = await prisma();
-    const stored = await client.request.update({
-      where: { id },
-      data: {
-        guestAccessTokenExpiresAt: new Date(input.expiresAt),
-        guestAccessTokenHash: input.tokenHash,
-      },
-      include: storedRequestInclude,
-    });
-
-    return mapStoredRequest(stored);
-  } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma guest quote access update is unavailable; saving locally.", error);
-      return saveLocalRequest({
-        ...current,
-        guestAccessTokenExpiresAt: input.expiresAt,
-        guestAccessTokenHash: input.tokenHash,
-        updatedAt: new Date().toISOString(),
-      });
+      return saveLocalRequest({ ...submitDraftRequest(buildDraftRequest(input)), buyerCompanyId: options?.buyerCompanyId ?? null });
     }
 
     throw error;

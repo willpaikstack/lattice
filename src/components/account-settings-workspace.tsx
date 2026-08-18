@@ -87,11 +87,11 @@ function storedBillingContact(value: unknown, fallback: BillingContact) {
   };
 }
 
-function getInitialAccountSettings(serverInitialSettings?: AccountSettingsSnapshot): AccountSettingsSnapshot {
+function getStoredAccountSettings(serverInitialSettings?: AccountSettingsSnapshot): AccountSettingsSnapshot | null {
   const defaults = serverInitialSettings ?? defaultAccountSettings();
   const stored = readStoredAccountSettings();
   if (!isRecord(stored)) {
-    return defaults;
+    return null;
   }
 
   const storedCards = stored.cards;
@@ -146,7 +146,7 @@ function CardTitle({ title, detail, action }: { title: string; detail?: string; 
 
 function FieldButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <button className="w-fit text-[13px] font-semibold text-[#3b5bdb] hover:text-[#263c97]" onClick={onClick} type="button">
+    <button className="w-fit text-[13px] font-semibold text-[#3b5bdb] hover:text-[#263c97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72]" onClick={onClick} type="button">
       {children}
     </button>
   );
@@ -234,12 +234,12 @@ function SaveCancel({
 }) {
   return (
     <div>
-      {error ? <p className="mb-3 text-[13px] font-semibold text-[#b42318]">{error}</p> : null}
+      {error ? <p aria-atomic="true" className="mb-3 text-[13px] font-semibold text-[#b42318]" role="alert">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
-        <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white" onClick={save} type="button">
+        <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72]" onClick={save} type="button">
           Save changes
         </button>
-        <button className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626]" onClick={cancel} type="button">
+        <button className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72]" onClick={cancel} type="button">
           Cancel
         </button>
       </div>
@@ -267,7 +267,7 @@ export function AccountSettingsWorkspace({
   saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<void>;
 }) {
   const searchParams = useSearchParams();
-  const [initialSettings] = useState(() => getInitialAccountSettings(serverInitialSettings));
+  const [initialSettings] = useState(() => serverInitialSettings ?? defaultAccountSettings());
   const [initialEditTarget] = useState<EditableField>(() => (searchParams.get("edit") === "shipping" ? "shipping" : null));
   const [activeTab, setActiveTab] = useState<ActiveTab>("account");
   const [editing, setEditing] = useState<EditableField>(initialEditTarget);
@@ -304,12 +304,26 @@ export function AccountSettingsWorkspace({
   const managedMember = useMemo(() => teamMembers.find((member) => member.email === managedMemberEmail) ?? null, [managedMemberEmail, teamMembers]);
 
   useEffect(() => {
-    if (!saveSettingsAction) {
+    const storedSettings = getStoredAccountSettings(serverInitialSettings);
+    if (!storedSettings) {
       return;
     }
 
-    void saveSettingsAction(initialSettings);
-  }, [initialSettings, saveSettingsAction]);
+    const timeoutId = window.setTimeout(() => {
+      setName(storedSettings.name);
+      setPhone(storedSettings.phone);
+      setEmail(storedSettings.email);
+      setPasswordChangedAt(storedSettings.passwordChangedAt);
+      setMfaEnabled(storedSettings.mfaEnabled);
+      setCompanyName(storedSettings.companyName);
+      setShipping(storedSettings.shipping);
+      setBillingAddress(storedSettings.billingAddress);
+      setBilling(storedSettings.billing);
+      setTeamMembers(storedSettings.teamMembers);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [serverInitialSettings]);
 
   function persistSettings(overrides: Partial<AccountSettingsSnapshot>) {
     const nextSettings = {
@@ -491,24 +505,51 @@ export function AccountSettingsWorkspace({
 
   const isAccountTab = activeTab === "account";
 
+  function selectTab(tab: ActiveTab) {
+    setActiveTab(tab);
+  }
+
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+      return;
+    }
+
+    event.preventDefault();
+    const nextTab = event.key === 'ArrowLeft' || event.key === 'Home' ? 'account' : 'team';
+    selectTab(nextTab);
+    window.requestAnimationFrame(() => document.getElementById(`account-settings-tab-${nextTab}`)?.focus());
+  }
+
   return (
     <div className="mx-auto max-w-[1040px] space-y-5">
+      <header>
+        <h1 className="text-[28px] font-semibold tracking-tight text-[#182231]">Account settings</h1>
+        <p className="mt-1 text-[14px] leading-6 text-[#5f6673]">Manage your profile, company defaults, payment methods, and team access.</p>
+      </header>
       <div className="border-b border-[#d8dde4]">
         <div aria-label="Account settings sections" className="flex gap-8" role="tablist">
           <button
+            aria-controls="account-settings-panel-account"
             aria-selected={isAccountTab}
-            className={`border-b-2 px-1 py-4 text-[14px] font-semibold ${isAccountTab ? "border-[#00a889] text-[#008f72]" : "border-transparent text-[#303846]"}`}
-            onClick={() => setActiveTab("account")}
+            className={`border-b-2 px-1 py-4 text-[14px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72] ${isAccountTab ? "border-[#00a889] text-[#008f72]" : "border-transparent text-[#303846]"}`}
+            id="account-settings-tab-account"
+            onClick={() => selectTab("account")}
+            onKeyDown={handleTabKeyDown}
             role="tab"
+            tabIndex={isAccountTab ? 0 : -1}
             type="button"
           >
             Account details
           </button>
           <button
+            aria-controls="account-settings-panel-team"
             aria-selected={!isAccountTab}
-            className={`border-b-2 px-1 py-4 text-[14px] font-semibold ${!isAccountTab ? "border-[#00a889] text-[#008f72]" : "border-transparent text-[#303846]"}`}
-            onClick={() => setActiveTab("team")}
+            className={`border-b-2 px-1 py-4 text-[14px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72] ${!isAccountTab ? "border-[#00a889] text-[#008f72]" : "border-transparent text-[#303846]"}`}
+            id="account-settings-tab-team"
+            onClick={() => selectTab("team")}
+            onKeyDown={handleTabKeyDown}
             role="tab"
+            tabIndex={!isAccountTab ? 0 : -1}
             type="button"
           >
             Team account members
@@ -516,7 +557,7 @@ export function AccountSettingsWorkspace({
         </div>
       </div>
 
-      <div className="rounded-md border border-[#f2bf42] bg-[#fff8e6] px-5 py-4" role="status">
+      <div aria-atomic="true" aria-live="polite" className="rounded-md border border-[#f2bf42] bg-[#fff8e6] px-5 py-4" role="status">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-[14px] font-semibold text-[#253040]">{notice}</p>
@@ -525,7 +566,7 @@ export function AccountSettingsWorkspace({
             </p>
           </div>
           <button
-            className="w-fit rounded-sm bg-[#ffc62b] px-4 py-2 text-[13px] font-semibold text-[#182231]"
+            className="w-fit rounded-sm bg-[#ffc62b] px-4 py-2 text-[13px] font-semibold text-[#182231] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72]"
             onClick={() => {
               const nextMfaEnabled = !mfaEnabled;
               setMfaEnabled(nextMfaEnabled);
@@ -539,7 +580,7 @@ export function AccountSettingsWorkspace({
       </div>
 
       {isAccountTab ? (
-        <div className="grid gap-5 xl:grid-cols-[0.72fr_1.28fr]">
+        <div aria-labelledby="account-settings-tab-account" className="grid gap-5 xl:grid-cols-[0.72fr_1.28fr]" id="account-settings-panel-account" role="tabpanel">
           <aside className="space-y-5">
             <ProfilePictureEditor />
             <Card>
@@ -720,6 +761,7 @@ export function AccountSettingsWorkspace({
           </div>
         </div>
       ) : (
+        <div aria-labelledby="account-settings-tab-team" id="account-settings-panel-team" role="tabpanel">
         <Card>
           <CardTitle
             action={
@@ -738,7 +780,7 @@ export function AccountSettingsWorkspace({
             <button className="h-fit rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626]" onClick={addTeamMember} type="button">
               Add
             </button>
-            {error ? <p className="text-[13px] font-semibold text-[#b42318] lg:col-span-5">{error}</p> : null}
+            {error ? <p aria-atomic="true" className="text-[13px] font-semibold text-[#b42318] lg:col-span-5" role="alert">{error}</p> : null}
           </div>
           {teamMembers.map((member) => (
             <TeamMemberRow
@@ -750,6 +792,7 @@ export function AccountSettingsWorkspace({
             />
           ))}
         </Card>
+        </div>
       )}
 
       <p className="text-[13px] leading-6 text-[#5f6673]">

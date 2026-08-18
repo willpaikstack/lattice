@@ -4,6 +4,19 @@ Running daily record of meaningful Lattice OS tasks, features, fixes, and docume
 
 Update this file at the end of a substantial work session. Keep entries concise, newest first, and focused on completed work. Open work, blockers, and next actions belong in `TODO.md`.
 
+## 2026-08-18
+
+- Archived the received Jucheng Precision two-page equipment list and registered it in the internal vendor-source registry and manifest.
+- Added 32 normalized records for its CNC/EDM, sheet-metal, manual, and inspection equipment to the customer equipment catalog. The browser now receives an opaque customer-equipment DTO rather than the internal dataset, so supplier/source identifiers, provenance URLs, and supplier-derived slugs cannot be recovered from the customer bundle.
+- Verification: focused equipment catalog test, typecheck, JSON-manifest validation, and diff validation passed.
+- Hardened `/account/settings` toward WCAG 2.2 AA: added a page-level heading, accessible profile-photo upload naming, keyboard-operable tabs and labelled panels, visible keyboard focus, and announced status/validation feedback.
+- Moved browser-local account-settings restoration to a post-hydration effect so initial server and client renders remain deterministic; removed the previous mount-time default write.
+- Verification: focused account-settings tests, TypeScript, and targeted lint passed.
+- Removed the unused `catalog-card.tsx` implementation, moved the Vitest config to native ESM (`vitest.config.mts`) to eliminate its loader warning, and updated the dead-code entry list. The deprecated CDN redirect helper is already absent from application code; its remaining mention is historical QA documentation.
+- Reconciled the `/how-it-works` capacity evidence and test expectations with the normalized equipment catalog: 335 total CNC machines, comprising 282 milling and 53 turning/turn-mill machines, with 109 explicitly listed as 5-axis; the documented inspection inventory totals 17 CMMs.
+- Added SSR-to-client hydration regression coverage for browser-local RFQ drafts and buyer quote drafts. The tests render without browser storage, hydrate with populated localStorage, and fail on React hydration warnings while preserving the intended post-mount draft restoration. The retired `/simple-quote` route has no active component to cover.
+- Verification: hydration regression suite plus the request-form and buyer-quote component suites passed (33 tests).
+
 ## Entry Format
 
 ```md
@@ -12,6 +25,19 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Completed item, feature, fix, or documentation change.
 - Verification: command or smoke test run, if applicable.
 ```
+
+## 2026-08-17
+
+- Added the `npm run test:auth-workflows` authenticated workflow suite. It exercises company-owned RFQ submission, PO checkout/order mutation, direct-URL/document authorization, and supplier-portal mutation denial using isolated mocks for external services.
+- Retired the full account-free `/simple-quote` route family, guest token/email helpers, and guest Stripe checkout path; authenticated RFQ submission remains at `/requests/new`.
+- Removed guest-link generation from admin quote issuance while preserving legacy request-origin fields for historical data compatibility.
+- Hid the Finishing section from the customer equipment navigation while retaining its internal source-backed records.
+- Hid source-backed Die Casting and Additive Manufacturing sections from the customer equipment navigation while retaining their internal catalog records for a later release.
+- Reformatted expanded equipment-card accuracy fields as `Positional accuracy (X/Y/Z)`; single-value source tolerances now explicitly state that the documented figure is common across X/Y/Z rather than inventing separate axis values.
+- Removed all Yijin-associated equipment cards and source mappings from the customer `/equipment` catalog; the original vendor PDF remains archived internally for potential future onboarding.
+- Expanded `/equipment` to expose every documented equipment section, including Manual Machines, Finishing, EDM, Die Casting, and Additive Manufacturing.
+- Normalized the audited Zintilon, Best Prototypes, Yijin Solution, and Best Parts source inventories into the customer-safe equipment dataset, including the previously omitted ZhiHeng tapping machine, vendor-specific machining capacity, and grouped inspection-tool coverage.
+- Preserved original vendor-document provenance for every added record while keeping supplier identity and source-document labels out of the customer interface.
 
 ## 2026-08-08
 
@@ -1010,3 +1036,252 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Repositioned the page around invite-only access for domestic manufacturers seeking qualified overflow and out-of-capability production capacity, with concise proof for managed execution and pre-shipment quality evidence.
 - Kept the existing server-action persistence and duplicate-company behavior, added a pending submit state through the shared form-status control, improved the duplicate-request announcement semantics, and redesigned the successful-request confirmation state.
 - Verification: four focused waiting-list tests and targeted ESLint passed; desktop browser QA covered the request, duplicate-request, and confirmation states. Repository-wide typecheck remains blocked by a pre-existing unchecked indexed access in `src/app/how-it-works/page.test.tsx:76`.
+
+# 2026-08-17 - Added partner-network industry proof to the home page
+
+- Added a compact, logo-strip-inspired home-page section that communicates documented partner-network industry coverage without naming downstream companies, reproducing their trademarks, or implying customer endorsement.
+- Grounded the public labels in the published industry/capability information of Zintilon, Best Prototypes, and Shenzhen Jucheng Precision Model, with the source basis and public-copy limitation recorded in `docs/how-it-works-network-evidence.md`.
+- Verification: focused home-page test, TypeScript typecheck, targeted ESLint, clean diff check, desktop and 390 px mobile browser QA, and a clean browser console.
+
+# 2026-08-17 - Added public capabilities, materials, and quality explainers
+
+- Replaced the disabled home-page navigation items with working public routes for Capabilities, Materials, and Quality, and unified them with the existing How Lattice works public header.
+- Added account-safe editorial explainers based on the approved workflow: aggregate CNC/process capacity, material coordination and family coverage, and supplier/job quality planning plus documentation evidence.
+- Preserved confidential supplier identity and job-specific availability; every page directs prospective readers to request an account instead of opening an unauthenticated RFQ.
+
+# 2026-08-17 - Archived vendor factory-floor references
+
+- Archived two publicly published factory-floor photos from Best Prototypes and two workshop photos from Shenzhen Jucheng Precision Model in their vendor-specific source folders.
+- Added original URLs, SHA-256 checksums, and internal-reference-only usage notes; vendor permission remains required before any customer-facing publication.
+
+# 2026-08-17 - Adopted the official Lattice mark
+
+- Replaced the prior unframed four-cell symbol with the approved outer-diamond, four-cell mark in the shared Lattice brand component.
+- The public site header, waiting-list header, and authenticated workspace shell now inherit the official mark from one source.
+
+# 2026-08-17 - Added a user-provided inspection reference
+
+- Archived the supplied CMM inspection-station image separately from vendor-sourced photos and marked its original source and public-use rights as unverified.
+- Added user-provided references of a 5-axis machining center and a press-brake fabrication floor under the same provenance restriction.
+- Added eleven more unique user-provided manufacturing references spanning quality control, CNC machining, laser cutting, press-brake work, and finishing; one identical repeated image was cataloged as a duplicate rather than stored twice.
+- Reclassified that eleven-image set under Shenzhen Jucheng Precision Model after the user confirmed `jcproto.com` as its source.
+
+# 2026-08-17 - Archived public capabilities, materials, and quality explainers
+
+- Removed the three public explainer routes from the marketing header and returned Capabilities and Materials to their authenticated workspace views; the standalone Quality page was removed.
+- Moved the surviving How Lattice works link to the right-side account actions, keeping the public header focused on the core service explanation and account access.
+
+# 2026-08-17 - Removed the landing-page capabilities CTA
+
+- Removed the redundant `Explore capabilities` hero button after archiving the public capabilities explainer; account access remains available through the shared header CTA.
+
+# 2026-08-17 - Moved the How Lattice works entry point
+
+- Removed the informational link from the account-action header and added a quiet `See how Lattice delivers` hero link instead, so the supporting explainer follows the service promise rather than competing with account access.
+
+# 2026-08-17 - Simplified equipment-card subtitles
+
+- Removed vendor-provided machine-description subtitles and axis-count subtitles from every equipment card, leaving only the equipment category and make/model.
+
+# 2026-08-17 - Standardized equipment positional-accuracy labels
+
+- Renamed the expanded-card tolerance/accuracy metric to `Positional accuracy` across the equipment catalog.
+
+# 2026-08-17 - Updated capabilities inspection imagery
+
+- Replaced the inspection-ready production card image with a CMM inspection-laboratory scene and updated its descriptive alt text.
+
+# 2026-08-17 - Reframed the workspace capabilities catalog with production proof
+
+- Rebuilt `/capabilities` as a responsive workspace page: a split Fabrication capabilities hero, a compact real-production gallery, capability rows, and aggregate documented CNC capacity.
+- Reused only the supplied, source-tracked factory imagery and kept supplier identities, exact facilities, availability, and job-fit claims out of the public presentation.
+- Kept `/capabilities` inside the authenticated workspace shell, retained its resource navigation ribbon, and refreshed the public and workspace brand marks to the selected outlined Lattice symbol.
+- Verification: focused capabilities test, TypeScript typecheck, clean diff check, and desktop browser visual QA against the selected reference.
+
+# 2026-08-17 - Standardized the Lattice wordmark
+
+- Added a reusable outlined four-diamond Lattice mark and compact uppercase `LATTICE` wordmark for the public header, waiting-list header, and authenticated workspace sidebar.
+- Updated the workspace home button to use the same mark while preserving its destination and accessible label.
+
+# 2026-08-17 - Simplified the workspace Capabilities hero
+
+- Removed the duplicate Request access and How Lattice works hero actions because Capabilities is available only within the signed-in workspace.
+- Retained the lower Discuss a job action as the page’s contextual next step.
+
+# 2026-08-17 - Refreshed the Capabilities hero production image
+
+- Replaced the hero image with the user-supplied Zintilon CNC machining-line photo and archived the source-tracked copy under `docs/vendor-sources/zintilon/factory-photos/`.
+
+# 2026-08-17 - Clarified Capabilities coverage copy
+
+- Reframed the process-coverage introduction around the available production paths and identified the CNC milling range as part of Lattice's equipment list.
+
+# 2026-08-17 - Refreshed the Capabilities turning image
+
+- Replaced the CNC turning row image with the supplied Jucheng CNC turning-operation photo, retaining the existing source-tracked archive.
+
+# 2026-08-17 - Added visual proof for supporting processes
+
+- Added the supplied Jucheng press-brake operation image to the Supporting processes capability row.
+
+# 2026-08-17 - Made the Capabilities production gallery interactive
+
+- Factory-image thumbnails now update the hero photo for the current visit while preserving the Zintilon CNC-line image as the default on every page load.
+
+# 2026-08-17 - Simplified the Capabilities page ending
+
+- Removed the documented-capacity callout, job CTA, and aggregate equipment-count metrics so the page ends after the capability coverage rows.
+
+# 2026-08-17 - Refined the Lattice mark geometry
+
+- Replaced the subdivided single-diamond mark with four individual diamond cells so the brand reads as a lattice rather than a cross.
+
+# 2026-08-17 - Collapsed the quality documentation contents rail
+
+- Replaced the fixed-width desktop table of contents with the compact right-edge tab used on How Lattice works; it expands on hover or keyboard focus while keeping every documentation anchor available.
+# 2026-08-17 - Removed redundant material-family request CTA
+
+- Removed the per-material `Request {material} parts` button from material family pages so signed-in customers use the shared workspace `Request Quote` action instead.
+# 2026-08-17 - Aligned material pages with the workspace canvas
+
+- Removed material-page background overrides from the catalog, family-guide, and inquiry templates so their canvas matches the authenticated workspace without a visible panel edge.
+# 2026-08-17 - Simplified the materials catalog header
+
+- Removed the duplicate `Request an unlisted material` CTA from the materials catalog; requests continue through the shared workspace quote action.
+
+# 2026-08-17 - Added source-backed network scale to Capabilities
+
+- Added a Capabilities row showing the combined public partner footprint: 590+ people and 42,000 m² of production space.
+- Recorded the calculation and source caveats in `docs/vendor-sources/network-scale.md`; Zintilon's facility area is included, while its historical team-size claim is not presented as current staffing.
+
+# 2026-08-17 - Added durable customer-company access
+
+- Added Prisma workspace roles for the sole Lattice Admin plus Customer Admin and Customer Member users, with `User.companyId` membership.
+- Changed customer RFQ, quote, order, invoice, and submitted-file authorization from exact requester-email checks to shared customer-company ownership; Lattice admins retain support access.
+- Added `npm run onboard:lattice-admin` for the sole Lattice Admin and `npm run onboard:customer` to create the first customer company/admin or add a member to an existing customer company after the schema is applied.
+- Updated Google SSO callback role selection to honor provisioned durable workspace roles.
+- Suppliers remain internal/operator-managed for this phase; no supplier accounts or portal access are provisioned.
+- Verified with Prisma generation, TypeScript typechecking, and focused authorization, auth, request-route, and persistence tests.
+
+# 2026-08-17 - Hardened the Capabilities photo gallery
+
+- Made each thumbnail selection explicitly remount the hero image and added a regression assertion for the selected image source, so the gallery reliably updates the enlarged photo while retaining the default image on load.
+
+# 2026-08-17 - Added a second CNC-cell gallery image
+
+- Added the supplied Jucheng CNC-cell image to the fourth Capabilities production-environment gallery tile.
+
+# 2026-08-17 - Protected supplier identity in the equipment catalog
+
+- Added a customer-copy boundary to `/equipment` that dynamically strips each record's supplier name and internal source-document title from visible table copy, expanded specifications, accessibility labels, and search terms.
+- Added a regression test for the Tsugami Swiss turning record to prevent the Best Parts source reference from returning to the customer app.
+
+# 2026-08-17 - Separated account-menu and settings interactions
+
+- Replaced the clickable profile-card wrapper with an explicit Account Settings link beside an independent Account menu button, eliminating invalid nested interactive controls and making the Settings and Sign Out menu reliably available.
+
+# 2026-08-17 - Simplified expanded equipment cards
+
+- Removed the `Best for` and `Limitation` guidance row from all expanded equipment cards, keeping the disclosure focused on documented technical specifications and any model-specific source link.
+
+# 2026-08-17 - Completed cross-surface application QC
+
+- Ran typecheck, lint, all 305 automated tests, the production build, and the dead-code check.
+- Smoke-tested public, customer, resource, account, and admin routes in the in-app browser, including desktop/mobile layouts, equipment filtering, quote detail, draft resume, route guards, and the Capabilities gallery.
+- Documented reproducible hydration failures, accessibility gaps, production-integration blockers, maintenance warnings, evidence screenshots, and prioritized acceptance criteria in `docs/qc-report-2026-08-17.md`.
+
+## 2026-08-17 — Matched capability-row icons to their content
+
+- Replaced the generic capability-row symbols with content-specific icons for multi-axis milling, rotational turning, supporting tools, inspection scanning, and manufacturing-network scale.
+- Added regression coverage for the five capability-to-icon mappings.
+
+## 2026-08-17 — Clarified Capabilities production-gallery copy
+
+- Reframed the production-environments introduction so the gallery explicitly presents the facility, equipment, and inspection infrastructure Lattice can use to support a customer’s production work.
+
+## 2026-08-17 — Rebuilt the customer roadmap as a simple wiki
+
+- Replaced the dashboard-like filters, metrics, card grid, and priority sidebar with a restrained Now / Next / Later visual and concise Soon/Later document rows.
+- Kept the existing server-backed customer-interest controls, now attached to each upcoming roadmap row.
+- Removed aggregate customer-interest counts from the roadmap rows while retaining individual interest controls.
+
+## 2026-08-17 — Withheld the customer roadmap
+
+- Removed the Lattice OS Roadmap item from the customer sidebar and blocked customer-role access to `/roadmap`.
+- Kept the route, roadmap data, interest storage, and admin access in place for a future reintroduction.
+# 2026-08-17 — Equipment catalog comparison redesign
+
+- Replaced the active `/equipment` image-led card catalog with an image-independent comparison table that prioritizes make/model, available sets, positional accuracy (X/Y/Z), work envelope, and an expandable source-backed specification view.
+- Added process and make/model search while preserving each record's existing image path, image source, and verification classification in `vendorEquipment` for future use.
+- Archived the prior card-first implementation in `ArchivedEquipmentCardCatalog` so it can be reconsidered without losing the working interaction and layout.
+- Updated equipment feature documentation and focused catalog tests for the new comparison workflow.
+- Removed controller and photo columns (and their dependent photo-status UI) to keep the active table focused on model, sets, positional accuracy, work envelope, and specifications; header and row tracks now share the same grid definition.
+- Made the specifications action a shared fixed-width grid track, so the blank header cell and row-level action cannot produce divergent table-column boundaries.
+- Normalized expanded legacy equipment labels to `Work envelope` and `Positional accuracy (X/Y/Z)`, retaining the existing common-X/Y/Z value disclosure whenever the source gives one accuracy figure rather than separate axes.
+- Simplified the catalog-table accuracy cells to the source's numeric value and unit only; the X/Y/Z context now lives in the column label and expanded specification detail.
+- Restored customer equipment-type filtering alongside process and make/model search, covering axis counts, turning variants, CMM, Wire EDM, laser cutting, and press-brake capacity.
+- Replaced the equipment-type dropdown with the prior catalog's direct-select filter pills, including active-state and pressed-state semantics.
+- Replaced the pill cloud with the selected compact Equipment type rail: direct text controls retain the model-count context, use an unambiguous active underline, and scroll horizontally rather than wrapping into a second row.
+- Consolidated the 3-, 4-, and 5-axis filter controls into one `CNC Mill` control so the rail reads by equipment family rather than axis-count fragments.
+- Renamed the CMM filter to `QC equipment` and made it include the complete QC & Inspection equipment category.
+- Consolidated Laser cutting and Press brake into a `Sheet metal fabrication` filter that includes every Sheet Metal equipment record.
+- Consolidated CNC lathe, Swiss-type, and turn-mill capacity under a single `Lathes` filter; removed the customer-facing Wire EDM filter from the rail.
+- Added a `Manual equipment` filter for the complete Manual Machines category.
+- Filled the missing HT710 CNC Mill positional-accuracy field with the exact X/Y/Z specification published by Han's Laser (`±0.005 / ±0.005 / ±0.005 mm per 300 mm`) and linked that source at the record level. The remaining unnamed or ambiguous Best Prototypes rows stay blank because neither the source PDF nor an exact-model manufacturer reference publishes a defensible value.
+- Filled the four missing named Shuofang lathe work-envelope values from the Zintilon equipment source: SZ-325F1 (`Dia. 32 mm`), SZ-255E1 (`Dia. 25 mm`), SZ-206F (`Dia. 20 mm`), and SC-46YD (`Dia. 45 mm`). Generic Best Prototypes and Best Parts lathe rows remain blank because their source lists do not identify an exact model or envelope.
+- Simplified the isolated Manual equipment table to show only make/model, sets, and specifications; positional-accuracy and work-envelope columns remain available for production-capacity categories.
+- Applied the same simplified make/model, sets, and specifications table to isolated QC equipment.
+- Fixed the `CNC Mill` equipment-type filter so it is scoped to the CNC Milling category and excludes axis-counted Swiss-type lathes.
+- Gave every grouped table in the all-equipment view its own category-appropriate header and row schema, rather than applying one shared set of columns across unrelated equipment types.
+- Tightened the QC equipment table's three-column spacing and row density so long instrument names, set counts, and specification actions scan cleanly without large empty gaps.
+- Simplified the Sheet Metal table to the same make/model, sets, and specifications schema, temporarily hiding positional-accuracy and work-envelope columns while preserving those documented fields in each expandable specification view.
+- Removed the equipment-type rail's accidental vertical scrollbar, tightened its item spacing, and retained horizontal overflow only for narrow viewports.
+- Narrowed the customer Sheet Metal table to the eight vendor-documented laser-cutting and bending machines. Oil-press and riveting records remain in the source dataset for a later reintroduction, but are no longer counted or shown in customer filters.
+- Renamed the customer-facing type label for the four bending machines to `Press brake`, while retaining the vendor source terminology in the equipment provenance.
+- Added the documented equipment specification summary to every expanded equipment row, alongside model-specific technical details and calibration information.
+- Removed calibration cycles, dates, and related detail from all customer-facing equipment disclosures; those source-record fields remain retained in the underlying dataset.
+- Audited customer routes and shared customer components for supplier disclosure. Expanded equipment specifications now redact supplier identities (including Best Parts, Best Prototypes, and Zintilon) while preserving internal source records and admin data. Renamed the remaining customer-facing factory-photo URL to a neutral asset name.
+- Removed duplicate capacity fields from expanded CNC comparison rows: positional accuracy and work envelope remain in the primary table, while the disclosure now shows only supplemental specifications. Compact table schemas retain those fields in their disclosures.
+- Simplified redacted equipment summaries to direct descriptions without redundant references to the Lattice manufacturing network.
+
+## 2026-08-17 — Made buyer draft routes hydration-safe
+
+- Deferred browser-local RFQ draft, quote-draft, and deleted-quote reads until after hydration so `/requests/new` and `/quotes` have deterministic initial server and client renders.
+- Preserved local draft restoration, continuation lists, and discard behavior after the client mounts. The legacy `/simple-quote` source has been retired and has no active route component to update.
+
+## 2026-08-17 — Applied local company-access schema and provisioned Lattice Admin
+
+- Applied the current Prisma schema to the local `lattice_os` PostgreSQL database, including durable customer-company memberships and workspace roles.
+- Provisioned `William Paik <will@latticeos.co>` as the sole `LATTICE_ADMIN` account.
+- Deferred the first Greno Industries Customer Admin account until its email address is confirmed. Production schema deployment remains a separate, explicitly targeted rollout.
+
+## 2026-08-17 — Provisioned the first customer company
+
+- Created Greno Industries in the local PostgreSQL workspace with `Carmen Pascuito Jr <cpascuito@grenoindustries.com>` as its `CUSTOMER_ADMIN`.
+- Customer users provisioned under Greno Industries now share access to that company's RFQs, quotes, orders, and submitted files; supplier access remains operator-only.
+
+## 2026-08-17 — Added authenticated workflow regression coverage
+
+- Added a focused `npm run test:auth-workflows` suite covering company-scoped RFQ submission, checkout/order conversion, direct-URL ownership, local submitted-file authorization, route authorization, and operator-only supplier actions.
+- Updated affected dashboard, notifications, request API, and How It Works fixtures to reflect company-scoped visibility and current documented capacity values. Development dashboard scenarios retain their intentionally local fixture behavior; production data remains company-scoped.
+- Refreshed the QC plan and feature map to document company-scoped ownership rather than the superseded exact-email rule. The suite uses mocked storage, payment, and document-byte boundaries; live Stripe, R2/S3, Resend, and browser-automation validation remain separate production-integration work.
+
+## 2026-08-18 — Re-ran application QC after side-task fixes
+
+- Verified the side-task hydration, account accessibility, company-access, equipment-filter, QC-table, and dead-code changes in source and focused tests.
+- Re-ran typecheck, lint, the full test suite, auth-workflow tests, focused changed-area tests, the production build, and the dead-code check.
+- Recorded the single remaining failing How It Works capacity snapshot, two archived equipment-code lint warnings, React test-update warnings, production-integration gates, and browser-evidence limits in `docs/qc-report-2026-08-18.md`.
+
+## 2026-08-18 — Removed archived equipment catalog code
+
+- Deleted the unused card-first equipment catalog, including its retired section navigation, filter state, image-row UI, and supporting helpers.
+- Kept the active customer comparison catalog unchanged and restored a clean lint run by removing the archived code's unstable `useMemo` dependency and unused component warning.
+
+## 2026-08-18 — Applied staging Neon schema
+
+- Verified the separate `lattice-staging` Neon project and applied the current Prisma schema to its `neondb` database through the staging connection only.
+- Production was not targeted or changed.
+
+## 2026-08-18 — Stabilized React test environment
+
+- Configured the Vitest setup globally for React `act` support so component tests do not emit environment warnings when flushing updates.

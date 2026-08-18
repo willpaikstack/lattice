@@ -1,8 +1,17 @@
 # How-it-works network evidence
 
-Last reviewed: 2026-08-15
+Last reviewed: 2026-08-18
 
 This note records the source basis and caveats for the public evidence shown inside the expandable `More capacity` and `Managed quality` sections on `/how-it-works`.
+
+## Public industry coverage
+
+The home-page `Partner-network experience` section identifies industries represented by documented supplier capabilities, rather than naming supplier customers or displaying their trademarks.
+
+- Zintilon publicly describes manufacturing support across industries and presents customer-brand imagery, but that imagery is not used by Lattice and is not evidence of a direct Lattice customer relationship.
+- Best Prototypes lists automotive, aerospace, automation, medical, energy, semiconductor, office-equipment, and electronic-appliance coverage on its [official site](https://www.best-prototype.com/).
+- Shenzhen Jucheng Precision Model lists automotive, medical devices, consumer products, aviation/aerospace, and robotics/automation on its [official site](https://www.jcproto.com/).
+- Industry coverage represents self-reported supplier capability only. It does not imply a relationship, endorsement, approval, or current production engagement with any downstream brand. Production fit and availability are confirmed for each job.
 
 ## Network geography
 
@@ -17,7 +26,7 @@ The public CNC snapshot is calculated at render time from `src/lib/vendor-equipm
 - CNC machine total: sum of the numeric quantities on records classified as `CNC Milling` or `CNC Lathe`.
 - Milling / turning split: the same quantity sum grouped by those two categories.
 - Explicit 5-axis count: quantity sum for CNC records whose normalized equipment name contains `5-axis`.
-- Current result on 2026-08-15: 212 machines, comprising 192 milling and 20 turning/turn-mill machines; 82 are explicitly listed as 5-axis.
+- Current result on 2026-08-18: 335 machines, comprising 282 milling and 53 turning/turn-mill machines; 109 are explicitly listed as 5-axis.
 
 The public high-level envelope examples are also present in the normalized catalog: the Gromax GRM-3022X lists a 3000 × 2200 × 1100 mm milling envelope, while the Puma 4005LM lists a Ø500 × 2000 mm turning envelope. These records describe documented capacity, not real-time availability; availability is confirmed during quoting.
 
@@ -29,7 +38,7 @@ The public high-level envelope examples are also present in the normalized catal
 
 ## Inspection capability
 
-- The public CMM total is calculated from the normalized `QC & Inspection` records in `src/lib/vendor-equipment.ts`. The current aggregate is 12 documented CMMs: eight machines in Zintilon's `Zintilon QC Equipment List & 2026 Calibration Plan` and four machines in Best Prototypes' equipment list.
+- The public CMM total is calculated from the normalized `QC & Inspection` records in `src/lib/vendor-equipment.ts`. The current aggregate is 17 documented CMMs: eight machines in Zintilon's `Zintilon QC Equipment List & 2026 Calibration Plan`, four machines in Best Prototypes' equipment list, and five machines in the Jucheng equipment records.
 - Zintilon's January 23, 2026 calibration plan also documents automatic image-measurement systems, an X-ray fluorescence (XRF) material analyzer, surface-roughness and film-thickness instruments, hardness testers, microscopes, force measurement, and ultrasonic flaw detection. Calibration currency remains an award-time verification item.
 - Best Prototypes' inspection list documents 2D and 2.5D measuring machines, height and depth gauges, roughness and hardness testing, micrometers, more than 100 pin gauges, and more than 100 thread gauges in addition to its four CMMs.
 - Jucheng's `Identification and Traceability Control Procedure` assigns incoming inspection, in-process inspection-status control, nonconforming-product segregation, finished-goods inspection records, and material-batch traceability across quality, warehouse, and production functions. It is process-control evidence rather than an equipment count.

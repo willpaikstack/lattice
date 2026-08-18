@@ -47,7 +47,8 @@ export type StoredRequest = {
   requestOrigin?: LatticeRequest["requestOrigin"];
   guestAccessTokenHash?: string;
   guestAccessTokenExpiresAt?: Date | null;
-  buyerCompany: { name: string } | null;
+  buyerCompanyId?: string | null;
+  buyerCompany: { id?: string; name: string } | null;
   requesterName: string;
   requesterEmail?: string;
   requesterPhone?: string;
@@ -263,7 +264,7 @@ function mapSupplierQuoteLineItems(lineItems: unknown): LatticeRequest["supplier
   });
 }
 
-export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
+export function buildSubmittedRequestCreateInput(input: DraftRequestInput, options?: { buyerCompanyId?: string }) {
   const submitted = submitDraftRequest(buildDraftRequest(input));
 
   return {
@@ -325,11 +326,13 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput) {
     revisionOfRequestId: submitted.revisionOfRequestId,
     revisionNumber: submitted.revisionNumber,
     revisionChangeLog: submitted.revisionChangeLog,
-    buyerCompany: {
-      create: {
-        name: submitted.buyerCompany,
-      },
-    },
+    buyerCompany: options?.buyerCompanyId
+      ? { connect: { id: options.buyerCompanyId } }
+      : {
+          create: {
+            name: submitted.buyerCompany,
+          },
+        },
     lineItems: {
       create: submitted.lineItems.map((item) => ({
         partName: item.partName,
@@ -364,6 +367,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
   return {
     id: stored.id,
     buyerCompany: stored.buyerCompany?.name ?? "Unknown buyer",
+    buyerCompanyId: stored.buyerCompanyId,
     guestAccessTokenExpiresAt: stored.guestAccessTokenExpiresAt?.toISOString() ?? null,
     guestAccessTokenHash: stored.guestAccessTokenHash ?? "",
     requestOrigin: stored.requestOrigin ?? "ACCOUNT",

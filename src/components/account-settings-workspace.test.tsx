@@ -32,6 +32,8 @@ describe("AccountSettingsWorkspace", () => {
   it("edits account contact details inline", () => {
     render(<AccountSettingsWorkspace />);
 
+    expect(screen.getByRole("heading", { level: 1, name: "Account settings" })).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "Edit name" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Will Paik" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
@@ -84,6 +86,16 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
   });
 
+  it("announces inline validation errors", () => {
+    render(<AccountSettingsWorkspace />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit phone" }));
+    fireEvent.change(screen.getByLabelText("Phone number"), { target: { value: "212" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Enter a 10-digit US phone number.");
+  });
+
   it("keeps the saved phone number after the settings page remounts", async () => {
     const { unmount } = render(<AccountSettingsWorkspace />);
 
@@ -106,6 +118,7 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.queryByText("Preset avatars")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Change photo" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Reset" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Upload profile photo")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Change profile photo" }));
 
@@ -228,7 +241,14 @@ describe("AccountSettingsWorkspace", () => {
   it("switches to team management and updates a member", () => {
     render(<AccountSettingsWorkspace />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Team account members" }));
+    const accountTab = screen.getByRole("tab", { name: "Account details" });
+    const teamTab = screen.getByRole("tab", { name: "Team account members" });
+    expect(accountTab).toHaveAttribute("aria-controls", "account-settings-panel-account");
+    expect(teamTab).toHaveAttribute("aria-controls", "account-settings-panel-team");
+
+    fireEvent.keyDown(accountTab, { key: "ArrowRight" });
+    expect(teamTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel", { name: "Team account members" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Manage Quality Team" }));
     fireEvent.change(screen.getByLabelText("Quality Team status"), { target: { value: "Active" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));

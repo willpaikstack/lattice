@@ -24,6 +24,8 @@ vi.mock("@/lib/session", () => ({
       id: "buyer_1",
       name: "Buyer",
       role: "customer",
+      companyId: "company_test",
+      companyName: "Amogy Manufacturing",
     },
   })),
 }));

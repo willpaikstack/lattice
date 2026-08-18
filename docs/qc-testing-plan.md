@@ -29,6 +29,15 @@ This plan covers the core RFQ-to-order workflows that need to stay reliable befo
 
 ## Automated Coverage Added
 
+### Authenticated workflow command
+
+Run `npm run test:auth-workflows` for the access-critical RFQ lifecycle checks. It uses mocked payment, upload, and document bytes only: no live Stripe charge, email, object-storage operation, production database, or supplier login is required.
+
+- RFQ submission: authenticated company customers receive their own company ID and cannot submit while unassigned.
+- Checkout and orders: an owning customer can submit a PO-backed quote checkout; cross-company direct posts are blocked before checkout or order state changes.
+- Documents: customer-owned RFQs and PO documents are available only to the owning company or Lattice admin; supplier quote files remain admin-only.
+- Supplier access: customer sessions and unauthenticated calls cannot mutate supplier order state. Supplier-portal happy paths remain deferred until suppliers are deliberately onboarded.
+
 - `src/app/api/requests/route.qc.test.ts`
   - Admin-only request queue access.
   - Customer/admin-only RFQ submission.
@@ -69,8 +78,8 @@ Executed against the local app on `localhost:3000` with the fixture pack in `fix
 - Passed: 24 live checks, including unauthenticated/admin/customer/supplier route role guards, required title/file validation, zero-byte STEP rejection, STEP/PDF upload persistence, multi-file upload persistence, local RFQ file preview, admin RFQ queue visibility, admin quote review page load, customer quote detail page load, supplier quote attachment upload, empty supplier attachment rejection, supplier-role attachment upload rejection, existing purchased-order invoice PDF rendering, and supplier invoice route role enforcement.
 - Failed: 2 privacy probes.
   - Any authenticated customer could download a supplier quote attachment through `/api/local-files/[storageKey]` if they know the storage key. Expected secure result is 403 or 404.
-  - A second customer-role session could load another company's `/quotes/[requestId]` by direct URL. Expected secure result is 403 or 404 once ownership-aware helpers exist.
-- Follow-up implementation: customer quote/order/detail/checkout/list/file access now uses an interim exact-requester-email ownership policy. Customer-role sessions can access only records whose requester email exactly matches the signed-in email, and admin support access remains broad. Supplier awarded-shop ownership is still future hardening.
+  - A second customer-role session could load another company's `/quotes/[requestId]` by direct URL. Expected secure result is 403 or 404.
+- Follow-up implementation: customer quote/order/detail/checkout/list/file access is now company-scoped. Customer Admins and Customer Members can access records owned by their company; Lattice Admin support access remains broad. Supplier portal ownership is deferred because suppliers are not yet platform users.
 - Tooling limitation: the in-app browser runtime could inspect pages but did not expose file chooser upload, cookie setting, or authenticated upload automation hooks, so file-heavy manual checks were run through live multipart requests and direct role-cookie page/API probes.
 
 ## Manual Test Matrix
@@ -94,14 +103,14 @@ Manual fixture pack: `fixtures/manual-testing/cad/`.
 | Order status tracking | Move supplier status through acknowledgment, production, QC, docs uploaded, ready to ship, shipped. | Buyer, admin, supplier, shipped, and notifications surfaces reflect expected state. |
 | Email notifications | Configure Resend test sender and issue guest quote. | Acknowledgement and quote-ready emails are delivered with correct private link. |
 | Role permissions | Login as customer, supplier, and admin; probe protected route families and document URLs directly. | Customers cannot access admin/supplier routes; suppliers cannot access customer/admin routes; admins can access admin and customer support routes only. |
-| Data privacy | Attempt to open another customer's `/quotes/[requestId]`, `/orders/[requestId]`, invoice PDF, and checkout URL. | Customer-role sessions should receive not-found/forbidden unless the signed-in email exactly matches the requester email. Admin sessions should retain support access. |
+| Data privacy | Attempt to open another company's `/quotes/[requestId]`, `/orders/[requestId]`, invoice PDF, and checkout URL. | Customer-role sessions should receive not-found/forbidden unless the record belongs to their company. Lattice Admin sessions should retain support access. |
 
 ## Known Risks And Gaps
 
-- Customer ownership is currently an interim exact-requester-email policy. It closes the confirmed cross-company quote, checkout, invoice, and file-download gaps without a schema migration, but durable company/customer ID membership is still the target model.
-- Supplier ownership is not fully implemented. Supplier repository reads still need awarded-shop-scoped helpers such as `getSupplierOrderById`.
+- Customer ownership is company-scoped: Customer Admins and Customer Members can access records owned by their company, and records without a company assignment remain hidden from customer sessions. Lattice Admin access remains broad.
+- Supplier ownership is intentionally deferred because suppliers are not yet platform users; supplier communication and data are managed by Lattice operators.
 - Production upload storage still uses a local-development bridge in this repo. R2/S3 integration needs separate tests for object ACLs, signed URLs, size limits, retry behavior, and malware/content scanning policy.
 - Stripe tests here cover repository business rules, not live network behavior. Webhook signature validation and test-card flows require Stripe CLI or dashboard test mode.
 - Email tests cover message composition; Resend delivery, sender-domain alignment, SPF/DKIM, bounce handling, and local-outbox policy still need environment-level validation.
 - Invoice downloads currently render repeatable order-derived references. Durable issued invoice snapshots and annual invoice IDs need deeper accounting tests once wired into order downloads.
-- Supplier workspace ownership is route-role scoped only; awarded-shop filtering remains future hardening.
+- Supplier workspace access remains intentionally disabled until supplier users are deliberately onboarded.

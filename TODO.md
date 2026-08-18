@@ -4,7 +4,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
-- Define and enforce the intended public-versus-authenticated access policy for `/simple-quote`, `/capabilities`, `/materials`, `/quality-documentation`, and related customer-facing surfaces before restoring any account-free landing-page actions.
+- Continue enforcing the intended public-versus-authenticated access policy for `/capabilities`, `/materials`, `/quality-documentation`, and related customer-facing surfaces before restoring any account-free landing-page actions.
 
 - Apply the order-progress schema changes (`SupplierOrderStatus.DELIVERED`, `Request.orderNextMilestone`, `Request.orderNextMilestoneDate`, `Request.orderResponsibleParty`, and `SupplierUpdate.actor`) to local and production PostgreSQL with `npm run db:push`, then smoke test a manual admin update through `/admin/orders/[requestId]`.
 - Apply the new `MaterialInquiry` model and `MaterialInquiryStatus` enum to local and production PostgreSQL with `npm run db:push` before rolling out the unlisted-material inquiry workflow; development currently falls back to `.data/material-inquiries.json` when Prisma is unavailable.
@@ -13,20 +13,20 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Append to `docs/completed-work-log.md` at the end of substantial sessions so completed tasks, features, fixes, and docs changes stay visible by date across computers.
 - Keep `docs/app-feature-map.md` current whenever feature behavior changes, especially when a route moves, a page switches from prototype/static data to live repositories, or a limitation is resolved.
 - Run the QC/manual test matrix in `docs/qc-testing-plan.md` before external customer/supplier testing, especially the ownership/privacy probes for cross-company RFQ, order, invoice, and supplier access.
+- Run `npm run test:auth-workflows` before each customer-access release. It covers company-scoped RFQ submission, checkout/order mutation guards, document access, and the deliberately-disabled supplier portal mutation path.
 - Continue hardening from the 2026-06-18 manual QC privacy findings:
-  - replace the interim customer exact-requester-email ownership policy with durable one-primary-company membership when customer account records are ready
-  - add supplier-award/shop ownership checks for supplier order pages, invoice PDFs, supplier documents, and status update actions
-  - rerun the live fixture QC IDs recorded in `docs/qc-testing-plan.md` after the fixes
+  - apply the `WorkspaceRole` and `User.companyId` schema changes to production PostgreSQL with `npm run db:push`; the local schema is applied and the sole Lattice Admin is provisioned. Once Greno Industries' Customer Admin email is confirmed, use `npm run onboard:customer` to create the first customer company/admin and re-run the company-privacy probes in `docs/qc-testing-plan.md`
+  - add a Lattice-admin customer membership-management UI for inviting, promoting, and removing Customer Admin and Customer Member users
+  - defer supplier portal/award ownership work until supplier users are deliberately onboarded; suppliers are currently managed internally from email and other operator channels
 - Production launch hardening after the 2026-06-02 Vercel/Neon setup:
   - deploy the `@vercel/analytics` instrumentation change, visit `https://latticeos.co`, then confirm Vercel Analytics leaves the Get Started state and starts showing page views
   - choose the durable production identity platform and organization model, then configure Google Workspace/SAML/OIDC credentials in local, preview, and production and decide when to disable the interim local password fallback
   - continue replacing the interim single-account credential gate with durable multi-user authentication, organization-owned login policy, role/route authorization, production password recovery, MFA/passkeys, session/device controls, and identity audit events
-  - move role assignment from the current signed-session email allowlists (`LATTICE_ADMIN_EMAILS` / `LATTICE_SUPPLIER_EMAILS`) into durable user/workspace records with company and supplier ownership checks
-  - add ownership-aware access checks below the current route/action role guards so authenticated customers and suppliers cannot access records outside their company or awarded shop
+  - create the durable Lattice Admin user record for the sole operator before enabling Google SSO as the primary login path
+  - add invitation delivery, password recovery, MFA/passkeys, session/device controls, and identity audit events before enterprise rollout
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
   - configure Resend and a verified sending domain for waiting-list emails
   - configure Stripe test/live environment variables (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_BASE_URL`) and register `/api/stripe/webhook` in Stripe for production payment finalization
-  - smoke test the public `/simple-quote` lane in production after Stripe and Resend are configured, including guest RFQ submission, admin quote issuance email, tokenized quote review, PDF download, and card payment
   - decide whether to keep local email outbox files for development only or add durable email-event records in Postgres
   - add Vercel preview env vars if preview deployments become part of the workflow
   - decide whether to remove the first unaliased Vercel deployment created before `.vercelignore` was added
@@ -57,8 +57,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 - Apply the new structured supplier quote schema field (`SupplierQuote.lineItems`) to production databases with Prisma so admin-issued quotes can generate order-specific DOC-002 supplier purchase order PDFs after purchase.
 - Apply the new checkout payment schema fields and `CustomerPurchaseOrderAttachment` model to local and production databases with Prisma after Postgres is reachable; local development can store customer PO uploads in `.data/uploads/customer-purchase-orders` through the fallback store until then.
 - Apply the new Stripe checkout schema fields (`AccountDefaults.stripeCustomerId`, Stripe checkout/payment intent/amount/currency/paid timestamp fields, and expanded payment statuses) to production databases with Prisma before enabling live card checkout.
-- Apply the new guest simple quote schema fields (`Request.requestOrigin`, `Request.guestAccessTokenHash`, and `Request.guestAccessTokenExpiresAt`) to local and production databases with Prisma before promoting `/simple-quote`.
-- Apply the new roadmap interest schema (`RoadmapInterest`) to local and production databases with Prisma so `/roadmap` interest flags persist durably outside the local development fallback.
+- When the customer roadmap is reintroduced, apply the `RoadmapInterest` schema to local and production databases with Prisma so interest flags persist durably outside the local development fallback.
 - Apply the new admin order archive schema field (`Request.isArchived`) to local and production databases with Prisma after Postgres is reachable; local development can use the `.data/requests.json` fallback until then.
 - Define and persist a durable `Delivered` trigger for the buyer lifecycle tag, such as a supplier/order status beyond `SHIPPED` or a delivery confirmation event.
 - Add ownership-aware repository helpers such as `getCustomerRequestById`, `listCustomerRequests`, and `getSupplierOrderById` so role isolation also filters records by customer company or awarded supplier instead of only by route family.

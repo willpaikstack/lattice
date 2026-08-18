@@ -1,4 +1,3 @@
-import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -11,15 +10,6 @@ export function MaterialFamilyCatalog({ families }: { families: MaterialFamilyCa
         <h1 className="text-[48px] font-bold leading-none tracking-[-0.045em] text-[#202020] sm:text-[52px]">Materials</h1>
         <p className="mt-3 text-[15px] leading-6 text-[#6f7175]">Browse the material families our manufacturing network can produce parts from.</p>
 
-        <div className="mt-7">
-          <Link
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-[7px] border border-[#d8d9dc] bg-white px-5 text-[14px] font-medium text-[#44464a] transition hover:border-[#bfc1c4] hover:bg-[#f7f7f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/20"
-            href="/materials/inquiry"
-          >
-            Request an unlisted material
-            <ArrowRight aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
-          </Link>
-        </div>
       </header>
 
       <section aria-label="Material families" className="mt-7 grid max-w-[1120px] gap-4 sm:grid-cols-2 lg:grid-cols-3">

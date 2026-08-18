@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ClipboardCheck, Diamond, FileCheck2, FileText, Handshake, Route } from "lucide-react";
+import { ArrowRight, ClipboardCheck, FileCheck2, FileText, Handshake, Route } from "lucide-react";
 
+import { PublicSiteHeader } from "@/components/public-site-header";
 import { vendorEquipment } from "@/lib/vendor-equipment";
 
 import { ValueBenefits } from "./value-benefits";
@@ -71,35 +72,10 @@ const steps = [
   },
 ];
 
-function BrandMark() {
-  return (
-    <span className="flex items-center gap-3">
-      <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-950 text-white shadow-sm" aria-hidden="true">
-        <Diamond className="fill-white" size={13} />
-      </span>
-      <span className="text-xl font-semibold tracking-[-0.025em] text-stone-950">Lattice</span>
-    </span>
-  );
-}
-
 export default function HowItWorksPage() {
   return (
     <main className="min-h-screen bg-[#fbfaf7] font-sans text-slate-950 selection:bg-slate-200">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-[#fbfaf7]/95 backdrop-blur-md">
-        <div className="mx-auto flex h-[72px] max-w-[1320px] items-center justify-between px-6 lg:px-10">
-          <Link className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2" href="/">
-            <BrandMark />
-          </Link>
-          <div className="flex items-center gap-3 sm:gap-6">
-            <Link className="rounded-md text-sm font-medium text-slate-700 transition hover:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-4 sm:text-[15px]" href="/login">
-              Log in
-            </Link>
-            <Link className="rounded-lg bg-stone-950 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 sm:px-5" href="/waiting-list">
-              Request access
-            </Link>
-          </div>
-        </div>
-      </header>
+      <PublicSiteHeader />
 
       <div className="mx-auto w-full max-w-[1320px] px-6 pb-16 pt-10 sm:px-10 sm:pt-14 lg:px-10">
         <div className="grid gap-12 xl:grid-cols-[minmax(0,1fr)_190px] xl:gap-12">

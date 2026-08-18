@@ -1,23 +1,12 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { canRoleAccessPath, defaultHomeForRole, resolveRoleForEmail } from "./auth-crypto";
 
 describe("auth route roles", () => {
-  const originalAdminEmails = process.env.LATTICE_ADMIN_EMAILS;
-  const originalSupplierEmails = process.env.LATTICE_SUPPLIER_EMAILS;
-
-  afterEach(() => {
-    process.env.LATTICE_ADMIN_EMAILS = originalAdminEmails;
-    process.env.LATTICE_SUPPLIER_EMAILS = originalSupplierEmails;
-  });
-
-  it("maps explicit internal users to admin and supplier roles", () => {
-    process.env.LATTICE_ADMIN_EMAILS = "ops@latticeos.co";
-    process.env.LATTICE_SUPPLIER_EMAILS = "shop@example.com";
-
+  it("uses the local password account only as an admin bootstrap", () => {
     expect(resolveRoleForEmail("will@latticeos.co")).toBe("admin");
-    expect(resolveRoleForEmail("ops@latticeos.co")).toBe("admin");
-    expect(resolveRoleForEmail("shop@example.com")).toBe("supplier");
+    expect(resolveRoleForEmail("ops@latticeos.co")).toBe("customer");
+    expect(resolveRoleForEmail("shop@example.com")).toBe("customer");
     expect(resolveRoleForEmail("buyer@example.com")).toBe("customer");
   });
 
@@ -26,10 +15,12 @@ describe("auth route roles", () => {
     expect(canRoleAccessPath("admin", "/quotes/req_123")).toBe(true);
     expect(canRoleAccessPath("admin", "/requests/new")).toBe(true);
     expect(canRoleAccessPath("admin", "/dashboard")).toBe(true);
+    expect(canRoleAccessPath("admin", "/roadmap")).toBe(true);
     expect(canRoleAccessPath("admin", "/supplier/orders")).toBe(false);
 
     expect(canRoleAccessPath("customer", "/quotes/req_123")).toBe(true);
     expect(canRoleAccessPath("customer", "/orders/req_123")).toBe(true);
+    expect(canRoleAccessPath("customer", "/roadmap")).toBe(false);
     expect(canRoleAccessPath("customer", "/admin/quotes")).toBe(false);
 
     expect(canRoleAccessPath("supplier", "/supplier/orders/req_123")).toBe(true);

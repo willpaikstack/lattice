@@ -55,27 +55,26 @@ describe("ProductRoadmapBoard", () => {
   it("saves and reflects customer interest flags", async () => {
     render(<ProductRoadmapBoard items={items} />);
 
-    expect(screen.getByRole("heading", { name: "Help prioritize what Lattice builds next" })).toBeInTheDocument();
-    expect(screen.getByText("2 customers")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What we’re building next." })).toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ customers?$/)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Assembly and Kitting" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Flag interest in Instant DFM Review" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove interest in Assembly and Kitting" }));
 
     await waitFor(() => {
-      expect(mocks.setRoadmapInterestAction).toHaveBeenCalledWith("instant-dfm-review", true);
+      expect(mocks.setRoadmapInterestAction).toHaveBeenCalledWith("assembly-and-kitting", false);
     });
 
-    expect(screen.getByRole("button", { name: "Remove interest in Instant DFM Review" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByText("3 customers")).toBeInTheDocument();
-    expect(screen.getAllByText("Instant DFM Review").length).toBeGreaterThan(1);
+    expect(screen.getByRole("button", { name: "Flag interest in Assembly and Kitting" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByText(/^\d+ customers?$/)).not.toBeInTheDocument();
   });
 
-  it("filters roadmap items by category", () => {
+  it("groups upcoming investments into Soon and Later wiki sections", () => {
     render(<ProductRoadmapBoard items={items} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Services" }));
-
-    expect(screen.queryByRole("heading", { name: "Instant DFM Review" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Soon" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Later" })).not.toBeInTheDocument();
+    expect(screen.getByText("In progress")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Assembly and Kitting" })).toBeInTheDocument();
   });
 });

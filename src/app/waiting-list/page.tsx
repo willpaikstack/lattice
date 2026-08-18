@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { CheckCircle2, ClipboardCheck, Diamond, Factory, ShieldCheck } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Factory, ShieldCheck } from "lucide-react";
 
 import { AuthSubmitButton } from "@/components/auth-submit-button";
+import { LatticeBrand } from "@/components/lattice-brand";
 
 import { joinWaitingListAction } from "./actions";
 
@@ -29,23 +30,12 @@ const accessBenefits = [
   },
 ] as const;
 
-function BrandMark() {
-  return (
-    <span className="flex items-center gap-3">
-      <span aria-hidden="true" className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-950 text-white shadow-sm">
-        <Diamond className="fill-white" size={13} />
-      </span>
-      <span className="text-xl font-semibold tracking-[-0.025em] text-stone-950">Lattice</span>
-    </span>
-  );
-}
-
 function WaitingListHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200 bg-[#fbfaf7]/95 backdrop-blur-md">
       <div className="mx-auto flex h-[72px] max-w-[1320px] items-center justify-between px-6 lg:px-10">
         <Link className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2" href="/">
-          <BrandMark />
+          <LatticeBrand />
         </Link>
 
         <nav aria-label="Public navigation" className="flex items-center gap-4 sm:gap-7">

@@ -27,8 +27,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Customer or admin access required." }, { status: session ? 403 : 401 });
     }
 
-    const input = await withAccountDefaults(await parseSubmittedRequest(request));
-    const created = await createSubmittedRequest(input);
+    const submittedInput = await withAccountDefaults(await parseSubmittedRequest(request));
+    const companyId = session.user.role === "customer" ? session.user.companyId : null;
+
+    if (session.user.role === "customer" && !companyId) {
+      return NextResponse.json({ error: "Your account has not been assigned to a customer company yet. Contact Lattice to finish account setup." }, { status: 403 });
+    }
+
+    const companyName = session.user.role === "customer" ? session.user.companyName ?? submittedInput.buyerCompany : submittedInput.buyerCompany;
+    const input = {
+      ...submittedInput,
+      buyerCompany: companyName,
+      contact: {
+        ...(submittedInput.contact ?? {}),
+        shipToCompany: submittedInput.contact?.shipToCompany || companyName,
+      },
+    };
+    const created = await createSubmittedRequest(input, { buyerCompanyId: companyId ?? undefined });
     return NextResponse.json({ request: created }, { status: 201 });
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "Unable to create request";

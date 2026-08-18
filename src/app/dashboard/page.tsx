@@ -199,7 +199,11 @@ export default async function Home({ searchParams }: DashboardPageProps = {}) {
   const scenarioData = scenario ? getCustomerDashboardScenario(scenario) : null;
   const quotes = (scenarioData?.quotes ?? liveQuotes).map(customerSafeRequest);
   const orders = (scenarioData?.orders ?? liveOrders).map(customerSafeRequest);
-  const dashboard = buildCustomerDashboardSummary(filterCustomerVisibleRequests(quotes, session), filterCustomerVisibleRequests(orders, session));
+  // Dashboard scenarios are development-only fixtures; production requests remain
+  // strictly filtered to the signed-in customer's company.
+  const visibleQuotes = scenarioData ? quotes : filterCustomerVisibleRequests(quotes, session);
+  const visibleOrders = scenarioData ? orders : filterCustomerVisibleRequests(orders, session);
+  const dashboard = buildCustomerDashboardSummary(visibleQuotes, visibleOrders);
   const userName = session?.user.name || "there";
   const actionWorkflows = dashboard.actionWorkflows.slice(0, 5);
 

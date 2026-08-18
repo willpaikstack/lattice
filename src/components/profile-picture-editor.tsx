@@ -347,7 +347,7 @@ export function ProfilePictureEditor() {
               </button>
             </div>
           ) : null}
-          <input accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleFileChange} ref={inputRef} type="file" />
+          <input aria-label="Upload profile photo" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={handleFileChange} ref={inputRef} type="file" />
         </div>
       </div>
 

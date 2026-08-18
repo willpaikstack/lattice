@@ -1,15 +1,16 @@
 "use client";
 
-import { ArrowLeft, Bell, ClipboardList, Factory, FileCheck, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Map as MapIcon, Settings, User, X } from "lucide-react";
+import { ArrowLeft, Bell, ClipboardList, Factory, FileCheck, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Settings, User, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { LatticeMarkIcon } from "@/components/lattice-brand";
 import { currentUser, initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
 
-type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources" | "roadmap" | "quality";
+type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources" | "quality";
 
 type NavItem = {
   href: string;
@@ -69,7 +70,6 @@ const customerNavSections: NavSection[] = [
   {
     title: "Your Resources",
     items: [
-      { href: "/roadmap", label: "Lattice OS Roadmap", icon: "roadmap" },
       { href: "/materials", label: "Materials", icon: "analytics" },
       { href: "/capabilities", label: "Capabilities", icon: "queue" },
       { href: "/equipment", label: "Equipment", icon: "factory" },
@@ -107,7 +107,6 @@ const iconByName: Record<IconName, LucideIcon> = {
   quality: FileCheck,
   queue: FileSearch,
   resources: FileText,
-  roadmap: MapIcon,
   user: User,
 };
 
@@ -236,14 +235,11 @@ function LatticeMark({ onNavigate, tone = "customer" }: { onNavigate?: Navigatio
   return (
     <Link
       aria-label={isAdmin ? "Lattice admin home" : "Lattice home"}
-      className={`flex h-11 w-11 items-center justify-center rounded-xl shadow-sm ${isAdmin ? "bg-[#FF5A5F]" : "bg-[#171717]"}`}
+      className="flex h-11 w-11 items-center justify-center rounded-lg transition hover:bg-stone-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2"
       href={homeHref}
       onClick={(event) => onNavigate?.(event, homeHref)}
     >
-      <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 28 28">
-        <path d="M14 2.8 23.8 8.4v11.2L14 25.2 4.2 19.6V8.4L14 2.8Z" fill={isAdmin ? "#fff1f2" : "#f6f7f8"} opacity="0.92" />
-        <path d="M14 2.8v11.3l9.8 5.5M14 14.1 4.2 19.6M14 14.1l9.8-5.7M14 14.1 4.2 8.4" fill="none" stroke={isAdmin ? "#FF5A5F" : "#62666d"} strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
-      </svg>
+      <LatticeMarkIcon className="h-6 w-6 text-[#171717]" />
     </Link>
   );
 }
@@ -476,7 +472,6 @@ function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" 
 }
 
 function ProfileMenu() {
-  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const initials = initialsForName(currentUser.name);
@@ -504,11 +499,6 @@ function ProfileMenu() {
     window.open("/api/logout", "_self");
   }
 
-  function handleProfileNavigation() {
-    setIsOpen(false);
-    router.push("/account/settings");
-  }
-
   return (
     <div className="relative border-t border-[#ebe7df] pt-3" ref={menuRef}>
       {isOpen ? (
@@ -528,37 +518,27 @@ function ProfileMenu() {
         </div>
       ) : null}
 
-      <div
-        className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[#e4e1dc] bg-white p-2 shadow-sm transition hover:border-[#d8d2c8] hover:bg-[#fbfaf8] focus-within:border-[#cfc7bc]"
-        onClick={handleProfileNavigation}
-        onKeyDown={(event) => {
-          if (event.target !== event.currentTarget) {
-            return;
-          }
-
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            handleProfileNavigation();
-          }
-        }}
-        role="link"
-        tabIndex={0}
-      >
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#171717] text-[12px] font-semibold text-[#ffffff]">
-          {initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold leading-5 text-[#303036]">{currentUser.name}</p>
-          <p className="truncate text-[12px] font-medium leading-4 text-[#85858c]">{currentUser.email}</p>
-        </div>
+      <div className="flex items-center gap-1 rounded-2xl border border-[#e4e1dc] bg-white p-2 shadow-sm transition hover:border-[#d8d2c8] hover:bg-[#fbfaf8] focus-within:border-[#cfc7bc]">
+        <Link
+          aria-label={`${currentUser.name} ${currentUser.email}`}
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2"
+          href="/account/settings"
+          onClick={() => setIsOpen(false)}
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#171717] text-[12px] font-semibold text-[#ffffff]">
+            {initials}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-semibold leading-5 text-[#303036]">{currentUser.name}</span>
+            <span className="block truncate text-[12px] font-medium leading-4 text-[#85858c]">{currentUser.email}</span>
+          </span>
+        </Link>
         <button
           aria-expanded={isOpen}
+          aria-haspopup="menu"
           aria-label="Account menu"
           className="flex h-9 w-8 shrink-0 items-center justify-center rounded-md text-[#303036] transition hover:bg-[#f3f4f6]"
-          onClick={(event) => {
-            event.stopPropagation();
-            setIsOpen((current) => !current);
-          }}
+          onClick={() => setIsOpen((current) => !current)}
           type="button"
         >
           <span aria-hidden="true" className="text-[22px] leading-none">
@@ -615,7 +595,6 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
     customer: {},
   });
   const canUseAdminWorkspace = sessionRole === "admin";
-  const isPublicSimpleQuoteRoute = pathname === "/simple-quote" || pathname.startsWith("/simple-quote/");
   const activeNavPathname = pendingHref ?? pathname;
   const isRequestQuoteRoute = activeNavPathname === "/requests/new" || activeNavPathname.startsWith("/requests/new/");
   const baseNavSections = inAdminExperience ? adminNavSections : customerNavSections;
@@ -760,7 +739,7 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
     setIsNotificationsPanelOpen(false);
   }
 
-  if (isPublicRoute || isPublicSimpleQuoteRoute) {
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 
@@ -777,7 +756,7 @@ export function AppShell({ children, sessionRole }: { children: React.ReactNode;
               <div className="flex items-center gap-3">
                 <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
                 <div>
-                  <p className="text-[16px] font-semibold leading-5 text-[#171717]">Lattice OS</p>
+                  <p className="text-[15px] font-semibold uppercase leading-5 tracking-[0.025em] text-[#171717]">LATTICE</p>
                 </div>
               </div>
               {!inAdminExperience ? <NotificationButton isOpen={isNotificationsPanelOpen} onClick={() => setIsNotificationsPanelOpen((current) => !current)} pathname={activeNavPathname} /> : null}

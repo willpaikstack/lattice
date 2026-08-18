@@ -6,9 +6,12 @@ import { customerEquipmentGuidance, customerPartnerPrivacy, customerSafeRequest 
 describe("customer partner privacy", () => {
   it("removes internal partner identity from equipment guidance", () => {
     expect(customerEquipmentGuidance("Beijing Jingdiao 5-axis machining center listed by Best Prototypes.")).toBe(
-      "Beijing Jingdiao 5-axis machining center available through the Lattice manufacturing network.",
+      "Beijing Jingdiao 5-axis machining center.",
     );
     expect(customerEquipmentGuidance("Highest-volume 5-axis group in the current Zintilon list.")).not.toMatch(/Zintilon/i);
+    expect(customerEquipmentGuidance("Best Parts lists coating-thickness instruments.")).toBe(
+      "Documented coating-thickness instruments.",
+    );
   });
 
   it("redacts supplier names, contacts, and free-text updates from buyer data", () => {

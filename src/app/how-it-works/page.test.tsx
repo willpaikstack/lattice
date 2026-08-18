@@ -86,19 +86,19 @@ describe("How it works page", () => {
     expect(capacityButton).toHaveAttribute("aria-expanded", "false");
     expect(qualityButton).toHaveAttribute("aria-expanded", "false");
     expect(onDemandButton).toHaveAttribute("aria-expanded", "false");
-    expect(screen.queryByText(/212 documented CNC machines across the partner network/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/335 documented CNC machines across the partner network/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/The network gives Lattice another qualified production path/i)).not.toBeInTheDocument();
 
     fireEvent.click(capacityButton);
 
     expect(capacityButton).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("212")).toBeInTheDocument();
-    expect(screen.getByText("192 / 20")).toBeInTheDocument();
-    expect(screen.getByText("82")).toBeInTheDocument();
+    expect(screen.getByText("335")).toBeInTheDocument();
+    expect(screen.getByText("282 / 53")).toBeInTheDocument();
+    expect(screen.getByText("109")).toBeInTheDocument();
     expect(screen.getByText(/Listed envelopes extend to 3000 × 2200 × 1100 mm for milling/i)).toBeInTheDocument();
-    expect(screen.getByText(/212 documented CNC machines across the partner network support 3-, 4-, and 5-axis milling/i)).toBeInTheDocument();
+    expect(screen.getByText(/335 documented CNC machines across the partner network support 3-, 4-, and 5-axis milling/i)).toBeInTheDocument();
     expect(screen.getByText(/combined workforce of 400\+ across the partner network spans machining, quality control, shipping and receiving/i)).toBeInTheDocument();
-    expect(screen.getByText(/12 documented CMMs across the partner network, plus 2D\/2.5D vision, X-ray fluorescence \(XRF\), roughness, hardness, and ultrasonic inspection capability/i)).toBeInTheDocument();
+    expect(screen.getByText(/17 documented CMMs across the partner network, plus 2D\/2.5D vision, X-ray fluorescence \(XRF\), roughness, hardness, and ultrasonic inspection capability/i)).toBeInTheDocument();
     expect(screen.getByText(/traceability controls from incoming material through finished goods/i)).toBeInTheDocument();
     expect(screen.queryByText(/equipment records across 9 process categories/i)).not.toBeInTheDocument();
 
@@ -116,7 +116,7 @@ describe("How it works page", () => {
     expect(capacityButton).toHaveAttribute("aria-expanded", "false");
     expect(onDemandButton).toHaveAttribute("aria-expanded", "false");
     expect(qualityButton).toHaveAttribute("aria-expanded", "true");
-    expect(screen.queryByText(/212 documented CNC machines across the partner network/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/335 documented CNC machines across the partner network/i)).not.toBeInTheDocument();
     expect(screen.getByText("Vet the supplier")).toBeInTheDocument();
     expect(screen.getByText(/conducting onsite facility visits, auditing the QMS and critical supply-chain controls/i)).toBeInTheDocument();
     expect(screen.getByText("Qualify the job")).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe("How it works page", () => {
     expect(screen.getByText(/we use it to shortlist an eligible supplier/i)).toBeInTheDocument();
     expect(screen.getByText("Inspection capability matched to the job")).toBeInTheDocument();
     expect(screen.getByText(/Before award, we match the drawing and customer requirements to a supplier with the right inspection resources/i)).toBeInTheDocument();
-    expect(screen.getByText(/documented capability includes 12 CMMs plus vision measurement, X-ray fluorescence \(XRF\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/documented capability includes 17 CMMs plus vision measurement, X-ray fluorescence \(XRF\)/i)).toBeInTheDocument();
     expect(screen.getByText(/provide the requested reports and maintain required traceability through shipment/i)).toBeInTheDocument();
     expect(screen.getByText(/parts produced to the approved requirements, with the inspection evidence and documentation your customer expects/i)).toBeInTheDocument();
     expect(screen.queryByText(/inspection-equipment records/i)).not.toBeInTheDocument();

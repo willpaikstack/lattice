@@ -2903,23 +2903,16 @@ export function RequestForm({
   resumeRequests = [],
 }: RequestFormProps = {}) {
   const router = useRouter();
-  const [localResumeRequests, setLocalResumeRequests] = useState<LatticeRequest[]>(
-    readLocalIncompleteResumeRequests,
-  );
+  const [localResumeRequests, setLocalResumeRequests] = useState<LatticeRequest[]>([]);
   const [archivedResumeRequestIds, setArchivedResumeRequestIds] = useState<Set<string>>(() => new Set());
-  const localDraftInitialState =
-    !initialState && localDraftId
-      ? readIncompleteRfqs().find((draft) => draft.id === localDraftId)?.initialState
-      : undefined;
-  const resolvedInitialState = initialState ?? localDraftInitialState;
   const [projectForm, setProjectForm] = useState<ProjectFormState>(() => ({
     ...makeProjectInitialState(defaultBuyerCompany),
-    ...resolvedInitialState,
+    ...initialState,
   }));
   const [lineItems, setLineItems] = useState<LineItemState[]>(() =>
-    resolvedInitialState?.lineItems?.length
-      ? resolvedInitialState.lineItems.map((lineItem, index) => lineItemFromInitialLineItem(lineItem, `line-${index + 1}`))
-      : [lineItemFromInitialState(resolvedInitialState)],
+    initialState?.lineItems?.length
+      ? initialState.lineItems.map((lineItem, index) => lineItemFromInitialLineItem(lineItem, `line-${index + 1}`))
+      : [lineItemFromInitialState(initialState)],
   );
   const [error, setError] = useState<string | null>(null);
   const [createdRequest, setCreatedRequest] = useState<LatticeRequest | null>(
@@ -2931,7 +2924,7 @@ export function RequestForm({
   const [isQuoteNameEditing, setIsQuoteNameEditing] = useState(false);
   const [draftQuoteName, setDraftQuoteName] = useState(projectForm.projectName);
   const [isQuoteNameCustomized, setIsQuoteNameCustomized] = useState(
-    Boolean(resolvedInitialState?.projectName?.trim()),
+    Boolean(initialState?.projectName?.trim()),
   );
   const quoteNameInputRef = useRef<HTMLInputElement | null>(null);
   const [collapsedLineItemIds, setCollapsedLineItemIds] = useState<Set<string>>(
@@ -2951,6 +2944,38 @@ export function RequestForm({
     activeDrawingFile?.type ||
     activeDrawingLineItem?.technicalDrawingType ||
     "";
+
+  useEffect(() => {
+    // Browser storage is intentionally read after hydration so server and client
+    // produce the same initial markup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalResumeRequests(readLocalIncompleteResumeRequests());
+
+    if (initialState || !localDraftId) {
+      return;
+    }
+
+    const localDraft = readIncompleteRfqs().find((draft) => draft.id === localDraftId);
+    if (!localDraft) {
+      return;
+    }
+
+    const restoredInitialState = localDraft.initialState;
+    setProjectForm({
+      ...makeProjectInitialState(defaultBuyerCompany),
+      ...restoredInitialState,
+    });
+    setLineItems(
+      restoredInitialState.lineItems?.length
+        ? restoredInitialState.lineItems.map((lineItem, index) =>
+            lineItemFromInitialLineItem(lineItem, `line-${index + 1}`),
+          )
+        : [lineItemFromInitialState(restoredInitialState)],
+    );
+    setDraftQuoteName(restoredInitialState.projectName ?? "");
+    setIsQuoteNameCustomized(Boolean(restoredInitialState.projectName?.trim()));
+  }, [defaultBuyerCompany, initialState, localDraftId]);
+
   const resumeChoices = useMemo(() => {
     const localIds = new Set(localResumeRequests.map((request) => request.id));
 
@@ -3008,7 +3033,8 @@ export function RequestForm({
   const hasCadFile = configuredLineItems.length > 0;
   const shouldShowResumePanel =
     !hasCadFile &&
-    !resolvedInitialState &&
+    !initialState &&
+    !localDraftId &&
     !prefillNotice &&
     resumeChoices.length > 0;
 
@@ -3340,7 +3366,7 @@ export function RequestForm({
     };
     const otherDrafts = readIncompleteRfqs().filter((draft) => draft.id !== draftId);
     writeIncompleteRfqs([nextDraft, ...otherDrafts].slice(0, 12));
-  }, [activeLocalDraftId, configuredLineItems, createdRequest, hasCadFile, projectForm, resolvedInitialState]);
+  }, [activeLocalDraftId, configuredLineItems, createdRequest, hasCadFile, projectForm]);
 
   useEffect(() => {
     if (isQuoteNameEditing) {

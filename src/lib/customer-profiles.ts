@@ -138,7 +138,8 @@ function profileFromStoredCompany(company: StoredCompany): CustomerProfile {
   const requests = requestsForDataMode(company.requests).map((request) =>
     mapStoredRequest({
       ...request,
-      buyerCompany: request.buyerCompany ?? { name: company.name },
+      buyerCompanyId: request.buyerCompanyId ?? company.id,
+      buyerCompany: request.buyerCompany ?? { id: company.id, name: company.name },
     }),
   );
   const summary = buildAdminCustomerSummaries(requests)[0];

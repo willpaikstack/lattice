@@ -1,8 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BarChart3, ClipboardCheck, Diamond, FileSearch } from "lucide-react";
+import { BarChart3, ClipboardCheck, FileSearch } from "lucide-react";
 
 import { TechnicalBackground } from "@/components/public-entry";
+import { PublicSiteHeader } from "@/components/public-site-header";
 
 const managedProof = [
   { icon: FileSearch, label: "Engineer-reviewed RFQs" },
@@ -12,60 +13,21 @@ const managedProof = [
 
 const workflowSteps = ["Upload files", "Review your quote", "Track production"];
 
-function BrandMark({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className={`flex items-center ${compact ? "gap-2" : "gap-3"}`}>
-      <span className={`flex items-center justify-center rounded-lg bg-stone-950 text-white shadow-sm ${compact ? "h-8 w-8" : "h-9 w-9"}`} aria-hidden="true">
-        <Diamond className="fill-white" size={compact ? 11 : 13} />
-      </span>
-      <span className={`${compact ? "text-lg" : "text-xl"} font-semibold tracking-[-0.025em] text-stone-950`}>Lattice</span>
-    </span>
-  );
-}
-
-function LandingHeader() {
-  return (
-    <header className="sticky top-0 z-50 border-b border-stone-200 bg-[#f7f6f3]/95 backdrop-blur-md">
-      <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-6 lg:px-10">
-        <Link className="rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-950 focus-visible:ring-offset-2" href="/">
-          <BrandMark />
-        </Link>
-
-        <nav aria-label="Public navigation" className="hidden items-center gap-10 text-[15px] font-medium text-stone-800 md:flex">
-          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
-            Capabilities
-          </button>
-          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
-            Materials
-          </button>
-          <button className="cursor-not-allowed rounded-md opacity-70" disabled type="button">
-            Quality
-          </button>
-          <Link
-            className="rounded-md transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4"
-            href="/how-it-works"
-          >
-            How it works
-          </Link>
-        </nav>
-
-        <div className="flex items-center gap-3 sm:gap-6">
-          <Link className="hidden rounded-md text-[15px] font-medium text-stone-800 transition hover:text-stone-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-4 sm:block" href="/login">
-            Log in
-          </Link>
-          <Link className="rounded-lg bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2 sm:px-5" href="/waiting-list">
-            Request an account
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}
+const partnerNetworkIndustries = [
+  "Automotive & mobility",
+  "Medical technology",
+  "Aerospace",
+  "Robotics & automation",
+  "Semiconductors",
+  "Energy systems",
+  "Industrial equipment",
+  "Consumer products",
+];
 
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-[#171817] font-sans text-white selection:bg-stone-300 selection:text-stone-950">
-      <LandingHeader />
+      <PublicSiteHeader />
 
       <section className="relative overflow-hidden border-b border-white/10 bg-[#171817]">
         <TechnicalBackground />
@@ -79,12 +41,9 @@ export default function LandingPage() {
               <p className="mt-7 max-w-[580px] text-lg leading-8 text-stone-300 sm:text-xl">
                 Access Lattice&apos;s qualified global CNC machining and fabrication network for overflow and cyclical demand—without disrupting your schedule. We coordinate production, documentation, and delivery so you can protect lead times and stay responsive to customers.
               </p>
-
-              <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row">
-                <Link className="inline-flex min-h-14 items-center justify-center rounded-lg border border-white/30 px-7 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-stone-950" href="/capabilities">
-                  Explore capabilities
-                </Link>
-              </div>
+              <Link className="mt-7 inline-flex items-center gap-2 rounded-md text-sm font-semibold text-white transition hover:text-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-stone-950" href="/how-it-works">
+                See how Lattice delivers <span aria-hidden="true">→</span>
+              </Link>
 
             </div>
           </div>
@@ -118,6 +77,32 @@ export default function LandingPage() {
             );
           })}
         </ul>
+      </section>
+
+      <section aria-labelledby="partner-network-heading" className="border-b border-stone-200 bg-[#f7f6f3] text-stone-950">
+        <div className="mx-auto max-w-[1440px] px-6 py-16 sm:px-10 lg:px-[72px] lg:py-20">
+          <div className="max-w-[680px]">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Partner-network experience</p>
+            <h2 className="mt-4 text-[38px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[44px]" id="partner-network-heading">
+              Capability across demanding industries.
+            </h2>
+            <p className="mt-5 max-w-[620px] text-lg leading-8 text-stone-600">
+              Documented partner capabilities span the industries where precision production, material control, and dependable execution matter most.
+            </p>
+          </div>
+
+          <ul aria-label="Industries represented by documented partner capabilities" className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {partnerNetworkIndustries.map((industry) => (
+              <li className="flex min-h-20 items-center justify-center rounded-lg border border-stone-200 bg-white px-4 text-center text-sm font-semibold leading-5 text-stone-700 shadow-sm" key={industry}>
+                {industry}
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-5 text-sm leading-6 text-stone-500">
+            Industry coverage reflects public supplier capability information. Production fit and availability are confirmed for each job.
+          </p>
+        </div>
       </section>
 
       <section className="overflow-hidden bg-[#171817]" id="how-it-works">

@@ -22,17 +22,6 @@ vi.mock("@/lib/request-repository", () => ({
   getRequestById: vi.fn(),
   saveCustomerQuoteForRequest: vi.fn(),
   updateAdminRfqDecision: mocks.updateAdminRfqDecision,
-  updateGuestQuoteAccess: vi.fn(),
-}));
-
-vi.mock("@/lib/guest-quote-access", () => ({
-  createGuestQuoteAccess: vi.fn(),
-  guestQuoteHref: vi.fn(),
-  isGuestSimpleQuoteRequest: vi.fn(() => false),
-}));
-
-vi.mock("@/lib/guest-quote-email", () => ({
-  sendGuestQuoteReadyEmail: vi.fn(),
 }));
 
 vi.mock("@/lib/quote-file", () => ({

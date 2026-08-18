@@ -87,13 +87,36 @@ export const equipmentSources = {
     documentDate: vendorSourceDocuments.bestPrototypesEquipment.documentDate,
     repositoryPath: vendorSourceDocuments.bestPrototypesEquipment.repositoryPath,
   },
+  bestPartsEquipment: {
+    sourceDocumentId: vendorSourceDocuments.bestPartsEquipment.id,
+    vendor: vendorSourceDocuments.bestPartsEquipment.vendor,
+    document: vendorSourceDocuments.bestPartsEquipment.title,
+    documentDate: vendorSourceDocuments.bestPartsEquipment.documentDate,
+    repositoryPath: vendorSourceDocuments.bestPartsEquipment.repositoryPath,
+  },
+  bestPartsInspectionEquipment: {
+    sourceDocumentId: vendorSourceDocuments.bestPartsInspectionEquipment.id,
+    vendor: vendorSourceDocuments.bestPartsInspectionEquipment.vendor,
+    document: vendorSourceDocuments.bestPartsInspectionEquipment.title,
+    documentDate: vendorSourceDocuments.bestPartsInspectionEquipment.documentDate,
+    repositoryPath: vendorSourceDocuments.bestPartsInspectionEquipment.repositoryPath,
+  },
+  juchengEquipment20260414: {
+    sourceDocumentId: vendorSourceDocuments.juchengEquipment20260414.id,
+    vendor: vendorSourceDocuments.juchengEquipment20260414.vendor,
+    document: vendorSourceDocuments.juchengEquipment20260414.title,
+    documentDate: vendorSourceDocuments.juchengEquipment20260414.documentDate,
+    repositoryPath: vendorSourceDocuments.juchengEquipment20260414.repositoryPath,
+  },
 } satisfies Record<string, EquipmentSource>;
 
 export const equipmentSections: EquipmentSection[] = [
   "CNC Milling",
   "CNC Lathe",
   "QC & Inspection",
+  "Manual Machines",
   "Sheet Metal",
+  "EDM",
 ];
 
 const millingImage = "/equipment/hermle-five-axis-cell.jpg";
@@ -249,6 +272,41 @@ function bestPrototypesCard(
     imageKind: input.imageKind ?? "representative",
     machineUrl: input.machineUrl ?? "https://best-prototypes.com/",
     source: bestPrototypesSource,
+    fabricatorNotes: input.fabricatorNotes ?? [],
+    ...input,
+  };
+}
+
+function documentedEquipmentCard(
+  section: EquipmentSection,
+  source: EquipmentSource,
+  input: Omit<VendorEquipment, "vendor" | "section" | "imagePath" | "imageSourceUrl" | "imageKind" | "machineUrl" | "source" | "fabricatorNotes"> & {
+    imagePath?: string;
+    imageSourceUrl?: string;
+    machineUrl?: string;
+    fabricatorNotes?: string[];
+  },
+): VendorEquipment {
+  const imageBySection: Record<EquipmentSection, string> = {
+    "CNC Milling": millingImage,
+    "CNC Lathe": latheImage,
+    "QC & Inspection": inspectionImage,
+    "Manual Machines": secondaryImage,
+    "Sheet Metal": pressBrakeImage,
+    Finishing: finishingImage,
+    EDM: secondaryImage,
+    "Die Casting": secondaryImage,
+    "Additive Manufacturing": secondaryImage,
+  };
+
+  return {
+    vendor: source.vendor,
+    section,
+    imagePath: input.imagePath ?? imageBySection[section],
+    imageSourceUrl: input.imageSourceUrl ?? "https://www.latticeos.co/",
+    imageKind: "representative",
+    machineUrl: input.machineUrl ?? "https://www.latticeos.co/",
+    source,
     fabricatorNotes: input.fabricatorNotes ?? [],
     ...input,
   };
@@ -801,6 +859,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
     imageSourceUrl: "https://sowincnc.com/325f-385fshuangzhuzhoushukongzouxinji31/726.html",
     summary: "Swiss-type lathe for small cylindrical parts requiring multiple operations in one setup.",
     details: [
+      { label: "Work envelope", value: "Dia. 32 mm" },
       { label: "Bar capacity", value: "Dia. 32 mm" },
       { label: "Best tolerance", value: "+/-0.02 mm" },
       { label: "Max RPM", value: "6,000" },
@@ -817,6 +876,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
     imageSourceUrl: "https://www.sowincnc.com/205e-255eshuangzhuzhoushukongzouxinji27/715.html",
     summary: "Swiss-type lathe for smaller-diameter precision turned components.",
     details: [
+      { label: "Work envelope", value: "Dia. 25 mm" },
       { label: "Bar capacity", value: "Dia. 25 mm" },
       { label: "Best tolerance", value: "+/-0.02 mm" },
       { label: "Max RPM", value: "10,000" },
@@ -833,6 +893,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
     imageSourceUrl: "https://sowincncn.en.made-in-china.com/product/cCmQizDlVJUV/China-CNC-precision-automatic-lathe-SZ-206F.html",
     summary: "6-axis Swiss-type lathe for very small turned components.",
     details: [
+      { label: "Work envelope", value: "Dia. 20 mm" },
       { label: "Bar capacity", value: "Dia. 20 mm" },
       { label: "Best tolerance", value: "+/-0.02 mm" },
       { label: "Max RPM", value: "12,000" },
@@ -850,6 +911,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
     imageSourceUrl: "https://sowincncn.en.made-in-china.com/product/vZktsBnAlMVK/China-Precision-Metal-Turning-CNC-Lathe-Machine-SC-46YD-Horizontal-Flat-Bed-Lathe-CNC-Lathe.html",
     summary: "Turn-mill equipment for small round parts with secondary milled features.",
     details: [
+      { label: "Work envelope", value: "Dia. 45 mm" },
       { label: "Bar capacity", value: "Dia. 45 mm" },
       { label: "Best tolerance", value: "+/-0.02 mm" },
       { label: "Max RPM", value: "6,000" },
@@ -915,7 +977,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
     quantity: "1 set",
     imagePath: "/equipment/zeiss-contura-7106-rds.jpg",
     imageSourceUrl: "https://www.machinesused.com/machines/20",
-    summary: "Calibrated ZEISS CMM for dimensional verification and formal inspection packages.",
+    summary: "ZEISS CMM for dimensional verification and formal inspection packages.",
     details: [
       { label: "Machine no.", value: "217847" },
       { label: "Next calibration", value: "2026-03-10" },
@@ -1198,7 +1260,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
   }),
   sheetMetalCard({
     slug: "eko-es3512",
-    name: "Bending machine",
+    name: "Press brake",
     makeModel: "EKO ES3512",
     quantity: "4 sets",
     imagePath: "/equipment/eko-es3512.jpg",
@@ -1216,7 +1278,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
   }),
   sheetMetalCard({
     slug: "eko-es1003",
-    name: "Bending machine",
+    name: "Press brake",
     makeModel: "EKO ES1003",
     quantity: "1 set",
     imagePath: pressBrakeImage,
@@ -1232,7 +1294,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
   }),
   sheetMetalCard({
     slug: "haiji-eg6520",
-    name: "Bending machine",
+    name: "Press brake",
     makeModel: "Hai Ji EG6520",
     quantity: "1 set",
     imagePath: pressBrakeImage,
@@ -1248,7 +1310,7 @@ const vendorEquipmentRecords: VendorEquipment[] = [
   }),
   sheetMetalCard({
     slug: "yike-ehc2203",
-    name: "Bending machine",
+    name: "Press brake",
     makeModel: "Yi Ke EHC2203",
     quantity: "1 set",
     imagePath: pressBrakeImage,
@@ -1714,8 +1776,13 @@ const vendorEquipmentRecords: VendorEquipment[] = [
     makeModel: "Siemens HT710",
     quantity: "2 sets",
     imagePath: millingImage,
+    onlineSpecificationUrl: "https://www.hanslaser.net/product_detail/id-12.html",
     summary: "3-axis machining center listed by Best Prototypes.",
-    details: [{ label: "Envelope", value: "710 x 440 x 380 mm" }, { label: "Max RPM", value: "20,000" }],
+    details: [
+      { label: "Envelope", value: "710 x 440 x 380 mm" },
+      { label: "Max RPM", value: "20,000" },
+      { label: "Positional accuracy", value: "±0.005 / ±0.005 / ±0.005 mm per 300 mm" },
+    ],
   }),
   bestPrototypesCard("CNC Milling", {
     slug: "best-prototypes-siemens-t-v800",
@@ -1855,6 +1922,443 @@ const vendorEquipmentRecords: VendorEquipment[] = [
   }),
 ];
 
+const auditedEquipmentRecords: VendorEquipment[] = [
+  // Internal source: Jucheng Precision Equipment List (2026-04-14). Supplier identity
+  // is deliberately redacted by the customer-catalog boundary at render time.
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-zhenhui-zh850", name: "3-axis CNC machining center", makeModel: "Zhenhui ZH-850", quantity: "6 sets",
+    summary: "Vertical machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "850 x 650 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-chenggong-cg850", name: "3-axis CNC machining center", makeModel: "Chenggong CG-850", quantity: "5 sets",
+    summary: "Vertical machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "850 x 650 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-chenggong-cg650", name: "3-axis CNC machining center", makeModel: "Chenggong CG-650", quantity: "3 sets",
+    summary: "Vertical machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "650 x 450 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-chenggong-cg1100", name: "3-axis CNC machining center", makeModel: "Chenggong CG-1100", quantity: "3 sets",
+    summary: "Vertical machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "1100 x 700 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-zhenhui-zh1280", name: "3-axis CNC machining center", makeModel: "Zhenhui ZH-1280", quantity: "2 sets",
+    summary: "Large-format vertical machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "1280 x 800 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-jingdiao-gdmr400", name: "5-axis CNC machining center", makeModel: "Beijing Jingdiao GDMR-400", quantity: "10 sets",
+    summary: "Five-axis machining centers listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "600 x 600 mm" }, { label: "Axis count", value: "5 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-afming-gmu630", name: "5-axis CNC machining center", makeModel: "AFMING GMU-630", quantity: "2 sets",
+    summary: "Five-axis machining centers listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "700 x 1180 mm" }, { label: "Axis count", value: "5 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-afming-gmu800", name: "5-axis CNC machining center", makeModel: "AFMING GMU-800", quantity: "1 set",
+    summary: "Five-axis machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "850 x 950 mm" }, { label: "Axis count", value: "5 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-afming-gmu600", name: "5-axis CNC machining center", makeModel: "AFMING GMU-600", quantity: "1 set",
+    summary: "Five-axis machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "600 x 910 mm" }, { label: "Axis count", value: "5 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-afming-vmu6800", name: "5-axis CNC machining center", makeModel: "AFMING VMU-6800", quantity: "2 sets",
+    summary: "Five-axis machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "750 x 950 mm" }, { label: "Axis count", value: "5 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-haas-650", name: "3-axis CNC machining center", makeModel: "Haas 650", quantity: "2 sets",
+    summary: "Machining centers listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "650 x 550 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-mazak-700", name: "3-axis CNC machining center", makeModel: "Mazak 700", quantity: "2 sets",
+    summary: "Machining centers listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "700 x 600 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-fanuc-a-d21mib", name: "3-axis engraving and milling machine", makeModel: "FANUC a-D21MiB", quantity: "4 sets",
+    summary: "Engraving and milling machines listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.01 mm" }, { label: "Work envelope", value: "500 x 400 mm" }, { label: "Axis count", value: "3 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-mikron-mill-e700u", name: "5-axis CNC machining center", makeModel: "Mikron MILL E 700 U", quantity: "1 set",
+    summary: "Imported five-axis machining center listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy (X/Y/Z)", value: "0.005 mm" }, { label: "Work envelope", value: "700 x 600 x 500 mm" }, { label: "Axis count", value: "5 axes" }],
+  }),
+  documentedEquipmentCard("EDM", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-sodick-sdk0970", name: "Wire EDM machine", makeModel: "Sodick SDK-0970", quantity: "3 sets",
+    summary: "Wire EDM machines listed in the partner-network equipment inventory.",
+    details: [{ label: "Positional accuracy", value: "0.001 mm" }, { label: "Work envelope", value: "600 x 470 x 23 mm" }],
+  }),
+  documentedEquipmentCard("Sheet Metal", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-mitsubishi-lv3015", name: "Laser cutting machine", makeModel: "Mitsubishi LV3015", quantity: "2 sets",
+    summary: "Laser cutting machines listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }, { label: "Work envelope", value: "1500 x 3000 mm" }],
+  }),
+  documentedEquipmentCard("Sheet Metal", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-hongshan-hsg3015a", name: "Laser cutting machine", makeModel: "Hongshan HS-G3015A", quantity: "2 sets",
+    summary: "Laser cutting machines listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }, { label: "Work envelope", value: "1500 x 3000 mm" }],
+  }),
+  documentedEquipmentCard("Sheet Metal", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-nct-fleet", name: "CNC turret punch fleet", makeModel: "Tailift HP1250 / AMADA VIPROS-345 / AMADA AE2510NT", quantity: "5 sets",
+    summary: "CNC turret punch machines listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }, { label: "Work envelopes", value: "1000 x 1300 mm and 1250 x 2500 mm" }],
+  }),
+  documentedEquipmentCard("Sheet Metal", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-press-brake-fleet", name: "Press brake fleet", makeModel: "RG50 / RG100-DC9III / RG50-AUTOBACK / Hydraulic 3613WN", quantity: "7 sets",
+    summary: "Press brakes listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01-0.03 mm" }, { label: "Listed bending length", value: "1500-3300 mm" }],
+  }),
+  documentedEquipmentCard("Sheet Metal", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-yangli-press-fleet", name: "Mechanical press fleet", makeModel: "Yangli JF-21 / YL-200", quantity: "5 sets",
+    summary: "Mechanical presses listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01-0.03 mm" }, { label: "Rated force", value: "40T, 60T, 80T, and 200T" }],
+  }),
+  documentedEquipmentCard("Sheet Metal", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-hydraulic-press-fleet", name: "Hydraulic press fleet", makeModel: "200T / 300T hydraulic presses", quantity: "3 sets",
+    summary: "Hydraulic presses listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.02 mm" }, { label: "Work envelopes", value: "1000 x 1000 mm and 1100 x 900 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-surface-grinder-268", name: "Surface grinding machine", makeModel: "West Lake 268", quantity: "1 set",
+    summary: "Surface grinding machine listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-radial-drill-zq4116", name: "Radial drilling machine", makeModel: "West Lake ZQ4116", quantity: "4 sets",
+    summary: "Radial drilling machines listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-welding-fleet", name: "Welding equipment fleet", makeModel: "Hangwang 250A / CO₂ welding equipment", quantity: "3 sets",
+    summary: "Welding equipment listed in the partner-network equipment inventory.",
+    details: [{ label: "Listed power", value: "250A and 300A" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-zeiss-cmm", name: "Coordinate measuring machine", makeModel: "ZEISS CMM", quantity: "1 set",
+    summary: "Coordinate measuring machine listed in the partner-network inspection inventory.",
+    details: [{ label: "Positional accuracy", value: "0.001 mm" }, { label: "Measurement range", value: "500 x 600 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-fanma-fm2010", name: "Manual vision measurement instrument", makeModel: "FANMA FM-2010", quantity: "1 set",
+    summary: "Manual image measuring instrument listed in the partner-network inspection inventory.",
+    details: [{ label: "Positional accuracy", value: "0.001 mm" }, { label: "Measurement range", value: "1000 x 1000 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-fanma-fm49260", name: "One-button measuring instrument", makeModel: "FANMA FM-492-60", quantity: "1 set",
+    summary: "One-button measuring instrument listed in the partner-network inspection inventory.",
+    details: [{ label: "Positional accuracy", value: "0.001 mm" }, { label: "Measurement range", value: "1000 x 1000 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-height-gauges", name: "Height gauge fleet", makeModel: "Height Gauges", quantity: "2 sets",
+    summary: "Height gauges listed in the partner-network inspection inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-material-spectrum-detector", name: "Material spectrum detector", makeModel: "Material Spectrum Detector", quantity: "1 set",
+    summary: "Material-spectrum detector listed in the partner-network inspection inventory.",
+    details: [{ label: "Inspection use", value: "Material composition verification" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-caliper-fleet", name: "Caliper fleet", makeModel: "San Feng 150 mm / 300 mm Calipers", quantity: "9 sets",
+    summary: "Calipers listed in the partner-network inspection inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }, { label: "Documented ranges", value: "150 mm and 300 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-external-micrometer-fleet", name: "External micrometer fleet", makeModel: "San Feng 25 mm Micrometers", quantity: "4 sets",
+    summary: "External micrometers listed in the partner-network inspection inventory.",
+    details: [{ label: "Listed accuracy", value: "0.005 mm" }, { label: "Documented range", value: "25 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.juchengEquipment20260414, {
+    slug: "jucheng-gauge-fleet", name: "Gauge fleet", makeModel: "Thread, ceramic insert, R, and block gauges", quantity: "4 sets",
+    summary: "Specialized gauges listed in the partner-network inspection inventory.",
+    details: [{ label: "Listed accuracy", value: "0.01-0.05 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.zintilonProcessing, {
+    slug: "zintilon-zhiheng-zh-d301",
+    name: "Tapping machine",
+    makeModel: "ZhiHeng ZH-D301",
+    quantity: "1 set",
+    summary: "Tapping machine listed in the Zintilon processing-equipment inventory.",
+    details: [{ label: "Listed process", value: "Tapping" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-fischer-dualscope-mpo",
+    name: "Coating thickness measurement instrument",
+    makeModel: "Fischer DUALSCOPE MPO",
+    quantity: "1 set",
+    summary: "Film-thickness measurement instrument in the QC inventory.",
+    details: [{ label: "Inspection use", value: "Coating and film thickness" }, { label: "Next listed calibration", value: "2026-08-15" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-ultraviolet-aging-test-chamber",
+    name: "Ultraviolet aging test chamber",
+    makeModel: "ZJ-ZW-151B",
+    quantity: "1 set",
+    summary: "UV aging test chamber listed for QC environmental testing.",
+    details: [{ label: "Next listed calibration", value: "2026-08-15" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-wew-300d",
+    name: "Hydraulic universal testing machine",
+    makeModel: "WEW-300D",
+    quantity: "1 set",
+    summary: "Hydraulic universal testing machine documented in the QC inventory.",
+    details: [{ label: "Next listed calibration", value: "2027-01-15" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-mhrs-150",
+    name: "Rockwell hardness tester",
+    makeModel: "MHRS-150",
+    quantity: "1 set",
+    summary: "HRC hardness tester documented in the QC inventory.",
+    details: [{ label: "Next listed calibration", value: "2026-03-10" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-keyence-im-8030t",
+    name: "Image size measurement instrument",
+    makeModel: "KEYENCE IM-8030T",
+    quantity: "1 set",
+    summary: "Keyence image-measurement system listed for optical dimensional inspection.",
+    details: [{ label: "Next listed calibration", value: "2026-05-28" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-qc-environmental-instruments",
+    name: "QC environmental instruments",
+    makeModel: "AS803 luxmeter / HEX-688(A) hygrothermographs",
+    quantity: "3 sets",
+    summary: "Light and environmental monitoring instruments listed in the QC plan.",
+    details: [{ label: "Equipment mix", value: "1 luxmeter and 2 hygrothermographs" }, { label: "Next listed calibration", value: "2026-05-14 to 2027-01-15" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-microscopy-hardness-fleet",
+    name: "Microscopy and hardness-testing instruments",
+    makeModel: "JSZ6 / HV-1000A / HLN-160 / inspection microscope",
+    quantity: "4 sets",
+    summary: "Stereo microscopy, microhardness, Leeb hardness, and inspection microscopy tools in the QC inventory.",
+    details: [{ label: "Next listed calibration", value: "2026-12-15 to 2027-01-15" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-force-and-flaw-detection",
+    name: "Force and flaw-detection instruments",
+    makeModel: "WDF-100 / DHT-1000 VER 5.00",
+    quantity: "2 sets",
+    summary: "Digital push-pull force gauge and ultrasonic flaw detector listed for QC review.",
+    details: [{ label: "Inspection use", value: "Force checks and ultrasonic flaw detection" }, { label: "Next listed calibration", value: "2026-12-15" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-micrometer-fleet",
+    name: "Micrometer inspection fleet",
+    makeModel: "Digital OD, graduated OD, ID, disc, and thread micrometers",
+    quantity: "Multiple calibrated instruments",
+    summary: "Range-specific micrometer families listed across QC, CNC, lathe, and sheet-metal departments.",
+    details: [{ label: "Documented categories", value: "OD, ID, disc, and thread micrometers" }, { label: "Documented ranges", value: "0-25 mm through 225-250 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.zintilonQc, {
+    slug: "zintilon-gauge-and-indicator-fleet",
+    name: "Gauges and indicators",
+    makeModel: "Dial, lever-dial, angle, height, depth, pin, and thread gauges",
+    quantity: "Multiple calibrated instruments",
+    summary: "Dimensional gauges and indicators documented for production and QC departments.",
+    details: [{ label: "Documented categories", value: "Dial and lever indicators; angle, height, depth, pin, thread plug, and thread ring gauges" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-bs-2v",
+    name: "Milling machine",
+    makeModel: "BS-2V Milling Machine",
+    quantity: "1 set",
+    summary: "Conventional milling machine listed by Best Prototypes.",
+    details: [{ label: "Work envelope", value: "1750 x 1320 x 2220 mm" }, { label: "Max spindle speed", value: "6,000 RPM" }, { label: "Positional accuracy", value: "±0.1 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-swj-12",
+    name: "Benchtop tapping machine",
+    makeModel: "SWJ-12",
+    quantity: "1 set",
+    summary: "Benchtop tapping machine listed by Best Prototypes.",
+    details: [{ label: "Work envelope", value: "420 x 260 x 800 mm" }, { label: "Max spindle speed", value: "750 RPM" }, { label: "Positional accuracy", value: "±0.03 mm" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-tanjia-4-axis",
+    name: "4-axis CNC machining center",
+    makeModel: "Tanjia 4-Axis",
+    quantity: "4 sets",
+    summary: "Four-axis machining centers listed by Best Prototypes.",
+    details: [{ label: "Axis count", value: "4 axes" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-tanjia-3-plus-2",
+    name: "3+2 CNC machining center",
+    makeModel: "Tanjia 3+2",
+    quantity: "2 sets",
+    summary: "3+2 machining centers listed by Best Prototypes.",
+    details: [{ label: "Axis configuration", value: "3+2 axes" }],
+  }),
+  documentedEquipmentCard("CNC Lathe", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-conventional-lathe",
+    name: "Conventional lathe",
+    makeModel: "Conventional Lathe",
+    quantity: "1 set",
+    summary: "Conventional lathe listed by Best Prototypes.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-grinding-machine",
+    name: "Grinding machine",
+    makeModel: "Grinding Machine",
+    quantity: "1 set",
+    summary: "Grinding machine listed by Best Prototypes.",
+    details: [{ label: "Listed accuracy", value: "0.01 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-vision-measurement",
+    name: "Vision measurement equipment",
+    makeModel: "Mitutoyo 2.5D / Marriott 2D measuring machines",
+    quantity: "2 sets",
+    summary: "Optical measuring machines listed by Best Prototypes.",
+    details: [{ label: "Work envelope", value: "300 x 200 x 200 mm" }, { label: "Positional accuracy", value: "0.005 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPrototypesEquipment, {
+    slug: "best-prototypes-inspection-tools",
+    name: "Inspection-tool fleet",
+    makeModel: "Hitachi detector / Mitutoyo gauges / Costar hardness tester",
+    quantity: "Multiple instruments",
+    summary: "Documented inspection tools include metal detection, roughness, hardness, dimensional, and balancing equipment.",
+    details: [{ label: "Documented categories", value: "Metal detector, roughness tester, Rockwell tester, durometer, pin/gap/depth/thread gauges, dilatometer, and balancing machine" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-dmg-mu50",
+    name: "5-axis CNC machining center",
+    makeModel: "DMG MU50",
+    quantity: "2 sets",
+    summary: "Five-axis CNC machining centers listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.007 mm" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-shenchuang-5-axis",
+    name: "5-axis CNC machining center",
+    makeModel: "ShenChuang 5-Axis CNC Center",
+    quantity: "8 sets",
+    summary: "Five-axis CNC machining centers listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.007 mm" }],
+  }),
+  documentedEquipmentCard("CNC Milling", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-qiaofeng-cnc-center",
+    name: "CNC machining center",
+    makeModel: "Qiaofeng CNC Center",
+    quantity: "30 sets",
+    summary: "CNC machining centers listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.02 mm" }],
+  }),
+  documentedEquipmentCard("CNC Lathe", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-doosan-turn-mill",
+    name: "Turning and milling composite machine",
+    makeModel: "Doosan Turning-Milling Composite",
+    quantity: "6 sets",
+    summary: "Turning-and-milling composite machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.01 mm" }],
+  }),
+  documentedEquipmentCard("CNC Lathe", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-tsugami-swiss",
+    name: "Swiss-type turning machine",
+    makeModel: "Tsugami Swiss Turning",
+    quantity: "26 sets",
+    summary: "Swiss turning machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.008 mm" }],
+  }),
+  documentedEquipmentCard("Die Casting", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-lk-die-casting",
+    name: "Aluminum and zinc die-casting machine",
+    makeModel: "L.K. Group Die-Casting Machine",
+    quantity: "4 sets",
+    summary: "Aluminum and zinc die-casting machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.1 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-jieyongda-milling",
+    name: "Vertical milling machine",
+    makeModel: "Jieyongda Vertical Milling Machine",
+    quantity: "2 sets",
+    summary: "Vertical milling machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.03 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-shuguang-grinding",
+    name: "Grinding machine",
+    makeModel: "Shenzhen Shuguang Grinding Machine",
+    quantity: "1 set",
+    summary: "Grinding machine listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.01 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-shuguang-tapping",
+    name: "Automatic tapping machine",
+    makeModel: "Shenzhen Shuguang Automatic Tapping Machine",
+    quantity: "2 sets",
+    summary: "Automatic tapping machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.03 mm" }],
+  }),
+  documentedEquipmentCard("Manual Machines", equipmentSources.bestPartsEquipment, {
+    slug: "best-parts-west-lake-drilling",
+    name: "Manual drilling machine",
+    makeModel: "Hangzhou West Lake Bench Drill",
+    quantity: "2 sets",
+    summary: "Manual drilling machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "±0.03 mm" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPartsInspectionEquipment, {
+    slug: "best-parts-hexagon-croma-plus",
+    name: "Bridge scanning CMM",
+    makeModel: "Hexagon CROMA Plus 08.10.06",
+    quantity: "4 sets",
+    summary: "Bridge-scanning coordinate measuring machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "0.0035 mm" }, { label: "Calibration cycle", value: "12 months" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPartsInspectionEquipment, {
+    slug: "best-parts-explorer-vision-fleet",
+    name: "Vision measurement fleet",
+    makeModel: "EXPLORER VMS-3020F / VMS-4030Z / VMS-4030F",
+    quantity: "3 sets",
+    summary: "Vision measuring machines listed by Best Parts.",
+    details: [{ label: "Positional accuracy", value: "0.002 mm" }, { label: "Calibration cycle", value: "12 months" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPartsInspectionEquipment, {
+    slug: "best-parts-tesa-height-gauges",
+    name: "Digital height gauge fleet",
+    makeModel: "TESA Digital Height Gauges",
+    quantity: "5 sets",
+    summary: "TESA height gauges listed by Best Parts.",
+    details: [{ label: "Listed range", value: "700 mm" }, { label: "Positional accuracy", value: "0.002 mm" }, { label: "Calibration cycle", value: "12 months" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPartsInspectionEquipment, {
+    slug: "best-parts-specialized-qc-tools",
+    name: "Specialized QC instruments",
+    makeModel: "Coating, roughness, concentricity, and Rockwell testing tools",
+    quantity: "4 sets",
+    summary: "Best Parts lists coating-thickness, surface-roughness, concentricity, and Rockwell-hardness instruments.",
+    details: [{ label: "Listed positional accuracy", value: "0.0001-0.01 mm" }, { label: "Calibration cycle", value: "12 months" }],
+  }),
+  documentedEquipmentCard("QC & Inspection", equipmentSources.bestPartsInspectionEquipment, {
+    slug: "best-parts-caliper-and-micrometer-fleet",
+    name: "Caliper and micrometer fleet",
+    makeModel: "Shanggong / Guanglu / Chengliang / Qingzhi inspection tools",
+    quantity: "16 instruments",
+    summary: "Digital and dial calipers plus OD and ID micrometers listed by Best Parts.",
+    details: [{ label: "Documented ranges", value: "0-25 mm through 75-100 mm" }, { label: "Positional accuracy", value: "0.002-0.02 mm" }, { label: "Calibration cycle", value: "12 months" }],
+  }),
+];
+
 const sameModelImageSlugs = new Set([
   "hermle-c400",
   "hermle-c250",
@@ -1894,7 +2398,7 @@ const sameModelImageSlugs = new Set([
   "eko-es3512",
 ]);
 
-export const vendorEquipment: VendorEquipment[] = vendorEquipmentRecords.map((equipment) => {
+export const vendorEquipment: VendorEquipment[] = [...vendorEquipmentRecords, ...auditedEquipmentRecords].map((equipment) => {
   const imageKind: EquipmentImageKind = sameModelImageSlugs.has(equipment.slug) ? "same-model" : "representative";
 
   return {

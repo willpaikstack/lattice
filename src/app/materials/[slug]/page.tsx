@@ -108,10 +108,8 @@ export default async function MaterialFamilyPage({ params }: MaterialFamilyPageP
 
   if (!material) notFound();
 
-  const requestLabel = material.name.replace(" / ", " ").toLowerCase();
-
   const content = (
-    <main className="min-h-screen bg-[#fbfbfa] pb-16">
+    <main className="min-h-screen pb-16">
       <div className="max-w-[1120px]">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 pt-1 text-[14px] text-[#74767a]">
           <Link className="transition hover:text-[#202020]" href="/materials">Materials</Link>
@@ -119,17 +117,12 @@ export default async function MaterialFamilyPage({ params }: MaterialFamilyPageP
           <span className="text-[#3d3e41]">{material.name}</span>
         </nav>
 
-        <header className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <header className="mt-5">
           <div>
             <h1 className="text-[46px] font-bold leading-[0.98] tracking-[-0.05em] text-[#171717] sm:text-[52px]">{material.name}</h1>
             <p className="mt-3 max-w-[670px] text-[15px] leading-6 text-[#676a70]">{material.summary}</p>
             <p className="mt-4 text-[15px] font-medium text-[#36373a]">{material.gradeCount} {material.catalogNoun}</p>
           </div>
-
-          <Link className="inline-flex h-10 items-center justify-center gap-1.5 rounded-[6px] border border-[#d8d7d3] bg-white px-4 text-[13px] font-medium text-[#3d3e41] transition hover:border-[#bdbdb9] hover:bg-[#f8f8f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#171717]/20 focus-visible:ring-offset-2 lg:min-w-[190px]" href="/requests/new">
-            Request {requestLabel} parts
-            <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
-          </Link>
         </header>
 
         <div className={`relative mt-6 min-h-[220px] overflow-hidden rounded-[7px] bg-[#e9e9e7] ${material.slug === "plastics-polymers" ? "aspect-[5/1]" : "aspect-[16/5]"}`}>

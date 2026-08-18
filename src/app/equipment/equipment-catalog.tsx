@@ -1,133 +1,44 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
+import { type CustomerEquipment } from "@/lib/customer-equipment";
+import { equipmentSections, type EquipmentSection } from "@/lib/vendor-equipment";
 import { customerEquipmentGuidance } from "@/lib/customer-partner-privacy";
-import {
-  equipmentSections,
-  vendorEquipment,
-  type EquipmentSection,
-  type VendorEquipment,
-} from "@/lib/vendor-equipment";
 
-type PresetFilter = {
+type EquipmentTypeFilter = {
   id: string;
   label: string;
-  matches: (equipment: VendorEquipment) => boolean;
-};
-
-const sectionSummaries: Record<EquipmentSection, string> = {
-  "CNC Milling": "5-axis, 4-axis, and vertical machining centers for tight-tolerance prismatic parts.",
-  "CNC Lathe": "Turning, Swiss-type, and turn-mill capacity for round parts and small precision features.",
-  "QC & Inspection": "Dimensional inspection, material verification, calibration, and shop-floor measurement tools.",
-  "Manual Machines": "Support equipment for tapping, drilling, grinding, and secondary preparation work.",
-  "Sheet Metal": "Laser cutting, forming, riveting, extraction, and sheet processing equipment.",
-  Finishing: "Welding and surface finishing equipment that supports downstream production readiness.",
-  EDM: "Wire EDM and related nontraditional cutting support for precision profiles.",
-  "Die Casting": "Die casting presses and furnace capacity for aluminum, zinc, and magnesium alloy parts.",
-  "Additive Manufacturing": "SLA, SLM, and nylon additive manufacturing equipment for prototypes and selected end-use parts.",
-};
-
-const sectionFilters: Record<EquipmentSection, PresetFilter[]> = {
-  "CNC Milling": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "5-axis", label: "5-axis", matches: (equipment) => searchableText(equipment).includes("5-axis") },
-    { id: "4-axis", label: "4-axis", matches: (equipment) => searchableText(equipment).includes("4-axis") },
-    { id: "3-axis", label: "3-axis", matches: (equipment) => searchableText(equipment).includes("3-axis") },
-    { id: "tight-tolerance", label: "+/-0.005 mm", matches: (equipment) => getToleranceNumber(equipment) <= 0.005 },
-    { id: "large-envelope", label: "Large envelope", matches: (equipment) => getMaxEnvelope(equipment) >= 1000 },
-  ],
-  "CNC Lathe": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "swiss", label: "Swiss type", matches: (equipment) => searchableText(equipment).includes("swiss") },
-    { id: "large-turning", label: "Large turning", matches: (equipment) => getMaxEnvelope(equipment) >= 1000 },
-    { id: "live-tooling", label: "Live tooling / Y-axis", matches: (equipment) => /live|y-axis|milled features/.test(searchableText(equipment)) },
-    { id: "tight-tolerance", label: "+/-0.005 mm", matches: (equipment) => getToleranceNumber(equipment) <= 0.005 },
-  ],
-  "QC & Inspection": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "cmm", label: "CMM", matches: (equipment) => searchableText(equipment).includes("cmm") || searchableText(equipment).includes("coordinate") },
-    { id: "zeiss", label: "ZEISS", matches: (equipment) => searchableText(equipment).includes("zeiss") },
-    { id: "hand-tools", label: "Hand tools", matches: (equipment) => /caliper|height gauge/.test(searchableText(equipment)) },
-    { id: "material-id", label: "Material ID", matches: (equipment) => /spectrometer|x-met|material/.test(searchableText(equipment)) },
-  ],
-  "Manual Machines": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "drilling", label: "Drilling", matches: (equipment) => searchableText(equipment).includes("drill") },
-    { id: "tapping", label: "Tapping", matches: (equipment) => searchableText(equipment).includes("tap") },
-    { id: "grinding", label: "Grinding", matches: (equipment) => searchableText(equipment).includes("grind") },
-  ],
-  "Sheet Metal": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "laser", label: "Laser cutting", matches: (equipment) => searchableText(equipment).includes("laser") },
-    { id: "forming", label: "Forming / bending", matches: (equipment) => /press brake|bending|forming/.test(searchableText(equipment)) },
-    { id: "6000w", label: "6,000 W", matches: (equipment) => searchableText(equipment).includes("6000") || searchableText(equipment).includes("6,000") },
-    { id: "large-sheet", label: "3000 mm sheet", matches: (equipment) => getMaxEnvelope(equipment) >= 3000 },
-  ],
-  Finishing: [
-    { id: "all", label: "All", matches: () => true },
-    { id: "welding", label: "Welding", matches: (equipment) => searchableText(equipment).includes("weld") },
-    { id: "brushing", label: "Brushing", matches: (equipment) => searchableText(equipment).includes("brush") },
-    { id: "sanding", label: "Sanding", matches: (equipment) => searchableText(equipment).includes("sand") },
-  ],
-  EDM: [
-    { id: "all", label: "All", matches: () => true },
-    { id: "wire", label: "Wire EDM", matches: (equipment) => searchableText(equipment).includes("wire") },
-    { id: "tight-tolerance", label: "0.01 mm", matches: (equipment) => getToleranceNumber(equipment) <= 0.01 },
-  ],
-  "Die Casting": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "aluminum", label: "Aluminum", matches: (equipment) => searchableText(equipment).includes("aluminum") },
-    { id: "zinc", label: "Zinc", matches: (equipment) => searchableText(equipment).includes("zinc") },
-    { id: "magnesium", label: "Magnesium", matches: (equipment) => searchableText(equipment).includes("magnesium") },
-  ],
-  "Additive Manufacturing": [
-    { id: "all", label: "All", matches: () => true },
-    { id: "sla", label: "SLA", matches: (equipment) => searchableText(equipment).includes("sla") },
-    { id: "slm", label: "SLM", matches: (equipment) => searchableText(equipment).includes("slm") },
-    { id: "nylon", label: "Nylon", matches: (equipment) => searchableText(equipment).includes("nylon") },
-    { id: "large-build", label: "Large build", matches: (equipment) => getMaxEnvelope(equipment) >= 1000 },
-  ],
+  matches: (equipment: CustomerEquipment) => boolean;
 };
 
 function sectionId(section: EquipmentSection) {
   return section.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
-function searchableText(equipment: VendorEquipment) {
+function searchableText(equipment: CustomerEquipment) {
   return [
     equipment.name,
     equipment.makeModel,
     equipment.quantity,
     equipment.summary,
-    ...equipment.details.flatMap((detail) => [detail.label, detail.value]),
-    ...equipment.fabricatorNotes,
-    ...(equipment.dataSheets ?? []).flatMap((dataSheet) => [dataSheet.label, dataSheet.source]),
+    ...equipment.details.flatMap((detail) => [
+      detail.label,
+      detail.value,
+    ]),
   ]
     .join(" ")
     .toLowerCase();
 }
 
-function getToleranceNumber(equipment: VendorEquipment) {
-  const toleranceDetail = equipment.details.find((detail) => /tolerance|accuracy/i.test(detail.label));
-  const value = toleranceDetail?.value.match(/0\.\d+/)?.[0];
-
-  return value ? Number(value) : Number.POSITIVE_INFINITY;
-}
-
-function getMaxEnvelope(equipment: VendorEquipment) {
-  const envelopeDetail = equipment.details.find((detail) => /envelope|range|processing|turning/i.test(detail.label));
-  const dimensions = envelopeDetail?.value.match(/\d+(?:\.\d+)?/g)?.map(Number) ?? [];
-
-  return dimensions.length > 0 ? Math.max(...dimensions) : 0;
-}
-
-type CompactEquipmentSpec = {
-  label: string;
-  value: string;
-};
+const equipmentTypeFilters: EquipmentTypeFilter[] = [
+  { id: "all", label: "All equipment types", matches: () => true },
+  { id: "cnc-mill", label: "CNC Mill", matches: (equipment) => equipment.section === "CNC Milling" },
+  { id: "lathes", label: "Lathes", matches: (equipment) => equipment.section === "CNC Lathe" },
+  { id: "manual-equipment", label: "Manual equipment", matches: (equipment) => equipment.section === "Manual Machines" },
+  { id: "qc-equipment", label: "QC equipment", matches: (equipment) => equipment.section === "QC & Inspection" },
+  { id: "sheet-metal-fabrication", label: "Sheet metal fabrication", matches: (equipment) => equipment.section === "Sheet Metal" },
+];
 
 function customerFacingSpecValue(label: string, value: string) {
   const normalized = value
@@ -136,326 +47,268 @@ function customerFacingSpecValue(label: string, value: string) {
     .replace(/\s+x\s+/gi, " × ");
 
   if (/rpm/i.test(label) && !/rpm/i.test(normalized)) {
-    return `${normalized} RPM`;
+    return customerEquipmentGuidance(`${normalized} RPM`);
   }
 
-  return normalized;
+  return customerEquipmentGuidance(normalized);
 }
 
-function getAxisCount(equipment: VendorEquipment) {
-  const match = `${equipment.name} ${equipment.summary}`.match(/\b([345])-axis\b/i);
-
-  return match ? `${match[1]} axes` : undefined;
-}
-
-function getCompactSpecs(equipment: VendorEquipment) {
-  const specs: CompactEquipmentSpec[] = [];
-  const seen = new Set<string>();
-  const addDetail = (pattern: RegExp, label: string) => {
-    const detail = equipment.details.find((candidate) => pattern.test(candidate.label));
-
-    if (!detail || seen.has(detail.label)) return;
-    specs.push({ label, value: customerFacingSpecValue(detail.label, detail.value) });
-    seen.add(detail.label);
-  };
-
-  addDetail(/tolerance/i, "Supplier-reported capability");
-  addDetail(/accuracy/i, "Supplier-reported accuracy");
-  addDetail(/5-axis envelope/i, "5-axis envelope");
-  addDetail(/3-axis envelope/i, "3-axis envelope");
-
-  if (!specs.some((spec) => /envelope/i.test(spec.label))) {
-    addDetail(/envelope|range|processing|turning/i, "Work envelope");
+function customerFacingSpecLabel(label: string) {
+  if (/best tolerance|positional accuracy|tolerance/i.test(label)) {
+    return "Positional accuracy (X/Y/Z)";
   }
 
-  const axisCount = getAxisCount(equipment);
-  if (axisCount) specs.push({ label: "Axis count", value: axisCount });
-
-  addDetail(/rpm/i, "Max spindle speed");
-  addDetail(/control/i, "Control");
-  addDetail(/power/i, "Power");
-
-  for (const detail of equipment.details) {
-    if (specs.length >= 6) break;
-    if (seen.has(detail.label)) continue;
-    specs.push({ label: detail.label, value: customerFacingSpecValue(detail.label, detail.value) });
-    seen.add(detail.label);
+  if (/^processing envelope$/i.test(label)) {
+    return "Work envelope";
   }
 
-  return specs.slice(0, 6);
+  return label;
 }
 
-function getCustomerGuidance(equipment: VendorEquipment) {
-  return {
-    bestFor: customerEquipmentGuidance(equipment.customerGuidance?.bestFor ?? equipment.fabricatorNotes?.[0] ?? equipment.summary),
-    limitation: customerEquipmentGuidance(equipment.customerGuidance?.limitation ?? "Additional machine limits are confirmed during RFQ review."),
-  };
+function isCustomerVisibleSpecification(detail: CustomerEquipment["details"][number]) {
+  return !/calibrat/i.test(detail.label) && !/calibrat/i.test(detail.value);
 }
 
-function getImageLabel(equipment: VendorEquipment) {
-  if (equipment.imageKind === "actual") return "Actual machine image";
-  if (equipment.imageKind === "same-model") return "Same-model image";
-  return "Photo pending verification";
+function isPrimaryComparisonSpecification(detail: CustomerEquipment["details"][number]) {
+  return /tolerance|accuracy|5-axis envelope|3-axis envelope|envelope|range|processing|turning/i.test(detail.label);
 }
 
-function alphabetizeEquipment(equipment: VendorEquipment[]) {
+function formatPositionalAccuracy(value: string) {
+  const normalized = customerFacingSpecValue("Positional accuracy", value);
+  const axisValues = normalized.match(/(?:±?\s*\d+(?:\.\d+)?\s*mm?)(?:\s*[/×x]\s*(?:±?\s*\d+(?:\.\d+)?\s*mm?)){2}/i);
+
+  if (axisValues) return customerEquipmentGuidance(axisValues[0].replace(/\s*[/×x]\s*/g, " / "));
+
+  return `${normalized} common X/Y/Z value`;
+}
+
+function alphabetizeEquipment(equipment: CustomerEquipment[]) {
   return [...equipment].sort((a, b) => a.makeModel.localeCompare(b.makeModel));
 }
 
-function EquipmentSectionNav({
-  activeSection,
-  onSectionChange,
-}: {
-  activeSection: EquipmentSection;
-  onSectionChange: (section: EquipmentSection) => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(true);
+function getTableDetail(equipment: CustomerEquipment, pattern: RegExp, fallback = "—") {
+  const detail = equipment.details.find((candidate) => pattern.test(candidate.label));
 
-  const checkScroll = () => {
-    if (!scrollRef.current) return;
-    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-    setShowLeftArrow(scrollLeft > 0);
-    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-  };
-
-  useEffect(() => {
-    checkScroll();
-    window.addEventListener("resize", checkScroll);
-    return () => window.removeEventListener("resize", checkScroll);
-  }, []);
-
-  const scroll = (dir: "left" | "right") => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({
-      left: dir === "left" ? -300 : 300,
-      behavior: "smooth",
-    });
-  };
-
-  return (
-    <nav aria-label="Equipment sections" className="relative mb-12 inline-flex w-fit max-w-full items-center rounded-xl border border-stone-200/50 bg-stone-100/50 p-1.5">
-      {showLeftArrow && (
-        <div className="absolute bottom-0 left-0 top-0 z-10 flex items-center rounded-l-xl bg-gradient-to-r from-stone-100 via-stone-100 to-transparent pl-1 pr-4">
-          <button
-            aria-label="Scroll equipment sections left"
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 shadow-sm transition-colors hover:text-stone-900"
-            onClick={() => scroll("left")}
-            type="button"
-          >
-            <ChevronLeft size={14} />
-          </button>
-        </div>
-      )}
-
-      <div
-        className="relative z-0 flex min-w-0 flex-1 gap-1 overflow-x-auto px-1 py-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        onScroll={checkScroll}
-        ref={scrollRef}
-      >
-        {equipmentSections.map((section) => {
-          const isActive = section === activeSection;
-
-          return (
-          <button
-            aria-pressed={isActive}
-            className={`whitespace-nowrap rounded-lg border px-4 py-2 text-sm font-medium transition-colors outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 ${
-              isActive ? "border-stone-200/60 bg-white text-stone-900 shadow-sm" : "border-transparent text-stone-600 hover:bg-stone-200/50 hover:text-stone-900"
-            }`}
-            key={section}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => onSectionChange(section)}
-            type="button"
-          >
-            {section}
-          </button>
-          );
-        })}
-      </div>
-
-      {showRightArrow && (
-        <div className="absolute bottom-0 right-0 top-0 z-10 flex items-center rounded-r-xl bg-gradient-to-l from-stone-100 via-stone-100 to-transparent pl-4 pr-1">
-          <button
-            aria-label="Scroll equipment sections right"
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 shadow-sm transition-colors hover:text-stone-900"
-            onClick={() => scroll("right")}
-            type="button"
-          >
-            <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
-    </nav>
-  );
+  return detail ? customerFacingSpecValue(detail.label, detail.value) : fallback;
 }
 
-function EquipmentRow({ defaultOpen = false, equipment }: { defaultOpen?: boolean; equipment: VendorEquipment }) {
-  const [isExpanded, setIsExpanded] = useState(defaultOpen);
-  const panelId = `${equipment.slug}-details`;
-  const compactSpecs = getCompactSpecs(equipment);
-  const guidance = getCustomerGuidance(equipment);
-  const imageLabel = getImageLabel(equipment);
-  const primaryDataSheet = equipment.dataSheets?.[0];
-  const specificationLink = primaryDataSheet
-    ? { label: "View technical data sheet", url: primaryDataSheet.url }
+function getTableAccuracy(equipment: CustomerEquipment) {
+  const detail = equipment.details.find((candidate) => /tolerance|accuracy/i.test(candidate.label));
+
+  return detail ? customerFacingSpecValue(detail.label, detail.value) : "—";
+}
+
+function getTableEnvelope(equipment: CustomerEquipment) {
+  return getTableDetail(equipment, /5-axis envelope|3-axis envelope|envelope|range|processing|turning/i);
+}
+
+function hasQueryMatch(equipment: CustomerEquipment, query: string) {
+  return query.trim().length === 0 || searchableText(equipment).includes(query.trim().toLowerCase());
+}
+
+function isCustomerVisibleEquipment(equipment: CustomerEquipment) {
+  if (equipment.section !== "Sheet Metal") {
+    return true;
+  }
+
+  return equipment.name === "Laser cutting machine" || equipment.name === "Press brake";
+}
+
+function usesSimplifiedComparisonSchema(section: EquipmentSection) {
+  return section === "Manual Machines" || section === "QC & Inspection" || section === "Sheet Metal";
+}
+
+function comparisonGridClass(section: EquipmentSection) {
+  if (section === "QC & Inspection") {
+    return "grid-cols-[minmax(20rem,1.6fr)_minmax(8rem,0.45fr)_minmax(10rem,0.65fr)]";
+  }
+
+  if (usesSimplifiedComparisonSchema(section)) {
+    return "grid-cols-[minmax(16rem,1fr)_5rem_8.75rem]";
+  }
+
+  return "grid-cols-[minmax(14rem,1.8fr)_5rem_minmax(10rem,1.25fr)_minmax(10rem,1.25fr)_8.75rem]";
+}
+
+function EquipmentComparisonRow({ equipment, simplified }: { equipment: CustomerEquipment; simplified: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const detailId = `${equipment.slug}-comparison-details`;
+  const isQcEquipment = equipment.section === "QC & Inspection";
+  const customerMakeModel = equipment.makeModel;
+  const customerName = equipment.name;
+  const specificationLink = equipment.dataSheets?.[0]
+    ? { label: "View technical data sheet", url: equipment.dataSheets[0].url }
     : equipment.onlineSpecificationUrl
       ? { label: "View online specifications", url: equipment.onlineSpecificationUrl }
       : undefined;
 
   return (
-    <article className={`mb-4 overflow-hidden rounded-xl border bg-white transition-[border-color,box-shadow] duration-200 ${isExpanded ? "border-stone-300 shadow-sm" : "border-stone-200 shadow-sm hover:border-stone-300"}`}>
-      <button
-        aria-controls={panelId}
-        aria-expanded={isExpanded}
-        aria-label={`${isExpanded ? "Hide" : "View"} ${equipment.makeModel} details`}
-        className="group grid w-full select-none grid-cols-[96px_minmax(0,1fr)_auto] items-stretch gap-0 text-left outline-none transition-colors hover:bg-stone-50/60 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-stone-900/20 sm:grid-cols-[144px_minmax(0,1fr)_auto]"
-        onClick={() => setIsExpanded((current) => !current)}
-        type="button"
-      >
-        <div className="relative flex min-h-[108px] items-center justify-center overflow-hidden border-r border-stone-200 bg-stone-50/60 sm:min-h-[126px]">
-          {equipment.imagePath ? (
-            <Image
-              alt={`${imageLabel}: ${equipment.makeModel}`}
-              className="h-full w-full object-contain p-2.5 sm:p-3"
-              height={240}
-              sizes="(max-width: 640px) 96px, 144px"
-              src={equipment.imagePath}
-              width={320}
-            />
-          ) : (
-            <span aria-hidden="true" className="px-3 text-center text-[10px] font-medium leading-4 text-stone-400 sm:text-[11px]">No photo available</span>
-          )}
+    <div className="border-t border-stone-200 first:border-t-0" role="row">
+      <div className={`grid px-4 text-sm lg:px-5 ${comparisonGridClass(equipment.section)} ${
+        isQcEquipment ? "items-start gap-6 py-3" : "items-center gap-4 py-4"
+      }`}>
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-stone-950">{customerMakeModel}</p>
+          <p className="mt-0.5 truncate text-xs text-stone-500">{customerName}</p>
         </div>
+        <p className="text-stone-700">{equipment.customerQuantityLabel ?? equipment.quantity}</p>
+        {!simplified && <p className="truncate text-stone-700" title={getTableAccuracy(equipment)}>{getTableAccuracy(equipment)}</p>}
+        {!simplified && <p className="truncate text-stone-700" title={getTableEnvelope(equipment)}>{getTableEnvelope(equipment)}</p>}
+        <button
+          aria-controls={detailId}
+          aria-expanded={isOpen}
+          aria-label={`${isOpen ? "Hide" : "View"} specifications for ${customerMakeModel}`}
+          className="whitespace-nowrap text-xs font-medium text-stone-600 underline-offset-4 hover:text-stone-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/30"
+          onClick={() => setIsOpen((current) => !current)}
+          type="button"
+        >
+          {isOpen ? "Hide specifications" : "View specifications"}
+        </button>
+      </div>
 
-        <div className="min-w-0 self-center px-4 py-4 sm:px-6">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">{equipment.section}</span>
-          <h3 className="mt-1 truncate text-[19px] font-semibold leading-tight tracking-tight text-stone-950 sm:text-[26px]">{equipment.makeModel}</h3>
-          <p className="mt-1 truncate text-[13px] text-stone-500 sm:text-[15px]">{equipment.name}</p>
-        </div>
-
-        <div className="flex items-center gap-2 self-center px-4 py-4 sm:gap-4 sm:px-5">
-          <span className="hidden min-h-9 items-center rounded-md border border-stone-200 px-3 text-[13px] font-medium text-stone-700 sm:inline-flex">
-            {equipment.customerQuantityLabel ?? equipment.quantity}
-          </span>
-          <ChevronDown className={`text-stone-700 transition-transform ${isExpanded ? "rotate-180" : ""}`} size={20} strokeWidth={1.8} />
-        </div>
-      </button>
-
-      {isExpanded && (
-        <div className="border-t border-stone-200" id={panelId} role="region" aria-label={`${equipment.makeModel} qualification details`}>
-          {compactSpecs.length > 0 && (
-            <dl className="grid grid-cols-2 border-b border-stone-200 sm:grid-cols-3 xl:grid-cols-6">
-              {compactSpecs.map((spec, index) => (
-                <div
-                  className={`min-w-0 px-4 py-3.5 sm:px-5 ${index % 2 !== 0 ? "border-l border-stone-200" : ""} ${index >= 2 ? "border-t border-stone-200 sm:border-t-0" : ""} sm:[&:not(:nth-child(3n+1))]:border-l sm:[&:nth-child(3n+1)]:border-l-0 xl:border-t-0 xl:[&:not(:first-child)]:border-l xl:[&:first-child]:border-l-0`}
-                  key={`${equipment.slug}-${spec.label}`}
-                >
-                  <dt className="text-[12px] font-medium leading-4 text-stone-500">{spec.label}</dt>
-                  <dd className="mt-1 break-words text-[15px] font-semibold leading-5 text-stone-950">{spec.value}</dd>
-                </div>
-              ))}
-            </dl>
-          )}
-
-          <dl className="grid border-b border-stone-200 lg:grid-cols-2">
-            {[
-              { label: "Best for", value: guidance.bestFor },
-              { label: "Limitation", value: guidance.limitation },
-            ].map((item, index) => (
-              <div className={`px-4 py-3.5 sm:px-5 ${index > 0 ? "border-t border-stone-200 lg:border-l lg:border-t-0" : ""}`} key={`${equipment.slug}-${item.label}`}>
-                <dt className="text-[12px] font-medium leading-4 text-stone-500">{item.label}</dt>
-                <dd className="mt-1 text-[13px] leading-[1.45] text-stone-800">{item.value}</dd>
+      {isOpen && (
+        <div className="border-t border-stone-200 bg-stone-50/60 px-4 py-5 lg:px-5" id={detailId} role="region" aria-label={`${customerMakeModel} specifications`}>
+          <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div>
+              <dt className="text-xs font-medium text-stone-500">Equipment specification</dt>
+              <dd className="mt-1 text-sm font-semibold text-stone-950">{equipment.summary}</dd>
+            </div>
+            {equipment.details.filter((detail) => isCustomerVisibleSpecification(detail) && (simplified || !isPrimaryComparisonSpecification(detail))).map((detail) => (
+              <div key={`${equipment.slug}-${detail.label}`}>
+                <dt className="text-xs font-medium text-stone-500">{customerFacingSpecLabel(detail.label)}</dt>
+                <dd className="mt-1 text-sm font-semibold text-stone-950">{/best tolerance|positional accuracy|tolerance/i.test(detail.label) ? formatPositionalAccuracy(detail.value) : customerFacingSpecValue(detail.label, detail.value)}</dd>
               </div>
             ))}
           </dl>
-
           {specificationLink && (
-            <div className="flex min-h-16 items-center px-4 py-3 sm:px-5">
-              <a
-                className="w-fit text-[13px] font-medium text-blue-700 underline-offset-4 transition-colors hover:text-blue-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700/30"
-                href={specificationLink.url}
-                rel="noreferrer"
-                target="_blank"
-              >
-                {specificationLink.label}
-              </a>
-            </div>
+            <a className="mt-5 inline-flex text-sm font-medium text-blue-700 underline-offset-4 hover:text-blue-900 hover:underline" href={specificationLink.url} rel="noreferrer" target="_blank">
+              {specificationLink.label}
+            </a>
           )}
         </div>
       )}
-    </article>
-  );
-}
-
-function SectionEquipment({ section }: { section: EquipmentSection }) {
-  const [activeFilter, setActiveFilter] = useState("all");
-  const equipmentBySection = vendorEquipment.filter((equipment) => equipment.section === section);
-  const filters = sectionFilters[section];
-  const activePreset = filters.find((filter) => filter.id === activeFilter) ?? filters[0];
-  const filteredEquipment = useMemo(() => {
-    const matchedEquipment = equipmentBySection.filter((equipment) => activePreset.matches(equipment));
-
-    return alphabetizeEquipment(matchedEquipment);
-  }, [activePreset, equipmentBySection]);
-
-  const headingId = `${sectionId(section)}-heading`;
-
-  return (
-    <section aria-labelledby={headingId} className="mb-8" id={sectionId(section)}>
-      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <h2 className="mb-2 text-2xl font-semibold tracking-tight text-stone-900" id={headingId}>{section}</h2>
-          <p className="text-[15px] text-stone-600">{sectionSummaries[section]}</p>
-        </div>
-        <div className="whitespace-nowrap text-sm font-medium text-stone-500">
-          {filteredEquipment.length} of {equipmentBySection.length} unique make/model cards
-        </div>
-      </div>
-
-      <div className="mb-8 flex flex-wrap gap-2 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap gap-2">
-          {filters.map((filter) => {
-            const isActive = filter.id === activeFilter;
-
-            return (
-              <button
-                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium shadow-sm transition-colors ${
-                  isActive ? "border-stone-900 bg-stone-900 text-white" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:text-stone-900"
-                }`}
-                key={filter.id}
-                onClick={() => setActiveFilter(filter.id)}
-                type="button"
-              >
-                {filter.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {filteredEquipment.length > 0 ? (
-        <div className="mt-8">
-          {filteredEquipment.map((equipment) => (
-            <EquipmentRow defaultOpen={equipment.slug === "jingdiao-jdgr200t"} equipment={equipment} key={equipment.slug} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-xl border border-dashed border-stone-300 bg-white p-6 text-sm font-medium text-stone-600">
-          No equipment matches this section filter.
-        </div>
-      )}
-    </section>
-  );
-}
-
-export function EquipmentCatalog() {
-  const [activeSection, setActiveSection] = useState<EquipmentSection>(equipmentSections[0]);
-
-  return (
-    <div>
-      <EquipmentSectionNav activeSection={activeSection} onSectionChange={setActiveSection} />
-      <SectionEquipment key={activeSection} section={activeSection} />
     </div>
+  );
+}
+
+/**
+ * Active customer-facing catalog. Photos remain preserved in VendorEquipment,
+ * but comparison is deliberately image-independent.
+ */
+export function EquipmentCatalog({ equipment }: { equipment: CustomerEquipment[] }) {
+  const [query, setQuery] = useState("");
+  const [section, setSection] = useState<"all" | EquipmentSection>("all");
+  const [equipmentType, setEquipmentType] = useState("all");
+  const customerVisibleEquipment = useMemo(() => equipment.filter(isCustomerVisibleEquipment), [equipment]);
+
+  const equipmentTypeCounts = useMemo(
+    () => new Map(equipmentTypeFilters.map((filter) => [filter.id, customerVisibleEquipment.filter(filter.matches).length])),
+    [customerVisibleEquipment],
+  );
+
+  const groupedEquipment = useMemo(() => {
+    const filtered = customerVisibleEquipment.filter((equipment) => {
+      const matchesSection = section === "all" || equipment.section === section;
+      const selectedType = equipmentTypeFilters.find((filter) => filter.id === equipmentType) ?? equipmentTypeFilters[0];
+
+      return matchesSection && selectedType.matches(equipment) && hasQueryMatch(equipment, query);
+    });
+
+    return equipmentSections
+      .map((equipmentSection) => ({
+        section: equipmentSection,
+        equipment: alphabetizeEquipment(filtered.filter((equipment) => equipment.section === equipmentSection)),
+      }))
+      .filter((group) => group.equipment.length > 0);
+  }, [customerVisibleEquipment, equipmentType, query, section]);
+
+  const totalSets = customerVisibleEquipment.reduce((total, equipment) => total + (Number(equipment.quantity.match(/\d+/)?.[0]) || 0), 0);
+  const filteredCount = groupedEquipment.reduce((total, group) => total + group.equipment.length, 0);
+
+  return (
+    <section aria-labelledby="equipment-catalog-heading">
+      <div className="mb-7 flex flex-col gap-4 border-b border-stone-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-3xl font-semibold tracking-tight text-stone-950" id="equipment-catalog-heading">Equipment catalog</h2>
+          <p className="mt-2 text-[15px] text-stone-600">Compare the documented capacity behind the Lattice network.</p>
+        </div>
+        <p className="text-sm font-medium text-stone-500">{customerVisibleEquipment.length} machine models · {totalSets} total sets</p>
+      </div>
+
+      <div className="mb-6">
+        <div className="grid gap-3 lg:grid-cols-[minmax(15rem,1.5fr)_minmax(11rem,0.8fr)_auto]">
+          <label className="sr-only" htmlFor="equipment-search">Search make or model</label>
+          <input
+            className="h-10 rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-950 outline-none placeholder:text-stone-400 focus:border-stone-400"
+            id="equipment-search"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search make or model"
+            type="search"
+            value={query}
+          />
+          <label className="sr-only" htmlFor="equipment-process">Process category</label>
+          <select className="h-10 rounded-lg border border-stone-200 bg-white px-3 text-sm text-stone-700 outline-none focus:border-stone-400" id="equipment-process" onChange={(event) => setSection(event.target.value as "all" | EquipmentSection)} value={section}>
+            <option value="all">All process categories</option>
+            {equipmentSections.map((equipmentSection) => <option key={equipmentSection} value={equipmentSection}>{equipmentSection}</option>)}
+          </select>
+          <button className="h-10 rounded-lg px-3 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-950" onClick={() => { setQuery(""); setSection("all"); setEquipmentType("all"); }} type="button">Reset</button>
+        </div>
+        <div aria-label="Equipment type" className="mt-5" role="group">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">Equipment type</p>
+          <div className="mt-2 overflow-x-auto overflow-y-hidden border-b border-stone-200 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex min-w-max items-center gap-5 px-1" role="list">
+              {equipmentTypeFilters.map((filter) => {
+                const isActive = filter.id === equipmentType;
+                const count = equipmentTypeCounts.get(filter.id) ?? 0;
+
+                return (
+                  <button
+                    aria-label={filter.label}
+                    aria-pressed={isActive}
+                    className={`relative -mb-px border-b-2 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 ${
+                      isActive
+                        ? "border-stone-950 text-stone-950"
+                        : "border-transparent text-stone-500 hover:border-stone-300 hover:text-stone-950"
+                    }`}
+                    key={filter.id}
+                    onClick={() => setEquipmentType(filter.id)}
+                    type="button"
+                  >
+                    {filter.label} <span className={`tabular-nums ${isActive ? "text-stone-700" : "text-stone-400"}`}>({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+        <div className="min-w-[800px]" role="table" aria-label="Vendor equipment comparison">
+          {groupedEquipment.map((group) => (
+            <section key={group.section} aria-labelledby={`${sectionId(group.section)}-comparison-heading`}>
+              <div className="flex items-center gap-3 border-b border-stone-200 bg-stone-50/80 px-4 py-2.5 lg:px-5">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-700" id={`${sectionId(group.section)}-comparison-heading`}>{group.section}</h3>
+                <span className="rounded-full border border-stone-200 bg-white px-2 py-0.5 text-[11px] text-stone-500">{group.equipment.length} models</span>
+              </div>
+              <div className={`grid border-b border-stone-200 bg-stone-50 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-stone-500 lg:px-5 ${comparisonGridClass(group.section)} ${
+                group.section === "QC & Inspection" ? "gap-6" : "gap-4"
+              }`} role="row">
+                <span>Make / model</span><span>Sets</span>
+                {!usesSimplifiedComparisonSchema(group.section) && <><span>Positional accuracy (X/Y/Z)</span><span>Work envelope (X × Y × Z)</span></>}
+                <span aria-hidden="true" className="invisible whitespace-nowrap text-xs font-medium">View specifications</span>
+              </div>
+              {group.equipment.map((equipment) => <EquipmentComparisonRow equipment={equipment} key={equipment.slug} simplified={usesSimplifiedComparisonSchema(group.section)} />)}
+            </section>
+          ))}
+
+          {groupedEquipment.length === 0 && (
+            <p className="px-5 py-10 text-sm text-stone-600">No equipment matches these filters.</p>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-4 text-xs text-stone-500">{filteredCount} matching machine models · Model photos remain attached to their equipment records.</p>
+    </section>
   );
 }

@@ -36,6 +36,7 @@ function makeSubmittedRequest(overrides: Partial<LatticeRequest> = {}) {
 
   return {
     ...submitted,
+    buyerCompanyId: "company_test",
     createdAt: "2026-06-01T10:00:00.000Z",
     id: "req_base",
     updatedAt: "2026-06-01T10:00:00.000Z",
@@ -80,6 +81,8 @@ describe("NotificationsPage", () => {
         id: "user_test",
         name: "William Paik",
         role: "customer",
+        companyId: "company_test",
+        companyName: "Amogy Manufacturing",
       },
     });
   });

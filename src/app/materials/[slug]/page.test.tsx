@@ -11,7 +11,7 @@ describe("MaterialFamilyPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Aluminum" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Breadcrumb" })).toHaveTextContent("Materials/Aluminum");
     expect(screen.getByAltText("Aluminum round bar, plate, and a precision CNC-machined housing")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Request aluminum parts" })).toHaveAttribute("href", "/requests/new");
+    expect(screen.queryByRole("link", { name: "Request aluminum parts" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "6061-T6" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "7075-T6" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "5052-H32" })).toBeInTheDocument();

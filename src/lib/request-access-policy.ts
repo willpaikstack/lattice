@@ -7,15 +7,8 @@ import { getCurrentSession } from "./session";
 
 type Session = NonNullable<Awaited<ReturnType<typeof getCurrentSession>>>;
 
-function normalizedEmail(email: string | undefined) {
-  return email?.trim().toLowerCase() ?? "";
-}
-
-export function customerEmailOwnsRequest(email: string | undefined, request: Pick<LatticeRequest, "requesterEmail">) {
-  const sessionEmail = normalizedEmail(email);
-  const requesterEmail = normalizedEmail(request.requesterEmail);
-
-  return Boolean(sessionEmail && requesterEmail && sessionEmail === requesterEmail);
+export function customerCompanyOwnsRequest(companyId: string | null | undefined, request: Pick<LatticeRequest, "buyerCompanyId">) {
+  return Boolean(companyId && request.buyerCompanyId && companyId === request.buyerCompanyId);
 }
 
 export function canSessionAccessCustomerRequest(session: Session | null, request: LatticeRequest) {
@@ -27,7 +20,7 @@ export function canSessionAccessCustomerRequest(session: Session | null, request
     return true;
   }
 
-  return session.user.role === "customer" && customerEmailOwnsRequest(session.user.email, request);
+  return session.user.role === "customer" && customerCompanyOwnsRequest(session.user.companyId, request);
 }
 
 export function filterCustomerVisibleRequests(requests: LatticeRequest[], session: Session | null) {

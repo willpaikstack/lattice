@@ -52,7 +52,7 @@ const qualityDocuments = [
 export default function QualityDocumentationPage() {
   return (
     <div className="mx-auto w-full max-w-[1180px] px-2 pb-16 pt-4 sm:px-6 sm:pt-8 lg:px-10">
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,740px)_190px] lg:justify-center lg:gap-20">
+      <div className="mx-auto max-w-[740px]">
         <article className="min-w-0">
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-400">
             <Link className="transition hover:text-slate-700" href="/requests/new">Request Quote</Link>
@@ -112,21 +112,28 @@ export default function QualityDocumentationPage() {
           </Link>
         </article>
 
-        <aside className="hidden lg:block">
-          <nav aria-label="On this page" className="sticky top-8 border-l border-slate-200 pl-5">
+      </div>
+      <aside className="fixed right-0 top-24 z-40 hidden xl:block">
+        <nav aria-label="On this page" className="group w-8 overflow-hidden rounded-l-md border border-r-0 border-transparent transition-[width,background-color,border-color,box-shadow] duration-200 hover:w-52 hover:border-slate-200 hover:bg-[#fbfaf7]/95 hover:shadow-sm focus-within:w-52 focus-within:border-slate-200 focus-within:bg-[#fbfaf7]/95 focus-within:shadow-sm">
+          <span aria-hidden="true" className="absolute right-2 top-3 flex flex-col gap-1.5 transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
+            <span className="h-0.5 w-4 rounded-full bg-slate-400" />
+            <span className="h-0.5 w-4 rounded-full bg-slate-400" />
+            <span className="h-0.5 w-4 rounded-full bg-slate-400" />
+          </span>
+          <div className="w-52 px-4 py-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">On this page</p>
             <div className="mt-4 space-y-3 text-sm leading-5">
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#requesting-documentation">How to request</a>
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#standard-inspection">Standard inspection</a>
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#dimensional-inspection-report">Dimensional report</a>
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#cmm-inspection">CMM inspection</a>
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#first-article">First article inspection</a>
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#custom-inspection">Custom inspection</a>
-              <a className="block text-slate-500 transition hover:text-slate-950" href="#material-test-report">Material test report</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#requesting-documentation">How to request</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#standard-inspection">Standard inspection</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#dimensional-inspection-report">Dimensional report</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#cmm-inspection">CMM inspection</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#first-article">First article inspection</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#custom-inspection">Custom inspection</a>
+              <a className="block text-slate-500 transition hover:text-slate-950 focus:outline-none focus-visible:text-slate-950" href="#material-test-report">Material test report</a>
             </div>
-          </nav>
-        </aside>
-      </div>
+          </div>
+        </nav>
+      </aside>
     </div>
   );
 }

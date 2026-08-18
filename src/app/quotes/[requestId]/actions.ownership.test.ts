@@ -126,4 +126,37 @@ describe("checkout server action ownership", () => {
     expect(mocks.finalizeStripePaymentIntent).not.toHaveBeenCalled();
     expect(mocks.recordStripeCheckoutSession).not.toHaveBeenCalled();
   });
+
+  it("lets an owning customer complete a purchase-order checkout and records the uploaded PO", async () => {
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({
+      customerQuotes: [{ quoteNumber: "LQ-1001" }],
+      id: "req_owned",
+      status: "QUOTED",
+      title: "Precision bracket",
+    });
+    mocks.saveLocalUpload.mockResolvedValue({
+      name: "PO-1001.pdf",
+      sizeBytes: 12,
+      storageKey: "customer-purchase-orders/PO-1001.pdf",
+      type: "application/pdf",
+    });
+    mocks.purchaseQuote.mockResolvedValue({ id: "req_owned", status: "PURCHASED" });
+
+    const formData = checkoutForm();
+    formData.set("poFile", new File(["purchase order"], "PO-1001.pdf", { type: "application/pdf" }));
+
+    await expect(purchaseQuoteAction("req_owned", formData)).rejects.toThrow("NEXT_REDIRECT:/orders");
+
+    expect(mocks.saveLocalUpload).toHaveBeenCalledWith(expect.any(File), "customer-purchase-orders");
+    expect(mocks.purchaseQuote).toHaveBeenCalledWith(
+      "req_owned",
+      expect.objectContaining({
+        accountsPayableEmail: "ap@acme.com",
+        customerPoNumber: "PO-1001",
+        paymentMethod: "purchase-order",
+        poAttachment: expect.objectContaining({ storageKey: "customer-purchase-orders/PO-1001.pdf" }),
+      }),
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/orders");
+  });
 });

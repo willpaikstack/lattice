@@ -73,54 +73,6 @@ export async function createStripeElementsCheckoutSessionForRequest(request: Lat
   };
 }
 
-export async function createGuestStripeElementsCheckoutSessionForRequest(request: LatticeRequest): Promise<StripeElementsCheckoutSession> {
-  if (request.status !== "QUOTED") {
-    throw new Error("Only priced quotes can be paid by card.");
-  }
-
-  if (request.requestOrigin !== "GUEST_SIMPLE_QUOTE") {
-    throw new Error("Guest checkout is only available for simple quote requests.");
-  }
-
-  const publishableKey = getStripePublishableKey();
-
-  if (!publishableKey) {
-    throw new Error("Stripe publishable key is not configured. Set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY.");
-  }
-
-  const amountCents = quoteCheckoutAmountCents(request);
-  const stripe = getStripeClient();
-  const quoteNumber = quoteNumberForRequest(request);
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountCents,
-    currency: "usd",
-    description: `${quoteNumber} - ${request.title}`,
-    metadata: {
-      checkoutSurface: "guest-simple-quote",
-      requestId: request.id,
-      quoteNumber,
-    },
-    payment_method_types: ["card"],
-    receipt_email: request.requesterEmail || undefined,
-  });
-
-  if (!paymentIntent.client_secret) {
-    throw new Error("Stripe did not return a payment intent client secret.");
-  }
-
-  await recordStripeCheckoutSession(request.id, {
-    amountCents,
-    checkoutSessionId: paymentIntent.id,
-    currency: "usd",
-  });
-
-  return {
-    clientSecret: paymentIntent.client_secret,
-    publishableKey,
-    sessionId: paymentIntent.id,
-  };
-}
-
 export async function finalizeStripePaymentIntent(paymentIntentId: string) {
   const stripe = getStripeClient();
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {

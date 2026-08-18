@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 
 import { deleteBuyerQuoteAction } from "@/app/quotes/actions";
 import { CadRenderThumbnail } from "@/components/cad-file-preview";
@@ -321,11 +321,19 @@ function QuoteTable({
 }
 
 export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
-  const [localIncompleteRequests] = useState<LatticeRequest[]>(readLocalIncompleteRequests);
-  const [deletedQuoteIds, setDeletedQuoteIds] = useState<string[]>(readDeletedQuoteIds);
+  const [localIncompleteRequests, setLocalIncompleteRequests] = useState<LatticeRequest[]>([]);
+  const [deletedQuoteIds, setDeletedQuoteIds] = useState<string[]>([]);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    // Browser storage is intentionally read after hydration so server and client
+    // produce the same initial markup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalIncompleteRequests(readLocalIncompleteRequests());
+    setDeletedQuoteIds(readDeletedQuoteIds());
+  }, []);
 
   const visibleRequests = useMemo(() => {
     const localIds = new Set(localIncompleteRequests.map((request) => request.id));
@@ -354,6 +362,9 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
     if (isBrowserDraft) {
       removeLocalIncompleteRequest(request.id);
+      setLocalIncompleteRequests((currentRequests) =>
+        currentRequests.filter((currentRequest) => currentRequest.id !== request.id),
+      );
       setDeletedQuoteIds((currentIds) => {
         const nextIds = Array.from(new Set([...currentIds, request.id]));
         writeDeletedQuoteIds(nextIds);

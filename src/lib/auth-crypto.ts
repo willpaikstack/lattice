@@ -23,16 +23,9 @@ export const authorizedUser = {
 };
 
 const adminPrefixes = ["/admin", "/analytics", "/operator", "/projects"];
-const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/roadmap", "/shipped"];
+const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/shipped"];
 const sharedPrefixes = ["/account"];
 const supplierPrefixes = ["/supplier"];
-
-function splitEmailList(value: string | undefined) {
-  return (value ?? "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 function pathMatchesPrefix(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
@@ -61,14 +54,6 @@ export function resolveRoleForEmail(email?: string): LatticeRole {
     return authorizedUser.role;
   }
 
-  if (normalizedEmail && splitEmailList(process.env.LATTICE_ADMIN_EMAILS ?? process.env.GOOGLE_SSO_ADMIN_EMAILS).includes(normalizedEmail)) {
-    return "admin";
-  }
-
-  if (normalizedEmail && splitEmailList(process.env.LATTICE_SUPPLIER_EMAILS ?? process.env.GOOGLE_SSO_SUPPLIER_EMAILS).includes(normalizedEmail)) {
-    return "supplier";
-  }
-
   return "customer";
 }
 
@@ -82,7 +67,7 @@ export function canRoleAccessPath(role: LatticeRole, pathname: string) {
   }
 
   if (role === "admin") {
-    return pathMatchesAny(pathname, [...adminPrefixes, ...customerPrefixes]);
+    return pathMatchesAny(pathname, [...adminPrefixes, ...customerPrefixes, "/roadmap"]);
   }
 
   if (role === "supplier") {

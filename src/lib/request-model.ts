@@ -254,6 +254,7 @@ export type OperatorReview = {
 export type LatticeRequest = {
   id: string;
   buyerCompany: string;
+  buyerCompanyId?: string | null;
   guestAccessTokenExpiresAt: string | null;
   guestAccessTokenHash: string;
   requestOrigin: RequestOrigin;
@@ -369,6 +370,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
   const request: LatticeRequest = {
     id: makeId("req"),
     buyerCompany: input.buyerCompany.trim(),
+    buyerCompanyId: null,
     guestAccessTokenExpiresAt: input.guestAccessTokenExpiresAt ?? null,
     guestAccessTokenHash: input.guestAccessTokenHash?.trim() ?? "",
     requestOrigin: input.requestOrigin ?? "ACCOUNT",

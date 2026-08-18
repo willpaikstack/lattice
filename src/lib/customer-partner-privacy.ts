@@ -54,10 +54,15 @@ function customerDocumentName(category: string) {
 }
 
 export function customerEquipmentGuidance(value: string) {
+  const internalPartnerPattern = "(?:Best Prototypes|Best Parts|Zintilon|Yijin Solution|Jucheng Precision(?: \\(JC Proto\\))?|Saky Steel|Tianjin ZYTC Alloy Technology Co\\.,? Ltd)";
+
   return value
-    .replace(/\bBest Prototypes\b/gi, "the Lattice manufacturing network")
-    .replace(/\bZintilon\b/gi, "the Lattice manufacturing network")
-    .replace(/\bthe Lattice manufacturing network 5-axis/g, "5-axis")
-    .replace(/\blisted by the Lattice manufacturing network\b/gi, "available through the Lattice manufacturing network")
-    .replace(/\bfrom the Lattice manufacturing network\b/gi, "across the Lattice manufacturing network");
+    .replace(new RegExp(`^${internalPartnerPattern} lists?\\s*`, "i"), "Documented ")
+    .replace(new RegExp(`\\blisted by ${internalPartnerPattern}\\b`, "gi"), "")
+    .replace(new RegExp(`\\bfrom ${internalPartnerPattern}\\b`, "gi"), "")
+    .replace(new RegExp(`\\bcurrent ${internalPartnerPattern} list\\b`, "gi"), "current inventory")
+    .replace(new RegExp(`\\b${internalPartnerPattern}\\b`, "gi"), "")
+    .replace(/\s+\./g, ".")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }

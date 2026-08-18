@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => {
         id: string;
         name: string;
         role: "admin" | "customer" | "supplier";
+        companyId: string | null;
+        companyName: string | null;
+        customerRole: "admin" | "member" | null;
       };
     },
   };
@@ -35,18 +38,21 @@ vi.mock("./session", () => ({
 import {
   canCurrentSessionAccessStorageKey,
   canSessionAccessCustomerRequest,
-  customerEmailOwnsRequest,
+  customerCompanyOwnsRequest,
   filterCustomerVisibleRequests,
   getCustomerRequestByIdForCurrentSession,
 } from "./request-access-policy";
 
-function session(role: "admin" | "customer" | "supplier", email: string) {
+function session(role: "admin" | "customer" | "supplier", email: string, companyId: string | null = null) {
   return {
     user: {
       email,
       id: `${role}_${email}`,
       name: email,
       role,
+      companyId,
+      companyName: companyId ? `${companyId} company` : null,
+      customerRole: role === "customer" ? ("member" as const) : null,
     },
   };
 }
@@ -56,6 +62,7 @@ function request(overrides: Partial<LatticeRequest> = {}) {
     customerPurchaseOrderAttachment: null,
     files: [],
     id: "req_test",
+    buyerCompanyId: "company_acme",
     requesterEmail: "buyer@acme.com",
     supplierQuoteFiles: [],
     ...overrides,
@@ -71,34 +78,25 @@ describe("request access policy", () => {
     mocks.listAdminRequests.mockClear();
   });
 
-  it("allows exact customer email ownership", () => {
-    expect(customerEmailOwnsRequest("buyer@acme.com", request())).toBe(true);
-    expect(customerEmailOwnsRequest("BUYER@ACME.COM", request())).toBe(true);
-    expect(customerEmailOwnsRequest("other@acme.com", request())).toBe(false);
-    expect(customerEmailOwnsRequest("buyer@otherco.com", request())).toBe(false);
-  });
-
-  it("does not domain-share customer records", () => {
-    const personalRequest = request({ requesterEmail: "buyer@gmail.com" });
-    const corporateRequest = request({ requesterEmail: "buyer@acme.com" });
-
-    expect(customerEmailOwnsRequest("buyer@gmail.com", personalRequest)).toBe(true);
-    expect(customerEmailOwnsRequest("other@gmail.com", personalRequest)).toBe(false);
-    expect(customerEmailOwnsRequest("other@acme.com", corporateRequest)).toBe(false);
+  it("allows customer company ownership", () => {
+    expect(customerCompanyOwnsRequest("company_acme", request())).toBe(true);
+    expect(customerCompanyOwnsRequest("company_other", request())).toBe(false);
+    expect(customerCompanyOwnsRequest(null, request())).toBe(false);
+    expect(customerCompanyOwnsRequest("company_acme", request({ buyerCompanyId: null }))).toBe(false);
   });
 
   it("filters customer-visible requests while leaving admin support access broad", () => {
-    const acme = request({ id: "req_acme", requesterEmail: "buyer@acme.com" });
-    const other = request({ id: "req_other", requesterEmail: "buyer@otherco.com" });
+    const acme = request({ id: "req_acme", buyerCompanyId: "company_acme", requesterEmail: "buyer@acme.com" });
+    const other = request({ id: "req_other", buyerCompanyId: "company_other", requesterEmail: "buyer@otherco.com" });
 
-    expect(filterCustomerVisibleRequests([acme, other], session("customer", "buyer@acme.com")).map((item) => item.id)).toEqual(["req_acme"]);
+    expect(filterCustomerVisibleRequests([acme, other], session("customer", "coworker@acme.com", "company_acme")).map((item) => item.id)).toEqual(["req_acme"]);
     expect(filterCustomerVisibleRequests([acme, other], session("admin", "will@latticeos.co")).map((item) => item.id)).toEqual(["req_acme", "req_other"]);
     expect(filterCustomerVisibleRequests([acme, other], session("supplier", "shop@example.com"))).toEqual([]);
   });
 
   it("blocks customer sessions from another company's direct request lookup", async () => {
-    mocks.state.requests = [request({ id: "req_other", requesterEmail: "owner@otherco.com" })];
-    mocks.state.session = session("customer", "buyer@acme.com");
+    mocks.state.requests = [request({ id: "req_other", buyerCompanyId: "company_other", requesterEmail: "owner@otherco.com" })];
+    mocks.state.session = session("customer", "buyer@acme.com", "company_acme");
 
     await expect(getCustomerRequestByIdForCurrentSession("req_other")).resolves.toBeNull();
     expect(canSessionAccessCustomerRequest(mocks.state.session, mocks.state.requests[0])).toBe(false);
@@ -116,14 +114,15 @@ describe("request access policy", () => {
     mocks.state.requests = [
       request({
         files: [{ id: "file_1", name: "part.step", sizeBytes: 10, storageKey: "rfq/2026-06-18/part.step", type: "model/step" }],
+        buyerCompanyId: "company_acme",
         requesterEmail: "buyer@acme.com",
       }),
     ];
 
-    mocks.state.session = session("customer", "buyer@acme.com");
+    mocks.state.session = session("customer", "coworker@acme.com", "company_acme");
     await expect(canCurrentSessionAccessStorageKey("rfq/2026-06-18/part.step")).resolves.toEqual({ authenticated: true, authorized: true });
 
-    mocks.state.session = session("customer", "buyer@otherco.com");
+    mocks.state.session = session("customer", "buyer@otherco.com", "company_other");
     await expect(canCurrentSessionAccessStorageKey("rfq/2026-06-18/part.step")).resolves.toEqual({ authenticated: true, authorized: false });
   });
 
@@ -138,14 +137,15 @@ describe("request access policy", () => {
           type: "application/pdf",
           uploadedAt: "2026-06-18T12:00:00.000Z",
         },
+        buyerCompanyId: "company_acme",
         requesterEmail: "buyer@acme.com",
       }),
     ];
 
-    mocks.state.session = session("customer", "buyer@acme.com");
+    mocks.state.session = session("customer", "coworker@acme.com", "company_acme");
     await expect(canCurrentSessionAccessStorageKey("customer-purchase-orders/2026-06-18/acme-po.pdf")).resolves.toEqual({ authenticated: true, authorized: true });
 
-    mocks.state.session = session("customer", "buyer@otherco.com");
+    mocks.state.session = session("customer", "buyer@otherco.com", "company_other");
     await expect(canCurrentSessionAccessStorageKey("customer-purchase-orders/2026-06-18/acme-po.pdf")).resolves.toEqual({ authenticated: true, authorized: false });
 
     mocks.state.session = session("supplier", "shop@example.com");
@@ -164,6 +164,7 @@ describe("request access policy", () => {
           uploadedAt: "2026-06-18T12:00:00.000Z",
         },
         files: [{ id: "file_1", name: "part.step", sizeBytes: 10, storageKey: "rfq/2026-06-18/part.step", type: "model/step" }],
+        buyerCompanyId: "company_acme",
         requesterEmail: "buyer@acme.com",
       }),
     ];
@@ -176,6 +177,7 @@ describe("request access policy", () => {
   it("keeps supplier quote attachments admin-only", async () => {
     mocks.state.requests = [
       request({
+        buyerCompanyId: "company_acme",
         requesterEmail: "buyer@acme.com",
         supplierQuoteFiles: [
           {
@@ -190,7 +192,7 @@ describe("request access policy", () => {
       }),
     ];
 
-    mocks.state.session = session("customer", "buyer@acme.com");
+    mocks.state.session = session("customer", "buyer@acme.com", "company_acme");
     await expect(canCurrentSessionAccessStorageKey("supplier-quotes/2026-06-18/shop.pdf")).resolves.toEqual({ authenticated: true, authorized: false });
 
     mocks.state.session = session("admin", "will@latticeos.co");
@@ -198,7 +200,7 @@ describe("request access policy", () => {
   });
 
   it("treats unknown storage keys as authenticated but unauthorized", async () => {
-    mocks.state.session = session("customer", "buyer@acme.com");
+    mocks.state.session = session("customer", "buyer@acme.com", "company_acme");
 
     await expect(canCurrentSessionAccessStorageKey("rfq/2026-06-18/missing.step")).resolves.toEqual({ authenticated: true, authorized: false });
   });

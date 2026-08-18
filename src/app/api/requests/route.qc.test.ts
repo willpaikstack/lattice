@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => {
         id: string;
         name: string;
         role: "admin" | "customer" | "supplier";
+        companyId?: string | null;
+        companyName?: string | null;
       };
     },
   };
@@ -50,6 +52,8 @@ function session(role: "admin" | "customer" | "supplier") {
       id: `${role}_1`,
       name: role,
       role,
+      companyId: role === "customer" ? "company_test" : null,
+      companyName: role === "customer" ? "Test Company" : null,
     },
   };
 }
@@ -118,6 +122,41 @@ describe("requests API QC", () => {
     response = await POST(request.clone());
     expect(response.status).toBe(201);
     expect(mocks.createSubmittedRequest).toHaveBeenCalledOnce();
+    expect(mocks.createSubmittedRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        buyerCompany: "Test Company",
+        contact: expect.objectContaining({ shipToCompany: "Test Company" }),
+      }),
+      { buyerCompanyId: "company_test" },
+    );
+  });
+
+  it("does not let an unassigned customer submit an RFQ into an unowned company", async () => {
+    const { POST } = await import("./route");
+    mocks.state.session = {
+      user: {
+        companyId: null,
+        companyName: null,
+        email: "unassigned@example.com",
+        id: "customer_unassigned",
+        name: "Unassigned customer",
+        role: "customer",
+      },
+    };
+
+    const response = await POST(
+      new Request("http://localhost/api/requests", {
+        body: JSON.stringify(validInput()),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    await expect(responseJson(response)).resolves.toEqual({
+      error: "Your account has not been assigned to a customer company yet. Contact Lattice to finish account setup.",
+    });
+    expect(mocks.createSubmittedRequest).not.toHaveBeenCalled();
   });
 
   it("rejects JSON submissions that only contain missing file references", async () => {

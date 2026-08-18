@@ -6,7 +6,6 @@ const protectedPrefixes = [
   "/account",
   "/admin",
   "/analytics",
-  "/capabilities",
   "/dashboard",
   "/equipment",
   "/materials",

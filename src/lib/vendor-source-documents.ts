@@ -6,7 +6,7 @@ export type VendorSourceDocument = {
   receivedDate: string;
   repositoryPath: string;
   originalFileName: string;
-  documentType: "catalog" | "equipment-list" | "materials-list" | "capability-deck" | "factory-profile" | "quality-certificate" | "quality-procedure";
+  documentType: "catalog" | "equipment-list" | "materials-list" | "capability-deck" | "factory-profile" | "factory-photo" | "quality-certificate" | "quality-procedure";
   extractionNotes: string;
 };
 
@@ -238,6 +238,66 @@ export const vendorSourceDocuments = {
     documentType: "quality-procedure",
     extractionNotes:
       "Traceability-control procedure attached to Eileen Liang's August 2025 meeting summary. It is reusable quality-process evidence, separate from order-specific inspection reports.",
+  },
+  juchengEquipment20260414: {
+    id: "jucheng-precision-equipment-list-20260414",
+    vendor: "Shenzhen Jucheng Precision Model Co., Ltd.",
+    title: "Jucheng Precision Equipment List",
+    documentDate: "2026-04-14",
+    receivedDate: "2026-08-18",
+    repositoryPath: "docs/vendor-sources/jucheng-precision/jucheng-precision-equipment-list-20260414.pdf",
+    originalFileName: "Jucheng Precision Equipment list.pdf",
+    documentType: "equipment-list",
+    extractionNotes:
+      "Two-page equipment inventory covering machining, sheet-metal fabrication, manual equipment, and inspection tools. Quantities and listed accuracy/envelope fields are transcribed as supplier-provided data and require job-specific confirmation.",
+  },
+  bestPrototypesFactoryFloor01: {
+    id: "best-prototypes-factory-floor-01-20260817",
+    vendor: "Best Prototypes",
+    title: "Best Prototypes CNC Factory Floor — APMING Machines",
+    documentDate: "unknown",
+    receivedDate: "2026-08-17",
+    repositoryPath: "docs/vendor-sources/best-prototypes/factory-photos/cnc-floor-01.jpg",
+    originalFileName: "factory.jpg",
+    documentType: "factory-photo",
+    extractionNotes:
+      "Publicly published factory-floor image downloaded from https://www.best-prototype.com/ on 2026-08-17. Source attribution and checksum are recorded beside the image. Internal design reference only; obtain vendor permission before customer-facing use.",
+  },
+  bestPrototypesFactoryFloor02: {
+    id: "best-prototypes-factory-floor-02-20260817",
+    vendor: "Best Prototypes",
+    title: "Best Prototypes CNC Factory Floor — DMG MORI Machines",
+    documentDate: "unknown",
+    receivedDate: "2026-08-17",
+    repositoryPath: "docs/vendor-sources/best-prototypes/factory-photos/cnc-floor-02.jpg",
+    originalFileName: "factory.jpg",
+    documentType: "factory-photo",
+    extractionNotes:
+      "Publicly published factory-floor image downloaded from https://www.best-prototype.com/ on 2026-08-17. Source attribution and checksum are recorded beside the image. Internal design reference only; obtain vendor permission before customer-facing use.",
+  },
+  juchengFactoryFloorCnc: {
+    id: "jucheng-factory-floor-cnc-20260817",
+    vendor: "Shenzhen Jucheng Precision Model Co., Ltd.",
+    title: "Jucheng CNC Machining Shop",
+    documentDate: "unknown",
+    receivedDate: "2026-08-17",
+    repositoryPath: "docs/vendor-sources/jucheng-precision/factory-photos/cnc-shop.jpg",
+    originalFileName: "youshipeitu1-1920-1920.jpg",
+    documentType: "factory-photo",
+    extractionNotes:
+      "Publicly published CNC-shop image downloaded from https://www.jcproto.com/ on 2026-08-17. Source attribution and checksum are recorded beside the image. Internal design reference only; obtain vendor permission before customer-facing use.",
+  },
+  juchengFactoryInspection: {
+    id: "jucheng-factory-inspection-20260817",
+    vendor: "Shenzhen Jucheng Precision Model Co., Ltd.",
+    title: "Jucheng Parts Quality Inspection Workshop",
+    documentDate: "unknown",
+    receivedDate: "2026-08-17",
+    repositoryPath: "docs/vendor-sources/jucheng-precision/factory-photos/inspection-workshop.jpg",
+    originalFileName: "youshipeitu3-1920-1920.jpg",
+    documentType: "factory-photo",
+    extractionNotes:
+      "Publicly published inspection-workshop image downloaded from https://www.jcproto.com/ on 2026-08-17. Source attribution and checksum are recorded beside the image. Internal design reference only; obtain vendor permission before customer-facing use.",
   },
 } satisfies Record<string, VendorSourceDocument>;
 
