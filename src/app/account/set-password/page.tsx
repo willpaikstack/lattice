@@ -10,8 +10,14 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
 
   const message = params.error === "mismatch"
     ? "Passwords do not match."
-    : params.error === "invalid"
-      ? "This temporary password is no longer valid. Ask a Lattice administrator to issue a new one."
+    : params.error === "expired"
+      ? "Your account setup period has expired. Ask a Lattice administrator to issue a new temporary password."
+      : params.error === "password-policy"
+        ? "Use a stronger password with at least 12 characters, then try again."
+        : params.error === "setup-unavailable"
+          ? "Password setup is no longer available for this account. Sign in again or contact your Lattice administrator."
+          : params.error === "service" || params.error === "invalid"
+            ? "We couldn’t finish saving your new password. Please try again or contact your Lattice administrator."
       : null;
 
   const recoveryCopy = state.status === "not-provisioned"

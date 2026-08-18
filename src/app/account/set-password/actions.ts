@@ -4,7 +4,15 @@ import { redirect } from "next/navigation";
 
 import { defaultHomeForRole } from "@/lib/auth-crypto";
 import { createSessionForUser, getPasswordSetupState } from "@/lib/session";
-import { completeForcedPasswordChange } from "@/lib/workspace-user-admin";
+import { completeForcedPasswordChange, type PasswordSetupFailureCode } from "@/lib/workspace-user-admin";
+
+function errorPath(error: unknown) {
+  const code = typeof error === "object" && error && "code" in error
+    ? (error as { code?: string }).code
+    : undefined;
+  const recognized: PasswordSetupFailureCode[] = ["expired", "password-policy", "setup-unavailable", "service"];
+  return recognized.includes(code as PasswordSetupFailureCode) ? code : "service";
+}
 
 export async function setTemporaryPasswordAction(formData: FormData) {
   const password = String(formData.get("password") ?? "");
@@ -21,8 +29,8 @@ export async function setTemporaryPasswordAction(formData: FormData) {
 
   try {
     await completeForcedPasswordChange(session.user.id, password);
-  } catch {
-    redirect("/account/set-password?error=invalid");
+  } catch (error) {
+    redirect(`/account/set-password?error=${errorPath(error)}`);
   }
 
   await createSessionForUser({

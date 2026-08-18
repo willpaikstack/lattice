@@ -20,6 +20,15 @@ export type CreateCustomerCompanyInput = {
 };
 const temporaryPasswordDurationMs = 72 * 60 * 60 * 1000;
 
+export type PasswordSetupFailureCode = "expired" | "password-policy" | "setup-unavailable" | "service";
+
+export class PasswordSetupError extends Error {
+  constructor(public readonly code: PasswordSetupFailureCode) {
+    super(code);
+    this.name = "PasswordSetupError";
+  }
+}
+
 function customerRole(role: string): CustomerWorkspaceRole {
   if (role === "CUSTOMER_ADMIN") return "CUSTOMER_ADMIN";
   return "CUSTOMER_MEMBER";
@@ -81,6 +90,22 @@ async function setClerkPassword(user: { clerkUserId: string | null; email: strin
 
 async function prisma() {
   return (await getPrismaClient()) as PrismaClient;
+}
+
+async function recordPasswordSetupFailure(client: PrismaClient, userId: string, code: PasswordSetupFailureCode) {
+  // This intentionally records only a category—never a password, Clerk error
+  // payload, or other credential material.
+  await client.authAuditEvent.create({
+    data: { userId, action: `PASSWORD_SETUP_FAILED_${code.toUpperCase().replace(/-/g, "_")}` },
+  }).catch(() => undefined);
+}
+
+function clerkPasswordPolicyFailure(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { errors?: Array<{ code?: string }>; message?: string };
+  const code = candidate.errors?.[0]?.code?.toLowerCase() ?? "";
+  const message = candidate.message?.toLowerCase() ?? "";
+  return code.includes("password") || message.includes("password");
 }
 
 async function ensureCompany(companyId: string) {
@@ -253,31 +278,50 @@ export async function setCustomerUserPassword(companyId: string, userId: string,
 }
 
 export async function completeForcedPasswordChange(userId: string, password: string) {
-  if (password.length < 12) {
-    throw new Error("Use a password with at least 12 characters.");
-  }
-
   const client = await prisma();
   const user = await client.user.findUnique({ where: { id: userId } });
   if (!user || !user.mustChangePassword) {
-    throw new Error("This password change is no longer available.");
+    if (user) await recordPasswordSetupFailure(client, user.id, "setup-unavailable");
+    throw new PasswordSetupError("setup-unavailable");
   }
 
   if (user.temporaryPasswordExpiresAt && user.temporaryPasswordExpiresAt <= new Date()) {
-    throw new Error("This temporary password has expired. Ask a Lattice administrator to issue a new one.");
+    await recordPasswordSetupFailure(client, user.id, "expired");
+    throw new PasswordSetupError("expired");
   }
 
-  if (!user.clerkUserId) throw new Error("This user must sign in with Clerk before changing a temporary password.");
-  await (await clerkClient()).users.updateUser(user.clerkUserId, { password, signOutOfOtherSessions: true });
+  if (!user.clerkUserId) {
+    await recordPasswordSetupFailure(client, user.id, "setup-unavailable");
+    throw new PasswordSetupError("setup-unavailable");
+  }
+
+  if (password.length < 12) {
+    await recordPasswordSetupFailure(client, user.id, "password-policy");
+    throw new PasswordSetupError("password-policy");
+  }
+
+  try {
+    await (await clerkClient()).users.updateUser(user.clerkUserId, { password, signOutOfOtherSessions: true });
+  } catch (error) {
+    const code: PasswordSetupFailureCode = clerkPasswordPolicyFailure(error) ? "password-policy" : "service";
+    await recordPasswordSetupFailure(client, user.id, code);
+    throw new PasswordSetupError(code);
+  }
+
   const credentials = createPasswordCredentials(password);
   const changedAt = new Date();
-  await client.$transaction([
-    client.user.update({
-      where: { id: user.id },
-      data: { ...credentials, mustChangePassword: false, passwordChangedAt: changedAt, temporaryPasswordExpiresAt: null },
-    }),
-    client.authAuditEvent.create({ data: { userId: user.id, action: "TEMPORARY_PASSWORD_CHANGED" } }),
-  ]);
+  try {
+    await client.$transaction([
+      client.user.update({
+        where: { id: user.id },
+        data: { ...credentials, mustChangePassword: false, passwordChangedAt: changedAt, temporaryPasswordExpiresAt: null },
+      }),
+      client.authAuditEvent.create({ data: { userId: user.id, action: "TEMPORARY_PASSWORD_CHANGED" } }),
+    ]);
+  } catch {
+    await recordPasswordSetupFailure(client, user.id, "service");
+    throw new PasswordSetupError("service");
+  }
 
   return user;
 }
