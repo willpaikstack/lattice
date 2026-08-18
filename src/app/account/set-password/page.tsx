@@ -35,14 +35,16 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
               title: "Your sign-in session ended",
             }
           : null;
+  const accountName = state.status === "ready" ? state.session.user.name : null;
 
   return (
     <main className="min-h-screen bg-stone-100 px-6 py-12 text-stone-900 sm:flex sm:items-center sm:justify-center">
       <section className="w-full max-w-md rounded-lg border border-stone-200 bg-white p-7 shadow-sm sm:p-9">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">Security update required</p>
+        {accountName ? <p className="mt-3 text-sm font-medium text-stone-700">Hi {accountName},</p> : null}
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{recoveryCopy?.title ?? "Choose your password"}</h1>
         <p className="mt-2 text-sm leading-6 text-stone-600">
-          {recoveryCopy?.body ?? "Your administrator issued a temporary password. Choose a personal password to continue to your workspace."}
+          {recoveryCopy?.body ?? "Your administrator issued a temporary password for your account. Choose a personal password to continue to your workspace."}
         </p>
         {state.status === "ready" ? (
           <>

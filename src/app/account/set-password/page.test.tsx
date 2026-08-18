@@ -22,12 +22,13 @@ describe("SetPasswordPage", () => {
 
   it("renders password fields only for a provisioned account with an active temporary password", async () => {
     mocks.getPasswordSetupState.mockResolvedValue({
-      session: { user: { mustChangePassword: true } },
+      session: { user: { mustChangePassword: true, name: "Carmen Pascuito Jr" } },
       status: "ready",
     });
 
     render(await SetPasswordPage({ searchParams: Promise.resolve({}) }));
 
+    expect(screen.getByText("Hi Carmen Pascuito Jr,")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Choose your password" })).toBeInTheDocument();
     expect(screen.getByLabelText("New password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save password and continue" })).toBeInTheDocument();
