@@ -6,13 +6,13 @@ import type { MaterialFamilyCardData } from "@/lib/material-family-view-models";
 export function MaterialFamilyCatalog({ families }: { families: MaterialFamilyCardData[] }) {
   return (
     <>
-      <header className="max-w-[1120px]">
+      <header className="w-full">
         <h1 className="text-[48px] font-bold leading-none tracking-[-0.045em] text-[#202020] sm:text-[52px]">Materials</h1>
         <p className="mt-3 text-[15px] leading-6 text-[#6f7175]">Browse the material families our manufacturing network can produce parts from.</p>
 
       </header>
 
-      <section aria-label="Material families" className="mt-7 grid max-w-[1120px] gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section aria-label="Material families" className="mt-7 grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         {families.map((family) => (
           <Link
             className="group block rounded-[7px] outline-none transition hover:-translate-y-0.5 hover:shadow-[0_7px_22px_rgba(0,0,0,0.055)] focus-visible:ring-2 focus-visible:ring-[#222222]/25"

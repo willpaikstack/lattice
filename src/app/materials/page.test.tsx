@@ -10,7 +10,7 @@ describe("MaterialsPage", () => {
     expect(screen.getByRole("heading", { name: "Materials" })).toBeInTheDocument();
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Request an unlisted material/ })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Material families")).toHaveClass("lg:grid-cols-3");
+    expect(screen.getByLabelText("Material families")).toHaveClass("lg:grid-cols-3", "2xl:grid-cols-4", "w-full");
     expect(screen.getByRole("heading", { name: "Aluminum" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Aluminum 21 offerings/ })).toHaveAttribute("href", "/materials/aluminum");
     expect(screen.getByText("21 offerings")).toBeInTheDocument();

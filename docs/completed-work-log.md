@@ -1378,3 +1378,7 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Added a Lattice Admin-only Create customer company workflow on `/admin/customers` that collects company details and the first Customer Admin, creates the Company and customer membership, then provisions the matching Clerk identity.
 - The workflow displays a one-time temporary password for secure handoff, forces a personal password change within 72 hours, and compensates by removing the newly created Company/User/Clerk records if provisioning cannot complete.
+
+## 2026-08-18 — Expanded the materials catalog at wide desktop sizes
+
+- Removed the fixed catalog-width cap so the Materials heading and family grid fill the customer workspace, with a fourth column added only at the `2xl` breakpoint.
