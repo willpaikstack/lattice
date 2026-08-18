@@ -441,8 +441,8 @@ export function AccountSettingsWorkspace({
     }
 
     if (field === "password") {
-      if (passwordDraft.next.length < 12) {
-        setError("Use at least 12 characters for the new password.");
+      if (passwordDraft.next.length < 8) {
+        setError("Use at least 8 characters for the new password.");
         return;
       }
       if (passwordDraft.next !== passwordDraft.confirm) {

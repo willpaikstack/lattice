@@ -30,7 +30,7 @@ export async function createPasswordReset(email: string) {
 }
 
 export async function consumePasswordReset(token: string, password: string) {
-  if (password.length < 12) throw new Error("Use a password with at least 12 characters.");
+  if (password.length < 8) throw new Error("Use a password with at least 8 characters.");
   const client = await prisma();
   const record = await client.passwordResetToken.findUnique({ where: { tokenHash: hashToken(token) } });
   if (!record || record.consumedAt || record.expiresAt <= new Date()) throw new Error("This reset link is invalid or has expired.");

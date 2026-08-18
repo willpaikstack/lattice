@@ -63,6 +63,6 @@ describe("SetPasswordPage", () => {
     render(await SetPasswordPage({ searchParams: Promise.resolve({ error: "password-policy" }) }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(/new, unique password/i);
-    expect(screen.getByRole("alert")).toHaveTextContent(/at least 12 characters/i);
+    expect(screen.getByRole("alert")).toHaveTextContent(/at least 8 characters/i);
   });
 });

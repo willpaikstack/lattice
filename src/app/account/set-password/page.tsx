@@ -13,7 +13,7 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
     : params.error === "expired"
       ? "Your account setup period has expired. Ask a Lattice administrator to issue a new temporary password."
       : params.error === "password-policy"
-        ? "This password doesn’t meet the sign-in security rules. Use a new, unique password of at least 12 characters and try again."
+        ? "This password doesn’t meet the sign-in security rules. Use a new, unique password of at least 8 characters and try again."
         : params.error === "setup-unavailable"
           ? "Password setup is no longer available for this account. Sign in again or contact your Lattice administrator."
           : params.error === "service" || params.error === "invalid"
@@ -58,11 +58,11 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
             <form action={setTemporaryPasswordAction} className="mt-6 space-y-4">
               <label className="block text-sm font-medium text-stone-800">
                 New password
-                <input autoComplete="new-password" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2.5" minLength={12} name="password" required type="password" />
+                <input autoComplete="new-password" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2.5" minLength={8} name="password" required type="password" />
               </label>
               <label className="block text-sm font-medium text-stone-800">
                 Confirm password
-                <input autoComplete="new-password" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2.5" minLength={12} name="confirmation" required type="password" />
+                <input autoComplete="new-password" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2.5" minLength={8} name="confirmation" required type="password" />
               </label>
               <AuthSubmitButton label="Save password and continue" pendingLabel="Saving password…" />
             </form>

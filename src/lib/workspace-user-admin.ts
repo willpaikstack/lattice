@@ -265,8 +265,8 @@ export async function setCustomerUserPassword(companyId: string, userId: string,
   const user = await client.user.findFirst({ where: { id: userId, companyId } });
   if (!user) throw new Error("Customer user not found.");
 
-  if (password.length < 12) {
-    throw new Error("Use a password with at least 12 characters.");
+  if (password.length < 8) {
+    throw new Error("Use a password with at least 8 characters.");
   }
 
   await setClerkPassword(user, password);
@@ -297,7 +297,7 @@ export async function completeForcedPasswordChange(userId: string, password: str
     throw new PasswordSetupError("setup-unavailable");
   }
 
-  if (password.length < 12) {
+  if (password.length < 8) {
     await recordPasswordSetupFailure(client, user.id, "password-policy");
     throw new PasswordSetupError("password-policy");
   }

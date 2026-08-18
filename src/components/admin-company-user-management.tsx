@@ -128,7 +128,7 @@ export function AdminCompanyUserManagement({ companyId, users }: { companyId: st
                     autoComplete="new-password"
                     className="h-9 min-w-52 rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px]"
                     id={`custom-password-${user.id}`}
-                    minLength={12}
+                    minLength={8}
                     name="password"
                     placeholder="Set custom password"
                     required
