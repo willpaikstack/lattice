@@ -1367,4 +1367,4 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Lattice now refreshes a linked, provisioned user’s display name from Clerk during session hydration, with safe fallbacks to the Clerk username or email prefix when a full name is unavailable.
 - The dashboard now uses the signed-in Clerk display name immediately while a matching Lattice profile is not yet available.
 - The global sidebar account card now uses the same Clerk identity fallback, including its email and initials.
-- Account Settings now renders Clerk’s usable profile surface for a signed-in Clerk identity that has not yet been linked to a Lattice workspace record.
+- Account Settings now keeps its original Lattice design for a signed-in Clerk identity that has not yet been linked to a Lattice workspace record, storing that user’s settings under their Clerk identity.

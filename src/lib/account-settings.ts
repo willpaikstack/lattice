@@ -1,7 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { defaultAccountSettings, type AccountAddress, type AccountSettingsSnapshot, type PaymentCard } from "./account-settings-shared";
+import { clerkUserDisplayName } from "./clerk-user-profile";
 import { getPrismaClient } from "./prisma";
 import { getCurrentSession } from "./session";
 import type { RequestContactSnapshot } from "./request-model";
@@ -157,8 +159,21 @@ async function prisma() {
 
 async function settingsContext() {
   const session = await getCurrentSession();
-  if (!session) throw new Error("Authentication required.");
-  return { id: `user:${session.user.id}`, name: session.user.name, email: session.user.email, companyName: session.user.companyName ?? "" };
+  if (session) {
+    return { id: `user:${session.user.id}`, name: session.user.name, email: session.user.email, companyName: session.user.companyName ?? "" };
+  }
+
+  const { userId } = await auth();
+  const clerkUser = await currentUser();
+  const email = clerkUser?.primaryEmailAddress?.emailAddress?.trim() ?? "";
+  if (!userId || !email) throw new Error("Authentication required.");
+
+  return {
+    companyName: "",
+    email,
+    id: `clerk:${userId}`,
+    name: clerkUserDisplayName(clerkUser) || email.split("@", 1)[0] || "Account",
+  };
 }
 
 function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<typeof settingsContext>>) {

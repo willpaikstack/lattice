@@ -5,16 +5,13 @@ import { redirect } from "next/navigation";
 
 import { ensureStripeCustomerForAccount, saveAccountSettings } from "@/lib/account-settings";
 import type { AccountSettingsSnapshot } from "@/lib/account-settings-shared";
-import { requireActionRole } from "@/lib/route-authorization";
 import { getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 
 export async function saveAccountSettingsAction(settings: AccountSettingsSnapshot) {
-  await requireActionRole(["admin", "customer", "supplier"]);
   await saveAccountSettings(settings);
 }
 
 export async function createStripeSetupSessionAction() {
-  await requireActionRole(["admin", "customer", "supplier"]);
   const { customerId } = await ensureStripeCustomerForAccount();
   const stripe = getStripeClient();
   const baseUrl = getAppBaseUrl();
@@ -34,7 +31,6 @@ export async function createStripeSetupSessionAction() {
 }
 
 export async function detachStripePaymentMethodAction(formData: FormData) {
-  await requireActionRole(["admin", "customer", "supplier"]);
   const paymentMethodId = formData.get("paymentMethodId");
 
   if (typeof paymentMethodId !== "string" || !paymentMethodId.startsWith("pm_")) {
@@ -42,6 +38,13 @@ export async function detachStripePaymentMethodAction(formData: FormData) {
   }
 
   const stripe = getStripeClient();
+  const { customerId } = await ensureStripeCustomerForAccount();
+  const paymentMethod = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const attachedCustomerId = typeof paymentMethod.customer === "string" ? paymentMethod.customer : paymentMethod.customer?.id;
+  if (attachedCustomerId !== customerId) {
+    throw new Error("This payment method does not belong to the current account.");
+  }
+
   await stripe.paymentMethods.detach(paymentMethodId);
   revalidatePath("/account/settings");
 }
