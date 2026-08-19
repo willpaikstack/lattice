@@ -1,5 +1,14 @@
 # Completed Work Log
 
+## 2026-08-19
+
+- Hardened Account Settings identity status against Clerk API failures: the UI now distinguishes verified-at date, verified-without-date, not verified, and temporarily unavailable instead of presenting an empty timestamp as verified. Added a production Stripe saved-card setup guard that avoids creating a Checkout session with a localhost return URL when no canonical app URL is configured.
+- Recorded the decision to make saved cards company-owned before launch, and added the future customer-roadmap item for card-specific permissions, named-user/role assignment, and auditable access changes.
+- Recorded initial account-control decisions: Lattice Admin-only membership management, optional MFA, no customer purchase orders, default-unavailable tax exemption, profile-photo upload with emoji fallback, and future Customer Admin team-management plus credit/PO roadmap items.
+- Verification: focused Account Settings component tests and TypeScript type checking passed.
+- Separated the static public-site root layout from the authenticated workspace layout. Public pages now avoid unnecessary Clerk/session lookups, while protected routes retain the same role-aware shell and password-change guard. The dual public/customer `/how-it-works` route remains request-aware by design.
+- Added `How it works` to the authenticated customer sidebar. Signed-in users now see the existing `/how-it-works` explanation within the customer portal and can begin an RFQ from its closing action, while public visitors retain the standalone page.
+
 ## 2026-08-18 — Guarded production Lattice Admin bootstrap
 
 - Extended the existing Vercel-only Clerk migration runner with a one-time, explicitly enabled Lattice Admin bootstrap path.
@@ -1387,6 +1396,13 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Replaced seeded account-created and email-verified dates with timestamps supplied by the signed-in Clerk identity. The email-verification date is read from Clerk's user payload because the server SDK exposes verification status but omits that timestamp.
 - Removed historical card-checkout copy and the non-operational tax-exempt-reseller claim from the customer account screen. Checkout continues to default to a taxable order.
+
+## 2026-08-19 — Hardened operational account settings
+
+- Replaced account-settings placeholder password state with Clerk’s password-change flow, including current-password confirmation when applicable and Clerk re-verification guidance for Google-only accounts.
+- Persisted account photo uploads in Clerk and emoji avatar choices in Clerk user metadata; the browser-only clipboard option remains unavailable.
+- Connected account role, profile image, and company-management authority to the active Clerk/workspace identity. Established company defaults and company name are Lattice Admin-only, with an address-onboarding exception for a newly created company with no defaults.
+- Removed customer-facing controls that implied unfinished saved-card, tax-exemption, purchase-order, and self-service team-management workflows. Account settings now states the company-wide card migration and future Customer Admin management work explicitly.
 - Verification: TypeScript typecheck and focused Account Settings component tests passed.
 
 ## 2026-08-18 — Protected Clerk client-trust challenges from the workspace shell
@@ -1438,3 +1454,14 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Quote details now fill a missing RFQ delivery snapshot from the signed-in customer's saved shipping address, so newly saved shipping details are visible even for a legacy/incomplete RFQ.
 - The existing address-change flow remains the authoritative update path: saving from quote detail writes the full address to both the account default and the editable RFQ snapshot.
 - Verification: TypeScript typecheck, focused quote-detail/account-settings/server-action tests (51 total), lint, and diff validation passed.
+# 2026-08-19
+
+- Moved customer shipping, billing-address, and billing-contact defaults from browser/local fallback behavior to database-only shared `Company` fields. Personal phone data remains user-scoped in `AccountDefaults`.
+- Added the Account Settings note that shipping, billing, and billing-contact updates are shared with everyone at the company. Failed saves now leave the prior server values intact rather than appearing saved locally.
+- Added a one-time legacy-default adoption path for otherwise empty companies, then clear the old user-scoped shared fields on later writes to avoid a second source of truth.
+- Verification: focused Account Settings tests (18), ESLint on the changed settings files, and Prisma client generation passed.
+
+- Made customer sign-in email addresses read-only in Account Settings for the initial release. Removed the customer `Manage email` editor and added an accessible Lattice support email-change request link; the Lattice Admin's verified email-change workflow remains the only supported change path.
+- Removed clipboard-based profile-photo import from customer Account Settings; customers can still choose a file or an emoji/preset avatar.
+- Recorded `support@latticeos.co` as the configured Google Workspace receiving alias for customer support and email-change requests. Automated application email remains pending Resend and verified sender-domain setup.
+- Added company-wide account management and integrations to the planned product pipeline: a future Customer Admin workspace for company profile/defaults, team and role administration, invitations, shared operating settings, and approved integrations with auditable access.

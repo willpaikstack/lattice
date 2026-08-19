@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { archiveOrderAction } from "@/app/admin/orders/actions";
+import { archiveOrderAction } from "@/app/(workspace)/admin/orders/actions";
 import { AdminOrderManagement } from "@/components/admin-order-management";
 import { listAdminOrders } from "@/lib/request-repository";
 

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   setRoadmapInterestAction: vi.fn(),
 }));
 
-vi.mock("@/app/roadmap/actions", () => ({
+vi.mock("@/app/(workspace)/roadmap/actions", () => ({
   setRoadmapInterestAction: mocks.setRoadmapInterestAction,
 }));
 

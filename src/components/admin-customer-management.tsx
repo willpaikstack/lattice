@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 
-import { createCustomerCompanyAction, type CreateCustomerCompanyActionState } from "@/app/admin/customers/actions";
+import { createCustomerCompanyAction, type CreateCustomerCompanyActionState } from "@/app/(workspace)/admin/customers/actions";
 import { CustomerProfileIcon } from "@/components/customer-profile-icon";
 import type { CustomerProfile } from "@/lib/customer-profiles";
 import type { WaitingListEntry } from "@/lib/waiting-list";

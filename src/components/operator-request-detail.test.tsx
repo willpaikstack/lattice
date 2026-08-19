@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { initialBillingContact, initialCards, initialShippingAddress } from "@/lib/account-settings-shared";
+import type { AccountAddress, BillingContact, PaymentCard } from "@/lib/account-settings-shared";
 import type { OverseasVendor } from "@/lib/admin-vendors";
 import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "../lib/request-model";
 
@@ -18,6 +18,18 @@ import { SupplierOrders } from "./supplier-orders";
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
 let mockRequestIdParam: string | null = null;
+
+const checkoutShippingAddress: AccountAddress = {
+  address1: "19 Morris Ave",
+  address2: "",
+  city: "Brooklyn",
+  company: "Amogy",
+  name: "William Paik",
+  state: "NY",
+  zipCode: "11205",
+};
+const checkoutBillingContact: BillingContact = { email: "accounts@amogy.example", invoiceRoutingNotes: "" };
+const checkoutCards: PaymentCard[] = [];
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -40,13 +52,13 @@ function makeSubmittedRequest() {
     buildDraftRequest({
       buyerCompany: "Amogy Manufacturing",
       contact: {
-        shipToAddress1: initialShippingAddress.address1,
-        shipToAddress2: initialShippingAddress.address2,
-        shipToCity: initialShippingAddress.city,
-        shipToCompany: initialShippingAddress.company,
-        shipToName: initialShippingAddress.name,
-        shipToState: initialShippingAddress.state,
-        shipToZipCode: initialShippingAddress.zipCode,
+        shipToAddress1: checkoutShippingAddress.address1,
+        shipToAddress2: checkoutShippingAddress.address2,
+        shipToCity: checkoutShippingAddress.city,
+        shipToCompany: checkoutShippingAddress.company,
+        shipToName: checkoutShippingAddress.name,
+        shipToState: checkoutShippingAddress.state,
+        shipToZipCode: checkoutShippingAddress.zipCode,
       },
       requesterName: "William Paik",
       title: "Hydrogen skid bracket RFQ",
@@ -783,10 +795,10 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", "/account/settings?edit=shipping");
     const shippingAddressSection = screen.getByText("Shipping address").closest("div");
     expect(shippingAddressSection).not.toBeNull();
-    expect(within(shippingAddressSection as HTMLElement).getByText(initialShippingAddress.name)).toBeInTheDocument();
-    expect(screen.getByText(initialShippingAddress.company)).toBeInTheDocument();
-    expect(screen.getByText(initialShippingAddress.address1)).toBeInTheDocument();
-    expect(screen.getByText(`${initialShippingAddress.city}, ${initialShippingAddress.state} ${initialShippingAddress.zipCode}`)).toBeInTheDocument();
+    expect(within(shippingAddressSection as HTMLElement).getByText(checkoutShippingAddress.name)).toBeInTheDocument();
+    expect(screen.getByText(checkoutShippingAddress.company)).toBeInTheDocument();
+    expect(screen.getByText(checkoutShippingAddress.address1)).toBeInTheDocument();
+    expect(screen.getByText(`${checkoutShippingAddress.city}, ${checkoutShippingAddress.state} ${checkoutShippingAddress.zipCode}`)).toBeInTheDocument();
     expect(screen.queryByText("123 Main Street")).not.toBeInTheDocument();
     expect(screen.getByText("Summary")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
@@ -915,10 +927,10 @@ describe("BuyerQuoteDetail", () => {
       <BuyerQuoteCheckout
         request={quotedRequest}
         placeOrderAction={() => undefined}
-        accountsPayableEmail={initialBillingContact.email}
-        cards={initialCards}
+        accountsPayableEmail={checkoutBillingContact.email}
+        cards={checkoutCards}
         receivingPhone="+1 (310) 617-4533"
-        shippingAddress={initialShippingAddress}
+        shippingAddress={checkoutShippingAddress}
       />,
     );
 
@@ -973,17 +985,17 @@ describe("BuyerQuoteDetail", () => {
       <BuyerQuoteCheckout
         request={quotedRequest}
         placeOrderAction={() => undefined}
-        accountsPayableEmail={initialBillingContact.email}
-        cards={initialCards}
+        accountsPayableEmail={checkoutBillingContact.email}
+        cards={checkoutCards}
         receivingPhone="+1 (310) 617-4533"
-        shippingAddress={initialShippingAddress}
+        shippingAddress={checkoutShippingAddress}
       />,
     );
 
     fireEvent.click(screen.getByText("Purchase order"));
 
     expect(screen.getByPlaceholderText("PO-1047")).toBeInTheDocument();
-    expect(screen.getByDisplayValue(initialBillingContact.email)).toBeInTheDocument();
+    expect(screen.getByDisplayValue(checkoutBillingContact.email)).toBeInTheDocument();
     expect(screen.getByText("Upload PO document")).toBeInTheDocument();
   });
 
@@ -994,10 +1006,10 @@ describe("BuyerQuoteDetail", () => {
       <BuyerQuoteCheckout
         request={quotedRequest}
         placeOrderAction={() => undefined}
-        accountsPayableEmail={initialBillingContact.email}
-        cards={initialCards}
+        accountsPayableEmail={checkoutBillingContact.email}
+        cards={checkoutCards}
         receivingPhone="+1 (310) 617-4533"
-        shippingAddress={initialShippingAddress}
+        shippingAddress={checkoutShippingAddress}
       />,
     );
 

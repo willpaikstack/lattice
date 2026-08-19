@@ -6,7 +6,7 @@ import {
   manageCustomerUserAction,
   startCustomerSupportSessionAction,
   type UserManagementActionState,
-} from "@/app/admin/customers/[companyId]/actions";
+} from "@/app/(workspace)/admin/customers/[companyId]/actions";
 import type { CustomerProfile } from "@/lib/customer-profiles";
 
 function formatDate(value: string | null) {

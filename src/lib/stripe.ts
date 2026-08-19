@@ -8,8 +8,35 @@ export function isStripeConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
+export function stripeAccountSetupAvailability() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return {
+      available: false,
+      message: "Saved cards are not available until Lattice finishes configuring secure card payments.",
+    };
+  }
+
+  // A production Checkout Session must return to the canonical app domain,
+  // never the localhost development fallback.
+  if (process.env.NODE_ENV === "production" && !process.env.APP_BASE_URL && !process.env.NEXT_PUBLIC_APP_URL) {
+    return {
+      available: false,
+      message: "Saved cards are temporarily unavailable while Lattice finishes payment setup.",
+    };
+  }
+
+  return { available: true, message: "" };
+}
+
 export function getAppBaseUrl() {
-  return (process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+  const configuredUrl = process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (configuredUrl) return configuredUrl.replace(/\/$/, "");
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("APP_BASE_URL must be configured before using Stripe in production.");
+  }
+
+  return "http://localhost:3000";
 }
 
 export function getStripePublishableKey() {

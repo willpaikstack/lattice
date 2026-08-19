@@ -56,10 +56,10 @@ vi.mock("@/lib/stripe-checkout", () => ({
   createStripeElementsCheckoutSessionForRequest: mocks.createStripeElementsCheckoutSessionForRequest,
 }));
 
-import * as OrderInvoiceRoute from "./orders/[requestId]/invoice.pdf/route";
-import OrderDetailPage from "./orders/[requestId]/page";
-import QuoteCheckoutPage from "./quotes/[requestId]/checkout/page";
-import QuoteDetailPage from "./quotes/[requestId]/page";
+import * as OrderInvoiceRoute from "./(workspace)/orders/[requestId]/invoice.pdf/route";
+import OrderDetailPage from "./(workspace)/orders/[requestId]/page";
+import QuoteCheckoutPage from "./(workspace)/quotes/[requestId]/checkout/page";
+import QuoteDetailPage from "./(workspace)/quotes/[requestId]/page";
 
 function paramsFor(requestId: string) {
   return {

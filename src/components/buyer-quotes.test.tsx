@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { deleteBuyerQuoteAction } from "@/app/quotes/actions";
+import { deleteBuyerQuoteAction } from "@/app/(workspace)/quotes/actions";
 import { getDemoRequests } from "@/lib/demo-requests";
 import { buildDraftRequest, submitDraftRequest } from "@/lib/request-model";
 
 import { BuyerQuotes } from "./buyer-quotes";
 
-vi.mock("@/app/quotes/actions", () => ({
+vi.mock("@/app/(workspace)/quotes/actions", () => ({
   deleteBuyerQuoteAction: vi.fn(async () => undefined),
 }));
 

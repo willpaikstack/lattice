@@ -1,11 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import HowItWorksPage from "./page";
+import { HowItWorksContent } from "./page";
 
 describe("How it works page", () => {
   it("explains the managed-capacity workflow without exposing a public RFQ action", () => {
-    render(<HowItWorksPage />);
+    render(<HowItWorksContent />);
 
     expect(screen.getByRole("heading", { name: "How Lattice works" })).toBeInTheDocument();
     expect(screen.getByText(/Lattice gives domestic manufacturers access to qualified global production capacity/i)).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe("How it works page", () => {
   });
 
   it("reveals one Lattice benefit at a time", () => {
-    render(<HowItWorksPage />);
+    render(<HowItWorksContent />);
 
     const capacityButton = screen.getByRole("button", { name: /More capacity.*Take on overflow work without reshuffling your own production schedule/i });
     const onDemandButton = screen.getByRole("button", { name: /Capacity on demand.*without a long-term volume commitment/i });

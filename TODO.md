@@ -4,6 +4,11 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Revisit customer self-service email changes only after the initial release. For now, customers request changes through Lattice support and the Lattice Admin performs the existing verified email-change workflow.
+
+- Build company-wide account management and integrations. Give Customer Admins a governed company workspace for company profile/defaults, teammates and roles, invitations, shared purchasing settings, and approved third-party integrations with auditable data access. Shipping, billing address, and billing-contact defaults are already shared and database-backed on `Company`; customer team management remains disabled, and company membership is administered only by Lattice Admins for the initial release. Customer Admin self-service invitations and role management are roadmap work.
+  - Add the company-owned Stripe card vault after the user-to-company Stripe migration, followed by per-card view/use/manage permissions, named-user assignment, and access audit history.
+
 - Run the one-time Vercel-gated Clerk migration (`LATTICE_RUN_CLERK_USER_MIGRATION=true`) to apply the `User.clerkUserId` schema and create/link Clerk accounts for existing Lattice users; remove the flag after the successful deployment, then smoke-test a Lattice Admin plus a customer account before relying on Clerk in production.
 - Complete the Clerk migration by replacing the legacy custom email-change/password-recovery delivery surfaces with Clerk-native account-management flows and retire the unused Google OAuth callback routes after production cutover.
 
@@ -28,8 +33,11 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - add invitation delivery, password recovery, MFA/passkeys, session/device controls, and identity audit events before enterprise rollout
   - add customer invitation/verification emails: Lattice Admin-only invites, one-time expiring activation links, recipient-defined password setup, verified-email activation, resend/revoke controls, and future Customer Admin teammate-invitation policy; retain Google SSO for approved/provisioned accounts only until customer-domain SSO is deliberately introduced
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
-  - configure Resend and a verified sending domain for waiting-list emails
+- configure Resend and a verified sending domain for waiting-list and account-management emails; use `support@latticeos.co` as the support/reply-to address once outbound delivery is commissioned
   - configure Stripe test/live environment variables (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_BASE_URL`) and register `/api/stripe/webhook` in Stripe for production payment finalization
+  - move saved payment methods from the current user-specific Stripe Customer to a company-owned Stripe Customer before launch; follow later with card-level use/manage permissions, named-user or role assignment, and audit history
+  - keep purchase-order payment disabled for the initial release; design the later Lattice Admin approval, credit-review/limit, PO-validation, accounts-payable, and audit workflow before enabling it
+  - keep tax-exempt status unavailable by default; define the later Lattice Admin document-review and entitlement workflow before exposing it to customer companies
   - decide whether to keep local email outbox files for development only or add durable email-event records in Postgres
   - add Vercel preview env vars if preview deployments become part of the workflow
   - decide whether to remove the first unaliased Vercel deployment created before `.vercelignore` was added

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, ClipboardCheck, FileCheck2, FileText, Handshake, Route } from "lucide-react";
 
 import { PublicSiteHeader } from "@/components/public-site-header";
+import { getCurrentSession } from "@/lib/session";
 import { vendorEquipment } from "@/lib/vendor-equipment";
 
 import { ValueBenefits } from "./value-benefits";
@@ -72,16 +73,16 @@ const steps = [
   },
 ];
 
-export default function HowItWorksPage() {
+export function HowItWorksContent({ inCustomerPortal = false }: { inCustomerPortal?: boolean }) {
   return (
     <main className="min-h-screen bg-[#fbfaf7] font-sans text-slate-950 selection:bg-slate-200">
-      <PublicSiteHeader />
+      {!inCustomerPortal ? <PublicSiteHeader /> : null}
 
-      <div className="mx-auto w-full max-w-[1320px] px-6 pb-16 pt-10 sm:px-10 sm:pt-14 lg:px-10">
+      <div className={`mx-auto w-full max-w-[1320px] px-6 pb-16 ${inCustomerPortal ? "pt-10 sm:px-10" : "pt-10 sm:px-10 sm:pt-14"} lg:px-10`}>
         <div className="grid gap-12 xl:grid-cols-[minmax(0,1fr)_190px] xl:gap-12">
           <article className="min-w-0">
             <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-400">
-              <Link className="transition hover:text-slate-700" href="/">Lattice</Link>
+              {inCustomerPortal ? <span>Your resources</span> : <Link className="transition hover:text-slate-700" href="/">Lattice</Link>}
               <span aria-hidden="true">/</span>
               <span>How it works</span>
             </nav>
@@ -94,7 +95,7 @@ export default function HowItWorksPage() {
               <p className="mt-4 text-[16px] leading-7 text-slate-600">
                 Lattice gives domestic manufacturers access to qualified global production capacity, helping shops fulfill overflow demand while keeping their customer relationships and existing production schedules intact.
               </p>
-              <p className="mt-5 text-sm text-slate-400">Lattice workflow overview &middot; Invite-only access</p>
+              <p className="mt-5 text-sm text-slate-400">Lattice workflow overview{inCustomerPortal ? "" : " · Invite-only access"}</p>
             </header>
 
             <section aria-labelledby="problem-heading" className="scroll-mt-24 border-b border-slate-200 py-10" id="problem">
@@ -258,9 +259,9 @@ export default function HowItWorksPage() {
             </section>
 
             <aside className="mt-8 border-l-2 border-[#1d73ff] bg-slate-50 px-5 py-5">
-              <p className="text-[14px] leading-6 text-slate-600">If this model fits how you manage capacity, request access to the platform.</p>
-              <Link className="mt-4 inline-flex items-center gap-2 rounded-md bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2" href="/waiting-list">
-                Request access
+              <p className="text-[14px] leading-6 text-slate-600">{inCustomerPortal ? "Ready to discuss a manufacturing project? Start an RFQ with the requirements you have." : "If this model fits how you manage capacity, request access to the platform."}</p>
+              <Link className="mt-4 inline-flex items-center gap-2 rounded-md bg-stone-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-stone-900 focus-visible:ring-offset-2" href={inCustomerPortal ? "/requests/new" : "/waiting-list"}>
+                {inCustomerPortal ? "Request Quote" : "Request access"}
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </aside>
@@ -297,4 +298,10 @@ export default function HowItWorksPage() {
       </div>
     </main>
   );
+}
+
+export default async function HowItWorksPage() {
+  const session = await getCurrentSession({ allowPasswordChange: true });
+
+  return <HowItWorksContent inCustomerPortal={Boolean(session?.user)} />;
 }

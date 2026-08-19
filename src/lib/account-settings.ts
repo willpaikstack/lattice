@@ -1,8 +1,12 @@
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-import { defaultAccountSettings, type AccountAddress, type AccountSettingsSnapshot, type PaymentCard } from "./account-settings-shared";
+import {
+  defaultAccountSettings,
+  type AccountAddress,
+  type AccountSettingsSnapshot,
+  type EmailVerificationStatus,
+  type PaymentCard,
+} from "./account-settings-shared";
 import { clerkUserDisplayName } from "./clerk-user-profile";
 import { getPrismaClient } from "./prisma";
 import { getCurrentSession } from "./session";
@@ -36,11 +40,18 @@ type StoredAccountDefaults = {
   shippingZipCode: string;
 };
 
-const localStorePath = path.join(process.cwd(), ".data", "account-settings.json");
 const legacyAccountDefaultsId = "workspace";
 
 function text(value: string | null | undefined) {
   return String(value ?? "").trim();
+}
+
+function avatarPreset(value: unknown): { colorId: string; presetId: string } | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as Record<string, unknown>;
+  const colorId = typeof candidate.colorId === "string" ? candidate.colorId.trim() : "";
+  const presetId = typeof candidate.presetId === "string" ? candidate.presetId.trim() : "";
+  return colorId && presetId ? { colorId, presetId } : null;
 }
 
 function displayIdentityDate(value: Date | number | string | null | undefined) {
@@ -60,13 +71,23 @@ function displayIdentityDate(value: Date | number | string | null | undefined) {
 type ClerkUserResponse = {
   email_addresses?: Array<{
     id?: string;
-    verification?: { verified_at_client?: string | null } | null;
+    verification?: { status?: string | null; verified_at_client?: string | null } | null;
   }>;
 };
 
-async function clerkEmailVerifiedAt(userId: string | null, primaryEmailAddressId: string | undefined) {
+type ClerkEmailVerification = {
+  status: EmailVerificationStatus;
+  verifiedAt: string;
+};
+
+async function clerkEmailVerification(
+  userId: string | null,
+  primaryEmailAddressId: string | undefined,
+): Promise<ClerkEmailVerification> {
   const secretKey = process.env.CLERK_SECRET_KEY;
-  if (!userId || !primaryEmailAddressId || !secretKey) return "";
+  if (!userId || !primaryEmailAddressId || !secretKey) {
+    return { status: "unavailable", verifiedAt: "" };
+  }
 
   try {
     // The Clerk backend SDK models a verification's status but omits its
@@ -77,13 +98,21 @@ async function clerkEmailVerifiedAt(userId: string | null, primaryEmailAddressId
       cache: "no-store",
       headers: { Authorization: `Bearer ${secretKey}` },
     });
-    if (!response.ok) return "";
+    if (!response.ok) return { status: "unavailable", verifiedAt: "" };
 
     const user = await response.json() as ClerkUserResponse;
     const primaryEmail = user.email_addresses?.find((email) => email.id === primaryEmailAddressId);
-    return displayIdentityDate(primaryEmail?.verification?.verified_at_client);
+    if (primaryEmail?.verification?.status !== "verified") {
+      return { status: "not-verified", verifiedAt: "" };
+    }
+
+    const verifiedAt = displayIdentityDate(primaryEmail.verification.verified_at_client);
+    return {
+      status: verifiedAt ? "verified" : "verification-date-unavailable",
+      verifiedAt,
+    };
   } catch {
-    return "";
+    return { status: "unavailable", verifiedAt: "" };
   }
 }
 
@@ -112,7 +141,8 @@ function hasRequiredAddressFields(address: AccountAddress) {
 
 /**
  * A new customer cannot use the workspace until their operational shipping
- * and billing destinations are saved. These settings are user-scoped today.
+ * and billing destinations are saved. These defaults are shared by everyone
+ * in the customer's company.
  */
 export function hasCompletedAddressOnboarding(settings: AccountSettingsSnapshot) {
   return hasRequiredAddressFields(settings.shipping) && hasRequiredAddressFields(settings.billingAddress);
@@ -130,6 +160,7 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     companyName: text(settings.companyName) || defaultAccountSettings().companyName,
     email: text(settings.email),
     emailVerifiedAt: text(settings.emailVerifiedAt),
+    emailVerificationStatus: settings.emailVerificationStatus,
     mfaEnabled: Boolean(settings.mfaEnabled),
     name: text(settings.name),
     passwordChangedAt: text(settings.passwordChangedAt),
@@ -137,6 +168,10 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     shipping: normalizeAddress(settings.shipping),
     stripeCustomerId: text(settings.stripeCustomerId),
     teamMembers: settings.teamMembers,
+    avatarPreset: settings.avatarPreset ?? null,
+    canManageCompany: Boolean(settings.canManageCompany),
+    profileImageUrl: text(settings.profileImageUrl),
+    roleLabel: text(settings.roleLabel),
   };
 }
 
@@ -208,36 +243,63 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
   };
 }
 
-async function writeLocalAccountSettings(settings: AccountSettingsSnapshot) {
-  await mkdir(path.dirname(localStorePath), { recursive: true });
-  await writeFile(localStorePath, `${JSON.stringify(normalizeAccountSettings(settings), null, 2)}\n`, "utf8");
-}
-
 async function prisma() {
   return (await getPrismaClient()) as {
     accountDefaults: {
       findUnique: (args: unknown) => Promise<StoredAccountDefaults | null>;
       upsert: (args: unknown) => Promise<StoredAccountDefaults>;
     };
+    company: {
+      findUnique: (args: unknown) => Promise<StoredCompanyDefaults | null>;
+      update: (args: unknown) => Promise<StoredCompanyDefaults>;
+    };
+    $transaction: (operations: Promise<unknown>[]) => Promise<unknown>;
   };
 }
+
+type StoredCompanyDefaults = {
+  billingAddress1: string;
+  billingAddress2: string;
+  billingCity: string;
+  billingCompany: string;
+  billingEmail: string;
+  billingInvoiceRoutingNotes: string;
+  billingName: string;
+  billingState: string;
+  billingZipCode: string;
+  id: string;
+  name: string;
+  shippingAddress1: string;
+  shippingAddress2: string;
+  shippingCity: string;
+  shippingCompany: string;
+  shippingName: string;
+  shippingState: string;
+  shippingZipCode: string;
+};
 
 async function settingsContext() {
   const { userId } = await auth();
   const clerkUser = await currentUser();
-  const emailVerifiedAt = await clerkEmailVerifiedAt(userId, clerkUser?.primaryEmailAddress?.id);
+  const emailVerification = await clerkEmailVerification(userId, clerkUser?.primaryEmailAddress?.id);
   const identityDates = {
     accountCreatedAt: displayIdentityDate(clerkUser?.createdAt),
-    emailVerifiedAt,
+    emailVerifiedAt: emailVerification.verifiedAt,
+    emailVerificationStatus: emailVerification.status,
   };
   const session = await getCurrentSession();
   if (session) {
     return {
       ...identityDates,
       id: `user:${session.user.id}`,
+      companyId: session.user.companyId,
       name: session.user.name,
       email: session.user.email,
       companyName: session.user.companyName ?? "",
+      canManageCompany: session.user.role === "admin",
+      profileImageUrl: text(clerkUser?.imageUrl),
+      avatarPreset: avatarPreset(clerkUser?.unsafeMetadata?.latticeAvatarPreset),
+      roleLabel: session.user.role === "admin" ? "Lattice Admin" : session.user.customerRole === "admin" ? "Customer Admin" : "Customer Member",
     };
   }
 
@@ -247,10 +309,82 @@ async function settingsContext() {
   return {
     ...identityDates,
     companyName: "",
+    companyId: null,
     email,
     id: `clerk:${userId}`,
     name: clerkUserDisplayName(clerkUser) || email.split("@", 1)[0] || "Account",
+    canManageCompany: false,
+    profileImageUrl: text(clerkUser?.imageUrl),
+    avatarPreset: avatarPreset(clerkUser?.unsafeMetadata?.latticeAvatarPreset),
+    roleLabel: "Customer Member",
   };
+}
+
+function accountSettingsWithCompanyDefaults(
+  userDefaults: AccountSettingsSnapshot,
+  company: StoredCompanyDefaults,
+) {
+  return normalizeAccountSettings({
+    ...userDefaults,
+    billing: {
+      email: company.billingEmail,
+      invoiceRoutingNotes: company.billingInvoiceRoutingNotes,
+    },
+    billingAddress: {
+      address1: company.billingAddress1,
+      address2: company.billingAddress2,
+      city: company.billingCity,
+      company: company.billingCompany,
+      name: company.billingName,
+      state: company.billingState,
+      zipCode: company.billingZipCode,
+    },
+    companyName: company.name,
+    shipping: {
+      address1: company.shippingAddress1,
+      address2: company.shippingAddress2,
+      city: company.shippingCity,
+      company: company.shippingCompany,
+      name: company.shippingName,
+      state: company.shippingState,
+      zipCode: company.shippingZipCode,
+    },
+  });
+}
+
+function companyDefaultsFromAccountSettings(settings: AccountSettingsSnapshot) {
+  const normalized = normalizeAccountSettings(settings);
+
+  return {
+    billingAddress1: normalized.billingAddress.address1,
+    billingAddress2: normalized.billingAddress.address2,
+    billingCity: normalized.billingAddress.city,
+    billingCompany: normalized.billingAddress.company,
+    billingEmail: normalized.billing.email,
+    billingInvoiceRoutingNotes: normalized.billing.invoiceRoutingNotes,
+    billingName: normalized.billingAddress.name,
+    billingState: normalized.billingAddress.state,
+    billingZipCode: normalized.billingAddress.zipCode,
+    shippingAddress1: normalized.shipping.address1,
+    shippingAddress2: normalized.shipping.address2,
+    shippingCity: normalized.shipping.city,
+    shippingCompany: normalized.shipping.company,
+    shippingName: normalized.shipping.name,
+    shippingState: normalized.shipping.state,
+    shippingZipCode: normalized.shipping.zipCode,
+  };
+}
+
+function companyDefaultsAreEmpty(company: StoredCompanyDefaults) {
+  return ![
+    company.billingAddress1,
+    company.billingEmail,
+    company.billingName,
+    company.billingZipCode,
+    company.shippingAddress1,
+    company.shippingName,
+    company.shippingZipCode,
+  ].some(text);
 }
 
 function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<typeof settingsContext>>) {
@@ -260,7 +394,12 @@ function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<
     companyName: context.companyName || defaults.companyName,
     email: context.email,
     emailVerifiedAt: context.emailVerifiedAt,
+    emailVerificationStatus: context.emailVerificationStatus,
     name: context.name,
+    avatarPreset: context.avatarPreset,
+    canManageCompany: context.canManageCompany,
+    profileImageUrl: context.profileImageUrl,
+    roleLabel: context.roleLabel,
   });
 }
 
@@ -271,6 +410,7 @@ function emptyForUser(context: Awaited<ReturnType<typeof settingsContext>>) {
     billing: { email: "", invoiceRoutingNotes: "" },
     billingAddress: { address1: "", address2: "", city: "", company: context.companyName, name: "", state: "", zipCode: "" },
     companyName: context.companyName,
+    emailVerificationStatus: context.emailVerificationStatus,
     mfaEnabled: false,
     passwordChangedAt: "",
     phone: "",
@@ -282,34 +422,99 @@ function emptyForUser(context: Awaited<ReturnType<typeof settingsContext>>) {
 
 export async function getAccountSettings() {
   const context = await settingsContext();
-  try {
-    const client = await prisma();
-    const stored = await client.accountDefaults.findUnique({ where: { id: context.id } });
+  const client = await prisma();
+  const stored = await client.accountDefaults.findUnique({ where: { id: context.id } });
+  const userDefaults = stored ? forUser(fromStoredAccountDefaults(stored), context) : emptyForUser(context);
 
-    return stored ? forUser(fromStoredAccountDefaults(stored), context) : emptyForUser(context);
-  } catch {
-    return emptyForUser(context);
+  if (!context.companyId) {
+    return userDefaults;
   }
+
+  let company = await client.company.findUnique({ where: { id: context.companyId } });
+  if (!company) throw new Error("Your company record could not be found.");
+
+  // Existing account defaults were previously user-scoped. Adopt the first
+  // populated record into the company once, then use only the company record.
+  if (stored && companyDefaultsAreEmpty(company)) {
+    company = await client.company.update({
+      where: { id: context.companyId },
+      data: companyDefaultsFromAccountSettings(userDefaults),
+    });
+  }
+
+  return accountSettingsWithCompanyDefaults(userDefaults, company);
 }
 
 export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
   const context = await settingsContext();
+  const requestedCompanyName = text(settings.companyName);
   const normalized = forUser(normalizeAccountSettings(settings), context);
   const stored = toStoredAccountDefaults(normalized);
   stored.id = context.id;
+  const client = await prisma();
 
-  try {
-    const client = await prisma();
+  if (!context.companyId) {
     await client.accountDefaults.upsert({
       create: stored,
       update: stored,
       where: { id: context.id },
     });
-  } catch {
-    await writeLocalAccountSettings(normalized);
+    return normalized;
   }
 
-  return normalized;
+  const currentCompany = await client.company.findUnique({ where: { id: context.companyId } });
+  if (!currentCompany) throw new Error("Your company record could not be found.");
+  const requestedCompanyDefaults = companyDefaultsFromAccountSettings(normalized);
+  const currentCompanyDefaults = companyDefaultsFromAccountSettings(accountSettingsWithCompanyDefaults(normalized, currentCompany));
+  const changingCompany = requestedCompanyName && requestedCompanyName !== currentCompany.name;
+  const changingDefaults = JSON.stringify(requestedCompanyDefaults) !== JSON.stringify(currentCompanyDefaults);
+  // A new company may complete its first address onboarding; after that,
+  // company-wide commercial defaults are controlled by Lattice Admin only.
+  if (!context.canManageCompany && !companyDefaultsAreEmpty(currentCompany) && (changingCompany || changingDefaults)) {
+    throw new Error("Only a Lattice Admin can change company defaults.");
+  }
+
+  // Shipping and billing values are company-owned. Keep the legacy user
+  // columns empty after moving them to Company so they cannot become a second
+  // source of truth.
+  Object.assign(stored, {
+    billingAddress1: "",
+    billingAddress2: "",
+    billingCity: "",
+    billingCompany: "",
+    billingEmail: "",
+    billingInvoiceRoutingNotes: "",
+    billingName: "",
+    billingState: "",
+    billingZipCode: "",
+    shippingAddress1: "",
+    shippingAddress2: "",
+    shippingCity: "",
+    shippingCompany: "",
+    shippingName: "",
+    shippingState: "",
+    shippingZipCode: "",
+  });
+
+  await client.$transaction([
+    client.accountDefaults.upsert({
+      create: stored,
+      update: stored,
+      where: { id: context.id },
+    }),
+    client.company.update({
+      where: { id: context.companyId },
+      data: {
+        ...requestedCompanyDefaults,
+        ...(requestedCompanyName && (context.canManageCompany || companyDefaultsAreEmpty(currentCompany)) ? { name: requestedCompanyName } : {}),
+      },
+    }),
+  ]);
+
+  const company = await client.company.findUnique({ where: { id: context.companyId } });
+  if (!company) throw new Error("Your company record could not be found.");
+
+  return accountSettingsWithCompanyDefaults(normalized, company);
 }
 
 export async function ensureStripeCustomerForAccount() {

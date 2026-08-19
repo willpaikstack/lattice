@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AppShell } from "./app-shell";
 
+const testCustomer = { email: "will@latticeos.co", name: "William Paik" };
 const mockUsePathname = vi.fn(() => "/dashboard");
 const mockPush = vi.fn();
 const mockReplace = vi.fn();
@@ -138,7 +139,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/");
 
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>landing content</div>
       </AppShell>,
     );
@@ -247,7 +248,7 @@ describe("AppShell", () => {
 
   it("keeps customer navigation separate from admin pages", () => {
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>content</div>
       </AppShell>,
     );
@@ -261,6 +262,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
     expectAllLinksNamed("Inspection & Certificates", "/quality-documentation");
+    expectAllLinksNamed("How it works", "/how-it-works");
     expect(screen.getAllByText("Your Resources").length).toBeGreaterThan(0);
     expect(screen.getByText("William Paik")).toBeInTheDocument();
     expect(screen.getByText("will@latticeos.co")).toBeInTheDocument();
@@ -269,6 +271,19 @@ describe("AppShell", () => {
     expect(screen.queryByRole("link", { name: "Analytics" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Project Management" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "RFQ Queue" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the how-it-works explainer in the customer portal for signed-in users", () => {
+    mockUsePathname.mockReturnValue("/how-it-works");
+
+    render(
+      <AppShell sessionRole="customer">
+        <div>how it works content</div>
+      </AppShell>,
+    );
+
+    expect(screen.getByText("Workspace")).toBeInTheDocument();
+    expectAllLinksNamed("How it works", "/how-it-works");
   });
 
   it("keeps the customer sidebar header while the bell swaps the content below it", async () => {
@@ -317,7 +332,7 @@ describe("AppShell", () => {
 
   it("lets admin sessions return to the admin workspace from customer routes", () => {
     render(
-      <AppShell sessionRole="admin">
+      <AppShell sessionRole="admin" sessionUser={testCustomer}>
         <div>customer content</div>
       </AppShell>,
     );
@@ -330,7 +345,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/requests/new");
 
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>request form</div>
       </AppShell>,
     );
@@ -347,7 +362,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/quotes/demo_submitted");
 
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>quote detail</div>
       </AppShell>,
     );
@@ -381,7 +396,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/admin/quotes");
 
     render(
-      <AppShell sessionRole="admin">
+      <AppShell sessionRole="admin" sessionUser={testCustomer}>
         <div>content</div>
       </AppShell>,
     );
@@ -407,7 +422,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/admin/quotes");
 
     render(
-      <AppShell sessionRole="admin">
+      <AppShell sessionRole="admin" sessionUser={testCustomer}>
         <div>content</div>
       </AppShell>,
     );
@@ -456,7 +471,7 @@ describe("AppShell", () => {
     );
 
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>content</div>
       </AppShell>,
     );
@@ -474,7 +489,7 @@ describe("AppShell", () => {
     mockUsePathname.mockReturnValue("/admin/customers");
 
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>content</div>
       </AppShell>,
     );
@@ -560,7 +575,7 @@ describe("AppShell", () => {
 
   it("links the sidebar profile card to account settings", () => {
     render(
-      <AppShell>
+      <AppShell sessionUser={testCustomer}>
         <div>content</div>
       </AppShell>,
     );

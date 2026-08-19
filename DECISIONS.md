@@ -1,5 +1,33 @@
 # Decisions
 
+## 2026-08-19 - Make Saved Payment Methods Company-Owned
+
+Decision: saved payment methods will belong to the customer `Company`, rather than to an individual user. The first release should keep the payment method simple and shared; card-level access segmentation, named-user assignment, permission sets, spending policies, and an audit trail are planned follow-on work.
+
+Reason: a customer company's purchasing instruments are operational business assets. Individual ownership would make card access disappear when a team member changes and would not reflect how finance teams manage payment authority.
+
+Implications:
+
+- The Stripe Customer ID and saved-card references must be resolved from the authenticated user's Company after a safe migration from the current user-scoped account defaults.
+- No raw card data is stored by Lattice; Stripe remains responsible for card collection and storage.
+- Before the first release, Lattice must define which current customer roles may add, remove, and use company cards. The recommended initial policy is Customer Admins manage cards and all provisioned company users can use the shared company card; granular per-card assignment remains roadmap work.
+- The public/customer roadmap records the planned permission model without exposing customer payment data.
+
+## 2026-08-19 - Keep Initial Customer Administration and Purchasing Controls Centralized
+
+Decision: Lattice Admin remains the sole manager of customer memberships for the initial release. Customer-facing MFA remains optional and unenforced. Purchase-order payment is unavailable, and tax-exempt status defaults to unavailable until Lattice introduces explicit approval workflows.
+
+Reason: these workflows control access and financial risk. Releasing them before their authorization, review, notification, and audit requirements are defined would create misleading controls.
+
+Implications:
+
+- Customer Admin self-service invitations, teammate removal, and role assignment are later roadmap work; the initial customer workspace does not expose them.
+- Customer profile photos support persisted file uploads with an emoji fallback once implemented, rather than browser-only choices.
+- Password changes should use Clerk with current-password or recent-reverification checks, and Google-only users can create a password after re-verifying identity.
+- A Lattice Admin-only tax-exemption review workflow can be designed later; no tax document standard is required for this release.
+- Approved purchase orders and company credit checks/limits are later work, not an available customer payment choice.
+- `support@latticeos.co` is the planned support and reply-to address for future account-management emails.
+
 ## 2026-08-17 - Scope Customer Work to Durable Company Membership
 
 Decision: customer RFQs, quotes, orders, invoices, and submitted files belong to a durable customer `Company`, not to the individual requester email. Every provisioned user at that company receives the same customer-workspace visibility. Customer roles are `Customer Admin` and `Customer Member`; Lattice retains a single `Lattice Admin`. Suppliers are operator-managed and do not receive platform accounts in this phase.
@@ -1258,3 +1286,16 @@ Implications:
 - The initial user is always a `CUSTOMER_ADMIN` and receives a one-time temporary password that must be changed within 72 hours.
 - The provisioning flow creates the Company, Prisma User, and Clerk User, and compensates by removing created records if Clerk identity creation fails.
 - Customer self-service invitations and company creation remain out of scope until explicitly authorized.
+
+## 2026-08-19 - Company Defaults Are Shared and Database-Only
+
+Decision: shipping address, billing address, and billing-contact defaults belong to the customer `Company` record. A user's personal name and phone remain user-scoped. Account Settings must surface failed writes instead of retaining browser-local or local-file fallbacks.
+
+Reason: shipping and billing are operational company details, so every authorized member needs the same current defaults. Local fallback data can make an update look successful when it has not reached the system of record.
+
+Implications:
+
+- Address onboarding and normal Account Settings writes persist shared shipping, billing, and billing-contact data in the database.
+- The interface includes a concise note that these changes apply to everyone at the company.
+- Legacy populated user-scoped defaults are adopted into an empty company record once; the legacy fields are then cleared on later saves so they cannot become a competing source of truth.
+- A database failure leaves the previously saved values intact and is shown to the user as an error.

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 type AvatarPreset = {
   id: string;
@@ -26,7 +28,7 @@ type AvatarColor = {
 type AvatarState =
   | { type: "initials" }
   | { colorId: string; presetId: string; type: "preset" }
-  | { type: "upload"; url: string };
+  | { file?: File; type: "upload"; url: string };
 
 const avatarPresets: AvatarPreset[] = [
   { id: "gear", kind: "emoji", label: "Gear", value: "⚙️" },
@@ -62,7 +64,7 @@ function getAvatarColor(id: string) {
 }
 
 function revokeUpload(avatar: AvatarState) {
-  if (avatar.type === "upload") {
+  if (avatar.type === "upload" && avatar.url.startsWith("blob:")) {
     URL.revokeObjectURL(avatar.url);
   }
 }
@@ -162,12 +164,17 @@ function AvatarPreview({ avatar, initials = "WP", size = "large" }: { avatar: Av
   );
 }
 
-export function ProfilePictureEditor() {
-  const [avatar, setAvatar] = useState<AvatarState>({ type: "initials" });
-  const [draftAvatar, setDraftAvatar] = useState<AvatarState>({ type: "initials" });
+export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", initialPreset = null }: { initials?: string; initialImageUrl?: string; initialPreset?: { colorId: string; presetId: string } | null }) {
+  const { user } = useUser();
+  const router = useRouter();
+  const startingAvatar: AvatarState = initialImageUrl ? { type: "upload", url: initialImageUrl } : initialPreset ? { ...initialPreset, type: "preset" } : { type: "initials" };
+  const [avatar, setAvatar] = useState<AvatarState>(startingAvatar);
+  const [draftAvatar, setDraftAvatar] = useState<AvatarState>(startingAvatar);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isPhotoMenuOpen, setIsPhotoMenuOpen] = useState(false);
   const [mode, setMode] = useState<"preset" | "upload">("preset");
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const avatarRef = useRef(avatar);
   const draftAvatarRef = useRef(draftAvatar);
@@ -206,35 +213,6 @@ export function ProfilePictureEditor() {
     inputRef.current?.click();
   }
 
-  async function useClipboardImage() {
-    setIsPhotoMenuOpen(false);
-
-    if (!navigator.clipboard?.read) {
-      return;
-    }
-
-    try {
-      const clipboardItems = await navigator.clipboard.read();
-      for (const item of clipboardItems) {
-        const imageType = item.types.find((type) => type.startsWith("image/"));
-        if (!imageType) {
-          continue;
-        }
-
-        const blob = await item.getType(imageType);
-        if (draftAvatar.type === "upload" && (avatar.type !== "upload" || draftAvatar.url !== avatar.url)) {
-          revokeUpload(draftAvatar);
-        }
-        setDraftAvatar({ type: "upload", url: URL.createObjectURL(blob) });
-        setMode("upload");
-        setIsEditorOpen(true);
-        return;
-      }
-    } catch {
-      return;
-    }
-  }
-
   function closeEditor() {
     if (draftAvatar.type === "upload" && (avatar.type !== "upload" || draftAvatar.url !== avatar.url)) {
       revokeUpload(draftAvatar);
@@ -266,7 +244,7 @@ export function ProfilePictureEditor() {
       revokeUpload(draftAvatar);
     }
 
-    setDraftAvatar({ type: "upload", url: URL.createObjectURL(file) });
+    setDraftAvatar({ file, type: "upload", url: URL.createObjectURL(file) });
     setMode("upload");
   }
 
@@ -295,13 +273,38 @@ export function ProfilePictureEditor() {
     setMode("preset");
   }
 
-  function saveAvatar() {
+  async function saveAvatar() {
+    if (!user) {
+      setSaveError("Your account is still loading. Please try again.");
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    try {
+      if (draftAvatar.type === "upload" && draftAvatar.file) {
+        await user.setProfileImage({ file: draftAvatar.file });
+        await user.updateMetadata({ unsafeMetadata: { latticeAvatarPreset: null } });
+      } else if (draftAvatar.type === "preset") {
+        if (user.hasImage) await user.setProfileImage({ file: null });
+        await user.updateMetadata({ unsafeMetadata: { latticeAvatarPreset: { colorId: draftAvatar.colorId, presetId: draftAvatar.presetId } } });
+      } else {
+        if (user.hasImage) await user.setProfileImage({ file: null });
+        await user.updateMetadata({ unsafeMetadata: { latticeAvatarPreset: null } });
+      }
+      await user.reload();
+    } catch {
+      setSaveError("We couldn't save your profile photo. Please try again.");
+      setSaving(false);
+      return;
+    }
     if (avatar.type === "upload" && (draftAvatar.type !== "upload" || draftAvatar.url !== avatar.url)) {
       revokeUpload(avatar);
     }
 
     setAvatar(draftAvatar);
     setIsEditorOpen(false);
+    setSaving(false);
+    router.refresh();
   }
 
   return (
@@ -311,7 +314,7 @@ export function ProfilePictureEditor() {
       </div>
       <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center">
         <div className="relative w-fit">
-          <AvatarPreview avatar={avatar} />
+          <AvatarPreview avatar={avatar} initials={initials} />
           <button
             aria-expanded={isPhotoMenuOpen}
             aria-haspopup="menu"
@@ -332,12 +335,6 @@ export function ProfilePictureEditor() {
                   ▧
                 </span>
                 File
-              </button>
-              <button className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-[14px] font-semibold text-[#253040] hover:bg-[#f4f6f8]" onClick={useClipboardImage} role="menuitem" type="button">
-                <span aria-hidden="true" className="text-[20px]">
-                  ▣
-                </span>
-                From clipboard
               </button>
               <button className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-[14px] font-semibold text-[#253040] hover:bg-[#f4f6f8]" onClick={openEditor} role="menuitem" type="button">
                 <span aria-hidden="true" className="text-[20px]">
@@ -371,7 +368,7 @@ export function ProfilePictureEditor() {
               <div className="rounded-md border border-[#e5e8ec] bg-[#f8fafc] p-4">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7782]">Preview</p>
                 <div className="mt-4 flex justify-center">
-                  <AvatarPreview avatar={draftAvatar} size="small" />
+                  <AvatarPreview avatar={draftAvatar} initials={initials} size="small" />
                 </div>
                 <p className="mt-4 text-center text-[13px] leading-5 text-[#5f6673]">This updates your account menu and collaboration identity.</p>
               </div>
@@ -462,8 +459,9 @@ export function ProfilePictureEditor() {
               <button className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626]" onClick={closeEditor} type="button">
                 Cancel
               </button>
-              <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white" onClick={saveAvatar} type="button">
-                Save avatar
+              {saveError ? <p className="mr-auto text-sm font-medium text-red-700">{saveError}</p> : null}
+              <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60" disabled={saving} onClick={saveAvatar} type="button">
+                {saving ? "Saving…" : "Save avatar"}
               </button>
             </div>
           </div>

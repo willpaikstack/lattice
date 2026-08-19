@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 
-import { deleteBuyerQuoteAction } from "@/app/quotes/actions";
+import { deleteBuyerQuoteAction } from "@/app/(workspace)/quotes/actions";
 import { CadRenderThumbnail } from "@/components/cad-file-preview";
 import { buyerLifecycleTag, type BuyerLifecycleTag } from "@/lib/buyer-lifecycle";
 import type { LatticeRequest } from "@/lib/request-model";

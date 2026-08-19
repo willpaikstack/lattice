@@ -28,6 +28,16 @@ export type PaymentCard = {
   last4: string;
 };
 
+/**
+ * Clerk owns email verification. Keep its state separate from the timestamp
+ * so a temporary Clerk API outage is never presented as a verified email.
+ */
+export type EmailVerificationStatus =
+  | "verified"
+  | "verification-date-unavailable"
+  | "not-verified"
+  | "unavailable";
+
 export type AccountSettingsSnapshot = {
   accountCreatedAt: string;
   billing: BillingContact;
@@ -36,6 +46,7 @@ export type AccountSettingsSnapshot = {
   companyName: string;
   email: string;
   emailVerifiedAt: string;
+  emailVerificationStatus: EmailVerificationStatus;
   mfaEnabled: boolean;
   name: string;
   passwordChangedAt: string;
@@ -43,42 +54,24 @@ export type AccountSettingsSnapshot = {
   shipping: AccountAddress;
   stripeCustomerId: string;
   teamMembers: TeamMember[];
+  /** Display-only identity fields sourced from Clerk/workspace membership. */
+  canManageCompany?: boolean;
+  profileImageUrl?: string;
+  avatarPreset?: { colorId: string; presetId: string } | null;
+  roleLabel?: string;
 };
 
 export const accountSettingsStorageKey = "lattice.account-settings.v1";
 
-export const initialTeamMembers: TeamMember[] = [
-  { email: "william.paik@amogy.co", name: "William Paik", role: "Admin", status: "Active" },
-  { email: "procurement@amogy.co", name: "Procurement Team", role: "Buyer", status: "Active" },
-  { email: "quality@amogy.co", name: "Quality Team", role: "Reviewer", status: "Invited" },
-];
+export const initialTeamMembers: TeamMember[] = [];
 
 export const initialCards: PaymentCard[] = [];
 
-export const initialShippingAddress: AccountAddress = {
-  address1: "19 Morris Ave",
-  address2: "",
-  city: "Brooklyn",
-  company: "Amogy",
-  name: "William Paik",
-  state: "NY",
-  zipCode: "11205",
-};
+export const initialShippingAddress: AccountAddress = { address1: "", address2: "", city: "", company: "", name: "", state: "", zipCode: "" };
 
-export const initialBillingAddress: AccountAddress = {
-  address1: "19 Morris Ave",
-  address2: "",
-  city: "Brooklyn",
-  company: "Amogy",
-  name: "William Paik",
-  state: "NY",
-  zipCode: "11205",
-};
+export const initialBillingAddress: AccountAddress = { address1: "", address2: "", city: "", company: "", name: "", state: "", zipCode: "" };
 
-export const initialBillingContact: BillingContact = {
-  email: "procurement@amogy.co",
-  invoiceRoutingNotes: "Route invoices to AP after PO match.",
-};
+export const initialBillingContact: BillingContact = { email: "", invoiceRoutingNotes: "" };
 
 export function defaultAccountSettings(): AccountSettingsSnapshot {
   return {
@@ -86,13 +79,14 @@ export function defaultAccountSettings(): AccountSettingsSnapshot {
     billing: initialBillingContact,
     billingAddress: initialBillingAddress,
     cards: initialCards,
-    companyName: "Amogy",
-    email: "william.paik@amogy.co",
+    companyName: "",
+    email: "",
     emailVerifiedAt: "",
-    mfaEnabled: true,
-    name: "William Paik",
-    passwordChangedAt: "May 12, 2026",
-    phone: "+1 (310) 617-4533",
+    emailVerificationStatus: "unavailable",
+    mfaEnabled: false,
+    name: "",
+    passwordChangedAt: "",
+    phone: "",
     shipping: initialShippingAddress,
     stripeCustomerId: "",
     teamMembers: initialTeamMembers,

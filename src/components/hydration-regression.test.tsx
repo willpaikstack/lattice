@@ -3,7 +3,7 @@ import { hydrateRoot, type Root } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { deleteBuyerQuoteAction } from "@/app/quotes/actions";
+import { deleteBuyerQuoteAction } from "@/app/(workspace)/quotes/actions";
 import { buildDraftRequest, type LatticeRequest } from "@/lib/request-model";
 
 import { BuyerQuotes } from "./buyer-quotes";
@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("@/app/quotes/actions", () => ({
+vi.mock("@/app/(workspace)/quotes/actions", () => ({
   deleteBuyerQuoteAction: vi.fn(async () => undefined),
 }));
 

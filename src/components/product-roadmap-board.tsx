@@ -3,7 +3,7 @@
 import { ArrowRight, Check, Plus } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 
-import { setRoadmapInterestAction } from "@/app/roadmap/actions";
+import { setRoadmapInterestAction } from "@/app/(workspace)/roadmap/actions";
 import type { ProductRoadmapItem, RoadmapStatus } from "@/lib/product-roadmap";
 
 export type ProductRoadmapBoardItem = ProductRoadmapItem & {

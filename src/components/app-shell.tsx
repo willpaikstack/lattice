@@ -74,6 +74,7 @@ const customerNavSections: NavSection[] = [
       { href: "/capabilities", label: "Capabilities", icon: "queue" },
       { href: "/equipment", label: "Equipment", icon: "factory" },
       { href: "/quality-documentation", label: "Inspection & Certificates", icon: "quality" },
+      { href: "/how-it-works", label: "How it works", icon: "resources" },
     ],
   },
 ];
@@ -744,7 +745,9 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
     setIsNotificationsPanelOpen(false);
   }
 
-  if (isPublicRoutePath) {
+  // Signed-in customers use the same explainer inside their workspace. Public
+  // visitors retain the standalone marketing experience at this URL.
+  if (isPublicRoutePath && !sessionRole) {
     return <>{children}</>;
   }
 
