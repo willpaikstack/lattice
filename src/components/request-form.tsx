@@ -2915,9 +2915,6 @@ export function RequestForm({
       : [lineItemFromInitialState(initialState)],
   );
   const [error, setError] = useState<string | null>(null);
-  const [createdRequest, setCreatedRequest] = useState<LatticeRequest | null>(
-    null,
-  );
   const [activeLocalDraftId, setActiveLocalDraftId] = useState<string | null>(
     localDraftId ?? null,
   );
@@ -3173,7 +3170,7 @@ export function RequestForm({
   }
 
   useEffect(() => {
-    if (!hasCadFile || createdRequest) {
+    if (!hasCadFile) {
       return;
     }
 
@@ -3366,7 +3363,7 @@ export function RequestForm({
     };
     const otherDrafts = readIncompleteRfqs().filter((draft) => draft.id !== draftId);
     writeIncompleteRfqs([nextDraft, ...otherDrafts].slice(0, 12));
-  }, [activeLocalDraftId, configuredLineItems, createdRequest, hasCadFile, projectForm]);
+  }, [activeLocalDraftId, configuredLineItems, hasCadFile, projectForm]);
 
   useEffect(() => {
     if (isQuoteNameEditing) {
@@ -3814,16 +3811,10 @@ export function RequestForm({
         throw new Error(payload.error ?? "Unable to submit request");
       }
 
-      setCreatedRequest(payload.request);
       if (activeLocalDraftId) {
         removeIncompleteRfq(activeLocalDraftId);
       }
-      setActiveLocalDraftId(null);
-      setProjectForm(makeProjectInitialState(defaultBuyerCompany));
-      setLineItems([makeLineItemInitialState("line-1")]);
-      setCollapsedLineItemIds(new Set());
-      setDrawingReviewLineItemId(null);
-      router.push(`/quotes/${payload.request.id}`);
+      router.replace(`/quotes/${payload.request.id}`);
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Unable to submit request",
@@ -4019,7 +4010,7 @@ export function RequestForm({
           {hasCadFile ? (
             <div className="border-t border-slate-100 pt-6">
               <button
-                className="rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
+                className="cursor-pointer rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
                 disabled={!isReady}
                 type="submit"
               >

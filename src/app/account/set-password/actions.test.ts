@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("@/lib/auth-crypto", () => ({ defaultHomeForRole: vi.fn(() => "/dashboard") }));
 vi.mock("@/lib/session", () => ({
   createSessionForUser: mocks.createSessionForUser,
   getPasswordSetupState: mocks.getPasswordSetupState,
@@ -45,5 +44,23 @@ describe("setTemporaryPasswordAction", () => {
     mocks.completeForcedPasswordChange.mockRejectedValue(new Error("upstream failure"));
 
     await expect(setTemporaryPasswordAction(formData())).rejects.toThrow("redirect:/account/set-password?error=service");
+  });
+
+  it("returns through the account continuation check after setting the password", async () => {
+    mocks.getPasswordSetupState.mockResolvedValue({
+      session: { user: { email: "carmen@example.com", id: "user_1", name: "Carmen", role: "customer" } },
+      status: "ready",
+    });
+    mocks.completeForcedPasswordChange.mockResolvedValue(undefined);
+
+    await expect(setTemporaryPasswordAction(formData())).rejects.toThrow("redirect:/account/continue");
+    expect(mocks.createSessionForUser).toHaveBeenCalledWith({
+      email: "carmen@example.com",
+      id: "user_1",
+      mustChangePassword: false,
+      name: "Carmen",
+      provider: "password",
+      role: "customer",
+    });
   });
 });

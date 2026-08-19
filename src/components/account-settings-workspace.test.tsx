@@ -7,9 +7,10 @@ import { AccountSettingsWorkspace } from "./account-settings-workspace";
 const accountSettingsStorageKey = "lattice.account-settings.v1";
 const searchParamsMock = vi.hoisted(() => vi.fn(() => new URLSearchParams()));
 const refreshMock = vi.hoisted(() => vi.fn());
+const replaceMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: refreshMock }),
+  useRouter: () => ({ refresh: refreshMock, replace: replaceMock }),
   useSearchParams: () => searchParamsMock(),
 }));
 
@@ -17,6 +18,7 @@ describe("AccountSettingsWorkspace", () => {
   beforeEach(() => {
     searchParamsMock.mockReturnValue(new URLSearchParams());
     refreshMock.mockReset();
+    replaceMock.mockReset();
     const store = new Map<string, string>();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
@@ -43,7 +45,6 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(screen.getByText("Will Paik")).toBeInTheDocument();
-    expect(screen.getByText("Name updated.")).toBeInTheDocument();
   });
 
   it("updates the authenticated profile when editing a name", async () => {
@@ -55,7 +56,6 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => expect(updateDisplayNameAction).toHaveBeenCalledWith("Will Paikkkk"));
-    expect(await screen.findByText("Name updated.")).toBeInTheDocument();
     expect(refreshMock).toHaveBeenCalledOnce();
   });
 
@@ -87,7 +87,6 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(screen.getAllByText("Amogy").length).toBeGreaterThan(0);
-    expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
   });
 
   it("keeps the saved buyer company after the settings page remounts", async () => {
@@ -118,7 +117,6 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(screen.getByText("+1 (212) 555-0199")).toBeInTheDocument();
-    expect(screen.getByText("Account setting updated for this demo session.")).toBeInTheDocument();
   });
 
   it("announces inline validation errors", () => {
@@ -188,7 +186,7 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("No Stripe cards are available for checkout.")).toBeInTheDocument();
   });
 
-  it("edits the billing address default separately from billing contact", () => {
+  it("edits the billing address default separately from billing contact", async () => {
     render(<AccountSettingsWorkspace />);
 
     expect(screen.queryByText("Default RFQ requirements")).not.toBeInTheDocument();
@@ -206,7 +204,7 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.change(screen.getByLabelText("Zip code"), { target: { value: "10004" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(screen.getByText("Accounts Payable")).toBeInTheDocument();
+    expect(await screen.findByText("Accounts Payable")).toBeInTheDocument();
     expect(screen.getByText("Amogy Finance")).toBeInTheDocument();
     expect(screen.getByText("44 Water St")).toBeInTheDocument();
     expect(screen.getByText("Suite 1200")).toBeInTheDocument();
@@ -214,7 +212,7 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("procurement@amogy.co")).toBeInTheDocument();
   });
 
-  it("edits the saved shipping address with structured address fields", () => {
+  it("edits the saved shipping address with structured address fields", async () => {
     render(<AccountSettingsWorkspace />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit shipping" }));
@@ -236,7 +234,7 @@ describe("AccountSettingsWorkspace", () => {
     fireEvent.change(screen.getByLabelText("Zip code"), { target: { value: "10013" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(screen.getByText("Receiving Team")).toBeInTheDocument();
+    expect(await screen.findByText("Receiving Team")).toBeInTheDocument();
     expect(screen.getByText("Lattice Receiving")).toBeInTheDocument();
     expect(screen.getByText("75 Varick St")).toBeInTheDocument();
     expect(screen.getByText("Dock 3")).toBeInTheDocument();
@@ -248,10 +246,57 @@ describe("AccountSettingsWorkspace", () => {
 
     render(<AccountSettingsWorkspace />);
 
-    expect(screen.getByText("Make a change, then save or cancel.")).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveValue("William Paik");
     expect(screen.getByLabelText("Address 1")).toHaveValue("19 Morris Ave");
     expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
+  });
+
+  it("guides a new account through shipping and billing addresses before entering the workspace", async () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams("onboarding=addresses"));
+    const blankAddress = { address1: "", address2: "", city: "", company: "", name: "", state: "", zipCode: "" };
+    render(
+      <AccountSettingsWorkspace
+        initialSettings={{
+          ...defaultAccountSettings(),
+          billingAddress: blankAddress,
+          shipping: blankAddress,
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Finish setting up your account")).toBeInTheDocument();
+    expect(screen.getByLabelText("Address 1")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Carmen Practice" } });
+    fireEvent.change(screen.getByLabelText("Company"), { target: { value: "Practice Co." } });
+    fireEvent.change(screen.getByLabelText("Address 1"), { target: { value: "1 Test Way" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "New York" } });
+    fireEvent.change(screen.getByLabelText("State"), { target: { value: "NY" } });
+    fireEvent.change(screen.getByLabelText("Zip code"), { target: { value: "10001" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(screen.getByText("Shipping address saved. Now add your billing address to finish setup.")).toBeInTheDocument());
+    expect(screen.getByLabelText("Address 1")).toHaveValue("1 Test Way");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
+  });
+
+  it("updates the current in-review RFQ when editing shipping from quote details", async () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams("edit=shipping&request=req_123"));
+    const updateRequestShippingAddressAction = vi.fn(async () => undefined);
+    render(<AccountSettingsWorkspace updateRequestShippingAddressAction={updateRequestShippingAddressAction} />);
+
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Receiving Team" } });
+    fireEvent.change(screen.getByLabelText("Company"), { target: { value: "Lattice Receiving" } });
+    fireEvent.change(screen.getByLabelText("Address 1"), { target: { value: "75 Varick St" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "New York" } });
+    fireEvent.change(screen.getByLabelText("State"), { target: { value: "NY" } });
+    fireEvent.change(screen.getByLabelText("Zip code"), { target: { value: "10013" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => expect(updateRequestShippingAddressAction).toHaveBeenCalledWith("req_123", expect.objectContaining({ address1: "75 Varick St" })));
+    expect(replaceMock).toHaveBeenCalledWith("/quotes/req_123");
   });
 
   it("edits billing contact details with separate fields", () => {
@@ -273,22 +318,19 @@ describe("AccountSettingsWorkspace", () => {
     expect(screen.getByText("Send invoices after PO, packing slip, and receiver match.")).toBeInTheDocument();
   });
 
-  it("switches to team management and updates a member", () => {
+  it("shows team management as unavailable", () => {
     render(<AccountSettingsWorkspace />);
 
     const accountTab = screen.getByRole("tab", { name: "Account details" });
     const teamTab = screen.getByRole("tab", { name: "Team account members" });
     expect(accountTab).toHaveAttribute("aria-controls", "account-settings-panel-account");
     expect(teamTab).toHaveAttribute("aria-controls", "account-settings-panel-team");
+    expect(teamTab).toBeDisabled();
+    expect(teamTab).toHaveAttribute("aria-disabled", "true");
+    expect(teamTab).toHaveAttribute("title", "Team account members is not available yet.");
 
     fireEvent.keyDown(accountTab, { key: "ArrowRight" });
-    expect(teamTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tabpanel", { name: "Team account members" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Manage Quality Team" }));
-    fireEvent.change(screen.getByLabelText("Quality Team status"), { target: { value: "Active" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    expect(screen.getByText("Quality Team was updated for this demo session.")).toBeInTheDocument();
-    expect(screen.getAllByText("Active").length).toBeGreaterThan(2);
+    expect(accountTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tabpanel", { name: "Team account members" })).not.toBeInTheDocument();
   });
 });

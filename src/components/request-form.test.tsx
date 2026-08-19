@@ -7,11 +7,11 @@ import {
   type LatticeRequest,
 } from "@/lib/request-model";
 
-const routerPushMock = vi.hoisted(() => vi.fn());
+const routerReplaceMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
-    push: routerPushMock,
+    replace: routerReplaceMock,
   }),
 }));
 
@@ -105,7 +105,7 @@ describe("RequestForm", () => {
   beforeEach(() => {
     const storage = new Map<string, string>();
 
-    routerPushMock.mockClear();
+    routerReplaceMock.mockClear();
     vi.stubGlobal("fetch", vi.fn());
     vi.stubGlobal("localStorage", {
       getItem: vi.fn((key: string) => storage.get(key) ?? null),
@@ -1086,6 +1086,6 @@ describe("RequestForm", () => {
     ]);
     expect(submittedForm.get("file-0")).toBeNull();
     expect(submittedForm.get("file-1")).toBeNull();
-    expect(routerPushMock).toHaveBeenCalledWith("/quotes/req_multi");
+    expect(routerReplaceMock).toHaveBeenCalledWith("/quotes/req_multi");
   });
 });

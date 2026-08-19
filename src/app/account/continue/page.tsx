@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { getAccountSettings, hasCompletedAddressOnboarding } from "@/lib/account-settings";
 import { defaultHomeForRole } from "@/lib/auth-crypto";
 import { getCurrentSession, getPasswordSetupState } from "@/lib/session";
 
@@ -24,6 +25,13 @@ export default async function AccountContinuePage() {
   const session = await getCurrentSession();
   if (!session) {
     redirect("/login");
+  }
+
+  if (session.user.role === "customer") {
+    const settings = await getAccountSettings();
+    if (!hasCompletedAddressOnboarding(settings)) {
+      redirect("/account/settings?onboarding=addresses");
+    }
   }
 
   redirect(defaultHomeForRole(session.user.role));

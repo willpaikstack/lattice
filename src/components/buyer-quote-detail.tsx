@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, CircleDot, Download, Mail, Phone, User, X } from "lucide-react";
 
+import type { AccountAddress } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 
@@ -266,16 +267,31 @@ function fileDownloadHref(file: LatticeRequest["files"][number] | undefined) {
     : null;
 }
 
-function quoteShippingAddressLines(request: LatticeRequest) {
+function quoteShippingAddressLines(request: LatticeRequest, savedShippingAddress?: AccountAddress) {
+  const hasCompleteSnapshot = Boolean(request.shipToAddress1 && request.shipToCity && request.shipToState && request.shipToZipCode);
+  const shippingSource = hasCompleteSnapshot || !savedShippingAddress
+    ? {
+        shipToAddress1: request.shipToAddress1,
+        shipToAddress2: request.shipToAddress2,
+        shipToCity: request.shipToCity,
+        shipToCompany: request.shipToCompany || request.buyerCompany,
+        shipToName: request.shipToName,
+        shipToPhone: request.shipToPhone,
+        shipToState: request.shipToState,
+        shipToZipCode: request.shipToZipCode,
+      }
+    : {
+        shipToAddress1: savedShippingAddress.address1,
+        shipToAddress2: savedShippingAddress.address2,
+        shipToCity: savedShippingAddress.city,
+        shipToCompany: savedShippingAddress.company,
+        shipToName: savedShippingAddress.name,
+        shipToPhone: request.shipToPhone,
+        shipToState: savedShippingAddress.state,
+        shipToZipCode: savedShippingAddress.zipCode,
+      };
   const lines = requestShipToLines({
-    shipToAddress1: request.shipToAddress1,
-    shipToAddress2: request.shipToAddress2,
-    shipToCity: request.shipToCity,
-    shipToCompany: request.shipToCompany || request.buyerCompany,
-    shipToName: request.shipToName,
-    shipToPhone: request.shipToPhone,
-    shipToState: request.shipToState,
-    shipToZipCode: request.shipToZipCode,
+    ...shippingSource,
   });
 
   return lines.length ? lines : [request.buyerCompany, "Shipping address pending"];
@@ -284,9 +300,11 @@ function quoteShippingAddressLines(request: LatticeRequest) {
 export function BuyerQuoteDetail({
   checkoutHref,
   request,
+  savedShippingAddress,
 }: {
   checkoutHref?: string;
   request: LatticeRequest;
+  savedShippingAddress?: AccountAddress;
 }) {
   const canPurchase = request.status === "QUOTED";
   const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
@@ -301,7 +319,7 @@ export function BuyerQuoteDetail({
   const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
-  const shippingAddressLines = quoteShippingAddressLines(request);
+  const shippingAddressLines = quoteShippingAddressLines(request, savedShippingAddress);
   const lineItemFiles = bundledFilesByLineItem(request);
   return (
     <div className="mx-auto w-full max-w-[1600px] px-2 pb-10">
@@ -609,7 +627,12 @@ export function BuyerQuoteDetail({
                   ))}
                 </p>
               ) : null}
-              <Link className="mt-3 inline-flex text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]" href="/account/settings?edit=shipping">
+              <Link
+                className="mt-3 inline-flex text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]"
+                href={request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ"
+                  ? `/account/settings?edit=shipping&request=${encodeURIComponent(request.id)}`
+                  : "/account/settings?edit=shipping"}
+              >
                 Change
               </Link>
             </div>

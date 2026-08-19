@@ -132,6 +132,17 @@ function formatUsPhoneNumber(value: string) {
   return `+1 (${nationalNumber.slice(0, 3)}) ${nationalNumber.slice(3, 6)}-${nationalNumber.slice(6)}`;
 }
 
+function hasCompleteAddress(address: Address) {
+  return Boolean(
+    address.name.trim() &&
+      address.company.trim() &&
+      address.address1.trim() &&
+      address.city.trim() &&
+      address.state.trim() &&
+      address.zipCode.trim(),
+  );
+}
+
 function Card({ children }: { children: React.ReactNode }) {
   return <section className="rounded-md border border-[#d7dce2] bg-white">{children}</section>;
 }
@@ -264,29 +275,29 @@ export function AccountSettingsWorkspace({
   detachCardAction,
   initialSettings: serverInitialSettings,
   saveSettingsAction,
+  updateRequestShippingAddressAction,
   updateDisplayNameAction,
 }: {
   createCardSetupAction?: () => void | Promise<void>;
   detachCardAction?: (formData: FormData) => void | Promise<void>;
   initialSettings?: AccountSettingsSnapshot;
   saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<void>;
+  updateRequestShippingAddressAction?: (requestId: string, address: Address) => Promise<void>;
   updateDisplayNameAction?: (name: string) => Promise<{ name: string }>;
 }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [initialSettings] = useState(() => serverInitialSettings ?? defaultAccountSettings());
-  const [initialEditTarget] = useState<EditableField>(() => (searchParams.get("edit") === "shipping" ? "shipping" : null));
+  const isAddressOnboarding = searchParams.get("onboarding") === "addresses";
+  const requestIdForShippingUpdate = searchParams.get("request");
+  const [initialEditTarget] = useState<EditableField>(() => {
+    if (searchParams.get("edit") === "shipping") return "shipping";
+    if (!isAddressOnboarding) return null;
+    return hasCompleteAddress(initialSettings.shipping) ? "billingAddress" : "shipping";
+  });
   const [activeTab, setActiveTab] = useState<ActiveTab>("account");
   const [editing, setEditing] = useState<EditableField>(initialEditTarget);
-  const [notice, setNotice] = useState(
-    searchParams.get("payment_method") === "added"
-      ? "Payment method added in Stripe."
-      : searchParams.get("payment_method") === "canceled"
-        ? "Stripe card setup was canceled."
-        : initialEditTarget === "shipping"
-      ? "Make a change, then save or cancel."
-      : "Account settings changes are stored for this demo session.",
-  );
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [name, setName] = useState(initialSettings.name);
   const [phone, setPhone] = useState(initialSettings.phone);
@@ -332,7 +343,7 @@ export function AccountSettingsWorkspace({
     return () => window.clearTimeout(timeoutId);
   }, [serverInitialSettings]);
 
-  function persistSettings(overrides: Partial<AccountSettingsSnapshot>) {
+  async function persistSettings(overrides: Partial<AccountSettingsSnapshot>) {
     const nextSettings = {
       accountCreatedAt: initialSettings.accountCreatedAt,
       billing,
@@ -352,7 +363,7 @@ export function AccountSettingsWorkspace({
     };
 
     writeStoredAccountSettings(nextSettings);
-    void saveSettingsAction?.(nextSettings);
+    await saveSettingsAction?.(nextSettings);
   }
 
   function beginEdit(field: Exclude<EditableField, null>, value: string) {
@@ -407,7 +418,28 @@ export function AccountSettingsWorkspace({
 
       if (field === "shipping") setShipping(nextAddress);
       if (field === "billingAddress") setBillingAddress(nextAddress);
-      persistSettings(field === "shipping" ? { shipping: nextAddress } : { billingAddress: nextAddress });
+      try {
+        await persistSettings(field === "shipping" ? { shipping: nextAddress } : { billingAddress: nextAddress });
+        if (field === "shipping" && requestIdForShippingUpdate && updateRequestShippingAddressAction) {
+          await updateRequestShippingAddressAction(requestIdForShippingUpdate, nextAddress);
+          finishEdit("Shipping address updated for this RFQ. Returning to the quote.");
+          router.replace(`/quotes/${encodeURIComponent(requestIdForShippingUpdate)}`);
+          return;
+        }
+      } catch {
+        setError("We couldn't save this address. Please try again.");
+        return;
+      }
+      if (isAddressOnboarding && field === "shipping") {
+        beginAddressEdit("billingAddress", billingAddress.address1 ? billingAddress : nextAddress);
+        setNotice("Shipping address saved. Now add your billing address to finish setup.");
+        return;
+      }
+      if (isAddressOnboarding && field === "billingAddress") {
+        finishEdit("Your shipping and billing addresses are saved. Taking you to your workspace.");
+        router.replace("/dashboard");
+        return;
+      }
       finishEdit("Account setting updated for this demo session.");
       return;
     }
@@ -533,14 +565,13 @@ export function AccountSettingsWorkspace({
   }
 
   function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
-    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+    if (!['Home', 'End'].includes(event.key)) {
       return;
     }
 
     event.preventDefault();
-    const nextTab = event.key === 'ArrowLeft' || event.key === 'Home' ? 'account' : 'team';
-    selectTab(nextTab);
-    window.requestAnimationFrame(() => document.getElementById(`account-settings-tab-${nextTab}`)?.focus());
+    selectTab("account");
+    window.requestAnimationFrame(() => document.getElementById("account-settings-tab-account")?.focus());
   }
 
   return (
@@ -549,6 +580,17 @@ export function AccountSettingsWorkspace({
         <h1 className="text-[28px] font-semibold tracking-tight text-[#182231]">Account settings</h1>
         <p className="mt-1 text-[14px] leading-6 text-[#5f6673]">Manage your profile, company defaults, payment methods, and team access.</p>
       </header>
+      {isAddressOnboarding ? (
+        <section className="rounded-md border border-[#9edfcf] bg-[#effcf8] px-5 py-4" aria-labelledby="address-onboarding-heading">
+          <p className="text-[14px] font-semibold text-[#145f52]" id="address-onboarding-heading">Finish setting up your account</p>
+          <p className="mt-1 text-[13px] leading-5 text-[#276b60]">Add the shipping and billing addresses Lattice should use for your RFQs, quotes, and orders.</p>
+        </section>
+      ) : null}
+      {notice ? (
+        <p aria-live="polite" className="rounded-md border border-[#bee5da] bg-[#f3fcf8] px-4 py-3 text-[13px] font-medium text-[#146657]" role="status">
+          {notice}
+        </p>
+      ) : null}
       <div className="border-b border-[#d8dde4]">
         <div aria-label="Account settings sections" className="flex gap-8" role="tablist">
           <button
@@ -565,39 +607,18 @@ export function AccountSettingsWorkspace({
             Account details
           </button>
           <button
+            aria-disabled="true"
             aria-controls="account-settings-panel-team"
-            aria-selected={!isAccountTab}
-            className={`border-b-2 px-1 py-4 text-[14px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72] ${!isAccountTab ? "border-[#00a889] text-[#008f72]" : "border-transparent text-[#303846]"}`}
+            aria-selected="false"
+            className="cursor-not-allowed border-b-2 border-transparent px-1 py-4 text-[14px] font-semibold text-[#9aa1ab]"
+            disabled
             id="account-settings-tab-team"
-            onClick={() => selectTab("team")}
-            onKeyDown={handleTabKeyDown}
             role="tab"
-            tabIndex={!isAccountTab ? 0 : -1}
+            tabIndex={-1}
+            title="Team account members is not available yet."
             type="button"
           >
             Team account members
-          </button>
-        </div>
-      </div>
-
-      <div aria-atomic="true" aria-live="polite" className="rounded-md border border-[#f2bf42] bg-[#fff8e6] px-5 py-4" role="status">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-[14px] font-semibold text-[#253040]">{notice}</p>
-            <p className="mt-1 text-[13px] text-[#5f6673]">
-              {mfaEnabled ? "Multi-factor authentication is active for sensitive quote, order, and payment actions." : "MFA is paused. Re-enable it before payment or account permission changes."}
-            </p>
-          </div>
-          <button
-            className="w-fit rounded-sm bg-[#ffc62b] px-4 py-2 text-[13px] font-semibold text-[#182231] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#008f72]"
-            onClick={() => {
-              const nextMfaEnabled = !mfaEnabled;
-              setMfaEnabled(nextMfaEnabled);
-              persistSettings({ mfaEnabled: nextMfaEnabled });
-            }}
-            type="button"
-          >
-            {mfaEnabled ? "Pause MFA" : "Enable MFA"}
           </button>
         </div>
       </div>

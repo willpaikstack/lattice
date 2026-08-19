@@ -99,6 +99,25 @@ function normalizeAddress(address: AccountAddress): AccountAddress {
   };
 }
 
+function hasRequiredAddressFields(address: AccountAddress) {
+  return Boolean(
+    text(address.name) &&
+      text(address.company) &&
+      text(address.address1) &&
+      text(address.city) &&
+      text(address.state) &&
+      text(address.zipCode),
+  );
+}
+
+/**
+ * A new customer cannot use the workspace until their operational shipping
+ * and billing destinations are saved. These settings are user-scoped today.
+ */
+export function hasCompletedAddressOnboarding(settings: AccountSettingsSnapshot) {
+  return hasRequiredAddressFields(settings.shipping) && hasRequiredAddressFields(settings.billingAddress);
+}
+
 export function normalizeAccountSettings(settings: AccountSettingsSnapshot): AccountSettingsSnapshot {
   return {
     accountCreatedAt: text(settings.accountCreatedAt),

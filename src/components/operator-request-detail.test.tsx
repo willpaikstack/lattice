@@ -657,6 +657,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.queryByRole("button", { name: "Lattice is checking the RFQ package before supplier outreach." })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit and resubmit request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Download quote PDF" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", `/account/settings?edit=shipping&request=${request.id}`);
   });
 
   it("shows the operator note when more information is requested", () => {
@@ -669,6 +670,38 @@ describe("BuyerQuoteDetail", () => {
 
     expect(screen.getAllByText("More information requested").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Please upload the latest drawing with thread callouts before we can quote accurately.").length).toBeGreaterThan(0);
+  });
+
+  it("fills an incomplete RFQ shipping snapshot from the customer's saved shipping address", () => {
+    const request = {
+      ...makeSubmittedRequest(),
+      shipToAddress1: "",
+      shipToCity: "",
+      shipToState: "",
+      shipToZipCode: "",
+    };
+
+    render(
+      <BuyerQuoteDetail
+        checkoutHref={`/quotes/${request.id}/checkout`}
+        request={request}
+        savedShippingAddress={{
+          address1: "75 Varick St",
+          address2: "Dock 3",
+          city: "New York",
+          company: "Lattice Receiving",
+          name: "Receiving Team",
+          state: "NY",
+          zipCode: "10013",
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Receiving Team")).toBeInTheDocument();
+    expect(screen.getByText("Lattice Receiving")).toBeInTheDocument();
+    expect(screen.getByText("75 Varick St")).toBeInTheDocument();
+    expect(screen.getByText("Dock 3")).toBeInTheDocument();
+    expect(screen.getByText("New York, NY 10013")).toBeInTheDocument();
   });
 
   it("shows no-quote copy and reason when an RFQ is closed with an operator note", () => {

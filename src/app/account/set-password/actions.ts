@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 
-import { defaultHomeForRole } from "@/lib/auth-crypto";
 import { createSessionForUser, getPasswordSetupState } from "@/lib/session";
 import { completeForcedPasswordChange, type PasswordSetupFailureCode } from "@/lib/workspace-user-admin";
 
@@ -41,5 +40,5 @@ export async function setTemporaryPasswordAction(formData: FormData) {
     provider: "password",
     role: session.user.role,
   });
-  redirect(defaultHomeForRole(session.user.role));
+  redirect("/account/continue");
 }

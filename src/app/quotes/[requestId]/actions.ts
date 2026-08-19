@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ensureStripeCustomerForAccount } from "@/lib/account-settings";
+import type { AccountAddress } from "@/lib/account-settings-shared";
 import { saveLocalUpload } from "@/lib/local-file-storage";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
-import { purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession } from "@/lib/request-repository";
+import { purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession, updateRequestShippingAddress } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
 import { getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 import { finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
@@ -54,6 +55,33 @@ async function requireCheckoutSession(requestId: string) {
   }
 
   return request;
+}
+
+export async function updateRequestShippingAddressAction(requestId: string, address: AccountAddress) {
+  const session = await getCurrentSession();
+
+  if (session?.user.role !== "customer" && session?.user.role !== "admin") {
+    throw new Error("Customer or admin access required.");
+  }
+
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
+
+  if (!request) {
+    throw new Error("This RFQ is not available to your account.");
+  }
+
+  await updateRequestShippingAddress(requestId, {
+    shipToAddress1: address.address1,
+    shipToAddress2: address.address2,
+    shipToCity: address.city,
+    shipToCompany: address.company,
+    shipToName: address.name,
+    shipToState: address.state,
+    shipToZipCode: address.zipCode,
+  });
+
+  revalidatePath("/quotes");
+  revalidatePath(`/quotes/${requestId}`);
 }
 
 export async function updateStripeElementsCheckoutSessionAction(requestId: string, checkoutSessionId: string, formData: FormData) {

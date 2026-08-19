@@ -1409,3 +1409,32 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Changed unauthenticated protected-route redirects to Lattice's `/login` route instead of Clerk's hosted `accounts.latticeos.co` sign-in domain, while retaining the requested internal path as redirect context.
 - Copied the local Autodesk Platform Services credentials into Vercel Development, Preview, and Production, corrected quoted-value handling before use, and deployed production so live CAD translation can initialize.
 - Added focused password-setup and AppShell coverage. `npm run typecheck` and `npm run lint` pass. The broad AppShell test file retains four pre-existing failures caused by tests that omit the now-required session-user fixture.
+
+## 2026-08-18 — Removed blank RFQ submission transition
+
+- Changed successful RFQ submission to replace `/requests/new` directly with the new quote-detail route, rather than clearing the live request-form state while client navigation was still pending.
+- Verification: focused request-form tests and TypeScript typecheck passed.
+
+## 2026-08-18 — Added new-customer address onboarding
+
+- After an initial password is completed, new customer accounts now return through `/account/continue`, which sends users without complete shipping and billing addresses to the existing Account Settings address step before their customer workspace home.
+- Address onboarding opens the shipping form first, pre-fills the billing form from the saved shipping destination, and then continues to `/dashboard` after billing is saved. The settings remain user-scoped; a future company-wide defaults policy can promote them when desired.
+- Verification: focused request-form, continuation, password-setup, and Account Settings tests (45 total), TypeScript typecheck, lint, and diff validation passed.
+
+## 2026-08-18 — Disabled customer team-member management
+
+- Kept the Account Settings `Team account members` tab visible for product continuity, but rendered it greyed out and non-interactive so customers cannot access the unimplemented membership-management screen.
+- The Lattice Admin remains the only role authorized to administer company membership.
+- Verification: focused Account Settings tests, TypeScript typecheck, lint, and diff validation passed.
+
+## 2026-08-19 — Synced in-review RFQ shipping changes
+
+- The quote-detail shipping card had correctly rendered the RFQ's submission-time delivery snapshot, but its `Change` link previously edited only the saved account default. That made an address update appear to have no effect on the current RFQ.
+- For `SUBMITTED`, `NEEDS_INFO`, and supplier-review RFQs, the address editor now saves the user default, securely updates the owned RFQ snapshot, and returns to the quote detail. Issued quote and order snapshots remain unchanged until checkout.
+- Verification: TypeScript typecheck, focused quote-detail/account-settings/server-action tests (50 total), lint, and diff validation passed.
+
+## 2026-08-19 — Filled incomplete quote shipping cards
+
+- Quote details now fill a missing RFQ delivery snapshot from the signed-in customer's saved shipping address, so newly saved shipping details are visible even for a legacy/incomplete RFQ.
+- The existing address-change flow remains the authoritative update path: saving from quote detail writes the full address to both the account default and the editable RFQ snapshot.
+- Verification: TypeScript typecheck, focused quote-detail/account-settings/server-action tests (51 total), lint, and diff validation passed.

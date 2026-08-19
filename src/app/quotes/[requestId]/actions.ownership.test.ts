@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   purchaseQuote: vi.fn(),
   quoteCheckoutAmountCents: vi.fn(),
   recordStripeCheckoutSession: vi.fn(),
+  updateRequestShippingAddress: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
   }),
@@ -41,6 +42,7 @@ vi.mock("@/lib/request-repository", () => ({
   purchaseQuote: mocks.purchaseQuote,
   quoteCheckoutAmountCents: mocks.quoteCheckoutAmountCents,
   recordStripeCheckoutSession: mocks.recordStripeCheckoutSession,
+  updateRequestShippingAddress: mocks.updateRequestShippingAddress,
 }));
 
 vi.mock("@/lib/session", () => ({
@@ -56,7 +58,7 @@ vi.mock("@/lib/stripe-checkout", () => ({
   finalizeStripePaymentIntent: mocks.finalizeStripePaymentIntent,
 }));
 
-import { finalizeStripeCardPaymentAction, purchaseQuoteAction, updateStripeElementsCheckoutSessionAction } from "./actions";
+import { finalizeStripeCardPaymentAction, purchaseQuoteAction, updateRequestShippingAddressAction, updateStripeElementsCheckoutSessionAction } from "./actions";
 
 function customerSession(email = "buyer@acme.com") {
   return {
@@ -95,6 +97,7 @@ describe("checkout server action ownership", () => {
     mocks.purchaseQuote.mockReset();
     mocks.quoteCheckoutAmountCents.mockReset();
     mocks.recordStripeCheckoutSession.mockReset();
+    mocks.updateRequestShippingAddress.mockReset();
     mocks.redirect.mockClear();
     mocks.revalidatePath.mockReset();
     mocks.saveLocalUpload.mockReset();
@@ -125,6 +128,22 @@ describe("checkout server action ownership", () => {
 
     expect(mocks.finalizeStripePaymentIntent).not.toHaveBeenCalled();
     expect(mocks.recordStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("blocks shipping-address updates for an RFQ outside the customer's company", async () => {
+    await expect(
+      updateRequestShippingAddressAction("req_other", {
+        address1: "1 Main St",
+        address2: "",
+        city: "Pittsburgh",
+        company: "Acme",
+        name: "Buyer",
+        state: "PA",
+        zipCode: "15222",
+      }),
+    ).rejects.toThrow("This RFQ is not available to your account.");
+
+    expect(mocks.updateRequestShippingAddress).not.toHaveBeenCalled();
   });
 
   it("lets an owning customer complete a purchase-order checkout and records the uploaded PO", async () => {

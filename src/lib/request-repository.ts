@@ -26,6 +26,16 @@ export type PurchaseQuoteDeliveryInput = {
   shipToZipCode?: string;
 };
 
+export type RequestShippingAddressInput = {
+  shipToAddress1: string;
+  shipToAddress2: string;
+  shipToCity: string;
+  shipToCompany: string;
+  shipToName: string;
+  shipToState: string;
+  shipToZipCode: string;
+};
+
 export type PurchaseQuoteInput = PurchaseQuoteDeliveryInput & {
   accountsPayableEmail?: string;
   buyerCheckoutNotes?: string;
@@ -142,6 +152,50 @@ function normalizePaymentMethod(value: string | null | undefined): PurchasePayme
 
 export function quoteCheckoutAmountCents(request: LatticeRequest) {
   return checkoutAmountCents(request);
+}
+
+export async function updateRequestShippingAddress(id: string, input: RequestShippingAddressInput) {
+  const current = await getRequestById(id);
+
+  if (!current) {
+    throw new Error("Request not found");
+  }
+
+  if (!["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ"].includes(current.status)) {
+    throw new Error("Shipping details can only be updated while an RFQ is under review");
+  }
+
+  const delivery = {
+    shipToAddress1: cleanText(input.shipToAddress1),
+    shipToAddress2: cleanText(input.shipToAddress2),
+    shipToCity: cleanText(input.shipToCity),
+    shipToCompany: cleanText(input.shipToCompany),
+    shipToName: cleanText(input.shipToName),
+    shipToState: cleanText(input.shipToState),
+    shipToZipCode: cleanText(input.shipToZipCode),
+  };
+
+  try {
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id },
+      data: delivery,
+      include: storedRequestInclude,
+    });
+
+    return mapStoredRequest(stored);
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("Prisma RFQ shipping update is unavailable; saving locally.", error);
+      return saveLocalRequest({
+        ...current,
+        ...delivery,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    throw error;
+  }
 }
 
 export async function createSubmittedRequest(input: DraftRequestInput, options?: { buyerCompanyId?: string }) {
