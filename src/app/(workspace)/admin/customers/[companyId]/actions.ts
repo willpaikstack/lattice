@@ -7,12 +7,11 @@ import type { CustomerProfileInput } from "@/lib/customer-profiles";
 import { updateCustomerProfile } from "@/lib/customer-profiles";
 import { requireActionRole } from "@/lib/route-authorization";
 import { createSessionForUser } from "@/lib/session";
-import { customerUserForSupportSession, addCustomerUser, removeCustomerUser, requestCustomerUserEmailChange, resetCustomerUserPassword, setCustomerUserPassword, updateCustomerUserRole } from "@/lib/workspace-user-admin";
+import { customerUserForSupportSession, addCustomerUserAndSendInvitation, removeCustomerUser, requestCustomerUserEmailChange, resetCustomerUserPasswordAndSendInvitation, setCustomerUserPassword, updateCustomerUserRole } from "@/lib/workspace-user-admin";
 
 export type UserManagementActionState = {
   message: string;
   status: "idle" | "error" | "success";
-  temporaryPassword?: string;
 };
 
 function getString(formData: FormData, key: keyof CustomerProfileInput) {
@@ -73,21 +72,29 @@ export async function manageCustomerUserAction(
   try {
     await requireActionRole(["admin"]);
     const operation = userValue(formData, "operation");
-    let temporaryPassword: string | undefined;
     let message = "";
+    let deliveryFailed = false;
 
     if (operation === "add") {
-      const result = await addCustomerUser(companyId, {
+      const result = await addCustomerUserAndSendInvitation(companyId, {
         email: userValue(formData, "email"),
         name: userValue(formData, "name"),
         role: userValue(formData, "role"),
       });
-      temporaryPassword = result.password;
-      message = `Created ${result.user.name}. Share the temporary password below securely.`;
-    } else if (operation === "reset-password") {
-      const result = await resetCustomerUserPassword(companyId, userValue(formData, "userId"));
-      temporaryPassword = result.password;
-      message = `A new temporary password was issued for ${result.user.name}.`;
+      if (result.invitation.status === "failed") {
+        deliveryFailed = true;
+        message = `Created ${result.user.name}, but their invitation could not be delivered. Issue a new password and resend the invitation.`;
+      } else {
+        message = `Created ${result.user.name} and sent their invitation to ${result.user.email}.`;
+      }
+    } else if (operation === "reset-and-resend") {
+      const result = await resetCustomerUserPasswordAndSendInvitation(companyId, userValue(formData, "userId"));
+      if (result.invitation.status === "failed") {
+        deliveryFailed = true;
+        message = `A new temporary password was issued for ${result.user.name}, but the invitation could not be delivered. Try again to issue another password and resend.`;
+      } else {
+        message = `A new temporary password was issued and an invitation was sent to ${result.user.email}.`;
+      }
     } else if (operation === "set-password") {
       await setCustomerUserPassword(companyId, userValue(formData, "userId"), userValue(formData, "password"));
       message = "Custom password saved. Share it with the user securely.";
@@ -106,7 +113,7 @@ export async function manageCustomerUserAction(
 
     revalidatePath("/admin/customers");
     revalidatePath(`/admin/customers/${companyId}`);
-    return { message, status: "success", temporaryPassword };
+    return { message, status: deliveryFailed ? "error" : "success" };
   } catch (error) {
     return {
       message: error instanceof Error ? error.message : "Unable to update this customer user.",

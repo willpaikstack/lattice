@@ -3,13 +3,12 @@
 import { revalidatePath } from "next/cache";
 
 import { requireActionRole } from "@/lib/route-authorization";
-import { createCustomerCompany } from "@/lib/workspace-user-admin";
+import { createCustomerCompanyAndSendInvitation } from "@/lib/workspace-user-admin";
 
 export type CreateCustomerCompanyActionState = {
   customerHref?: string;
   message: string;
   status: "idle" | "error" | "success";
-  temporaryPassword?: string;
 };
 
 function formValue(formData: FormData, name: string) {
@@ -23,7 +22,7 @@ export async function createCustomerCompanyAction(
 ): Promise<CreateCustomerCompanyActionState> {
   try {
     await requireActionRole(["admin"]);
-    const result = await createCustomerCompany({
+    const result = await createCustomerCompanyAndSendInvitation({
       billingEmail: formValue(formData, "billingEmail"),
       companyName: formValue(formData, "companyName"),
       industry: formValue(formData, "industry"),
@@ -33,11 +32,18 @@ export async function createCustomerCompanyAction(
     });
 
     revalidatePath("/admin/customers");
+    if (result.invitation.status === "failed") {
+      return {
+        customerHref: `/admin/customers/${result.company.id}`,
+        message: `${result.company.name} and its first Customer Admin were created, but the invitation could not be delivered. Open the customer profile to issue a new password and resend the invitation.`,
+        status: "error",
+      };
+    }
+
     return {
       customerHref: `/admin/customers/${result.company.id}`,
-      message: `${result.company.name} and its first Customer Admin were created. Share the temporary password below securely.`,
+      message: `${result.company.name} and its first Customer Admin were created. The invitation was sent to ${result.user.email}.`,
       status: "success",
-      temporaryPassword: result.password,
     };
   } catch (error) {
     return {

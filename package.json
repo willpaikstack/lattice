@@ -24,6 +24,7 @@
     "migrate:clerk-users:production": "node scripts/run-clerk-user-migration-if-enabled.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1114.0",
     "@clerk/nextjs": "^7.7.6",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",

@@ -6,6 +6,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { WorkspaceRole, type PrismaClient } from "@prisma/client";
 
 import { createPasswordCredentials } from "./auth-crypto";
+import { deliverCustomerInvitation, type CustomerInvitationDelivery } from "./customer-invitation-delivery";
 import { beginEmailChange } from "./email-change";
 import { getPrismaClient } from "./prisma";
 
@@ -126,8 +127,8 @@ async function ensureAnotherCustomerAdmin(companyId: string, userId: string) {
   }
 }
 
-export async function addCustomerUser(companyId: string, input: { email: string; name: string; role: string }) {
-  await ensureCompany(companyId);
+async function createCustomerUserWithTemporaryPassword(companyId: string, input: { email: string; name: string; role: string }) {
+  const company = await ensureCompany(companyId);
   const name = input.name.trim();
   const email = normalizedEmail(input.email);
 
@@ -158,14 +159,18 @@ export async function addCustomerUser(companyId: string, input: { email: string;
 
   try {
     const clerkUser = await createClerkUser({ email, externalId: user.id, name, password });
-    return { password, user: await client.user.update({ where: { id: user.id }, data: { clerkUserId: clerkUser.id } }) };
+    return {
+      company,
+      password,
+      user: await client.user.update({ where: { id: user.id }, data: { clerkUserId: clerkUser.id } }),
+    };
   } catch (error) {
     await client.user.delete({ where: { id: user.id } });
     throw error;
   }
 }
 
-export async function createCustomerCompany(input: CreateCustomerCompanyInput) {
+async function createCustomerCompanyWithTemporaryPassword(input: CreateCustomerCompanyInput) {
   const companyName = requiredText(input.companyName, "company name");
   const primaryAdminName = requiredText(input.primaryAdminName, "primary admin name");
   const primaryAdminEmail = validEmail(input.primaryAdminEmail, "primary admin email");
@@ -237,7 +242,7 @@ export async function createCustomerCompany(input: CreateCustomerCompanyInput) {
   }
 }
 
-export async function resetCustomerUserPassword(companyId: string, userId: string) {
+async function resetCustomerUserPasswordWithTemporaryPassword(companyId: string, userId: string) {
   await ensureCompany(companyId);
   const client = await prisma();
   const user = await client.user.findFirst({ where: { id: userId, companyId } });
@@ -257,6 +262,48 @@ export async function resetCustomerUserPassword(companyId: string, userId: strin
   });
 
   return { password, user };
+}
+
+function invitationDelivery(
+  company: { id: string; name: string },
+  user: { email: string; id: string; name: string; temporaryPasswordExpiresAt: Date | null },
+  password: string,
+): Promise<CustomerInvitationDelivery> {
+  if (!user.temporaryPasswordExpiresAt) {
+    throw new Error("Temporary password expiry is unavailable for this customer user.");
+  }
+
+  return deliverCustomerInvitation({
+    companyId: company.id,
+    companyName: company.name,
+    email: user.email,
+    expiresAt: user.temporaryPasswordExpiresAt,
+    name: user.name,
+    temporaryPassword: password,
+    userId: user.id,
+  });
+}
+
+/** Creates a customer user and sends their invitation without returning a plaintext password to the caller. */
+export async function addCustomerUserAndSendInvitation(companyId: string, input: { email: string; name: string; role: string }) {
+  const result = await createCustomerUserWithTemporaryPassword(companyId, input);
+  const invitation = await invitationDelivery(result.company, result.user, result.password);
+  return { invitation, user: result.user };
+}
+
+/** Creates a company and first Customer Admin, then sends the only plaintext-password handoff by email. */
+export async function createCustomerCompanyAndSendInvitation(input: CreateCustomerCompanyInput) {
+  const result = await createCustomerCompanyWithTemporaryPassword(input);
+  const invitation = await invitationDelivery(result.company, result.user, result.password);
+  return { company: result.company, invitation, user: result.user };
+}
+
+/** Replaces the temporary password and sends a new invitation, revoking prior invitation records. */
+export async function resetCustomerUserPasswordAndSendInvitation(companyId: string, userId: string) {
+  const company = await ensureCompany(companyId);
+  const result = await resetCustomerUserPasswordWithTemporaryPassword(companyId, userId);
+  const invitation = await invitationDelivery(company, result.user, result.password);
+  return { invitation, user: result.user };
 }
 
 export async function setCustomerUserPassword(companyId: string, userId: string, password: string) {

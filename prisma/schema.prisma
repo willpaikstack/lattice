@@ -58,6 +58,13 @@ enum WorkspaceRole {
   CUSTOMER_MEMBER
 }
 
+enum CustomerInvitationStatus {
+  CREATED
+  SENT
+  FAILED
+  REVOKED
+}
+
 model Company {
   id                  String    @id @default(cuid())
   customerId          String?   @unique
@@ -86,6 +93,7 @@ model Company {
   shippingState       String    @default("")
   shippingZipCode     String    @default("")
   users               User[]
+  customerInvitations CustomerInvitation[]
   requests            Request[]
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
@@ -109,6 +117,7 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
   authAuditEvents    AuthAuditEvent[]
+  customerInvitations CustomerInvitation[]
   pendingEmail      String?       @unique
   passwordHash      String        @default("")
   passwordSalt      String        @default("")
@@ -153,6 +162,27 @@ model AuthAuditEvent {
   action    String
   createdAt DateTime @default(now())
 
+  @@index([userId, createdAt])
+}
+
+model CustomerInvitation {
+  id              String                   @id @default(cuid())
+  companyId       String
+  company         Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipientEmail  String
+  status          CustomerInvitationStatus @default(CREATED)
+  expiresAt       DateTime
+  providerMessageId String?
+  failureCategory String?
+  sentAt          DateTime?
+  failedAt        DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([companyId, createdAt])
   @@index([userId, createdAt])
 }
 

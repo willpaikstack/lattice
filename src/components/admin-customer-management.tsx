@@ -76,7 +76,6 @@ function CreateCustomerCompany() {
           {state.status !== "idle" ? (
             <div aria-live="polite" className={`rounded-md border p-3 text-sm ${state.status === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
               <p>{state.message}</p>
-              {state.temporaryPassword ? <p className="mt-3 rounded bg-white px-3 py-2 font-mono text-[14px] font-semibold text-[#171717]">Temporary password: {state.temporaryPassword}</p> : null}
               {state.customerHref ? <Link className="mt-3 inline-flex font-semibold underline" href={state.customerHref}>Open customer profile</Link> : null}
             </div>
           ) : null}
@@ -85,7 +84,7 @@ function CreateCustomerCompany() {
             <button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white disabled:cursor-wait disabled:opacity-60" disabled={pending} type="submit">
               {pending ? "Creating…" : "Create company and admin"}
             </button>
-            <p className="text-[12px] text-[#707782]">The temporary password is shown once and expires after 72 hours.</p>
+            <p className="text-[12px] text-[#707782]">The invitation includes a temporary password that expires after 72 hours.</p>
           </div>
         </form>
       ) : null}

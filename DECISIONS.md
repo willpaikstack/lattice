@@ -1,5 +1,18 @@
 # Decisions
 
+## 2026-08-21 - Deliver First-Cohort Credentials Only Through the Invitation Email
+
+Decision: after Lattice Admin provisioning succeeds, Lattice sends the approved temporary password only in the branded Resend invitation. The admin browser never receives or displays the plaintext password. A failed delivery remains visible as a recoverable state; issuing a new password and resending always invalidates the previous password and revokes prior invitation records.
+
+Reason: credentials shown in an operator browser are easy to retain in screenshots, copied notes, or support records. The controlled first cohort has approved temporary-password email delivery, so the customer email is the one necessary handoff surface.
+
+Implications:
+
+- `CustomerInvitation` records retain recipient, expiry, provider message ID, sent/failed/revoked timestamps, and a safe failure category. They never retain a password, rendered email body, or provider request/response payload.
+- Company/User/Clerk provisioning completes before email delivery. A delivery failure does not undo the provisioned identity; an admin explicitly issues a new password and resends.
+- The policy applies to the first Customer Admin, added customer users, and customer password resets. Administrator-defined custom passwords remain a separate deliberate support tool.
+- Production use requires the Prisma schema migration, a deployment, and a controlled end-to-end test before any customer receives real account credentials.
+
 ## 2026-08-19 - Make Saved Payment Methods Company-Owned
 
 Decision: saved payment methods will belong to the customer `Company`, rather than to an individual user. The first release should keep the payment method simple and shared; card-level access segmentation, named-user assignment, permission sets, spending policies, and an audit trail are planned follow-on work.

@@ -4,6 +4,8 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
+- Apply the `CustomerInvitation` Prisma schema to Development and, after explicit approval, Production. Then run the controlled invitation test with `willclawpaik@gmail.com`: provisioning, email delivery, forced personal-password setup, shipping/billing confirmation, reset-and-resend, and old-password rejection. The first-cohort invitation source is implemented: it sends the password only by email, records sent/failed/revoked status without plaintext credentials, and gives admins an explicit issue-new-password-and-resend control. Later, replace the temporary-password email with an expiring single-use activation link and recipient-chosen password setup; add a configurable onboarding scheduling link (for example, Calendly).
+
 - Revisit customer self-service email changes only after the initial release. For now, customers request changes through Lattice support and the Lattice Admin performs the existing verified email-change workflow.
 
 - Build company-wide account management and integrations. Give Customer Admins a governed company workspace for company profile/defaults, teammates and roles, invitations, shared purchasing settings, and approved third-party integrations with auditable data access. Shipping, billing address, and billing-contact defaults are already shared and database-backed on `Company`; customer team management remains disabled, and company membership is administered only by Lattice Admins for the initial release. Customer Admin self-service invitations and role management are roadmap work.
@@ -33,7 +35,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - add invitation delivery, password recovery, MFA/passkeys, session/device controls, and identity audit events before enterprise rollout
   - add customer invitation/verification emails: Lattice Admin-only invites, one-time expiring activation links, recipient-defined password setup, verified-email activation, resend/revoke controls, and future Customer Admin teammate-invitation policy; retain Google SSO for approved/provisioned accounts only until customer-domain SSO is deliberately introduced
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
-- configure Resend and a verified sending domain for waiting-list and account-management emails; use `support@latticeos.co` as the support/reply-to address once outbound delivery is commissioned
+- before enabling Preview deployments to send email, replace the current shared Resend configuration with a separate restricted Preview key/sender (or leave Preview email disabled); Production Resend delivery from `support@latticeos.co` is configured, but the automated customer-invitation flow remains to be implemented
   - configure Stripe test/live environment variables (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_BASE_URL`) and register `/api/stripe/webhook` in Stripe for production payment finalization
   - move saved payment methods from the current user-specific Stripe Customer to a company-owned Stripe Customer before launch; follow later with card-level use/manage permissions, named-user or role assignment, and audit history
   - keep purchase-order payment disabled for the initial release; design the later Lattice Admin approval, credit-review/limit, PO-validation, accounts-payable, and audit workflow before enabling it

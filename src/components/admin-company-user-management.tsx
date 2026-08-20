@@ -51,16 +51,13 @@ export function AdminCompanyUserManagement({ companyId, users }: { companyId: st
         <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#737b86]">Access management</p>
         <h2 className="mt-1 text-[19px] font-semibold tracking-tight text-[#202020]">Business users</h2>
         <p className="mt-2 text-[13px] leading-5 text-[#707782]">
-          Users are limited to this company&apos;s customer workspace. Passwords are stored securely and cannot be viewed; reset one to issue a new temporary password once.
+          Users are limited to this company&apos;s customer workspace. Passwords are stored securely and cannot be viewed; issuing a new one invalidates the previous invitation and sends a replacement email.
         </p>
       </div>
 
       {state.status !== "idle" ? (
         <div aria-live="polite" className={`mt-4 rounded-md border p-3 text-sm ${state.status === "error" ? "border-red-200 bg-red-50 text-red-800" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
           <p>{state.message}</p>
-          {state.temporaryPassword ? (
-            <p className="mt-3 rounded bg-white px-3 py-2 font-mono text-[14px] font-semibold text-[#171717]">Temporary password: {state.temporaryPassword}</p>
-          ) : null}
         </div>
       ) : null}
 
@@ -116,9 +113,9 @@ export function AdminCompanyUserManagement({ companyId, users }: { companyId: st
                   <SubmitButton>Save role</SubmitButton>
                 </form>
                 <form action={formAction}>
-                  <input name="operation" type="hidden" value="reset-password" />
+                  <input name="operation" type="hidden" value="reset-and-resend" />
                   <input name="userId" type="hidden" value={user.id} />
-                  <SubmitButton>Reset password</SubmitButton>
+                  <SubmitButton>Issue new password &amp; resend</SubmitButton>
                 </form>
                 <form action={formAction} className="flex flex-wrap gap-2">
                   <input name="operation" type="hidden" value="set-password" />

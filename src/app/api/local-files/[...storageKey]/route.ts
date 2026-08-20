@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ stor
     }
 
     if (!access.authorized) {
-      return NextResponse.json({ error: "Local file not found" }, { status: 404 });
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
     const { contents, sizeBytes } = await readLocalUpload(storageKey);
@@ -38,6 +38,6 @@ export async function GET(request: Request, { params }: { params: Promise<{ stor
       },
     });
   } catch {
-    return NextResponse.json({ error: "Local file not found" }, { status: 404 });
+    return NextResponse.json({ error: "File not found" }, { status: 404 });
   }
 }

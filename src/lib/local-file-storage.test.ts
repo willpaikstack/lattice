@@ -34,8 +34,8 @@ describe("local file storage", () => {
   });
 
   it("rejects traversal storage keys", async () => {
-    await expect(readLocalUpload("../secrets.env")).rejects.toThrow("Invalid local file storage key");
-    await expect(copyLocalUpload("/tmp/secrets.env", { name: "secret.step", type: "model/step" })).rejects.toThrow("Invalid local file storage key");
+    await expect(readLocalUpload("../secrets.env")).rejects.toThrow("Invalid file storage key");
+    await expect(copyLocalUpload("/tmp/secrets.env", { name: "secret.step", type: "model/step" })).rejects.toThrow("Invalid file storage key");
   });
 
   it("detects draft upload namespaces before RFQ submission promotion", () => {

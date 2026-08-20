@@ -47,7 +47,7 @@ describe("local file route authorization", () => {
     const response = await GET(requestFor(), paramsFor("supplier-quotes/2026-06-18/shop.pdf"));
 
     expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({ error: "Local file not found" });
+    await expect(response.json()).resolves.toEqual({ error: "File not found" });
     expect(mocks.readLocalUpload).not.toHaveBeenCalled();
   });
 

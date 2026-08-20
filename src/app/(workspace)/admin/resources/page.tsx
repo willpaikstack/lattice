@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileText } from "lucide-react";
 
 import { ResourceCard } from "./resource-card";
@@ -112,6 +113,17 @@ export default function AdminResourcesPage() {
               <ResourcePreview resource={resource} />
             </ResourceCard>
           ))}
+        </div>
+      </section>
+
+      <section className="rounded-md border border-[#e6e6e6] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#64748b]">Account communications</p>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-[22px] font-semibold text-[#171717]">Customer invitation email</h2>
+            <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#5f6673]">Review the branded first-cohort invitation with safe sample credentials before invitation delivery is connected to customer provisioning.</p>
+          </div>
+          <Link className="inline-flex w-fit items-center rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2f3237] focus:outline-none focus:ring-2 focus:ring-[#171717] focus:ring-offset-2" href="/admin/resources/customer-invitation-email">Preview email</Link>
         </div>
       </section>
     </div>
