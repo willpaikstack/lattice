@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
-import { saveAccountSettings } from "@/lib/account-settings";
+import { deferInitialAddressOnboarding, saveAccountSettings } from "@/lib/account-settings";
 import type { AccountSettingsSnapshot } from "@/lib/account-settings-shared";
 import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
 import { findWorkspaceUserByClerkUserId, syncWorkspaceUserName } from "@/lib/workspace-user";
@@ -43,4 +43,11 @@ export async function updateAccountDisplayNameAction(value: string) {
 
 export async function saveAccountSettingsAction(settings: AccountSettingsSnapshot) {
   return saveAccountSettings(settings);
+}
+
+export async function deferInitialAddressOnboardingAction() {
+  await deferInitialAddressOnboarding();
+  revalidatePath("/account/settings");
+  revalidatePath("/account/continue");
+  revalidatePath("/dashboard");
 }

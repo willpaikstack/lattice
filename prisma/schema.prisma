@@ -92,6 +92,7 @@ model Company {
   shippingCompany     String    @default("")
   shippingState       String    @default("")
   shippingZipCode     String    @default("")
+  addressOnboardingDeferredAt DateTime?
   users               User[]
   customerInvitations CustomerInvitation[]
   requests            Request[]

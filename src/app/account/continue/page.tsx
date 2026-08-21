@@ -29,7 +29,7 @@ export default async function AccountContinuePage() {
 
   if (session.user.role === "customer") {
     const settings = await getAccountSettings();
-    if (!hasCompletedAddressOnboarding(settings)) {
+    if (!hasCompletedAddressOnboarding(settings) && !settings.addressOnboardingDeferred) {
       redirect("/account/settings?onboarding=addresses");
     }
   }

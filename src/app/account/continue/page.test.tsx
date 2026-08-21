@@ -50,4 +50,13 @@ describe("AccountContinuePage", () => {
 
     await expect(AccountContinuePage()).rejects.toThrow("redirect:/account/settings?onboarding=addresses");
   });
+
+  it("lets a customer who deferred initial addresses reach their workspace", async () => {
+    mocks.getPasswordSetupState.mockResolvedValue({ status: "already-complete" });
+    mocks.getCurrentSession.mockResolvedValue({ user: { role: "customer" } });
+    mocks.getAccountSettings.mockResolvedValue({ addressOnboardingDeferred: true });
+    mocks.hasCompletedAddressOnboarding.mockReturnValue(false);
+
+    await expect(AccountContinuePage()).rejects.toThrow("redirect:/dashboard");
+  });
 });

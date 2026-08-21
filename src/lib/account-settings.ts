@@ -151,6 +151,7 @@ export function hasCompletedAddressOnboarding(settings: AccountSettingsSnapshot)
 export function normalizeAccountSettings(settings: AccountSettingsSnapshot): AccountSettingsSnapshot {
   return {
     accountCreatedAt: text(settings.accountCreatedAt),
+    addressOnboardingDeferred: Boolean(settings.addressOnboardingDeferred),
     billing: {
       email: text(settings.billing.email),
       invoiceRoutingNotes: text(settings.billing.invoiceRoutingNotes),
@@ -259,6 +260,7 @@ async function prisma() {
 }
 
 type StoredCompanyDefaults = {
+  addressOnboardingDeferredAt: Date | null;
   billingAddress1: string;
   billingAddress2: string;
   billingCity: string;
@@ -329,6 +331,7 @@ function accountSettingsWithCompanyDefaults(
 ) {
   return normalizeAccountSettings({
     ...userDefaults,
+    addressOnboardingDeferred: Boolean(company.addressOnboardingDeferredAt),
     billing: {
       email: company.billingEmail,
       invoiceRoutingNotes: company.billingInvoiceRoutingNotes,
@@ -535,6 +538,7 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
       where: { id: context.companyId },
       data: {
         ...requestedCompanyDefaults,
+        addressOnboardingDeferredAt: hasCompletedAddressOnboarding(normalized) ? null : currentCompany.addressOnboardingDeferredAt,
         ...(requestedCompanyName && (context.canManageCompany || companyDefaultsAreEmpty(currentCompany)) ? { name: requestedCompanyName } : {}),
       },
     }),
@@ -544,6 +548,29 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
   if (!company) throw new Error("Your company record could not be found.");
 
   return accountSettingsWithCompanyDefaults(normalized, company);
+}
+
+/**
+ * Lets the provisioned Customer Admin defer the shared-address task without
+ * weakening the later server-side authorization to complete it.
+ */
+export async function deferInitialAddressOnboarding() {
+  const context = await settingsContext();
+  if (!context.companyId || !context.canCompleteInitialAddressOnboarding) {
+    throw new Error("Only the Customer Admin can defer initial address setup.");
+  }
+
+  const client = await prisma();
+  const company = await client.company.findUnique({ where: { id: context.companyId } });
+  if (!company) throw new Error("Your company record could not be found.");
+  if (companyAddressOnboardingIsComplete(company)) {
+    return;
+  }
+
+  await client.company.update({
+    where: { id: context.companyId },
+    data: { addressOnboardingDeferredAt: new Date() },
+  });
 }
 
 export async function ensureStripeCustomerForAccount() {

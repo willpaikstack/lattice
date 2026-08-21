@@ -4,7 +4,11 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
-- Apply the `CustomerInvitation` Prisma schema to Development and, after explicit approval, Production. Then run the controlled invitation test with `willclawpaik@gmail.com`: provisioning, email delivery, forced personal-password setup, shipping/billing confirmation, reset-and-resend, and old-password rejection. The first-cohort invitation source is implemented: it sends the password only by email, records sent/failed/revoked status without plaintext credentials, and gives admins an explicit issue-new-password-and-resend control. Later, replace the temporary-password email with an expiring single-use activation link and recipient-chosen password setup; add a configurable onboarding scheduling link (for example, Calendly).
+- After the next Production deployment, rerun the controlled invitation test with `willclawpaik@gmail.com`: provisioning, email delivery, forced personal-password setup without ending the Clerk session, shipping/billing confirmation, reset-and-resend, and old-password rejection. The invitation schema is already applied in Development and Production. Later, replace the temporary-password email with an expiring single-use activation link and recipient-chosen password setup; add a configurable onboarding scheduling link (for example, Calendly).
+
+- Complete Guided Address Onboarding and Autocomplete: the focused shipping-then-billing first-login modal and durable Customer Admin-only deferral now exist. Add review/confirmation of Lattice-prefilled information and a production address-suggestion/validation provider; keep the existing Customer Admin-only server authorization boundary.
+
+- Keep in-app card payment unavailable for the first customer cohort. Add Production Card Payments to the product pipeline: configure live Stripe keys and webhook, test payment/reconciliation plus a controlled refund or void, then deliberately enable card checkout for customers.
 
 - Revisit customer self-service email changes only after the initial release. For now, customers request changes through Lattice support and the Lattice Admin performs the existing verified email-change workflow.
 

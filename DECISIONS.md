@@ -1,5 +1,40 @@
 # Decisions
 
+## 2026-08-21 - Permit a Customer Admin to Defer Initial Address Setup
+
+Decision: present incomplete first-login shipping and billing setup in a focused two-step modal. The provisioned Customer Admin may choose `Skip for now`, which stores a company-level deferral and permits normal workspace access. The same Customer Admin can return to Account Settings later to complete the shared addresses.
+
+Reason: address collection is operationally useful but should not trap a new customer inside a long Account Settings page before they can see the workspace.
+
+Implications:
+
+- The deferral applies to the shared company task, not a browser-local setting or an individual member preference.
+- A deferred company may enter the workspace with missing commercial addresses; those values must still be completed before workflows that require a delivery or billing destination are relied upon.
+- Customer Members cannot defer or edit the company task; established address/default control remains Lattice Admin-only.
+
+## 2026-08-21 - Allow Only the First Customer Admin to Complete Incomplete Address Onboarding
+
+Decision: a provisioned Customer Admin may save shared shipping and billing defaults only while either required company address is incomplete, including when Lattice has prefilled partial known information. The company name and all established company defaults remain Lattice Admin-only. Customer Members cannot use the onboarding URL to change company data.
+
+Reason: first-cohort provisioning can seed useful address data, but the named customer administrator must be able to review and complete it before entering the workspace. An empty-only permission blocked this legitimate workflow as soon as any prefill existed.
+
+Implications:
+
+- Address-onboarding server authorization derives from the signed-in membership and current Company data; it does not trust a browser query parameter.
+- Dedicated shipping/billing onboarding screens and address autocomplete are future product-pipeline work, not a relaxation of the current authorization boundary.
+
+## 2026-08-21 - Defer In-App Card Payment From the First Customer Cohort
+
+Decision: Wave One will not offer in-app card checkout. Any commercial arrangement is handled outside Lattice under an agreed manual process. Production Card Payments is a planned product-pipeline item rather than a first-cohort release gate.
+
+Reason: a customer-facing payment flow should not be presented until live Stripe credentials, webhook reconciliation, and a controlled payment/refund-or-void test establish that it is operationally reliable.
+
+Implications:
+
+- The first cohort does not validate the complete in-app purchase loop.
+- Before enabling card checkout, configure Production Stripe keys and the `https://latticeos.co/api/stripe/webhook` endpoint, complete controlled live payment and refund/void testing, and verify reconciliation.
+- Purchase-order payment and tax-exempt handling remain unavailable.
+
 ## 2026-08-21 - Deliver First-Cohort Credentials Only Through the Invitation Email
 
 Decision: after Lattice Admin provisioning succeeds, Lattice sends the approved temporary password only in the branded Resend invitation. The admin browser never receives or displays the plaintext password. A failed delivery remains visible as a recoverable state; issuing a new password and resending always invalidates the previous password and revokes prior invitation records.

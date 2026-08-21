@@ -114,7 +114,7 @@ When the scheduling workflow is ready, replace the last sentence with a configur
 5. If sending fails, the admin sees a clear failure state and can issue a new password and resend. A resend always invalidates the preceding password. If the customer has not activated before expiry, the admin uses the same reset-and-resend action.
 6. The customer signs in, is forced to create a personal password, and continues through the agreed address-confirmation workflow. Initial company work is empty until the customer submits an RFQ.
 
-Keep the current address gate for the cohort: personal-password setup → a clear shipping-address form → a clear billing-address form → dashboard. Both forms must have explicit labels and required-field validation; billing begins prefilled from shipping but requires customer review and save before access continues. These company-owned values are used for RFQs, quotes, and orders.
+The first-login sequence is: personal-password setup → focused shipping modal → focused billing modal → dashboard. Both addresses have explicit labels and required-field validation; billing begins prefilled from shipping but requires customer review and save before access continues. The Customer Admin may select `Skip for now` to enter the workspace and later complete the shared addresses in Account Settings. These company-owned values are used for RFQs, quotes, and orders. Address autocomplete and confirmation of operator-prefilled information remain product-pipeline work.
 
 ### Delivery plan
 
@@ -160,12 +160,11 @@ The app currently writes RFQ and drawing bytes to local `.data/uploads`, which i
 
 #### Payment decision
 
-Before inviting a pilot who might place an order, choose one of these paths:
+**Decision:** defer in-app card payments from Wave One and handle any commercial arrangement outside the product under an agreed manual process. Production Card Payments is now in the product pipeline; card checkout must not be represented as available until that work is commissioned and validated.
 
-- **Card payment in Lattice:** William configures live Stripe keys and a live webhook for `https://latticeos.co/api/stripe/webhook`; Lattice then performs a live-mode test with a controlled payment and refund/void plan before offering checkout.
-- **No in-app payment for wave one:** do not present card checkout as available and handle any commercial arrangement outside the product under an agreed manual process. This avoids representing the checkout path as ready, but it means the first cohort does not validate the complete in-app purchase loop.
+The future commissioning path is: configure live Stripe keys and a live webhook for `https://latticeos.co/api/stripe/webhook`; perform a controlled live payment and refund/void test; verify webhook reconciliation; then deliberately enable card checkout for customers.
 
-Purchase-order payment and tax-exempt handling remain unavailable in either case.
+Purchase-order payment and tax-exempt handling remain unavailable.
 
 ### What Lattice needs from William
 

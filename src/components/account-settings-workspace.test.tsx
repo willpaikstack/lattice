@@ -63,7 +63,18 @@ describe("AccountSettingsWorkspace", () => {
   it("supports the first-company address onboarding path", () => {
     searchParamsMock.mockReturnValue(new URLSearchParams("onboarding=addresses"));
     render(<AccountSettingsWorkspace initialSettings={{ ...defaultAccountSettings(), canCompleteInitialAddressOnboarding: true, roleLabel: "Customer Admin" }} />);
-    expect(screen.getByText(/Finish setup by adding/i)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: /where should we ship your parts/i })).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
+  });
+
+  it("lets the Customer Admin defer address onboarding and continue to the dashboard", async () => {
+    searchParamsMock.mockReturnValue(new URLSearchParams("onboarding=addresses"));
+    const deferInitialAddressOnboardingAction = vi.fn(async () => undefined);
+    render(<AccountSettingsWorkspace deferInitialAddressOnboardingAction={deferInitialAddressOnboardingAction} initialSettings={{ ...defaultAccountSettings(), canCompleteInitialAddressOnboarding: true, roleLabel: "Customer Admin" }} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Skip for now" })[0]);
+
+    await waitFor(() => expect(deferInitialAddressOnboardingAction).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
   });
 });

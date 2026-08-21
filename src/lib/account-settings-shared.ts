@@ -40,6 +40,7 @@ export type EmailVerificationStatus =
 
 export type AccountSettingsSnapshot = {
   accountCreatedAt: string;
+  addressOnboardingDeferred: boolean;
   billing: BillingContact;
   billingAddress: AccountAddress;
   cards: PaymentCard[];
@@ -77,6 +78,7 @@ export const initialBillingContact: BillingContact = { email: "", invoiceRouting
 export function defaultAccountSettings(): AccountSettingsSnapshot {
   return {
     accountCreatedAt: "",
+    addressOnboardingDeferred: false,
     billing: initialBillingContact,
     billingAddress: initialBillingAddress,
     cards: initialCards,
