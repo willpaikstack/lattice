@@ -62,7 +62,7 @@ describe("AccountSettingsWorkspace", () => {
 
   it("supports the first-company address onboarding path", () => {
     searchParamsMock.mockReturnValue(new URLSearchParams("onboarding=addresses"));
-    render(<AccountSettingsWorkspace initialSettings={{ ...defaultAccountSettings(), roleLabel: "Customer Member" }} />);
+    render(<AccountSettingsWorkspace initialSettings={{ ...defaultAccountSettings(), canCompleteInitialAddressOnboarding: true, roleLabel: "Customer Admin" }} />);
     expect(screen.getByText(/Finish setup by adding/i)).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });

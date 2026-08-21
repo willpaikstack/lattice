@@ -169,6 +169,7 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     stripeCustomerId: text(settings.stripeCustomerId),
     teamMembers: settings.teamMembers,
     avatarPreset: settings.avatarPreset ?? null,
+    canCompleteInitialAddressOnboarding: Boolean(settings.canCompleteInitialAddressOnboarding),
     canManageCompany: Boolean(settings.canManageCompany),
     profileImageUrl: text(settings.profileImageUrl),
     roleLabel: text(settings.roleLabel),
@@ -296,6 +297,7 @@ async function settingsContext() {
       name: session.user.name,
       email: session.user.email,
       companyName: session.user.companyName ?? "",
+      canCompleteInitialAddressOnboarding: session.user.customerRole === "admin",
       canManageCompany: session.user.role === "admin",
       profileImageUrl: text(clerkUser?.imageUrl),
       avatarPreset: avatarPreset(clerkUser?.unsafeMetadata?.latticeAvatarPreset),
@@ -314,6 +316,7 @@ async function settingsContext() {
     id: `clerk:${userId}`,
     name: clerkUserDisplayName(clerkUser) || email.split("@", 1)[0] || "Account",
     canManageCompany: false,
+    canCompleteInitialAddressOnboarding: false,
     profileImageUrl: text(clerkUser?.imageUrl),
     avatarPreset: avatarPreset(clerkUser?.unsafeMetadata?.latticeAvatarPreset),
     roleLabel: "Customer Member",
@@ -387,6 +390,26 @@ function companyDefaultsAreEmpty(company: StoredCompanyDefaults) {
   ].some(text);
 }
 
+function companyAddressOnboardingIsComplete(company: StoredCompanyDefaults) {
+  return hasRequiredAddressFields({
+    address1: company.shippingAddress1,
+    address2: company.shippingAddress2,
+    city: company.shippingCity,
+    company: company.shippingCompany,
+    name: company.shippingName,
+    state: company.shippingState,
+    zipCode: company.shippingZipCode,
+  }) && hasRequiredAddressFields({
+    address1: company.billingAddress1,
+    address2: company.billingAddress2,
+    city: company.billingCity,
+    company: company.billingCompany,
+    name: company.billingName,
+    state: company.billingState,
+    zipCode: company.billingZipCode,
+  });
+}
+
 function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<typeof settingsContext>>) {
   return normalizeAccountSettings({
     ...defaults,
@@ -397,6 +420,7 @@ function forUser(defaults: AccountSettingsSnapshot, context: Awaited<ReturnType<
     emailVerificationStatus: context.emailVerificationStatus,
     name: context.name,
     avatarPreset: context.avatarPreset,
+    canCompleteInitialAddressOnboarding: context.canCompleteInitialAddressOnboarding,
     canManageCompany: context.canManageCompany,
     profileImageUrl: context.profileImageUrl,
     roleLabel: context.roleLabel,
@@ -468,9 +492,14 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot) {
   const currentCompanyDefaults = companyDefaultsFromAccountSettings(accountSettingsWithCompanyDefaults(normalized, currentCompany));
   const changingCompany = requestedCompanyName && requestedCompanyName !== currentCompany.name;
   const changingDefaults = JSON.stringify(requestedCompanyDefaults) !== JSON.stringify(currentCompanyDefaults);
-  // A new company may complete its first address onboarding; after that,
-  // company-wide commercial defaults are controlled by Lattice Admin only.
-  if (!context.canManageCompany && !companyDefaultsAreEmpty(currentCompany) && (changingCompany || changingDefaults)) {
+  // A Customer Admin may complete the one-time shipping/billing onboarding
+  // even when Lattice prefilled part of the company record. Once both
+  // addresses are complete, commercial defaults remain Lattice Admin-only.
+  const canCompleteInitialAddresses = context.canCompleteInitialAddressOnboarding && !companyAddressOnboardingIsComplete(currentCompany);
+  if (!context.canManageCompany && changingCompany) {
+    throw new Error("Only a Lattice Admin can change the company name.");
+  }
+  if (!context.canManageCompany && changingDefaults && !canCompleteInitialAddresses) {
     throw new Error("Only a Lattice Admin can change company defaults.");
   }
 

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { createSessionForUser, getPasswordSetupState } from "@/lib/session";
+import { getPasswordSetupState } from "@/lib/session";
 import { completeForcedPasswordChange, type PasswordSetupFailureCode } from "@/lib/workspace-user-admin";
 
 function errorPath(error: unknown) {
@@ -32,13 +32,8 @@ export async function setTemporaryPasswordAction(formData: FormData) {
     redirect(`/account/set-password?error=${errorPath(error)}`);
   }
 
-  await createSessionForUser({
-    email: session.user.email,
-    id: session.user.id,
-    mustChangePassword: false,
-    name: session.user.name,
-    provider: "password",
-    role: session.user.role,
-  });
+  // Clerk owns the authenticated browser session. Do not replace it with the
+  // retired Lattice cookie after changing the password; doing so cannot keep a
+  // Clerk session alive and made the first-login handoff appear to sign out.
   redirect("/account/continue");
 }

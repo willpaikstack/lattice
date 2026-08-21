@@ -350,7 +350,11 @@ export async function completeForcedPasswordChange(userId: string, password: str
   }
 
   try {
-    await (await clerkClient()).users.updateUser(user.clerkUserId, { password, signOutOfOtherSessions: true });
+    // This is the active customer's own Clerk session. Supplying
+    // `signOutOfOtherSessions` from a backend mutation can invalidate the
+    // browser session that is completing the forced-password flow. Admin-led
+    // resets still use setClerkPassword(), which revokes target sessions.
+    await (await clerkClient()).users.updateUser(user.clerkUserId, { password });
   } catch (error) {
     const code: PasswordSetupFailureCode = clerkPasswordPolicyFailure(error) ? "password-policy" : "service";
     await recordPasswordSetupFailure(client, user.id, code);

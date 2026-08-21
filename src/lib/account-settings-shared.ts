@@ -55,6 +55,7 @@ export type AccountSettingsSnapshot = {
   stripeCustomerId: string;
   teamMembers: TeamMember[];
   /** Display-only identity fields sourced from Clerk/workspace membership. */
+  canCompleteInitialAddressOnboarding?: boolean;
   canManageCompany?: boolean;
   profileImageUrl?: string;
   avatarPreset?: { colorId: string; presetId: string } | null;

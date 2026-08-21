@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   completeForcedPasswordChange: vi.fn(),
-  createSessionForUser: vi.fn(),
   getPasswordSetupState: vi.fn(),
   redirect: vi.fn((destination: string) => {
     throw new Error(`redirect:${destination}`);
@@ -11,7 +10,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/lib/session", () => ({
-  createSessionForUser: mocks.createSessionForUser,
   getPasswordSetupState: mocks.getPasswordSetupState,
 }));
 vi.mock("@/lib/workspace-user-admin", () => ({ completeForcedPasswordChange: mocks.completeForcedPasswordChange }));
@@ -46,7 +44,7 @@ describe("setTemporaryPasswordAction", () => {
     await expect(setTemporaryPasswordAction(formData())).rejects.toThrow("redirect:/account/set-password?error=service");
   });
 
-  it("returns through the account continuation check after setting the password", async () => {
+  it("returns through the Clerk-backed account continuation check after setting the password", async () => {
     mocks.getPasswordSetupState.mockResolvedValue({
       session: { user: { email: "carmen@example.com", id: "user_1", name: "Carmen", role: "customer" } },
       status: "ready",
@@ -54,13 +52,5 @@ describe("setTemporaryPasswordAction", () => {
     mocks.completeForcedPasswordChange.mockResolvedValue(undefined);
 
     await expect(setTemporaryPasswordAction(formData())).rejects.toThrow("redirect:/account/continue");
-    expect(mocks.createSessionForUser).toHaveBeenCalledWith({
-      email: "carmen@example.com",
-      id: "user_1",
-      mustChangePassword: false,
-      name: "Carmen",
-      provider: "password",
-      role: "customer",
-    });
   });
 });
