@@ -72,7 +72,7 @@ describe("AccountSettingsWorkspace", () => {
     const deferInitialAddressOnboardingAction = vi.fn(async () => undefined);
     render(<AccountSettingsWorkspace deferInitialAddressOnboardingAction={deferInitialAddressOnboardingAction} initialSettings={{ ...defaultAccountSettings(), canCompleteInitialAddressOnboarding: true, roleLabel: "Customer Admin" }} />);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Skip for now" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /skip for now — you can add/i }));
 
     await waitFor(() => expect(deferInitialAddressOnboardingAction).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(replaceMock).toHaveBeenCalledWith("/dashboard"));
