@@ -1640,4 +1640,4 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 
 - Updated the README, project context, decisions, TODO, onboarding playbook, and feature map so the next agent can distinguish completed invitation-PDF work from the remaining controlled delivery check.
 - Recorded the approved PDF asset path, editable output and builder, Resend attachment behavior, current admin customer/quote work, and the concrete post-deployment invitation validation.
-- Added `/tmp/` to `.gitignore` so generated PDF QA scratch files stay local and are not included in the project push.
+- Added `/tmp/` to `.gitignore` so generated PDF QA scratch files stay local and are not included in the project push. Pushed the project updates to `origin/main` as commit `2c0ed03`; this push does not confirm a Vercel deployment.

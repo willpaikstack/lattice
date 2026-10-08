@@ -32,7 +32,7 @@ Core users:
 Production launch baseline as of 2026-06-02:
 
 - Vercel project: `willpaikstacks-projects/lattice`.
-- Latest Production deployment (2026-10-07): `dpl_BvgER6v3j9A3nrti7P2e3FNXP4op`, Ready and aliased to `https://latticeos.co`. It was deployed from the local `main` worktree; no schema migration ran. The follow-up work described in this handoff is being committed and pushed to the connected GitHub repository; this does not itself confirm a new Production deployment.
+- Latest Production deployment (2026-10-07): `dpl_BvgER6v3j9A3nrti7P2e3FNXP4op`, Ready and aliased to `https://latticeos.co`. It was deployed from the local `main` worktree; no schema migration ran. The follow-up work described in this handoff was pushed to `origin/main` on 2026-10-08 as commit `2c0ed03`. This does not itself confirm a new Production deployment.
 - Production custom domain: `https://latticeos.co`.
 - Vercel fallback alias: `https://lattice-phi-plum.vercel.app`.
 - GitHub repo connected for automatic Vercel deployments: `willpaikstack/lattice`.
