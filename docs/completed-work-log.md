@@ -1,5 +1,26 @@
 # Completed Work Log
 
+## 2026-10-07
+
+- Shortened the invitation header tagline to “Qualified manufacturing capacity” and updated the email expectation and onboarding docs. Recommended a shorter introduction for review; the current introduction remains unchanged. PDF creation and attachment wiring remain planned for later.
+- Updated the invitation header to match the reference: removed the diamond icon and moved the LATTICE wordmark and right-aligned tagline inside the bordered email card. Updated the preview expectation and onboarding documentation.
+- Added a thin divider and the requested one-page “How Lattice works” guide attachment sentence directly below the invitation CTA in both HTML and plain-text email. The PDF file and delivery attachment wiring remain outstanding and are called out in the feature map.
+- Replaced the individual sender sign-off with “We’re excited to have you on board. The Lattice Team” in both email formats and the safe preview; updated the test expectations and operator docs.
+- Restored the customer invitation CTA using a graphite button with white text and added the requested welcome closing. Updated the plain-text email, invitation tests, feature map, and onboarding playbook; the other removed guidance sections remain absent.
+- Updated the customer invitation copy and layout per the requested template revision: use an invitation subject and concise Lattice capacity proposition, retain the sign-in email/optional temporary credential and signature, and remove the sign-in note, CTA, guide section, onboarding steps, and help sentence. Updated the invitation email expectations and feature map.
+- Shortened the customer invitation introduction by about half while keeping Lattice's core offer explicit: connecting domestic shops to qualified global CNC and fabrication partners for overflow and out-of-capability work. Updated the corresponding copy expectation.
+- Replaced the customer invitation email banner with the selected panoramic factory and shipping/receiving image, reducing the right-side warehouse scale while preserving the left-side warehouses and open yard.
+- Rewrote the customer invitation introduction using the product description in the README, project context, and onboarding playbook. The new copy explains Lattice's managed global manufacturing capacity for domestic shop overflow without implying the invitee's company already uses Lattice. Updated the invitation HTML/text and playbook; added the ImageGen manufacturing-campus banner and product-focused header line to the email template.
+- Fixed the customer invitation email HTML preview so conditional credential content renders instead of exposing raw template code. The email resource preview now shows the existing-sign-in invitation used when linking an established identity. Added an admin-only, non-submitting preview of the actual initial password setup screen at `/account/set-password?preview=1`; documented both preview surfaces in the feature map.
+- Deployed the current local worktree to Vercel Production as `dpl_BvgER6v3j9A3nrti7P2e3FNXP4op`; Vercel reports Ready and aliased it to `https://latticeos.co`. The remote production build compiled, passed TypeScript/build generation, and skipped the one-time Clerk migration; no schema changes were required. Added `tmp/` and `design-exports/` to `.vercelignore` so local audit material and design exports are not uploaded. This deploy came from uncommitted local work; the changes are not yet committed or pushed to GitHub.
+- Added a safe customer-provisioning path for linking an exact, verified existing Clerk identity without changing its password. The invitation now explains how to sign in with the existing method; its resend action sends those instructions again without issuing or changing a password. Updated the onboarding playbook, feature map, and durable decision record.
+- Verification: TypeScript typecheck and `git diff --check` passed.
+- Provisioned the requested Lattice Screenshot Test company and linked its Customer Admin to the existing verified Clerk identity; confirmed the local user has no generated password hash and no temporary-password expiry. The invitation was recorded as failed because local `.env.local` has no `RESEND_API_KEY`; no email was sent. The customer profile is open in the browser.
+- Mapped Path 2 (direct Lattice Admin invitation) as a seven-step customer journey, documenting the visible surfaces, access rules, current behavior, and remaining release validation. Corrected the playbook's stale statement that invitation delivery was not yet built.
+- Verification: `git diff --check` passed.
+- Improved the guided address onboarding step: after a Customer Admin saves shipping details, the billing form now preserves existing billing values and fills blank fields from the saved shipping address for customer review. Updated the onboarding playbook, app feature map, project context, and priorities to reflect the current behavior and remaining address-autocomplete work.
+- Verification: `git diff --check` and `npm run typecheck` passed.
+
 ## 2026-08-21
 
 - Replaced the first-login address task embedded at the bottom of Account Settings with a focused shipping-then-billing modal. The provisioned Customer Admin can now choose `Skip for now`; a nullable Company timestamp persists that shared deferral, permits dashboard access, and still allows that Customer Admin to complete incomplete addresses later through Account Settings. Applied the nullable `Company.addressOnboardingDeferredAt` schema change to Production. Reset only the shared shipping/billing address fields and onboarding deferral for the controlled `willclawpaik@gmail.com` test company; no RFQs, password, invitation, billing-contact, or company data was changed. Verification: 11 focused tests, TypeScript, ESLint, and a Production build pass locally; deployed to Vercel Production at `latticeos.co` (deployment `dpl_9so3kgkCdteSneTib6Cu5zeypUos`).
@@ -1491,3 +1512,132 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Removed clipboard-based profile-photo import from customer Account Settings; customers can still choose a file or an emoji/preset avatar.
 - Recorded `support@latticeos.co` as the configured Google Workspace receiving alias for customer support and email-change requests. Automated application email remains pending Resend and verified sender-domain setup.
 - Added company-wide account management and integrations to the planned product pipeline: a future Customer Admin workspace for company profile/defaults, team and role administration, invitations, shared operating settings, and approved integrations with auditable access.
+
+## 2026-10-07 — Admin workspace redesign (option 1)
+
+- Applied the approved graphite navigation, ivory canvas, and cobalt action palette to `/admin` using a route-scoped CSS module. Kept the official Lattice diamond mark and uppercase wordmark. Customer routes never mount the theme.
+- Refined the admin sidebar, breadcrumbs, account card, tables, form focus states, and RFQ drawer styling across the existing admin surfaces.
+- Added actual quote-operation counts to the admin home; moved customer drafts into an expandable section beneath the searchable, status-filtered RFQ queue. No persistence, authorization, or mutation behavior changed.
+- Verification: TypeScript and focused ESLint passed; 34 existing shell/customer-management/order-management tests passed. Browser checks covered quote filtering, RFQ drawer, customer management, and navigation back into the unthemed customer dashboard.
+
+## 2026-10-07 — Customer directory and company-profile design exploration
+
+- Inspected the rendered `/admin/customers` directory and a company detail page, plus `Company`/`User` Prisma schemas, customer-profile projection, user-management controls, and RFQ/order history.
+- Generated three paired directory/profile concepts with built-in imagegen: tabbed directory/profile, split workspace, and account overview. Saved all images, exact prompts, schema observations, and implementation constraints under `design-exports/admin-customers/`.
+- Used fictional companies and contacts in concepts. Preserved Lattice Admin-only membership management as an implementation constraint and documented generated helper/status copy requiring correction. No application behavior or database changes were made.
+
+## 2026-10-07 — Implemented customer design option 1
+
+- Replaced the stacked customer-management page with a company-first directory, Companies/Waiting list tabs, and a focused company/first-admin provisioning dialog. Refined company row hierarchy and responsive cards; fixed Active filtering to exclude Inactive accounts.
+- Added Overview/Users/RFQs & orders profile tabs, read-only business details with inline editing, compact business-user cards, and a chronological RFQ/order ledger linked to the existing record routes.
+- Moved user role, password/invitation, verified-email, removal, and named-user support actions behind per-user menus and focused native dialogs with keyboard navigation, focus containment, and Escape dismissal. Kept all existing server authorization and persistence.
+- Company saves now display inline feedback without a profile redirect. Controlled form fields retain edits after failures; successful provisioning exposes the profile link and prevents resubmitting the same created company. Existing logo and customer workspace retained.
+- Verification: browser checks of desktop directory/overview, user action menu/editor, history tabs, waiting-list tab, and mobile profile/provisioning dialog. Focused component/shell/authorization regression tests, TypeScript, ESLint, and diff checks run during the session. No live membership, invitation-email, password, support-session, or company changes were submitted during browser checks.
+
+## 2026-10-07 — Quote submissions schema and design exploration
+
+- Inspected the live admin quote queue and RFQ response drawer, Prisma Request/part/file/supplier/customer-quote relations, queue status grouping, and issuance action behavior.
+- Generated three schema-grounded concepts with built-in imagegen: contextual review queue, operational workflow board, and quotation preparation workbench. Saved all images, exact prompts, schema analysis, and implementation constraints in `design-exports/admin-quotes/`.
+- Documented the distinction between supplier quote receipt and customer quote issuance, RFQ-scoped file/attachment relations, optional ownership/due dates, and the current single line-price snapshot workflow. Flagged generated status wording, logo, dates, and preview/version affordances requiring deliberate mapping before implementation.
+- No application code, database data, customer workspace, or feature behavior changes were made.
+
+## 2026-10-07 — Implemented quote review queue and quotation workbench
+
+- Replaced coarse requested/received groups with an RFQ review table, Active/Drafts/Archive views, stage/owner filters, explicit operational labels, due/owner fields, package counts, and stored customer quote summaries. Added a contextual inspector for requirements, completeness, shared files, supplier responses/evidence, customer quotes, and status activity.
+- Replaced the large quote modal with an inline preparation workbench, preserving supplier uploads, vendor selection, decision forms, quote field names, admin authorization, issuance and version persistence. Added compact commercial fields, reactive totals/lead time/validity, explicit billed-at-actual shipping display, quote-version history, pending submission feedback, numeric input constraints, and warnings for leaving unsent edits. Issued quotes remain read-only until explicit Edit quote.
+- Removed positional CAD/drawing-to-part presentation: schema files and supplier attachments remain RFQ-scoped. Workbench URLs and supplier upload return URLs preserve the quote-preparation view. Retained the exact Lattice logo and customer workspace.
+- TypeScript and focused ESLint passed. Captured the implemented queue/workbench previews. No automated tests requested or run, and no customer-facing quote/decision/upload mutation submitted.
+# 2026-10-07 — Invitation attachment first draft
+
+- Created `output/pdf/lattice-how-it-works-draft.pdf`, a one-page customer overview grounded in the live `/how-it-works` page and its source. Covers Lattice's role, qualified manufacturing capacity in China, four steps from RFQ to shipment, and a suitable first job.
+- Used the official Lattice mark and a neutral graphite/ivory layout. Omitted the origin story, equipment catalogs, supplier certification lists, and account setup instructions to keep the invitation attachment focused.
+- Added the reproducible ReportLab builder at `scripts/build-lattice-overview-pdf.py`. Confirmed a single page and inspected the final rendered PDF for readability and clipping. This draft is available for review; invitation delivery behavior is unchanged.
+
+## 2026-10-07 — Rebuilt invitation one-pager
+
+- Created `output/pdf/lattice-invitation-overview.pdf` as a fresh benefit-led invitation attachment: customer relationship, expanded quoting capabilities, variable capacity, supplier qualification, production workflow and a first-project invitation.
+- Used the approved warehouse illustration unchanged, the official Lattice mark, and a new two-column editorial layout. Added a reproducible builder at `scripts/build-lattice-invitation-one-pager.py`; retained the initial draft for comparison.
+- Verified one page and inspected the final rendered layout. No invitation sending or application behavior changed.
+
+## 2026-10-07 — Invitation attachment horizontal journey
+
+- Applied option 1 to `output/pdf/lattice-invitation-overview.pdf`: recreated the public page's flowing four-step line as vector artwork beneath the approved warehouse banner, with labels and explanations.
+- Reduced banner height by cropping excess sky and moved customer benefits into three columns beneath the journey, followed by qualification and the first-project invitation. Updated the reproducible builder.
+- Confirmed the PDF remains one page and visually inspected the final render for text clipping, spacing and alignment. No application or invitation delivery behavior changed.
+
+## 2026-10-07 — Invitation one-pager annotated copy edits
+
+- Removed the Manufacturing overview header label and applied all four process-copy revisions in the attachment and builder: upload files versus specify requirements, partner-provided quote, supplier coordination against the production plan, and pre-shipment inspection/material records for customer review.
+- Confirmed the updated PDF remains one page and visually inspected the final render. No application behavior changed.
+
+## 2026-10-07 — Partner capacity in invitation overview
+
+- Updated the quote step to state that manufacturing partner quotes reflect project requirements and their capacity. Rebuilt the one-page PDF and visually checked text fit.
+
+## 2026-10-07 — Invitation overview network statistics
+
+- Added 335 documented CNC machines, 109 explicitly listed 5-axis CNC machines (subset), and 590+ supplier-reported people across partner companies to the invitation PDF. Recomputed equipment counts from the current normalized catalog and checked the partner company staffing pages against `docs/vendor-sources/network-scale.md`.
+- Labeled the figures as partner-network scale, with job fit and availability confirmed per quote; avoided implying Lattice owns the equipment or employs the partner workforce. Retained one page, adjusted the header/banner footprint, and inspected the rendered layout. No application behavior changed.
+
+## 2026-10-07 — Simplified invitation overview ending
+
+- Removed the annotated qualification section and first-project invitation box from the PDF and its builder. Redistributed the freed space into a taller warehouse banner, larger workflow/benefit text, and more section spacing.
+- Confirmed the removed copy is absent and the PDF remains one page; inspected the final rendered layout. No app or email delivery behavior changed.
+
+## 2026-10-07 — Reordered invitation overview sections
+
+- Swapped the network statistics and customer-benefits sections: benefits now follow the banner, followed by the four-step journey and network statistics at the bottom. Added a divider beneath the statistics and adjusted spacing.
+- Rebuilt the PDF, confirmed one page, and visually inspected the final layout. No application behavior changed.
+
+## 2026-10-07 — Removed capacity benefit from invitation overview
+
+- Removed the annotated “Use capacity job by job” item and expanded the remaining two benefit columns across the page.
+- Confirmed one page and visually inspected the rebuilt PDF.
+
+## 2026-10-07 — Invitation PDF feedback refinements
+
+- Clarified that the 109 listed 5-axis machines are included in the 335 CNC machine total; changed the quality step to invite review of inspection and material records against requirements before shipment.
+- Rewrote the two benefits to use the available column space, and removed the general footnote while specifying supplier-reported partner personnel directly under the 590+ figure.
+- Confirmed all revised text and one-page output, then inspected the final render.
+
+## 2026-10-07 — Removed annotated sentence from invitation overview
+
+- Removed “Lattice helps validate the production path for each project before you commit” from the expanded-capacity benefit, rebuilt the PDF, and confirmed the sentence is absent and the page remains one page.
+
+## 2026-10-07 — Updated overflow benefit copy
+
+- Replaced the customer-relationship benefit with the requested pipeline-full, reject-work/long-lead-times explanation and overflow routing statement. Confirmed one-page output and visually checked the updated copy.
+
+## 2026-10-07 — Refined pipeline benefit copy
+
+- Updated the pipeline-full benefit to the revised phrasing about rejecting work or bidding excessive lead times, then routing overflow through Lattice. Confirmed one-page PDF and visually inspected the rendered text.
+
+## 2026-10-07 — Refined benefit wording and network-stat qualification
+
+- Changed the pipeline benefit to “excessively long lead times” and qualified the 590+ personnel count as reported by two partners, preserving the existing three-column statistics row.
+- Confirmed the updated copy and one-page render.
+
+## 2026-10-07 — Removed phrase from pipeline benefit
+
+- Removed “are forced to” from the full-pipeline sentence as marked, rebuilt the one-page PDF, and visually checked the updated copy.
+
+## 2026-10-07 — Consolidated CNC network statistics
+
+- Removed the standalone 109 5-axis statistic and added that figure to the 335 documented CNC machines caption. Rebalanced the network snapshot as two centered statistics: CNC equipment and partner-reported personnel.
+- Confirmed one-page output and visually inspected the final layout.
+
+## 2026-10-07 — Aligned network stats row
+
+- Aligned the two network-stat columns with the left and right content guides used by the benefits section; checked the one-page render.
+# 2026-10-07 — Attach overview PDF to customer invitations
+
+- Saved the approved one-pager as `public/email/lattice-invitation-overview.pdf` for project use, retaining its editable source PDF under `output/pdf/`.
+- Updated customer invitation delivery to include the PDF as a Base64 attachment in the Resend request, matching the email copy that tells invitees the guide is attached. Updated the operator feature map.
+- Did not send a real invitation email. Controlled end-to-end delivery validation remains a separate release check.
+
+
+## 2026-10-08 — Cross-computer project handoff
+
+- Updated the README, project context, decisions, TODO, onboarding playbook, and feature map so the next agent can distinguish completed invitation-PDF work from the remaining controlled delivery check.
+- Recorded the approved PDF asset path, editable output and builder, Resend attachment behavior, current admin customer/quote work, and the concrete post-deployment invitation validation.
+- Added `/tmp/` to `.gitignore` so generated PDF QA scratch files stay local and are not included in the project push.

@@ -19,6 +19,20 @@ const completeAddress = (address: AccountAddress) => Boolean(
   address.name && address.company && address.address1 && address.city && address.state && address.zipCode,
 );
 
+function fillMissingAddressFields(address: AccountAddress, fallback: AccountAddress): AccountAddress {
+  const useValue = (value: string, fallbackValue: string) => value.trim() ? value : fallbackValue;
+
+  return {
+    address1: useValue(address.address1, fallback.address1),
+    address2: useValue(address.address2, fallback.address2),
+    city: useValue(address.city, fallback.city),
+    company: useValue(address.company, fallback.company),
+    name: useValue(address.name, fallback.name),
+    state: useValue(address.state, fallback.state),
+    zipCode: useValue(address.zipCode, fallback.zipCode),
+  };
+}
+
 function Card({ children }: { children: React.ReactNode }) {
   return <section className="rounded-md border border-[#d7dce2] bg-white">{children}</section>;
 }
@@ -159,7 +173,7 @@ export function AccountSettingsWorkspace({
       }
       const saved = await persist({ ...settings, [field]: next });
       if (onboarding && field === "shipping") {
-        setAddressDraft(saved.billingAddress);
+        setAddressDraft(fillMissingAddressFields(saved.billingAddress, saved.shipping));
         setEditing("billingAddress");
         setMessage("Shipping address saved. Add a billing address to finish setup.");
         return;

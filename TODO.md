@@ -4,9 +4,10 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 ## Next Priorities
 
-- After the next Production deployment, rerun the controlled invitation test with `willclawpaik@gmail.com`: provisioning, email delivery, forced personal-password setup without ending the Clerk session, shipping/billing confirmation, reset-and-resend, and old-password rejection. The invitation schema is already applied in Development and Production. Later, replace the temporary-password email with an expiring single-use activation link and recipient-chosen password setup; add a configurable onboarding scheduling link (for example, Calendly).
+- After the GitHub push and resulting Production deployment complete, rerun the controlled invitation test with `willclawpaik@gmail.com`: confirm provisioning and Resend delivery including the “Lattice - How It Works.pdf” attachment, forced personal-password setup without ending the Clerk session, shipping/billing confirmation, reset-and-resend, and old-password rejection. The invitation schema is already applied in Development and Production. End-to-end invitation and attachment receipt have not yet been verified. Later, replace the temporary-password email with an expiring single-use activation link and recipient-chosen password; add a configurable onboarding scheduling link (for example, Calendly).
+- Completed: create the one-page “How Lattice works” PDF and wire it into customer invitation delivery. Source/output locations are documented in `README.md` and `docs/app-feature-map.md`.
 
-- Complete Guided Address Onboarding and Autocomplete: the focused shipping-then-billing first-login modal and durable Customer Admin-only deferral now exist. Add review/confirmation of Lattice-prefilled information and a production address-suggestion/validation provider; keep the existing Customer Admin-only server authorization boundary.
+- Complete Guided Address Onboarding and Autocomplete: the focused shipping-then-billing first-login modal and durable Customer Admin-only deferral exist. The billing step now preserves saved billing values and fills blank fields from shipping for the customer to review. Next add review/confirmation of Lattice-prefilled information and a production address-suggestion/validation provider; keep the existing Customer Admin-only server authorization boundary.
 
 - Keep in-app card payment unavailable for the first customer cohort. Add Production Card Payments to the product pipeline: configure live Stripe keys and webhook, test payment/reconciliation plus a controlled refund or void, then deliberately enable card checkout for customers.
 
@@ -36,10 +37,10 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - choose the durable production identity platform and organization model, then configure Google Workspace/SAML/OIDC credentials in local, preview, and production and decide when to disable the interim local password fallback
   - continue replacing the interim single-account credential gate with durable multi-user authentication, organization-owned login policy, MFA/passkeys, session/device controls, and enterprise identity controls
   - create the durable Lattice Admin user record for the sole operator before enabling Google SSO as the primary login path
-  - add invitation delivery, password recovery, MFA/passkeys, session/device controls, and identity audit events before enterprise rollout
-  - add customer invitation/verification emails: Lattice Admin-only invites, one-time expiring activation links, recipient-defined password setup, verified-email activation, resend/revoke controls, and future Customer Admin teammate-invitation policy; retain Google SSO for approved/provisioned accounts only until customer-domain SSO is deliberately introduced
+  - add enterprise identity hardening: MFA/passkeys, session/device controls, and expanded identity audit events
+  - later replace the first-cohort temporary-password invitation with a single-use, expiring activation link, recipient-chosen password, verified-email activation, and resend/revoke controls; add Customer Admin teammate invitations only after company membership policy is designed
   - replace temporary local `.data/uploads` RFQ file storage with Cloudflare R2 or another S3-compatible production bucket for uploaded CAD/drawing files
-- before enabling Preview deployments to send email, replace the current shared Resend configuration with a separate restricted Preview key/sender (or leave Preview email disabled); Production Resend delivery from `support@latticeos.co` is configured, but the automated customer-invitation flow remains to be implemented
+- before enabling Preview deployments to send email, replace the current shared Resend configuration with a separate restricted Preview key/sender (or leave Preview email disabled); the automated first-cohort invitation sends from `support@latticeos.co`, but still needs controlled end-to-end validation before customer rollout
   - configure Stripe test/live environment variables (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`, `APP_BASE_URL`) and register `/api/stripe/webhook` in Stripe for production payment finalization
   - move saved payment methods from the current user-specific Stripe Customer to a company-owned Stripe Customer before launch; follow later with card-level use/manage permissions, named-user or role assignment, and audit history
   - keep purchase-order payment disabled for the initial release; design the later Lattice Admin approval, credit-review/limit, PO-validation, accounts-payable, and audit workflow before enabling it
@@ -67,6 +68,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
   - operator reviews RFQ
   - operator marks missing info or ready for supplier RFQ
   - operator saves a durable customer quote version with per-part unit pricing
+  - follow up on the new admin quote queue/workbench with explicit file-to-part association and optional saved quote drafts if operators need them; retain the current shared RFQ file package until a reliable association exists
   - keep refining the explicit edit/reissue flow for correcting an already-issued customer quote without making the default issued quote detail view editable
   - buyer and operator views stay in sync
 - Apply the latest schema changes, including `CLOSED`, quote shipping/date fields, account defaults, `AccountDefaults.companyName`, RFQ contact/ship-to snapshot fields, and `UploadedFile.cadPreviewUrn`, to local and production databases with Prisma after pulling this change.

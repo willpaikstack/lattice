@@ -1,5 +1,54 @@
 # Decisions
 
+## 2026-10-08 - Attach the Lattice Overview PDF to Customer Invitations
+
+Decision: include the approved one-page “How Lattice works” guide as a PDF attachment on customer invitation emails. The delivery asset is `public/email/lattice-invitation-overview.pdf`; the editable output and reproducible builder are `output/pdf/lattice-invitation-overview.pdf` and `scripts/build-lattice-invitation-one-pager.py`. Resend receives the PDF as Base64 content with the filename “Lattice - How It Works.pdf”.
+
+Reason: the guide gives invitees a compact explanation of Lattice's managed overflow-work service and the customer workflow without making the invitation itself carry all product education.
+
+Implications:
+
+- Keep the invitation copy consistent with the attachment.
+- Treat the attachment as public product information; do not put customer-specific or confidential data in it.
+- The code wiring is complete, but controlled end-to-end delivery and attachment receipt still need validation.
+
+## 2026-10-07 - Link Verified Existing Clerk Sign-Ins During Customer Provisioning
+
+Decision: when Lattice Admin provisions a company using an email already attached to one exact, verified Clerk identity that is not linked to another Lattice user, link that identity to the new Customer Admin. Do not replace or reset its existing credential during provisioning. Send sign-in instructions for the existing method; the customer completes the required Lattice password setup after sign-in. Resending those instructions must not change the existing credential.
+
+Reason: a verified email may already have a sign-in before its customer workspace is provisioned. Rejecting the duplicate identity prevents onboarding, while changing its password would unexpectedly disrupt the person's existing access.
+
+Implications:
+
+- Reject ambiguous matches, unverified email addresses, and Clerk identities already attached to another Lattice user.
+- New identities continue to use the approved 72-hour temporary-password invitation.
+- Invitation audit records still contain no password or rendered email body.
+
+## 2026-10-07 - Use the Tabbed Customer Directory and Company Profile
+
+Decision: implement customer design option 1 with Companies/Waiting list directory tabs and Overview/Users/RFQs & orders company-profile tabs. Company fields default to read-only, with edits in a focused dialog; user access actions are selected through per-user menus.
+
+Reason: routine customer review should show business context and activity without a wall of provisioning and credential controls.
+
+Implications:
+
+- Keep existing Company/User/Request relationships and Lattice Admin-only membership management.
+- Provisioning and access actions continue using existing authorized server actions; no customer workspace or schema changes.
+- Profile updates revalidate current admin records and return to inline feedback instead of redirecting away from the selected tab.
+- Preserve the official Lattice logo and the existing graphite/ivory/cobalt admin visual system.
+
+## 2026-10-07 - Scope the Option 1 Redesign to the Admin Workspace
+
+Decision: adopt graphite navigation, an ivory canvas, and cobalt accents for `/admin`, retaining the official Lattice diamond mark and wordmark. Apply the theme through a CSS module attached only to admin routes, including admin-rendered shared components.
+
+Reason: the operator workspace needs a calmer, clearer operations interface while the customer workspace retains its existing approved design.
+
+Implications:
+
+- Customer, supplier, and public routes do not mount the admin theme.
+- Quote-operation summary values derive from existing request records; generated concept data and placeholder percentage trends are not used.
+- Customer drafts remain accessible in an expandable section beneath the active quote queue.
+
 ## 2026-08-21 - Permit a Customer Admin to Defer Initial Address Setup
 
 Decision: present incomplete first-login shipping and billing setup in a focused two-step modal. The provisioned Customer Admin may choose `Skip for now`, which stores a company-level deferral and permits normal workspace access. The same Customer Admin can return to Account Settings later to complete the shared addresses.
@@ -1347,3 +1396,9 @@ Implications:
 - The interface includes a concise note that these changes apply to everyone at the company.
 - Legacy populated user-scoped defaults are adopted into an empty company record once; the legacy fields are then cleared on later saves so they cannot become a competing source of truth.
 - A database failure leaves the previously saved values intact and is shown to the user as an error.
+
+## 2026-10-07 — Admin quote review queue and preparation workbench
+
+- Use option 1's contextual review queue for quote submissions and option 3's workbench for quote preparation. Keep the official logo and route-scoped admin palette.
+- Label `QUOTED` as Customer quote issued; keep supplier receipt separate from RFQ readiness. Requested due dates and owners come from existing request records.
+- Present CAD/drawing files as an RFQ-scoped package rather than assigning files to parts by array position. Keep the existing single supplier-backed line-price model, explicit issuance/editing, and stored quote versions. Unsent edits remain transient; pre-issue PDF generation is not part of this redesign.

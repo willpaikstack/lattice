@@ -49,6 +49,22 @@ Complete this checklist for a real customer environment—not mock mode—before
 
 If any item is incomplete, the safe alternative is a non-production discovery call or a manually managed pilot with no customer account/files in Lattice. Do not invite customers into an environment that cannot safely retain their CAD package.
 
+## Path 2: Lattice Admin sends a direct invitation
+
+Use this path when the customer has already been qualified and the operator is ready to create their account. It starts in the admin workspace; the customer does not submit a public access request first.
+
+| Step | Customer journey and visible interface | System rules and current behavior |
+| --- | --- | --- |
+| 1. Prepare account | The customer is not in the app yet. The Lattice Admin gathers the company name and first Customer Admin's name and work email. | This is an invite-only, operator-created account. Customer self-registration and Customer Admin teammate invitations are not enabled. |
+| 2. Provision and send | Admin uses `/admin/customers` to create the company and first Customer Admin. New identities receive a temporary-password email. If the email already belongs to a verified Clerk identity, Lattice links that identity without changing its current credential and sends instructions to use the existing sign-in method. | Company and membership are created before Resend delivery. Temporary passwords for newly created identities expire after 72 hours. Neither credentials nor email bodies are retained in the invitation audit record. Failed delivery is recoverable: temporary-password users receive a rotated password; linked existing-sign-in users receive the instructions again without a password change. |
+| 3. Sign in | Customer follows the email's login link and signs in with the invited email plus temporary password, or with the existing method already associated with the verified email. | Only the matching provisioned customer identity can enter. An expired temporary password must be replaced by a Lattice Admin; a linked identity keeps its existing credential until the customer completes Lattice's required password setup. |
+| 4. Choose a personal password | Customer is routed to the password setup screen before the workspace appears. | Initial password setup is mandatory. The Clerk session is preserved through the handoff. Expired credential, ended session, and password-policy problems have recovery guidance. |
+| 5. Confirm company addresses | Customer sees a focused shipping form, then a billing form. Billing preserves saved billing values and fills blank fields from the saved shipping address. | Validated address values save to the shared Company record. The Customer Admin may skip the shared address task and return later through Account Settings; deferral is durable. Provider-backed address suggestions and an explicit review step for operator-prefilled company details remain future work. |
+| 6. Enter the workspace | Customer arrives at `/dashboard` and can use the customer workspace. | Workspace access is company-scoped. New accounts may initially have no RFQs, quotes, or orders. RFQ submission starts separately at `/requests/new`. |
+| 7. Continue with a first RFQ | Once in the workspace, the customer prepares and submits a first RFQ package when ready. | Support remains available through the published support contact; the invitation itself has no help sentence or scheduling link. |
+
+**Current implementation boundary:** the account, invitation, forced-password, and address steps exist in source. The remaining release confidence gap is a controlled end-to-end invitation test, including delivery, password setup, address save, reset/resend, and rejection of the previous password. Do not use a real customer or send an invitation without an approved test recipient and environment.
+
 ## Operating workflow
 
 ### 1. Prospect and qualify (15–30 minutes)
@@ -78,17 +94,19 @@ Before provisioning, create an internal customer brief and an account plan:
 - The first-job hypothesis, documentation needs, preferred communication channel, and communication boundaries.
 - A plain-language pilot note covering confidentiality handling, quote validity, payment method, support route, and that Lattice is managing supplier coordination.
 
-Create the company and first Customer Admin in `/admin/customers`. Save the generated temporary password only long enough to hand it off securely. It expires in 72 hours and the customer must set a personal password before using the workspace.
+Create the company and first Customer Admin in `/admin/customers`. Provisioning creates the company and customer membership. For a new identity, it also creates a Clerk account and 72-hour temporary password; for an exact verified Clerk email already in use, it links that identity and leaves its current credential untouched. The branded email matches the sign-in path. The Lattice Admin never sees a plaintext temporary password. If delivery fails, resending rotates a new identity's temporary password or safely resends sign-in instructions for an existing identity.
 
-### 3a. Send the onboarding invitation (proposed product workflow)
+### 3a. Send the onboarding invitation (current first-cohort workflow)
 
-Send a concise, branded invitation from `support@latticeos.co`, visually aligned with the Lattice public site. It should identify the customer's company and named Customer Admin, state that the account is ready, and include a direct `Activate your account` or `Log in` button, the sign-in email, three short next steps, and an offer to schedule a short onboarding call.
+The provisioning flow sends a concise, branded invitation from `support@latticeos.co`, visually aligned with the Lattice public site. It identifies the customer's company and named Customer Admin, states that the account is ready, and includes the sign-in email, an optional temporary password, a `Get started with Lattice` button, a note that the one-page guide is attached, and the team sign-off. The email omits sign-in instructions, onboarding steps, and a help sentence. A scheduling link is not included.
 
 Approved first-cohort sender and email metadata:
 
 - From and Reply-To: `Lattice OS <support@latticeos.co>`.
-- Subject: `Your Lattice OS account is ready`.
-- Assistance: `Reply to this email for help`; William Paik owns replies and normally responds within 1–8 hours.
+- Subject: `You’re invited to Lattice`.
+- The bordered email card starts with a plain-text `LATTICE` wordmark and a right-aligned “Qualified manufacturing capacity” tagline; the icon has been removed.
+- Primary action: `Get started with Lattice`, styled as a graphite button. A thin divider and a note about the attached one-page “How Lattice works” guide follow the button. The PDF is attached to the Resend invitation as “Lattice - How It Works.pdf” from `public/email/lattice-invitation-overview.pdf`. The invitation closes with `We’re excited to have you on board. The Lattice Team`.
+- Assistance: William Paik owns replies and normally responds within 1–8 hours; the invitation provides the support address in its footer.
 - Scheduling: no link in the initial invitation. A configurable Calendly link remains planned work.
 
 The customer does **not** create a quote; they submit an RFQ and Lattice later issues a supplier-backed quote. Use that language consistently in the email and product.
@@ -97,9 +115,9 @@ The customer does **not** create a quote; they submit an RFQ and Lattice later i
 
 For the later hardened workflow, replace the temporary password with a single-use, expiring activation link that lets the recipient choose their own password. That is preferable at scale, but is not required for this controlled first cohort.
 
-Keep the invitation short:
+Use a direct service introduction that makes clear this is a new invitation, not an assumption that the recipient's company is already using Lattice:
 
-> Welcome to Lattice, [First name]. Your [Company] account is ready. Sign in with [email] and the temporary password below. You will be required to create your personal password before entering the workspace. Submit your first RFQ when you have a package ready; we will validate it before supplier outreach and keep you updated throughout quoting and production. If you would like a hand getting started, reply to this email and we will set up a call.
+> Welcome to Lattice, [First name]. Your [Company] workspace is ready. Lattice helps domestic machine shops take on overflow or out-of-capability work by coordinating qualified global CNC machining and fabrication partners. We coordinate production and requested quality documentation to help your team protect customer commitments without adding in-house capacity. Use the sign-in information below to get started; after signing in, you will set a personal password before entering your workspace. If you would like a hand getting started, reply to this email for help.
 
 When the scheduling workflow is ready, replace the last sentence with a configured scheduling link (for example, Calendly) and retain the reply-to-support option for customers who prefer it.
 
@@ -109,12 +127,12 @@ When the scheduling workflow is ready, replace the last sentence with a configur
 
 1. A Lattice Admin creates the company and first Customer Admin in `/admin/customers`.
 2. The provisioning action generates the existing 72-hour temporary password and completes the Company, Lattice membership, and Clerk identity creation.
-3. In the same successful action, Lattice sends the branded HTML invitation from `support@latticeos.co` to the provisioned work email. It includes the login URL, sign-in email, temporary password, forced-password-change explanation, support reply path, and optional scheduling link.
+3. In the same successful action, Lattice sends the branded HTML invitation from `support@latticeos.co` to the provisioned work email. It includes the login URL, sign-in email, optional temporary password, graphite `Get started with Lattice` CTA, and the one-page guide attachment. Existing verified Clerk identities receive sign-in instructions without a password reset. Delivery and attachment receipt still require a controlled end-to-end check after the latest deployment.
 4. The app records only an invitation delivery event: recipient, company/user IDs, created/sent/failed/revoked timestamps, delivery-provider ID, and failure category. It never stores the temporary password or rendered email body.
 5. If sending fails, the admin sees a clear failure state and can issue a new password and resend. A resend always invalidates the preceding password. If the customer has not activated before expiry, the admin uses the same reset-and-resend action.
 6. The customer signs in, is forced to create a personal password, and continues through the agreed address-confirmation workflow. Initial company work is empty until the customer submits an RFQ.
 
-The first-login sequence is: personal-password setup → focused shipping modal → focused billing modal → dashboard. Both addresses have explicit labels and required-field validation; billing begins prefilled from shipping but requires customer review and save before access continues. The Customer Admin may select `Skip for now` to enter the workspace and later complete the shared addresses in Account Settings. These company-owned values are used for RFQs, quotes, and orders. Address autocomplete and confirmation of operator-prefilled information remain product-pipeline work.
+The first-login sequence is: personal-password setup → focused shipping modal → focused billing modal → dashboard. Both addresses have explicit labels and required-field validation. The billing form preserves any existing billing values and fills blank fields from the saved shipping address; the Customer Admin reviews and saves it before access continues. The Customer Admin may select `Skip for now` to enter the workspace and later complete the shared addresses in Account Settings. These company-owned values are used for RFQs, quotes, and orders. Provider-backed address suggestions and confirmation of operator-prefilled information remain product-pipeline work.
 
 ### Delivery plan
 
@@ -127,18 +145,11 @@ The first-login sequence is: personal-password setup → focused shipping modal 
 | 5. Validate end to end | Use a staging customer account and controlled mailbox to create, send, activate, change password, confirm addresses, submit a test RFQ, reset/resend, and verify support replies. | The entire journey works on production-equivalent infrastructure. |
 | 6. Pilot rollout | Send the first invitation manually observed; review delivery and activation within one business day before inviting the remaining cohort. | One successful real activation without support ambiguity, then release in waves. |
 
-### Invitation implementation path
+### Invitation implementation status and remaining validation
 
-The current admin action creates the Company, Lattice user, Clerk user, and 72-hour temporary password, then displays that password only in the admin browser. It does **not** send an invitation. The implementation should replace that last handoff with the following controlled sequence.
+Customer provisioning creates the Company, Lattice user, Clerk identity, and temporary password, then sends the invitation and records its delivery status. Invitation records contain no plaintext password or rendered email. A delivery failure keeps the provisioned account and is visible to the admin; the admin can issue a new password and resend, which invalidates the previous password and revokes prior invitation records. Email delivery cannot be part of the same database transaction as Clerk and Resend, so a recoverable failed-delivery state is safer than rolling back a successfully created identity after an uncertain provider response.
 
-1. **Create invitation delivery records.** Add a Prisma `CustomerInvitation` record associated with the company and Customer Admin. Persist only recipient, company/user IDs, created/sent/failed/revoked timestamps, expiry, Resend message ID, and a non-sensitive failure category. Do not persist the temporary password, an email-body copy, provider request body, or response containing credentials.
-2. **Build one email service and template.** Add a server-only invitation-email module that builds a responsive Lattice-styled HTML and text email, uses `WAITLIST_EMAIL_FROM` as From/Reply-To, `APP_BASE_URL` for the login button, and Resend for delivery. The template includes the approved subject, login email, temporary password, 72-hour expiry, forced-password-change explanation, three next steps, and “Reply to this email for help.”
-3. **Connect it to provisioning.** Retain the existing atomic Company/Lattice-user/Clerk-user creation. Only after that succeeds, send the invitation and record `sent`. Do not return the temporary password to the admin UI on a successful send. If delivery fails, retain the newly created account, show a clear “not delivered” state, and provide a retry path instead of pretending the customer was contacted.
-4. **Implement reset-and-resend.** From the customer profile, an admin selects “Issue new password and resend.” Lattice generates a new password, changes it in Clerk and the Lattice record, invalidates the prior password, creates a new invitation event, and sends the new email. The admin never sees or retrieves the generated password. A failed retry is recorded as failed and remains retryable.
-5. **Add authorization and safety tests.** Cover successful send, Resend failure, retry, expiry, prior-password invalidation, non-admin denial, no password in returned server-action state, and no password in database/outbox/logging paths. Add a visual/email-client review of the HTML at desktop and mobile widths.
-6. **Run a controlled end-to-end test.** Provision a test company using `willclawpaik@gmail.com`, receive the email, sign in, set a personal password, complete shipping and billing, submit a non-sensitive test RFQ, test reset-and-resend once, then delete or clearly mark the test company.
-
-The correct delivery semantics are **provision first, then send and audit**. Email delivery cannot be part of the same database transaction as Clerk and Resend; a recoverable failed-delivery state is safer than rolling back a successfully created identity after an uncertain provider response.
+The remaining release check is a controlled end-to-end run with a test company and mailbox: provision the account, receive the email, sign in, set a personal password, review and save both addresses, submit a non-sensitive test RFQ, and verify reset-and-resend plus rejection of the prior password. Do not use a real customer account or send a test invitation without an approved recipient and controlled environment.
 
 ### Production-readiness work packages
 
@@ -171,9 +182,9 @@ Purchase-order payment and tax-exempt handling remain unavailable.
 | Needed decision or action | Why it is needed | Recommended default |
 | --- | --- | --- |
 | Approve the cohort policy | Confirms that temporary passwords may be sent in the invitation and that the 72-hour forced-change rule stands. | Approved: Customer Admin only; empty newly provisioned workspace only. |
-| Configure or authorize Resend | Lattice needs a verified sender and API access to deliver the actual email. Do not paste an API key into this document or Git; configure it in the deployment environment. | Complete for Production: `latticeos.co` delivery was tested from `Lattice OS <support@latticeos.co>`. The automated invitation service remains to be built. |
-| Approve sender and copy | Avoids an invitation that recipients do not recognize or trust. | Approved: subject `Your Lattice OS account is ready`; concise founder-led copy in this playbook. |
-| Choose the scheduling behavior | Determines whether the invitation offers reply-only support or a booking link. | Approved: start with `Reply to this email for help`; add Calendly later. |
+| Configure or authorize Resend | Lattice needs a verified sender and API access to deliver the actual email. Do not paste an API key into this document or Git; configure it in the deployment environment. | Complete for Production: `latticeos.co` delivery was tested from `Lattice OS <support@latticeos.co>`, and provisioning is connected to invitation delivery. The controlled end-to-end account journey remains to be validated. |
+| Approve sender and copy | Avoids an invitation that recipients do not recognize or trust. | Approved: subject `You’re invited to Lattice`; concise copy explains qualified global production capacity for overflow and out-of-capability jobs. |
+| Choose the scheduling behavior | Determines whether the invitation offers reply-only support or a booking link. | Approved: no scheduling link in the initial invitation; add Calendly later if needed. Support remains available by reply. |
 | Name the support owner and response promise | Ensures replies and failed invitations do not sit unattended. | Approved: William Paik; typical response within 1–8 hours. |
 | Decide address timing | Determines whether current mandatory pre-workspace address onboarding remains or is redesigned for first-RFQ confirmation. | Approved: retain current pre-workspace confirmation, with explicit shipping and billing data-capture forms. |
 | Supply pilot recipients | Enables controlled test and first-wave delivery. | Test inbox chosen: `willclawpaik@gmail.com`. Outstanding: one friendly machine-shop contact who explicitly agrees to pilot. |

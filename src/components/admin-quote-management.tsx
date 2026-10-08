@@ -1,43 +1,30 @@
 "use client";
 
-import { ExternalLink, FileText, Search, X } from "lucide-react";
+import { ChevronDown, Clock3, ExternalLink, FileCheck2, FileText, Inbox, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
+import styles from "./admin-quotes.module.css";
 
 import type { OverseasVendor } from "@/lib/admin-vendors";
 import { quotedLineForRequestItem, type LatticeRequest } from "@/lib/request-model";
+import adminStyles from "./admin-workspace.module.css";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
   SUBMITTED: { label: "Submitted", nextAction: "Assign owner and review intake", tone: "border-[#ffd1d4] bg-[#fff1f2] text-[#FF5A5F]" },
-  NEEDS_INFO: { label: "Needs info", nextAction: "Recover buyer clarification", tone: "border-[#ffd4c3] bg-[#fff0ea] text-[#FC642D]" },
+  NEEDS_INFO: { label: "Needs information", nextAction: "Recover buyer clarification", tone: "border-[#ffd4c3] bg-[#fff0ea] text-[#FC642D]" },
   READY_FOR_SUPPLIER_RFQ: { label: "Supplier ready", nextAction: "Send supplier RFQs", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
-  QUOTED: { label: "Quote received", nextAction: "Follow buyer decision", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
+  QUOTED: { label: "Customer quote issued", nextAction: "Follow buyer decision", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
   PURCHASED: { label: "Purchased", nextAction: "Track order", tone: "border-slate-950 bg-slate-950 text-white" },
   CLOSED: { label: "Closed", nextAction: "No active quote work", tone: "border-slate-200 bg-slate-50 text-slate-700" },
 };
 
 type AdminQuoteStatusGroup = "QUOTE_REQUESTED" | "QUOTE_RECEIVED" | "ARCHIVED";
-type AdminQuoteStatusFilter = "ALL" | AdminQuoteStatusGroup;
+type QueueView = "ACTIVE" | "DRAFTS" | "ARCHIVED";
 type RfqDecisionStatus = "NEEDS_INFO" | "CLOSED";
-
-const customerQuoteStatusCopy: Record<AdminQuoteStatusGroup, { label: string; tone: string }> = {
-  QUOTE_REQUESTED: { label: "Quote Requested", tone: "border-[#b8d4ff] bg-[#eef5ff] text-[#0f5fb8]" },
-  QUOTE_RECEIVED: { label: "Quote Received", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
-  ARCHIVED: { label: "Archived", tone: "border-slate-200 bg-slate-50 text-slate-700" },
-};
-
-const statusFilters: Array<{ label: string; value: AdminQuoteStatusFilter }> = [
-  { label: "All", value: "ALL" },
-  { label: "Quote Requested", value: "QUOTE_REQUESTED" },
-  { label: "Quote Received", value: "QUOTE_RECEIVED" },
-  { label: "Archived", value: "ARCHIVED" },
-];
-
-const statusGroupOrder: AdminQuoteStatusGroup[] = ["QUOTE_REQUESTED", "QUOTE_RECEIVED", "ARCHIVED"];
 
 const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
@@ -174,7 +161,7 @@ function fileKindLabel(file: LatticeRequest["files"][number]) {
 }
 
 function quoteReference(request: LatticeRequest) {
-  return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return request.customerQuotes.at(-1)?.quoteNumber ?? `RFQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
 function selectedSupplierQuote(request: LatticeRequest) {
@@ -191,14 +178,6 @@ function adminQuoteStatusGroup(request: LatticeRequest): AdminQuoteStatusGroup {
   }
 
   return "QUOTE_REQUESTED";
-}
-
-function adminQuoteStatusNote(request: LatticeRequest) {
-  if (request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ") {
-    return statusCopy[request.status].label;
-  }
-
-  return null;
 }
 
 function draftEditHref(request: LatticeRequest) {
@@ -274,30 +253,8 @@ function sortByUpdatedAtNewest(requests: LatticeRequest[]) {
   return [...requests].sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 }
 
-function cadFiles(request: LatticeRequest) {
-  return request.files.filter(isCadFile);
-}
-
-function drawingFiles(request: LatticeRequest) {
-  return request.files.filter(isDrawingFile);
-}
-
 function bundledFilesByPart(request: LatticeRequest) {
-  const cad = cadFiles(request);
-  const drawings = drawingFiles(request);
-  const bundledIds = new Set<string>();
-  const bundles = request.lineItems.map((lineItem, index) => {
-    const files = [cad[index], drawings[index]].filter((file): file is LatticeRequest["files"][number] => Boolean(file));
-    files.forEach((file) => bundledIds.add(file.id));
-
-    return {
-      files,
-      lineItem,
-    };
-  });
-  const unassignedFiles = request.files.filter((file) => !bundledIds.has(file.id));
-
-  return { bundles, unassignedFiles };
+  return { bundles: request.lineItems.map((lineItem) => ({ lineItem, files: [] as LatticeRequest["files"] })), unassignedFiles: request.files };
 }
 
 function lineItemUnitPriceInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
@@ -444,14 +401,16 @@ function DownloadFileLink({ file }: { file: LatticeRequest["files"][number] }) {
   );
 }
 
-function AdminQuoteDetailDrawer({
+function AdminQuoteWorkbench({
   initialDecision,
   onClose,
   overseasVendors,
   request,
   updateDecisionAction,
   updateStatusAction,
+  onDirty,
 }: {
+  onDirty: (dirty?: boolean) => void;
   initialDecision?: RfqDecisionStatus | null;
   onClose: () => void;
   overseasVendors: OverseasVendor[];
@@ -459,6 +418,7 @@ function AdminQuoteDetailDrawer({
   updateDecisionAction?: AdminQuoteAction;
   updateStatusAction?: AdminQuoteAction;
 }) {
+  const [isSaving, setIsSaving] = useState(false);
   const status = statusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const selectedShopQuote = selectedSupplierQuote(request);
@@ -473,6 +433,8 @@ function AdminQuoteDetailDrawer({
   const currentShopName = selectedShopNameFromRequest(request) || overseasVendors[0]?.name || "China supplier team";
   const shopOptions = vendorShopOptions(overseasVendors, currentShopName);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState(request.quote.shippingMethod || defaultShippingMethod);
+  const [quoteLinePrices, setQuoteLinePrices] = useState(() => Object.fromEntries(request.lineItems.map((item) => [item.id, lineItemUnitPriceInput(request, item)])));
+  const [shippingPrice, setShippingPrice] = useState(formatCurrencyInput(request.quote.shippingCostCents));
   const [quoteLineLeadTimeValues, setQuoteLineLeadTimeValues] = useState(() =>
     Object.fromEntries(request.lineItems.map((lineItem) => [lineItem.id, String(lineItemLeadTimeInput(request, lineItem) ?? "")])),
   );
@@ -482,24 +444,23 @@ function AdminQuoteDetailDrawer({
   const activeDecisionCopy = activeDecision ? rfqDecisionCopy[activeDecision] : null;
   const decisionNoteIsReady = decisionNote.trim().length > 0;
 
+  const hasCompletePricing = request.lineItems.length > 0 && request.lineItems.every((item) => quoteLinePrices[item.id]?.trim() && Number.isFinite(Number(quoteLinePrices[item.id])) && Number(quoteLinePrices[item.id]) >= 0);
+  const partsTotal = request.lineItems.reduce((sum, item) => sum + Math.round((Number(quoteLinePrices[item.id]) || 0) * item.quantity * 100), 0);
+  const shippingCents = shippingPrice.trim() && Number.isFinite(Number(shippingPrice)) ? Math.round(Number(shippingPrice) * 100) : null;
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#1f2937]/45 px-4 py-6" onClick={onClose} role="presentation">
-      <div
-        aria-modal="true"
-        className="mx-auto max-w-[1120px] overflow-hidden rounded-md bg-white shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-      >
+    <div className={styles.workbench}>
+      <div className={styles.workbenchSurface}>
         <div className="sticky top-0 z-10 border-b border-[#eeeeee] bg-white">
           <div className="flex flex-col gap-4 px-6 py-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#767676]">RFQ response</p>
+                <button className={styles.textButton} onClick={onClose} type="button">← Review queue</button>
                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
               </div>
               <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{request.title}</h2>
               <dl aria-label="RFQ summary" className="mt-3 flex flex-wrap gap-2">
-                <DrawerMetaItem label="Quote" value={quoteReference(request)} />
+                <DrawerMetaItem label="Reference" value={quoteReference(request)} />
                 <DrawerMetaItem label="Customer" value={request.buyerCompany} />
                 <DrawerMetaItem label="Process" value={request.process} />
               </dl>
@@ -536,7 +497,17 @@ function AdminQuoteDetailDrawer({
               {isIssuedQuote ? (
                 <button
                   className="inline-flex h-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
-                  onClick={() => setIsEditingIssuedQuote((current) => !current)}
+                  onClick={() => {
+                    if (isEditingIssuedQuote) {
+                      setQuoteLinePrices(Object.fromEntries(request.lineItems.map((item) => [item.id, lineItemUnitPriceInput(request, item)])));
+                      setQuoteLineLeadTimeValues(Object.fromEntries(request.lineItems.map((item) => [item.id, String(lineItemLeadTimeInput(request, item))])));
+                      setShippingPrice(formatCurrencyInput(request.quote.shippingCostCents));
+                      setSelectedShippingMethod(request.quote.shippingMethod || defaultShippingMethod);
+                      setQuoteValidUntil(defaultQuoteValidUntil(request, quoteCreatedDate));
+                      onDirty(false);
+                    }
+                    setIsEditingIssuedQuote((current) => !current);
+                  }}
                   type="button"
                 >
                   {isEditingIssuedQuote ? "Cancel edit" : "Edit quote"}
@@ -555,7 +526,7 @@ function AdminQuoteDetailDrawer({
                 </a>
               ) : null}
               <button
-                aria-label="Close RFQ drawer"
+                aria-label="Back to review queue"
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[#262626] transition hover:bg-[#f8fafc]"
                 onClick={onClose}
                 type="button"
@@ -566,7 +537,7 @@ function AdminQuoteDetailDrawer({
           </div>
         </div>
 
-        <div className="px-6 py-6">
+        <div className={styles.workbenchBody}><div className={styles.editor} onChange={(event) => { if ((event.target as HTMLInputElement).type !== "file") onDirty(); }}>
           {activeDecision && activeDecisionCopy ? (
             <section aria-label={activeDecisionCopy.title} className="mb-6 rounded-md border border-[#ffd1d4] bg-[#fff7f7] p-4" role="region">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -624,12 +595,12 @@ function AdminQuoteDetailDrawer({
             readOnly={isReadOnlyIssuedQuote}
             removeHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files/remove"}
             request={request}
-            returnTo={`/admin/quotes?requestId=${encodeURIComponent(request.id)}`}
+            returnTo={`/admin/quotes?requestId=${encodeURIComponent(request.id)}&view=quote`}
             stepNumber={1}
             uploadHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files"}
             variant="admin"
           >
-            <div className="grid gap-4 lg:grid-cols-4">
+            <fieldset key={String(isReadOnlyIssuedQuote)} className="grid gap-4 lg:grid-cols-3" disabled={isReadOnlyIssuedQuote}>
               <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                 Shop name
                 <select
@@ -672,9 +643,13 @@ function AdminQuoteDetailDrawer({
                   value={overallSupplierLeadTimeDays ?? ""}
                 />
               </label>
-            </div>
+            </fieldset>
           </SupplierQuoteFiles>
-          <form action={updateStatusAction} id={quoteResponseFormId}>
+          <form action={async (formData) => {
+            if (!updateStatusAction || isSaving) return;
+            setIsSaving(true);
+            try { await updateStatusAction(formData); } finally { setIsSaving(false); }
+          }} id={quoteResponseFormId}>
             <input name="requestId" type="hidden" value={request.id} />
             <input name="status" type="hidden" value="QUOTED" />
             <input name="assignedOwner" type="hidden" value={request.operatorReview.assignedOwner ?? ""} />
@@ -695,22 +670,21 @@ function AdminQuoteDetailDrawer({
                 </p>
               ) : isIssuedQuote ? (
                 <p className="mt-3 rounded-md bg-[#fff7f7] px-3 py-2 text-[13px] leading-5 text-[#8a3a3d]">
-                  Editing this issued quote will save a new customer quote version and update the buyer-facing quote.
+                  Saving this edit creates a new customer quote version and updates the buyer-facing quote.
                 </p>
               ) : null}
               <div className="mt-4 overflow-x-auto rounded-md border border-[#e6e6e6]">
-                <div className="min-w-[1080px]">
-                  <div className="grid grid-cols-[minmax(150px,0.55fr)_minmax(250px,1fr)_minmax(190px,0.78fr)_56px_150px_150px] items-center gap-2 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
+                <div className={styles.partsTable}>
+                  <div className="grid grid-cols-[minmax(130px,0.8fr)_minmax(170px,1fr)_55px_100px_110px] items-center gap-2 border-b border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#7b8088]">
                     <span>Part</span>
                     <span>Specs</span>
-                    <span>Uploaded files</span>
                     <span className="text-center">Qty</span>
                     <span>Unit price</span>
                     <span>Lead time</span>
                   </div>
                   <div className="divide-y divide-[#eeeeee]">
-                    {bundles.map(({ files, lineItem }) => (
-                      <div className="grid grid-cols-[minmax(150px,0.55fr)_minmax(250px,1fr)_minmax(190px,0.78fr)_56px_150px_150px] items-center gap-2 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
+                    {bundles.map(({ lineItem }) => (
+                      <div className="grid grid-cols-[minmax(130px,0.8fr)_minmax(170px,1fr)_55px_100px_110px] items-center gap-2 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
                         <p className="min-w-0 truncate font-semibold text-[#202020]">{lineItem.partName}</p>
                         <dl className="grid gap-1.5 text-[12px] leading-5 text-[#64748b]">
                           <div>
@@ -725,14 +699,9 @@ function AdminQuoteDetailDrawer({
                             <dt className="inline font-semibold text-[#30343a]">Tolerance: </dt>
                             <dd className="inline">{lineItem.generalTolerance || "Not specified"}</dd>
                           </div>
+                          {lineItem.qualityDocumentation?.length ? <div><dt className="inline font-semibold">Quality: </dt><dd className="inline">{lineItem.qualityDocumentation.join(", ")}</dd></div> : null}
+                          {lineItem.notes ? <div><dt className="inline font-semibold">Notes: </dt><dd className="inline">{lineItem.notes}</dd></div> : null}
                         </dl>
-                        <div className="grid min-w-0 content-start gap-2">
-                          {files.length ? (
-                            files.map((file) => <DownloadFileLink file={file} key={file.id} />)
-                          ) : (
-                            <span className="text-[12px] font-medium text-[#9ca3af]">No matched files</span>
-                          )}
-                        </div>
                         <p className="text-center text-[14px] font-medium text-[#6f737a]">{lineItem.quantity}</p>
                         {isReadOnlyIssuedQuote ? (
                           <>
@@ -745,8 +714,10 @@ function AdminQuoteDetailDrawer({
                               <span className="sr-only">Unit price - {lineItem.partName}</span>
                               <input
                                 className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                                defaultValue={lineItemUnitPriceInput(request, lineItem)}
+                                value={quoteLinePrices[lineItem.id]}
+                                onChange={(event) => setQuoteLinePrices((current) => ({ ...current, [lineItem.id]: event.target.value }))}
                                 inputMode="decimal"
+                                type="number" min="0" step="0.01" required
                                 name={`unitPrice:${lineItem.id}`}
                                 placeholder="0.00"
                               />
@@ -757,6 +728,7 @@ function AdminQuoteDetailDrawer({
                                 className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
                                 defaultValue={lineItemLeadTimeInput(request, lineItem)}
                                 inputMode="numeric"
+                                type="number" min="1" step="1"
                                 name={`leadTimeDays:${lineItem.id}`}
                                 onChange={(event) => {
                                   const nextLeadTime = event.currentTarget.value;
@@ -777,7 +749,7 @@ function AdminQuoteDetailDrawer({
               </div>
               {unassignedFiles.length ? (
                 <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
-                  <span className="font-semibold text-[#30343a]">Other files:</span>
+                  <span className="font-semibold text-[#30343a]">RFQ files (shared package):</span>
                   {unassignedFiles.map((file) => (
                     <DownloadFileLink file={file} key={file.id} />
                   ))}
@@ -802,7 +774,7 @@ function AdminQuoteDetailDrawer({
                 </p>
               ) : null}
               {isReadOnlyIssuedQuote ? (
-                <div className="mt-4 grid gap-4">
+                <div className={styles.commercialFields}>
                   <StaticField label="Shipping cost" value={formatCurrencyPrecise(request.quote.shippingCostCents)} />
                   <StaticField label="Shipping speed" value={request.quote.shippingMethod || "Pending"} />
                   <StaticField label="Shipping terms" value={request.quote.shippingTerms || "Pending"} />
@@ -817,13 +789,15 @@ function AdminQuoteDetailDrawer({
                 </div>
               ) : (
                 <>
-                  <div className="mt-4 grid gap-4">
+                  <div className={styles.commercialFields}>
                     <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                       Shipping cost
                       <input
                         className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={formatCurrencyInput(request.quote.shippingCostCents)}
+                        value={shippingPrice}
+                        onChange={(event) => setShippingPrice(event.target.value)}
                         inputMode="decimal"
+                        type="number" min="0" step="0.01"
                         name="shippingCost"
                         placeholder="Billed at actual or 125.00"
                       />
@@ -884,23 +858,69 @@ function AdminQuoteDetailDrawer({
                       />
                     </label>
                   </div>
-                  <div className="mt-5 flex justify-end">
-                    <button
-                      className="h-11 rounded-md bg-[#262626] px-5 text-[13px] font-semibold text-white transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#b7c9ef]"
-                      disabled={!updateStatusAction}
-                      type="submit"
-                    >
-                      {isIssuedQuote ? "Save updated quote" : "Issue customer quote"}
-                    </button>
-                  </div>
                 </>
               )}
             </section>
           </form>
+          </div>
+          <aside className={styles.quoteSummary} aria-label="Customer quote summary">
+            <p className={styles.eyebrow}>Customer quote</p>
+            <h3>{isIssuedQuote ? latestCustomerQuote?.quoteNumber : "Prepare for review"}</h3>
+            <span className={styles.pill}>{isReadOnlyIssuedQuote ? `Issued · v${latestCustomerQuote?.versionNumber}` : isIssuedQuote ? "Editing issued quote" : "Not yet issued"}</span>
+            <dl className={styles.totals}>
+              <div><dt>Parts ({request.lineItems.length})</dt><dd>{hasCompletePricing ? formatCurrencyPrecise(partsTotal) : "Pricing incomplete"}</dd></div>
+              <div><dt>Shipping</dt><dd>{shippingCents === null ? "Billed at actual" : formatCurrencyPrecise(shippingCents)}</dd></div>
+              <div className={styles.total}><dt>{shippingCents === null ? "Quoted subtotal" : "Total (USD)"}</dt><dd>{hasCompletePricing ? formatCurrencyPrecise(partsTotal + (shippingCents ?? 0)) : "—"}</dd></div>
+              <div><dt>Overall lead time</dt><dd>{overallSupplierLeadTimeDays ? `${overallSupplierLeadTimeDays} days` : "Not specified"}</dd></div>
+              <div><dt>Valid until</dt><dd>{formatDate(quoteValidUntil)}</dd></div>
+            </dl>
+            {shippingCents === null ? <p className={styles.muted}>Shipping will be billed at actual cost and is excluded from this subtotal.</p> : null}
+            <div className={styles.documentPreview}>
+              <p className={styles.eyebrow}>Quote summary</p><strong>{request.buyerCompany}</strong><p>{request.title}</p>
+              {request.lineItems.map((item) => <div key={item.id}><span>{item.partName}</span><span>Qty {item.quantity}</span></div>)}
+            </div>
+            {!isReadOnlyIssuedQuote ? <QuoteSubmit pending={isSaving} action={updateStatusAction} formId={quoteResponseFormId} label={isIssuedQuote ? "Save updated quote" : "Issue customer quote"} /> : null}
+            {!isReadOnlyIssuedQuote ? <p className={styles.muted}>Issuing saves the quote and makes it available in the customer workspace. Unsent edits are not saved.</p> : null}
+            <QuoteHistory request={request} />
+          </aside>
         </div>
       </div>
     </div>
   );
+}
+
+function QuoteSubmit({ formId, action, label, pending }: { formId: string; action?: AdminQuoteAction; label: string; pending: boolean }) {
+  return <button className={styles.primaryButton} disabled={!action || pending} form={formId} type="submit">{pending ? "Saving quote…" : label}</button>;
+}
+
+function QuoteHistory({ request }: { request: LatticeRequest }) {
+  return <details className={styles.history}><summary>Quote versions ({request.customerQuotes.length})</summary>
+    {request.customerQuotes.length ? [...request.customerQuotes].reverse().map((quote) => <div key={quote.id}><strong>{quote.quoteNumber} · v{quote.versionNumber}</strong><p>{formatCurrencyPrecise(quote.totalCents)} · Issued {formatDate(quote.issuedAt)}</p></div>) : <p>No customer quote has been issued.</p>}
+  </details>;
+}
+
+function QuoteInspector({ request, customerProfileHrefs, onPrepare, onDecision, canDecide }: { request: LatticeRequest; customerProfileHrefs: Record<string, string>; onPrepare: () => void; onDecision: (decision: RfqDecisionStatus) => void; canDecide: boolean }) {
+  const supplier = selectedSupplierQuote(request);
+  const quote = request.customerQuotes.at(-1);
+  const completeness = { READY_FOR_REVIEW: "Ready for review", MISSING_INFO: "Missing information", COMPLETE: "Complete" }[request.operatorReview.completeness];
+  return <aside className={styles.inspector} aria-label={`RFQ inspector: ${request.title}`}>
+    <header><p className={styles.eyebrow}>{quoteReference(request)}</p><h2>{request.title}</h2><div className={styles.companyCell}><span>{request.buyerCompany}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><p className={styles.muted}>{request.process} · {request.requesterName}</p><span className={styles.pill}>{completeness}</span></header>
+    <section><h3>RFQ package <span>{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"}</span></h3>
+      {request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName}<span>Qty {item.quantity}</span></strong><p>{item.material} · {item.surfaceFinish || "Finish not specified"}</p><p>{item.generalTolerance || "Tolerance not specified"}</p>{item.qualityDocumentation?.length ? <p>Quality: {item.qualityDocumentation.join(", ")}</p> : null}{item.notes ? <p>{item.notes}</p> : null}</div>)}
+      <details className={styles.history} open><summary>RFQ files ({request.files.length})</summary><p className={styles.muted}>Files belong to the shared RFQ package.</p><div className={styles.fileList}>{request.files.map((file) => <DownloadFileLink file={file} key={file.id} />)}{!request.files.length ? <p>No files attached.</p> : null}</div></details>
+    </section>
+    <section><h3>Supplier basis</h3>{supplier ? <><strong>{supplier.shopName}</strong><p className={styles.muted}>{supplier.country} · Selected supplier</p><p className={styles.muted}>{supplier.leadTimeDays ? `${supplier.leadTimeDays} days overall lead time` : "Lead time not specified"}</p></> : <p className={styles.muted}>No supplier selected.</p>}
+      <p className={styles.muted}>{request.supplierQuotes.length} supplier quotes · {request.supplierQuoteFiles.length} evidence files</p>
+      {request.supplierQuotes.length ? <details className={styles.history}><summary>Supplier responses</summary>{request.supplierQuotes.map((response) => <div key={response.id}><strong>{response.shopName}</strong><p>{response.country} · {response.isSelected || response.status === "SELECTED" ? "Selected" : response.status === "QUOTE_RECEIVED" ? "Quote received" : response.status === "DECLINED" ? "Declined" : "Invited"}</p><p>{formatCurrencyPrecise(response.priceCents)} · {response.leadTimeDays ? `${response.leadTimeDays} days` : "Lead time not specified"}</p>{response.notes ? <p>{response.notes}</p> : null}</div>)}</details> : null}
+      {request.supplierQuoteFiles.map((file) => <p key={file.id}>{file.storageKey ? <a className={styles.textButton} href={`/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`} download={file.name}>{file.name}</a> : <span className={styles.muted}>{file.name} · unavailable</span>}</p>)}
+      {request.status === "READY_FOR_SUPPLIER_RFQ" ? <p className={styles.muted}>RFQ is ready to send to suppliers.</p> : null}
+    </section>
+    <section><h3>Customer quote <span>{quote ? `v${quote.versionNumber}` : "Not issued"}</span></h3>{quote ? <><strong>{formatCurrencyPrecise(quote.totalCents)}</strong><p className={styles.muted}>Issued {formatDate(quote.issuedAt)} · Valid until {formatDate(quote.validUntil)}</p></> : <p className={styles.muted}>Review supplier-backed pricing, shipping, and validity before issuing.</p>}
+      <button className={styles.primaryButton} type="button" onClick={onPrepare}>{quote ? "View customer quote" : request.status === "CLOSED" ? "View RFQ details" : "Prepare customer quote"}</button>
+      {canDecide && request.status !== "CLOSED" && request.status !== "QUOTED" ? <div className={styles.decisionActions}><button type="button" onClick={() => onDecision("NEEDS_INFO")}>Request information</button><button type="button" onClick={() => onDecision("CLOSED")}>No quote</button></div> : null}
+    </section>
+    <details className={styles.history}><summary>Activity ({request.statusEvents.length})</summary>{[...request.statusEvents].reverse().map((event) => <div key={event.id}><strong>{statusCopy[event.to].label}</strong><p>{event.actor} · {formatDateTime(event.at)}</p></div>)}</details>
+  </aside>;
 }
 
 export function AdminQuoteManagement({
@@ -920,8 +940,13 @@ export function AdminQuoteManagement({
   const searchParams = useSearchParams();
   const deepLinkedRequestId = searchParams.get("requestId");
   const deepLinkedDecision = parsedRfqDecision(searchParams.get("decision"));
+  const deepLinkedWorkbench = searchParams.get("view") === "quote";
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<AdminQuoteStatusFilter>("ALL");
+  const [view, setView] = useState<QueueView>("ACTIVE");
+  const [stageFilter, setStageFilter] = useState("ALL");
+  const [ownerFilter, setOwnerFilter] = useState("ALL");
+  const [isWorkbench, setIsWorkbench] = useState(false);
+  const [hasUnsentEdits, setHasUnsentEdits] = useState(false);
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
   const [localDraftRequests, setLocalDraftRequests] = useState<LatticeRequest[]>([]);
 
@@ -941,12 +966,15 @@ export function AdminQuoteManagement({
     const timeoutId = window.setTimeout(() => {
       if (!deepLinkedRequestId) {
         setDetailRequest(null);
+        setIsWorkbench(false);
+        setHasUnsentEdits(false);
         return;
       }
 
       const matchingRequest = quoteRequests.find((request) => request.id === deepLinkedRequestId) ?? null;
 
       setDetailRequest(matchingRequest);
+      setIsWorkbench(Boolean(deepLinkedDecision) || deepLinkedWorkbench);
 
       if (!matchingRequest) {
         router.replace("/admin/quotes", { scroll: false });
@@ -954,23 +982,22 @@ export function AdminQuoteManagement({
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [deepLinkedRequestId, quoteRequests, router]);
+  }, [deepLinkedRequestId, deepLinkedDecision, deepLinkedWorkbench, quoteRequests, router]);
 
   const filteredRequests = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
     return sortByUpdatedAtNewest(quoteRequests.filter((request) => {
-      const primaryLine = request.lineItems[0];
       const statusGroup = adminQuoteStatusGroup(request);
-      const matchesStatus = statusFilter === "ALL" ? statusGroup !== "ARCHIVED" : statusGroup === statusFilter;
+      const matchesStatus = (view === "ARCHIVED" ? statusGroup === "ARCHIVED" : statusGroup !== "ARCHIVED") && (stageFilter === "ALL" || request.status === stageFilter) && (ownerFilter === "ALL" || (request.operatorReview.assignedOwner || "UNASSIGNED") === ownerFilter);
       const searchable = [
         request.title,
         request.process,
         request.buyerCompany,
         request.requesterName,
         quoteReference(request),
-        primaryLine?.partName,
-        primaryLine?.material,
+        ...request.lineItems.flatMap((item) => [item.partName, item.material]),
+        request.operatorReview.assignedOwner,
         ...request.files.map((file) => file.name),
         ...request.supplierQuotes.map((quote) => quote.shopName),
       ]
@@ -980,18 +1007,7 @@ export function AdminQuoteManagement({
 
       return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
     }));
-  }, [query, quoteRequests, statusFilter]);
-
-  const groupedRequests = useMemo(() => {
-    const visibleGroups = statusGroupOrder.filter((group) => (statusFilter === "ALL" ? group !== "ARCHIVED" : group === statusFilter));
-
-    return visibleGroups
-      .map((group) => ({
-        group,
-        requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === group),
-      }))
-      .filter(({ requests }) => requests.length > 0);
-  }, [filteredRequests, statusFilter]);
+  }, [query, quoteRequests, view, stageFilter, ownerFilter]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -1013,8 +1029,18 @@ export function AdminQuoteManagement({
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, []);
 
+  useEffect(() => {
+    if (!hasUnsentEdits) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [hasUnsentEdits]);
+
   function closeDetail() {
+    if (hasUnsentEdits && !window.confirm("Leave this RFQ? Your unsent quote edits will be discarded.")) return;
+    setHasUnsentEdits(false);
     setDetailRequest(null);
+    setIsWorkbench(false);
 
     if (deepLinkedRequestId) {
       router.replace("/admin/quotes", { scroll: false });
@@ -1043,30 +1069,83 @@ export function AdminQuoteManagement({
     router.push(draftEditHref(request));
   }
 
+  const activeRequests = quoteRequests.filter((request) => adminQuoteStatusGroup(request) !== "ARCHIVED");
+  const selectedRequest = filteredRequests.find((request) => request.id === detailRequest?.id) ?? filteredRequests[0] ?? null;
+  const owners = [...new Set(quoteRequests.map((request) => request.operatorReview.assignedOwner).filter((owner): owner is string => Boolean(owner)))].sort();
+  const summaryCards = [
+    { label: "Active RFQs", count: activeRequests.length, detail: "Submitted requests in review", icon: Inbox },
+    { label: "Needs information", count: activeRequests.filter((r) => r.status === "NEEDS_INFO").length, detail: "Waiting on customer clarification", icon: Clock3 },
+    { label: "Supplier ready", count: activeRequests.filter((r) => r.status === "READY_FOR_SUPPLIER_RFQ").length, detail: "Ready to send to suppliers", icon: FileText },
+    { label: "Customer quote issued", count: activeRequests.filter((r) => r.status === "QUOTED").length, detail: "Awaiting a customer decision", icon: FileCheck2 },
+  ];
+  function prepareQuote(request: LatticeRequest, decision?: RfqDecisionStatus) {
+    setDetailRequest(request);
+    setHasUnsentEdits(false);
+    setIsWorkbench(true);
+    router.push(`${decision ? quoteDecisionHref(request, decision) : quoteDetailHref(request)}&view=quote`, { scroll: false });
+  }
+  if (isWorkbench && detailRequest) {
+    return <div className={styles.workbenchLayout}>
+      <nav className={styles.workbenchQueue} aria-label="RFQ queue"><button className={styles.textButton} type="button" onClick={closeDetail}>← Review queue</button><h2>Active RFQs</h2>
+        {activeRequests.map((request) => <button key={request.id} aria-current={request.id === detailRequest.id ? "true" : undefined} type="button" onClick={() => {
+          if (request.id !== detailRequest.id && (!hasUnsentEdits || window.confirm("Switch RFQs? Your unsent quote edits will be discarded."))) prepareQuote(request);
+        }}><strong>{request.title}</strong><span>{request.buyerCompany}</span><small>{statusCopy[request.status].label}</small></button>)}
+      </nav>
+      <AdminQuoteWorkbench onDirty={(dirty = true) => setHasUnsentEdits(dirty)} key={`${detailRequest.id}:${deepLinkedDecision ?? "quote"}`} initialDecision={deepLinkedDecision} onClose={closeDetail} overseasVendors={overseasVendors} request={detailRequest} updateDecisionAction={updateDecisionAction} updateStatusAction={updateStatusAction} />
+    </div>;
+  }
+
   return (
     <div className="space-y-5">
-      {detailRequest ? (
-        <AdminQuoteDetailDrawer
-          key={`${detailRequest.id}:${deepLinkedDecision ?? "quote"}`}
-          initialDecision={deepLinkedDecision}
-          onClose={closeDetail}
-          overseasVendors={overseasVendors}
-          request={detailRequest}
-          updateDecisionAction={updateDecisionAction}
-          updateStatusAction={updateStatusAction}
-        />
-      ) : null}
-
-      <section className="overflow-hidden rounded-md border border-[#ffd1d4] bg-white">
-        <div className="flex flex-col gap-2 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 sm:flex-row sm:items-end sm:justify-between">
+      <section aria-label="Quote operations summary" className={adminStyles.metrics}>
+        {summaryCards.map(({ label, count, detail, icon: Icon }) => (
+          <article className={adminStyles.metric} key={label}>
+            <span className={adminStyles.metricIcon}><Icon aria-hidden="true" size={20} strokeWidth={1.7} /></span>
+            <div><p>{label}</p><strong>{count}</strong><span>{detail}</span></div>
+          </article>
+        ))}
+      </section>
+      <div className={styles.toolbar}>
+        <div className={styles.viewTabs} aria-label="Quote queue views">
+          {(["ACTIVE", "DRAFTS", "ARCHIVED"] as const).map((tab) => <button type="button" key={tab} aria-pressed={view === tab} onClick={() => { setView(tab); setStageFilter("ALL"); setOwnerFilter("ALL"); closeDetail(); }}>{tab === "ACTIVE" ? `Active (${activeRequests.length})` : tab === "DRAFTS" ? `Drafts (${draftRequests.length})` : `Archive (${quoteRequests.length - activeRequests.length})`}</button>)}
+        </div>
+        {view !== "DRAFTS" ? <div className={styles.filters}>
+          <label className={styles.search}><Search size={16} aria-hidden="true" /><span className="sr-only">Search quote submissions</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search RFQs, customers, parts…" /></label>
+          <label><span className="sr-only">RFQ stage</span><select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}><option value="ALL">All stages</option>{["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"].map((stage) => <option key={stage} value={stage}>{statusCopy[stage as LatticeRequest["status"]].label}</option>)}</select></label>
+          <label><span className="sr-only">Assigned owner</span><select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}><option value="ALL">All owners</option><option value="UNASSIGNED">Unassigned</option>{owners.map((owner) => <option key={owner}>{owner}</option>)}</select></label>
+        </div> : null}
+      </div>
+      {view !== "DRAFTS" ? <div className={styles.reviewLayout}>
+        <section className={styles.queue} aria-label="RFQ review queue">
+          <div className={styles.tableScroll}><table className={styles.queueTable}>
+            <thead><tr><th>RFQ & customer</th><th>Stage</th><th>Package</th><th>Due / owner</th><th>Customer quote</th></tr></thead>
+            <tbody>{filteredRequests.map((request) => {
+              const quote = request.customerQuotes.at(-1);
+              return <tr key={request.id} data-selected={selectedRequest?.id === request.id}>
+                <td><Link aria-label={`Manage quote submission for ${request.title}`} href={quoteDetailHref(request)} onClick={(event) => openDetail(event, request)} scroll={false}>{request.title}</Link><div className={styles.companyCell}><span>{request.buyerCompany}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><small>{quoteReference(request)}</small></td>
+                <td><span className={`${styles.stage} ${statusCopy[request.status].tone}`}>{statusCopy[request.status].label}</span>{request.isArchived ? <small>Archived</small> : null}<small>{request.supplierQuoteFiles.length ? "Supplier evidence attached" : request.supplierQuotes.some((q) => q.status === "QUOTE_RECEIVED" || q.status === "SELECTED") ? "Supplier quote received" : "No supplier evidence"}</small></td>
+                <td><strong>{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"} · {request.lineItems.reduce((sum, item) => sum + item.quantity, 0)} units</strong><small>{request.files.length} {request.files.length === 1 ? "file" : "files"} · {request.process}</small></td>
+                <td><strong>{request.dueDate ? formatDate(request.dueDate) : "Not specified"}</strong><small>{request.operatorReview.assignedOwner || "Unassigned"}</small></td>
+                <td>{quote ? <><strong>v{quote.versionNumber} · {formatCurrencyPrecise(quote.totalCents)}</strong><small>Valid until {formatDate(quote.validUntil)}</small></> : <span className={styles.muted}>Not issued</span>}</td>
+              </tr>;
+            })}</tbody>
+          </table></div>
+          {!filteredRequests.length ? <div className={styles.empty}><h2>No RFQs match this view</h2><p>Choose another stage or clear the search and owner filters.</p><button className={styles.textButton} onClick={() => { setQuery(""); setStageFilter("ALL"); setOwnerFilter("ALL"); }} type="button">Clear filters</button></div> : null}
+          <footer>{filteredRequests.length} submissions · Select an RFQ to review its package</footer>
+        </section>
+        {selectedRequest ? <QuoteInspector key={selectedRequest.id} request={selectedRequest} customerProfileHrefs={customerProfileHrefs} onPrepare={() => prepareQuote(selectedRequest)} onDecision={(decision) => prepareQuote(selectedRequest, decision)} canDecide={Boolean(updateDecisionAction)} /> : null}
+      </div> : null}
+      {view === "DRAFTS" ? <details open className={adminStyles.drafts}>
+        <summary className={adminStyles.draftSummary}>
           <div>
             <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#767676]">Customer drafts</p>
-            <h2 className="mt-1 text-[20px] font-semibold text-[#171717]">Draft quotes not yet requested</h2>
+            <h2 className="mt-1 text-[15px] font-semibold text-[#171717]">Draft quotes not yet requested</h2>
           </div>
           <p className="text-[12px] text-[#777d86]">
-            Showing {draftRequests.length} {draftRequests.length === 1 ? "draft" : "drafts"}
+            {draftRequests.length} {draftRequests.length === 1 ? "draft" : "drafts"}
           </p>
-        </div>
+          <ChevronDown aria-hidden="true" className={adminStyles.draftChevron} size={16} />
+        </summary>
 
         {draftRequests.length > 0 ? (
           <>
@@ -1128,158 +1207,8 @@ export function AdminQuoteManagement({
         ) : (
           <div className="p-6 text-[14px] text-[#6f737a]">No customer draft quotes are visible yet.</div>
         )}
-      </section>
+      </details> : null}
 
-      {quoteRequests.length === 0 ? (
-        <section className="rounded-md border border-dashed border-[#cfcfcf] bg-white p-8 text-center">
-          <h2 className="text-[22px] font-semibold text-[#202020]">No active quote submissions</h2>
-          <p className="mx-auto mt-3 max-w-2xl text-[14px] leading-6 text-[#6f737a]">Submitted RFQs will appear here once customers request quotes.</p>
-        </section>
-      ) : (
-        <section className="overflow-hidden rounded-md border border-[#ffd1d4] bg-white">
-          <div className="border-b border-[#eeeeee] p-4">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <label className="relative block xl:w-[420px]">
-                <span className="sr-only">Search quote submissions</span>
-                <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8f98]" />
-                <input
-                  className="h-10 w-full rounded-md border border-[#dddddd] bg-[#fbfbfb] pl-9 pr-3 text-[14px] text-[#202020] outline-none transition placeholder:text-[#9a9fa8] focus:border-[#9b9b9b] focus:bg-white"
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search RFQ, customer, file, shop..."
-                  type="search"
-                  value={query}
-                />
-              </label>
-              <div aria-label="Admin quote status filters" className="flex gap-2 overflow-x-auto pb-1">
-                {statusFilters.map((filter) => {
-                  const isActive = statusFilter === filter.value;
-
-                  return (
-                    <button
-                      className={`h-9 shrink-0 rounded-md border px-3 text-[13px] font-semibold transition ${
-                        isActive ? "border-[#FF5A5F] bg-[#FF5A5F] text-white" : "border-[#ffd1d4] bg-white text-[#767676] hover:bg-[#fff1f2]"
-                      }`}
-                      key={filter.value}
-                      onClick={() => setStatusFilter(filter.value)}
-                      type="button"
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="divide-y divide-[#eeeeee]">
-            {groupedRequests.map(({ group, requests: groupRequests }) => {
-              const groupCopy = customerQuoteStatusCopy[group];
-
-              return (
-                <div key={group}>
-                  <div className="flex flex-col gap-1 border-b border-[#eeeeee] bg-[#fff7f7] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="text-[14px] font-semibold text-[#202020]">{groupCopy.label}</h3>
-                    <p className="text-[12px] text-[#777d86]">
-                      {groupRequests.length} {groupRequests.length === 1 ? "quote" : "quotes"}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-[1.25fr_0.72fr_0.78fr_0.92fr_0.72fr] gap-4 border-b border-[#eeeeee] bg-white px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#767676] max-xl:hidden">
-                    <span>RFQ details</span>
-                    <span>Customer</span>
-                    <span>Last edited</span>
-                    <span>Package</span>
-                    <span>Quote status</span>
-                  </div>
-
-                  <div className="divide-y divide-[#eeeeee]">
-                    {groupRequests.map((request) => {
-                      const primaryLine = request.lineItems[0];
-                      const requestCadFiles = cadFiles(request);
-                      const requestDrawingFiles = drawingFiles(request);
-                      const totalQuantity = request.lineItems.reduce((sum, item) => sum + item.quantity, 0);
-                      const statusGroup = adminQuoteStatusGroup(request);
-                      const status = customerQuoteStatusCopy[statusGroup];
-                      const statusNote = adminQuoteStatusNote(request);
-                      const detailHref = quoteDetailHref(request);
-
-                      return (
-                        <article
-                          className="group relative grid gap-4 px-4 py-4 transition hover:bg-[#fafafa] xl:grid-cols-[1.25fr_0.72fr_0.78fr_0.92fr_0.72fr] xl:items-center"
-                          key={request.id}
-                        >
-                          <Link
-                            aria-label={`Manage quote submission for ${request.title}`}
-                            className="absolute inset-0 z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F]"
-                            href={detailHref}
-                            onClick={(event) => openDetail(event, request)}
-                            scroll={false}
-                          />
-                          <div className="pointer-events-none relative z-10 min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">{quoteReference(request)}</span>
-                            </div>
-                            <p className="mt-2 block max-w-full truncate text-left text-[15px] font-semibold text-[#202020] transition group-hover:text-[#FF5A5F]">
-                              {request.title}
-                            </p>
-                            <p className="mt-1 truncate text-[13px] text-[#69707a]">
-                              {primaryLine?.partName ?? "No line item"} - {request.process}
-                            </p>
-                          </div>
-
-                          <div className="pointer-events-none relative z-10">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Customer</p>
-                            <div className="mt-1 flex min-w-0 items-center gap-2 xl:mt-0">
-                              <p className="min-w-0 truncate text-[14px] font-medium text-[#30343a]">{request.buyerCompany}</p>
-                              <CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} />
-                            </div>
-                            <p className="mt-1 text-[12px] text-[#8a8f98]">{request.requesterName}</p>
-                          </div>
-
-                          <div className="pointer-events-none relative z-10">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Last edited</p>
-                            <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{formatDateTime(request.updatedAt)}</p>
-                          </div>
-
-                          <div className="pointer-events-none relative z-10">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Package</p>
-                            <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">
-                              {request.lineItems.length} part{request.lineItems.length === 1 ? "" : "s"} / Qty {totalQuantity || "Pending"}
-                            </p>
-                            <p className="mt-1 text-[12px] text-[#8a8f98]">
-                              {request.files.length} file{request.files.length === 1 ? "" : "s"} - {requestCadFiles.length} CAD / {requestDrawingFiles.length} drawing
-                            </p>
-                          </div>
-
-                          <div className="pointer-events-none relative z-10">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Quote status</p>
-                            <span className={`mt-1 inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold xl:mt-0 ${status.tone}`}>{status.label}</span>
-                            {statusNote ? <p className="mt-1 text-[12px] text-[#8a8f98]">{statusNote}</p> : null}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-
-            {groupedRequests.length === 0 ? (
-              <div className="p-8 text-center">
-                <h2 className="text-[18px] font-semibold text-[#202020]">No quote submissions match this view.</h2>
-                <p className="mt-2 text-[14px] text-[#6f737a]">Clear the search or choose a different status filter.</p>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fff7f7] px-4 py-3 text-[12px] text-[#777d86]">
-            <span>
-              Showing {filteredRequests.length} of {quoteRequests.length} submissions
-            </span>
-            <span>Rows open the RFQ command drawer</span>
-          </div>
-        </section>
-      )}
     </div>
   );
 }

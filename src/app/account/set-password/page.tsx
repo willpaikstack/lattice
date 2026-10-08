@@ -1,12 +1,17 @@
 import { AuthSubmitButton } from "@/components/auth-submit-button";
-import { getPasswordSetupState } from "@/lib/session";
+import { getCurrentSession, getPasswordSetupState } from "@/lib/session";
 
 import { setTemporaryPasswordAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function SetPasswordPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const [state, params] = await Promise.all([getPasswordSetupState(), searchParams]);
+export default async function SetPasswordPage({ searchParams }: { searchParams: Promise<{ error?: string; preview?: string }> }) {
+  const params = await searchParams;
+  const previewSession = params.preview === "1" ? await getCurrentSession() : null;
+  const preview = previewSession?.user.role === "admin";
+  const state = preview
+    ? { status: "ready" as const, session: { user: { name: "Carmen Pascuito" } } }
+    : await getPasswordSetupState();
 
   const message = params.error === "mismatch"
     ? "Passwords do not match."
@@ -54,8 +59,10 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
         </p>
         {state.status === "ready" ? (
           <>
+            {preview ? <p className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">Admin preview only. Password changes are disabled.</p> : null}
             {message ? <p className="mt-5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">{message}</p> : null}
             <form action={setTemporaryPasswordAction} className="mt-6 space-y-4">
+              <fieldset disabled={preview} className="space-y-4 disabled:opacity-60">
               <label className="block text-sm font-medium text-stone-800">
                 New password
                 <input autoComplete="new-password" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2.5" minLength={8} name="password" required type="password" />
@@ -65,6 +72,7 @@ export default async function SetPasswordPage({ searchParams }: { searchParams: 
                 <input autoComplete="new-password" className="mt-2 w-full rounded-md border border-stone-300 px-3 py-2.5" minLength={8} name="confirmation" required type="password" />
               </label>
               <AuthSubmitButton label="Save password and continue" pendingLabel="Saving password…" />
+              </fieldset>
             </form>
           </>
         ) : null}

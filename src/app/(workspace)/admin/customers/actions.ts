@@ -35,14 +35,16 @@ export async function createCustomerCompanyAction(
     if (result.invitation.status === "failed") {
       return {
         customerHref: `/admin/customers/${result.company.id}`,
-        message: `${result.company.name} and its first Customer Admin were created, but the invitation could not be delivered. Open the customer profile to issue a new password and resend the invitation.`,
+        message: `${result.company.name} and its first Customer Admin were created, but the invitation could not be delivered. Open the customer profile to resend the invitation.`,
         status: "error",
       };
     }
 
     return {
       customerHref: `/admin/customers/${result.company.id}`,
-      message: `${result.company.name} and its first Customer Admin were created. The invitation was sent to ${result.user.email}.`,
+      message: result.existingSignIn
+        ? `${result.company.name} and its first Customer Admin were created. Sign-in instructions were sent to ${result.user.email}; their existing sign-in password was left unchanged.`
+        : `${result.company.name} and its first Customer Admin were created. The invitation was sent to ${result.user.email}.`,
       status: "success",
     };
   } catch (error) {

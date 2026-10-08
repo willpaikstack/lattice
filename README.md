@@ -14,6 +14,15 @@ Lattice OS is being built as a machine-shop-focused network platform, similar in
 
 This slice now persists submitted requests through the Next.js API layer into PostgreSQL via Prisma. Browser `localStorage` was removed from the active request handoff path.
 
+## Current progress and handoff (2026-10-08)
+
+- Admin customer management has a Companies/Waiting list directory and company profiles with Overview, Users, and RFQs & orders tabs.
+- Admin quote review uses an Active/Drafts/Archive queue and an inline quote workbench for RFQ review and quote preparation.
+- Customer invitations include the approved one-page “How Lattice works” guide as an email attachment. The delivery copy is `public/email/lattice-invitation-overview.pdf`; the editable PDF and builder are `output/pdf/lattice-invitation-overview.pdf` and `scripts/build-lattice-invitation-one-pager.py`.
+- The guide describes Lattice's overflow-work value proposition, four-step customer workflow, and qualified-network statistics. The invitation attachment is wired into Resend delivery, but a controlled end-to-end invitation and attachment receipt check remains outstanding. No live invitation was sent as part of this documentation handoff.
+
+Read `PROJECT_CONTEXT.md` for architecture and current state, `TODO.md` for the next actions, `docs/app-feature-map.md` for route-level behavior, and `docs/first-customer-onboarding-playbook.md` for the first-customer process. Recent work is recorded in `docs/completed-work-log.md`.
+
 ## Stack
 
 - Next.js App Router + TypeScript

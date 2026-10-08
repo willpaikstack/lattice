@@ -77,6 +77,22 @@ async function createClerkUser(input: { email: string; name: string; password: s
   });
 }
 
+async function findVerifiedExistingClerkUser(email: string) {
+  const clerk = await clerkClient();
+  const users = await clerk.users.getUserList({ emailAddress: [email], limit: 10 });
+  const exactMatches = users.data.filter((user) =>
+    user.emailAddresses.some((address) => address.emailAddress.toLowerCase() === email),
+  );
+  if (exactMatches.length > 1) throw new Error("More than one sign-in uses that email address. Contact support before linking it.");
+  const match = exactMatches[0];
+  if (!match) return null;
+  const verified = match.emailAddresses.some((address) =>
+    address.emailAddress.toLowerCase() === email && address.verification?.status === "verified",
+  );
+  if (!verified) throw new Error("The existing sign-in has not verified this email address, so it cannot be linked.");
+  return match;
+}
+
 async function setClerkPassword(user: { clerkUserId: string | null; email: string; id: string; name: string }, password: string) {
   const clerk = await clerkClient();
   if (user.clerkUserId) {
@@ -190,8 +206,13 @@ async function createCustomerCompanyWithTemporaryPassword(input: CreateCustomerC
     throw new Error("A user already exists with that primary admin email.");
   }
 
-  const password = temporaryPassword();
-  const credentials = createPasswordCredentials(password);
+  const existingClerkUser = await findVerifiedExistingClerkUser(primaryAdminEmail);
+  if (existingClerkUser) {
+    const alreadyLinked = await client.user.findUnique({ where: { clerkUserId: existingClerkUser.id } });
+    if (alreadyLinked) throw new Error("That sign-in is already linked to a Lattice user.");
+  }
+  const password = existingClerkUser ? null : temporaryPassword();
+  const credentials = password ? createPasswordCredentials(password) : {};
   const company = await client.company.create({
     data: {
       billingEmail,
@@ -211,25 +232,29 @@ async function createCustomerCompanyWithTemporaryPassword(input: CreateCustomerC
         ...credentials,
         companyId: company.id,
         email: primaryAdminEmail,
+        ...(existingClerkUser ? { clerkUserId: existingClerkUser.id } : {}),
         mustChangePassword: true,
         name: primaryAdminName,
-        passwordChangedAt: new Date(),
+        ...(password ? { passwordChangedAt: new Date() } : {}),
         role: WorkspaceRole.CUSTOMER_ADMIN,
-        temporaryPasswordExpiresAt: temporaryPasswordExpiry(),
+        ...(password ? { temporaryPasswordExpiresAt: temporaryPasswordExpiry() } : {}),
       },
     });
     userId = user.id;
 
-    const clerkUser = await createClerkUser({
-      email: user.email,
-      externalId: user.id,
-      name: user.name,
-      password,
-    });
-    clerkUserId = clerkUser.id;
-    const linkedUser = await client.user.update({ where: { id: user.id }, data: { clerkUserId: clerkUser.id } });
+    let linkedUser = user;
+    if (!existingClerkUser && password) {
+      const clerkUser = await createClerkUser({
+        email: user.email,
+        externalId: user.id,
+        name: user.name,
+        password,
+      });
+      clerkUserId = clerkUser.id;
+      linkedUser = await client.user.update({ where: { id: user.id }, data: { clerkUserId: clerkUser.id } });
+    }
 
-    return { company, password, user: linkedUser };
+    return { company, existingSignIn: Boolean(existingClerkUser), password, user: linkedUser };
   } catch (error) {
     if (clerkUserId) {
       await (await clerkClient()).users.deleteUser(clerkUserId).catch(() => undefined);
@@ -267,9 +292,9 @@ async function resetCustomerUserPasswordWithTemporaryPassword(companyId: string,
 function invitationDelivery(
   company: { id: string; name: string },
   user: { email: string; id: string; name: string; temporaryPasswordExpiresAt: Date | null },
-  password: string,
+  password: string | null,
 ): Promise<CustomerInvitationDelivery> {
-  if (!user.temporaryPasswordExpiresAt) {
+  if (password && !user.temporaryPasswordExpiresAt) {
     throw new Error("Temporary password expiry is unavailable for this customer user.");
   }
 
@@ -277,9 +302,9 @@ function invitationDelivery(
     companyId: company.id,
     companyName: company.name,
     email: user.email,
-    expiresAt: user.temporaryPasswordExpiresAt,
+    expiresAt: user.temporaryPasswordExpiresAt ?? temporaryPasswordExpiry(),
     name: user.name,
-    temporaryPassword: password,
+    ...(password ? { temporaryPassword: password } : {}),
     userId: user.id,
   });
 }
@@ -295,12 +320,19 @@ export async function addCustomerUserAndSendInvitation(companyId: string, input:
 export async function createCustomerCompanyAndSendInvitation(input: CreateCustomerCompanyInput) {
   const result = await createCustomerCompanyWithTemporaryPassword(input);
   const invitation = await invitationDelivery(result.company, result.user, result.password);
-  return { company: result.company, invitation, user: result.user };
+  return { company: result.company, existingSignIn: result.existingSignIn, invitation, user: result.user };
 }
 
 /** Replaces the temporary password and sends a new invitation, revoking prior invitation records. */
 export async function resetCustomerUserPasswordAndSendInvitation(companyId: string, userId: string) {
   const company = await ensureCompany(companyId);
+  const client = await prisma();
+  const currentUser = await client.user.findFirst({ where: { id: userId, companyId } });
+  if (!currentUser) throw new Error("Customer user not found.");
+  if (currentUser.mustChangePassword && !currentUser.temporaryPasswordExpiresAt && !currentUser.passwordHash) {
+    const invitation = await invitationDelivery(company, currentUser, null);
+    return { invitation, user: currentUser };
+  }
   const result = await resetCustomerUserPasswordWithTemporaryPassword(companyId, userId);
   const invitation = await invitationDelivery(company, result.user, result.password);
   return { invitation, user: result.user };

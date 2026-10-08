@@ -17,13 +17,13 @@ export default async function AdminQuotesPage() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-md border border-[#ffd1d4] bg-[#fff7f7] p-5">
+      <section className="py-2">
         <div>
           <div>
-            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#767676]">Admin quote operations</p>
-            <h1 className="mt-2 text-[34px] font-semibold leading-tight tracking-tight text-[#171717]">Quote submissions</h1>
+            <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#767676]">Quote operations</p>
+            <h1 className="mt-2 text-[30px] font-semibold leading-tight tracking-tight text-[#171717]">Quote submissions</h1>
             <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#5f6673]">
-              Review customer RFQ packets, track supplier quote basis, and assemble the customer-facing quote with pricing, lead time, shipping, tax, files, and DFM notes.
+              Review RFQ packages, coordinate supplier evidence, and prepare customer quotes.
             </p>
           </div>
         </div>

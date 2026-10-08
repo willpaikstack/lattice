@@ -1,5 +1,8 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { CustomerInvitationStatus, type PrismaClient } from "@prisma/client";
 
 import { buildCustomerInvitationEmail } from "./customer-invitation-email";
@@ -21,7 +24,7 @@ type InvitationRecipient = {
   email: string;
   expiresAt: Date;
   name: string;
-  temporaryPassword: string;
+  temporaryPassword?: string;
   userId: string;
 };
 
@@ -99,12 +102,14 @@ export async function deliverCustomerInvitation(recipient: InvitationRecipient):
   });
 
   try {
+    const guide = await readFile(path.join(process.cwd(), "public/email/lattice-invitation-overview.pdf"));
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: senderEmail(),
         html: email.html,
+        attachments: [{ filename: "Lattice - How It Works.pdf", content: guide.toString("base64") }],
         replyTo: senderEmail(),
         subject: email.subject,
         text: email.text,

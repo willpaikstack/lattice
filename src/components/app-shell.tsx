@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import adminStyles from "./admin-workspace.module.css";
 import { LatticeMarkIcon } from "@/components/lattice-brand";
 import { initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
@@ -595,6 +596,8 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
   });
   const isPublicRoutePath = isPublicRoute(pathname);
   const inAdminExperience = isAdminRoute(pathname);
+  const useAdminTheme = pathname === "/admin" || pathname.startsWith("/admin/");
+  const adminPageLabel = adminNavSections[0].items.find((item) => isNavItemActive(pathname, item.href))?.label ?? "Administration";
   const navTone = inAdminExperience ? "admin" : "customer";
   const [storedNavOrdersByTone, setStoredNavOrdersByTone] = useState<Record<"admin" | "customer", Record<string, string[]>>>({
     admin: {},
@@ -752,16 +755,17 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
   }
 
   return (
-    <div className={`min-h-screen text-slate-950 ${inAdminExperience ? "bg-[#fff7f7]" : "bg-[#f8f7f4]"}`}>
-      <div className="min-h-screen lg:pl-72">
+    <div className={`min-h-screen text-slate-950 ${useAdminTheme ? adminStyles.workspace : ""} ${inAdminExperience ? "bg-[#fff7f7]" : "bg-[#f8f7f4]"}`}>
+      <div className={`min-h-screen lg:pl-72 ${useAdminTheme ? adminStyles.frame : ""}`}>
         <aside
+          data-admin-sidebar={useAdminTheme || undefined}
           className={`fixed inset-y-0 left-0 z-30 hidden w-72 shrink-0 overflow-y-auto border-r px-4 py-5 shadow-[4px_0_24px_rgba(0,0,0,0.03)] [scrollbar-width:none] lg:flex lg:flex-col [&::-webkit-scrollbar]:hidden ${
             inAdminExperience ? "border-[#ffd1d4] bg-[#fff7f7]" : "border-[#e8e3da] bg-[#fbfaf7]"
           }`}
         >
           <div>
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-3 ${useAdminTheme ? adminStyles.brand : ""}`}>
                 <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
                 <div>
                   <p className="text-[15px] font-semibold uppercase leading-5 tracking-[0.025em] text-[#171717]">LATTICE</p>
@@ -784,9 +788,9 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
                 Request Quote
               </Link>
             ) : inAdminExperience ? (
-              <div className="mt-12 rounded-md border border-[#ffd1d4] bg-[#fff1f2] p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#767676]">Admin mode</p>
-                <p className="mt-2 text-[14px] leading-5 text-[#484848]">A focused workspace for quote requests and supplier follow-up.</p>
+              <div className={useAdminTheme ? adminStyles.workspaceLabel : "mt-12 rounded-md border border-[#ffd1d4] bg-[#fff1f2] p-3"}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#767676]">{useAdminTheme ? "Manufacturing operations" : "Admin mode"}</p>
+                {!useAdminTheme ? <p className="mt-2 text-[14px] leading-5 text-[#484848]">A focused workspace for quote requests and supplier follow-up.</p> : null}
               </div>
             ) : null}
           </div>
@@ -826,7 +830,11 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
             {!inAdminExperience && canUseAdminWorkspace ? (
               <UtilityLink detail="Return to internal controls." href="/admin/quotes" icon="admin" label="Admin workspace" onNavigate={handleNavigate} />
             ) : null}
-            <ProfileMenu user={sessionUser ?? { name: "Account", email: "" }} />
+            {useAdminTheme ? (
+              <div className={adminStyles.profile}><ProfileMenu user={sessionUser ?? { name: "Account", email: "" }} /></div>
+            ) : (
+              <ProfileMenu user={sessionUser ?? { name: "Account", email: "" }} />
+            )}
           </div> : null}
         </aside>
 
@@ -889,6 +897,13 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
               ))}
             </nav>
           </header>
+
+          {useAdminTheme ? (
+            <div className={adminStyles.toolbar}>
+              <div className={adminStyles.breadcrumb}><span>Operations</span><span aria-hidden="true">/</span><span>{adminPageLabel}</span></div>
+              <span className={adminStyles.accessLabel}><span aria-hidden="true" />Admin workspace</span>
+            </div>
+          ) : null}
 
           <main className="relative w-full overflow-x-hidden" onClick={handleMainClick}>
             <PageTransition

@@ -121,9 +121,12 @@ export default function AdminResourcesPage() {
         <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-[22px] font-semibold text-[#171717]">Customer invitation email</h2>
-            <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#5f6673]">Review the branded first-cohort invitation with safe sample credentials before invitation delivery is connected to customer provisioning.</p>
+            <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#5f6673]">Review the invitation email and first-login password setup screens using sample data.</p>
           </div>
-          <Link className="inline-flex w-fit items-center rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2f3237] focus:outline-none focus:ring-2 focus:ring-[#171717] focus:ring-offset-2" href="/admin/resources/customer-invitation-email">Preview email</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link className="inline-flex w-fit items-center rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2f3237] focus:outline-none focus:ring-2 focus:ring-[#171717] focus:ring-offset-2" href="/admin/resources/customer-invitation-email">Preview email</Link>
+            <Link className="inline-flex w-fit items-center rounded-md border border-[#d8d8d4] bg-white px-4 py-2 text-sm font-semibold text-[#171717] transition hover:bg-[#f7f7f5] focus:outline-none focus:ring-2 focus:ring-[#171717] focus:ring-offset-2" href="/account/set-password?preview=1">Preview password setup</Link>
+          </div>
         </div>
       </section>
     </div>

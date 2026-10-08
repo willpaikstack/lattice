@@ -37,7 +37,7 @@ export async function updateCustomerProfileAction(companyId: string, formData: F
   revalidatePath(`/admin/customers/${companyId}`);
   revalidatePath("/admin/quotes");
   revalidatePath("/admin/orders");
-  redirect(`/admin/customers/${companyId}`);
+  // Inline profile editing keeps the current tab and displays save feedback.
 }
 
 export async function startCustomerSupportSessionAction(companyId: string, formData: FormData) {
