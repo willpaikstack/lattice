@@ -47,4 +47,12 @@ describe("durable lifecycle email delivery", () => {
     await expect(retryCustomerEmail(form)).rejects.toThrow("Admin access required");
     expect(mocks.findUnique).not.toHaveBeenCalled();
   });
+  it("queues other company admins even when one delivery fails", async () => {
+    vi.stubEnv("RESEND_API_KEY", "fake_test_configuration");
+    mocks.admins.mockResolvedValue([{ email: "first@example.com" }, { email: "second@example.com" }]);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+    await queueCustomerLifecycleEmail({ id: "rfq_a", buyerCompanyId: "company_a", requesterEmail: "member@example.com", title: "Part" } as LatticeRequest, "QUALITY_APPROVAL_REQUESTED", "version1");
+    expect(mocks.upsert.mock.calls.map(([arg]) => arg.create.recipient)).toEqual(["first@example.com", "second@example.com"]);
+    expect(mocks.update).toHaveBeenCalledTimes(2);
+  });
 });

@@ -31,7 +31,10 @@ export async function queueCustomerLifecycleEmail(request: LatticeRequest, kind:
     for (const recipient of recipients) {
       const key = `${request.id}:${kind}:${version}:${recipient}`;
       const event = await client.customerEmailEvent.upsert({ where: { key }, update: {}, create: { key, requestId: request.id, companyId: request.buyerCompanyId, kind, recipient, subject, body } });
-      if (event.status !== "SENT" && process.env.RESEND_API_KEY) await deliverCustomerEmailEvent(key);
+      if (event.status !== "SENT" && process.env.RESEND_API_KEY) {
+        try { await deliverCustomerEmailEvent(key); }
+        catch { console.warn("Customer notification remains queued for operator retry."); }
+      }
     }
   } catch { console.warn("Customer notification could not be delivered; check the email queue."); }
 }
