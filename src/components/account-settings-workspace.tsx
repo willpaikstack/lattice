@@ -20,16 +20,16 @@ const completeAddress = (address: AccountAddress) => Boolean(
 );
 
 function fillMissingAddressFields(address: AccountAddress, fallback: AccountAddress): AccountAddress {
-  const useValue = (value: string, fallbackValue: string) => value.trim() ? value : fallbackValue;
+  const valueOrFallback = (value: string, fallbackValue: string) => value.trim() ? value : fallbackValue;
 
   return {
-    address1: useValue(address.address1, fallback.address1),
-    address2: useValue(address.address2, fallback.address2),
-    city: useValue(address.city, fallback.city),
-    company: useValue(address.company, fallback.company),
-    name: useValue(address.name, fallback.name),
-    state: useValue(address.state, fallback.state),
-    zipCode: useValue(address.zipCode, fallback.zipCode),
+    address1: valueOrFallback(address.address1, fallback.address1),
+    address2: valueOrFallback(address.address2, fallback.address2),
+    city: valueOrFallback(address.city, fallback.city),
+    company: valueOrFallback(address.company, fallback.company),
+    name: valueOrFallback(address.name, fallback.name),
+    state: valueOrFallback(address.state, fallback.state),
+    zipCode: valueOrFallback(address.zipCode, fallback.zipCode),
   };
 }
 

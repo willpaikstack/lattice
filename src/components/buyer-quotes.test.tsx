@@ -237,7 +237,7 @@ describe("BuyerQuotes", () => {
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     deleteAction.mockClear();
-    window.localStorage.setItem("lattice.incompleteRfqs.v1", JSON.stringify([{ id: draft.id, request: draft }]));
+    window.localStorage.setItem("lattice.incompleteRfqs.v2.company_test", JSON.stringify([{ id: draft.id, request: draft }]));
     render(<BuyerQuotes requests={[]} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Discard draft for Local draft quote" }));
@@ -249,3 +249,5 @@ describe("BuyerQuotes", () => {
     confirmSpy.mockRestore();
   });
 });
+
+vi.mock("./customer-workspace-scope", () => ({ useCustomerWorkspaceScope: () => "company_test", customerDraftStorageKey: () => "lattice.incompleteRfqs.v2.company_test" }));

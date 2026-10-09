@@ -124,7 +124,7 @@ describe("RequestForm", () => {
 
   afterEach(() => {
     cleanup();
-    window.localStorage?.removeItem?.("lattice.incompleteRfqs.v1");
+    window.localStorage?.removeItem?.("lattice.incompleteRfqs.v2.company_test");
     vi.unstubAllGlobals();
   });
 
@@ -178,7 +178,7 @@ describe("RequestForm", () => {
     });
 
     window.localStorage.setItem(
-      "lattice.incompleteRfqs.v1",
+      "lattice.incompleteRfqs.v2.company_test",
       JSON.stringify([
         {
           id: localDraft.id,
@@ -242,7 +242,7 @@ describe("RequestForm", () => {
     });
 
     window.localStorage.setItem(
-      "lattice.incompleteRfqs.v1",
+      "lattice.incompleteRfqs.v2.company_test",
       JSON.stringify([
         {
           id: localDraft.id,
@@ -844,7 +844,7 @@ describe("RequestForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
     const storedDraft = await waitFor(() => {
-      const drafts = JSON.parse(window.localStorage.getItem("lattice.incompleteRfqs.v1") ?? "[]");
+      const drafts = JSON.parse(window.localStorage.getItem("lattice.incompleteRfqs.v2.company_test") ?? "[]");
       const draft = drafts[0];
 
       expect(draft.initialState.lineItems[0].fileStorageKey).toBe("rfq-drafts/test/bracket.step");
@@ -991,7 +991,7 @@ describe("RequestForm", () => {
     expect(screen.getAllByLabelText("Quantity")).toHaveLength(2);
 
     await waitFor(() => {
-      const drafts = JSON.parse(window.localStorage.getItem("lattice.incompleteRfqs.v1") ?? "[]");
+      const drafts = JSON.parse(window.localStorage.getItem("lattice.incompleteRfqs.v2.company_test") ?? "[]");
 
       expect(drafts[0].initialState.lineItems).toMatchObject([
         { fileName: "bracket.step", fileStorageKey: "rfq-drafts/test/bracket.step" },
@@ -1089,3 +1089,5 @@ describe("RequestForm", () => {
     expect(routerReplaceMock).toHaveBeenCalledWith("/quotes/req_multi");
   });
 });
+
+vi.mock("./customer-workspace-scope", () => ({ useCustomerWorkspaceScope: () => "company_test", customerDraftStorageKey: () => "lattice.incompleteRfqs.v2.company_test" }));

@@ -51,7 +51,7 @@ function formatMoney(cents: number) {
 }
 
 function orderReference(order: LatticeRequest) {
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {

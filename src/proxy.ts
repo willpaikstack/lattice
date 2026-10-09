@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 const protectedPrefixes = [
   "/account",
+  "/customer-onboarding-workspace",
   "/admin",
   "/analytics",
   "/dashboard",

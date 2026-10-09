@@ -209,9 +209,14 @@ describe("request access policy", () => {
     await expect(canCurrentSessionAccessStorageKey("rfq/2026-06-18/missing.step")).resolves.toEqual({ authenticated: true, authorized: false });
   });
 
-  it("keeps draft upload previews available to customer/admin sessions", async () => {
-    mocks.state.session = session("customer", "buyer@acme.com");
-
-    await expect(canCurrentSessionAccessStorageKey("rfq-drafts/2026-06-18/draft.step")).resolves.toEqual({ authenticated: true, authorized: true });
+  it("blocks unscoped legacy drafts and only shares draft uploads within their company", async () => {
+    const { draftUploadFolder } = await import("./draft-upload-scope");
+    const owner = session("customer", "buyer@acme.com", "company_acme");
+    const key = `${draftUploadFolder(owner)}/2026-10-08/draft.step`;
+    mocks.state.session = owner;
+    await expect(canCurrentSessionAccessStorageKey(key)).resolves.toEqual({ authenticated: true, authorized: true });
+    await expect(canCurrentSessionAccessStorageKey("rfq-drafts/2026-06-18/draft.step")).resolves.toEqual({ authenticated: true, authorized: false });
+    mocks.state.session = session("customer", "buyer@other.com", "company_other");
+    await expect(canCurrentSessionAccessStorageKey(key)).resolves.toEqual({ authenticated: true, authorized: false });
   });
 });

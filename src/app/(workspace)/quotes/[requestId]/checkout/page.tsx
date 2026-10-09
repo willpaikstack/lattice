@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { quoteHasExpired } from "@/lib/quote-validity";
 import { notFound } from "next/navigation";
 
 import { BuyerQuoteCheckout } from "@/components/buyer-quote-checkout";
@@ -22,6 +24,8 @@ export default async function BuyerQuoteCheckoutPage({ params, searchParams }: B
   if (!request || request.status !== "QUOTED") {
     notFound();
   }
+
+  if (quoteHasExpired(request)) return <section className="rounded-xl bg-white p-8"><h1 className="text-xl font-semibold">This quote has expired</h1><p className="my-4">Contact support@latticeos.co to request a renewed quote before purchasing.</p><Link href={`/quotes/${request.id}`}>Back to quote</Link></section>;
 
   const accountSettings = await getAccountSettings();
   const stripeCards = await listStripePaymentCards();

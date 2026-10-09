@@ -1,35 +1,31 @@
 "use server";
 
+import { assertQuoteCanBePurchased } from "@/lib/quote-validity";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ensureStripeCustomerForAccount } from "@/lib/account-settings";
 import type { AccountAddress } from "@/lib/account-settings-shared";
-import { saveLocalUpload } from "@/lib/local-file-storage";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
-import { purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession, updateRequestShippingAddress } from "@/lib/request-repository";
+import { quoteCheckoutAmountCents, recordStripeCheckoutSession, updateRequestShippingAddress } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
 import { getAppBaseUrl, getStripeClient } from "@/lib/stripe";
-import { finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
+import { assertCardCheckoutEnabled, finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
 
 function formText(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
 }
 
-function isUploadFile(value: FormDataEntryValue | null): value is File {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as File).arrayBuffer === "function" &&
-    typeof (value as File).name === "string" &&
-    typeof (value as File).size === "number" &&
-    (value as File).size > 0
-  );
-}
-
 function purchaseDeliveryInputFromForm(formData: FormData) {
+  if (formData.get("termsAccepted") !== "on" || formData.get("complianceCertification") !== "on") throw new Error("Accept the purchasing terms and compliance certification before payment.");
+  if (formText(formData, "shippingMethod") !== "lattice-managed") throw new Error("Company shipping accounts are not available yet.");
+  if (formText(formData, "taxStatus") !== "taxable") throw new Error("Tax-exempt purchasing is not enabled for this company.");
+  for (const key of ["shipToName", "shipToAddress1", "shipToCity", "shipToState", "shipToZipCode"]) if (!formText(formData, key)) throw new Error("Complete the delivery address before payment.");
   return {
+    checkoutDetails: {
+      shippingMethod: formText(formData, "shippingMethod"), requiredDeliveryDate: formText(formData, "requiredDeliveryDate"), shippingInstructions: formText(formData, "shippingInstructions"), endUse: formText(formData, "endUse"), exportControlStatus: formText(formData, "exportControlStatus"), buyerNotes: formText(formData, "buyerNotes"), termsAcceptedAt: new Date().toISOString(), complianceCertifiedAt: new Date().toISOString(), taxStatus: "taxable",
+    },
     shipToAddress1: formText(formData, "shipToAddress1"),
     shipToAddress2: formText(formData, "shipToAddress2"),
     shipToCity: formText(formData, "shipToCity"),
@@ -54,6 +50,7 @@ async function requireCheckoutSession(requestId: string) {
     throw new Error("Only priced quotes can be paid by card.");
   }
 
+  assertQuoteCanBePurchased(request);
   return request;
 }
 
@@ -87,6 +84,8 @@ export async function updateRequestShippingAddressAction(requestId: string, addr
 export async function updateStripeElementsCheckoutSessionAction(requestId: string, checkoutSessionId: string, formData: FormData) {
   const request = await requireCheckoutSession(requestId);
 
+  if (request.purchasePayment.stripe.checkoutSessionId !== checkoutSessionId) throw new Error("Checkout session does not belong to this quote.");
+
   await recordStripeCheckoutSession(requestId, {
     ...purchaseDeliveryInputFromForm(formData),
     amountCents: quoteCheckoutAmountCents(request),
@@ -98,6 +97,8 @@ export async function updateStripeElementsCheckoutSessionAction(requestId: strin
 export async function finalizeStripeCardPaymentAction(requestId: string, paymentIntentId: string, formData: FormData) {
   const request = await requireCheckoutSession(requestId);
 
+  if (request.purchasePayment.stripe.checkoutSessionId !== paymentIntentId) throw new Error("Payment does not belong to this quote.");
+
   await recordStripeCheckoutSession(requestId, {
     ...purchaseDeliveryInputFromForm(formData),
     amountCents: quoteCheckoutAmountCents(request),
@@ -105,7 +106,7 @@ export async function finalizeStripeCardPaymentAction(requestId: string, payment
     currency: "usd",
   });
 
-  const finalized = await finalizeStripePaymentIntent(paymentIntentId);
+  const finalized = await finalizeStripePaymentIntent(paymentIntentId, requestId);
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${requestId}`);
@@ -128,7 +129,10 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
 
   const paymentMethod = formText(formData, "paymentMethod");
   const request = await requireCheckoutSession(requestId);
+  if (paymentMethod !== "card") throw new Error("Purchase-order payment is not available. Purchase your quote by credit card.");
 
+  assertCardCheckoutEnabled();
+  const delivery = purchaseDeliveryInputFromForm(formData);
   if (paymentMethod === "card") {
     const amountCents = quoteCheckoutAmountCents(request);
     const stripe = getStripeClient();
@@ -165,7 +169,7 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
     }
 
     await recordStripeCheckoutSession(requestId, {
-      ...purchaseDeliveryInputFromForm(formData),
+      ...delivery,
       amountCents,
       checkoutSessionId: session.id,
       currency: "usd",
@@ -174,37 +178,4 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
     redirect(session.url);
   }
 
-  const poFile = formData.get("poFile");
-  const storedPoFile = paymentMethod === "purchase-order" && isUploadFile(poFile) ? await saveLocalUpload(poFile, "customer-purchase-orders") : null;
-
-  await purchaseQuote(requestId, {
-    shipToAddress1: formText(formData, "shipToAddress1"),
-    shipToAddress2: formText(formData, "shipToAddress2"),
-    shipToCity: formText(formData, "shipToCity"),
-    shipToCompany: formText(formData, "shipToCompany"),
-    shipToName: formText(formData, "shipToName"),
-    shipToPhone: formText(formData, "shipToPhone"),
-    shipToState: formText(formData, "shipToState"),
-    shipToZipCode: formText(formData, "shipToZipCode"),
-    accountsPayableEmail: formText(formData, "apEmail"),
-    buyerCheckoutNotes: formText(formData, "buyerNotes"),
-    customerPoNumber: formText(formData, "poNumber"),
-    paymentMethod: paymentMethod === "card" ? "card" : paymentMethod === "purchase-order" ? "purchase-order" : undefined,
-    poAttachment: storedPoFile,
-    selectedCard: {
-      id: formText(formData, "selectedCardId"),
-      brand: formText(formData, "selectedCardBrand"),
-      last4: formText(formData, "selectedCardLast4"),
-      holder: formText(formData, "selectedCardHolder"),
-      expires: formText(formData, "selectedCardExpires"),
-    },
-  });
-
-  revalidatePath("/quotes");
-  revalidatePath(`/quotes/${requestId}`);
-  revalidatePath("/orders");
-  revalidatePath(`/orders/${requestId}`);
-  revalidatePath("/admin/orders");
-  revalidatePath(`/admin/orders/${requestId}`);
-  redirect("/orders");
 }

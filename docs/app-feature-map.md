@@ -4,6 +4,8 @@ Last updated: 2026-10-07
 
 This is the living map of what exists inside Lattice OS, how each area works, what data powers it, and what is still prototype or future work. Update this file whenever a feature is added, removed, renamed, moved to a new route, connected to a new data source, or promoted from static/prototype behavior to operational behavior.
 
+Audit note (2026-10-08): [Customer experience audit](audits/customer-experience-2026-10-08.md) records desktop browser checks, automated results, and development gaps. Operational labels below do not certify production readiness. In particular, draft-file authorization is currently role-only, order/quality file rows lack download controls, order help only shows a transient success state, and checkout still exposes payment/tax choices deferred by the first-cohort decisions. These require implementation follow-up; this audit did not change app behavior.
+
 ## Status Key
 
 - `Operational` - uses real app workflow data and is expected to work in local development when required services are configured.
@@ -67,6 +69,10 @@ At very wide desktop sizes, the catalog grid expands to four columns and its hea
 Temporary Sheet Metal scope: only the eight documented laser-cutting and bending machines are customer-visible. Oil-press and riveting records remain in `vendorEquipment` for a future reintroduction.
 
 ## Admin Workspace
+
+### Customer onboarding draft preview
+
+`/admin/resources/customer-onboarding` is an admin-only interactive prototype linked from Admin Resources. It previews invitation, sign-in, personal-password setup, shipping/billing, welcome, four anchored tour stops (Request Quote, Quotes, Orders, proposed Help), and the empty workspace handoff. Includes screen jump controls, storyboard cards, expanded view, existing/new identity copy, expired invitation guidance, and skip/replay. Synthetic data and local React state only; authentication fields are read-only and forms do not perform live mutations. Shipping and billing include an optional Address 2 field for buildings/suites/offices and a country dropdown limited to United States and Canada. The region dropdown offers all 50 US states or Canada’s 13 provinces/territories based on country; changing country clears the prior region to require a valid new selection; copying shipping to billing carries both address lines and the selected state. Tour progress resets on reload. A standalone build uses the same component through `design-exports/customer-onboarding/README.md`. Welcome, Tour, and Workspace embed the actual customer `AppShell` and shared `CustomerDashboardView`, including operational summary, Action Center, and Quote and Order Activity, populated with an empty synthetic account. The embedded `/customer-onboarding-workspace` route requires Lattice Admin access and isolates customer styling from the surrounding admin chrome. Tour highlights follow measured controls in the real desktop sidebar or compact navigation. Preview links, sign-out, notifications, and navigation personalization cannot affect the live account. The preview remains synthetic; the approved welcome/tour is now separately integrated into the real customer shell with durable membership-scoped progress and Help/replay. The standalone review now requires the local application and a signed-in Lattice Admin for the workspace frame. The preview uses slower content fades: 180ms exit/380ms reveal for setup, 500ms arrival, 150ms exit/300ms reveal between tour bubbles, 300ms highlight crossfades, and a 350ms finish fade. Setup chrome and the workspace stay mounted; outgoing content becomes inert, headings receive focus after reveal, and reduced-motion preferences remove duration/transforms. On first arrival, the welcome and workspace remain hidden until the embedded document and its fonts are ready, then reveal together under one 500ms parent fade. The welcome card clips its artwork to a single rounded boundary to prevent white corner edges.
 
 | Feature | Routes | What It Does | Data Source | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
@@ -140,3 +146,18 @@ When a feature changes, update this document in the same work session if any of 
 - A feature is added, retired, renamed, or moved.
 
 Also update `PROJECT_CONTEXT.md`, `DECISIONS.md`, or `TODO.md` when the change affects product direction, architecture, durable decisions, or next steps.
+
+
+## 2026-10-08 — Customer audit implementation (local; production pending)
+
+- RFQ: optional pre-shipment quality approval, persisted drafts shared within a company, private draft file references, explicit CAD/drawing part association. Legacy unscoped draft files require re-upload.
+- Quotes: new/reissued validity is 15 weekdays; expired payment attempts are blocked. Needs-information RFQs accept in-app clarification and revised drawings, retain dated history, and return to review.
+- Checkout: initial method is credit card. PO, company carrier billing and unreviewed exemption are unavailable; terms, delivery and compliance snapshots save on the server. Payment ownership, idempotency, USD/amount checks are enforced. Live configuration and shipping/tax finalization are still required; see the separate checkout audit.
+- Orders: original/quality downloads where bytes exist; missing bytes explicitly unavailable. Customer Admin quality approval and Lattice compliance review hold shipment. `/admin/orders/[requestId]` supports real inspection-document upload and review notes. Customer/admin PDFs use saved annual invoice records and actual payment amounts.
+- `/admin/support`: persistent order-help and RFQ-clarification queue, with outstanding lifecycle email delivery visible. Support uses support@latticeos.co without an SLA promise.
+- Dashboard: all open workflows are reachable in the Action Center; approval actions apply only where requested and not already approved.
+- Customer shell: approved welcome and four-stop tour integrated with saved per-user/company progress, skip, interruption/resume and Help/replay. Admin/support sessions do not alter customer progress. Clerk/password/address onboarding is retained.
+- Emails: durable events for clarification requests, issued/revised quotes, requested quality approval and shipment; Resend sends when configured. Provider testing and admin retries are available; operational monitoring remains rollout work.
+- Development schema and automated checks repaired. Production deploy/schema, genuine customer/mobile and live-provider testing remain pending. No production deployment is claimed.
+
+Release verification (2026-10-08): Development/Production additive schema reconciled; deployment `dpl_C2ntGzvTWs3Fnx8r4RdiDPqpzH89` promoted to latticeos.co. 350 tests, typecheck, lint and local/Vercel builds pass. Live card checkout stays disabled pending merchant identity/activation, Tax/shipping and controlled payment verification. Genuine customer/mobile end-to-end validation remains outstanding.

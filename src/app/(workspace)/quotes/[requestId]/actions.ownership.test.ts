@@ -146,36 +146,9 @@ describe("checkout server action ownership", () => {
     expect(mocks.updateRequestShippingAddress).not.toHaveBeenCalled();
   });
 
-  it("lets an owning customer complete a purchase-order checkout and records the uploaded PO", async () => {
-    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({
-      customerQuotes: [{ quoteNumber: "LQ-1001" }],
-      id: "req_owned",
-      status: "QUOTED",
-      title: "Precision bracket",
-    });
-    mocks.saveLocalUpload.mockResolvedValue({
-      name: "PO-1001.pdf",
-      sizeBytes: 12,
-      storageKey: "customer-purchase-orders/PO-1001.pdf",
-      type: "application/pdf",
-    });
-    mocks.purchaseQuote.mockResolvedValue({ id: "req_owned", status: "PURCHASED" });
-
-    const formData = checkoutForm();
-    formData.set("poFile", new File(["purchase order"], "PO-1001.pdf", { type: "application/pdf" }));
-
-    await expect(purchaseQuoteAction("req_owned", formData)).rejects.toThrow("NEXT_REDIRECT:/orders");
-
-    expect(mocks.saveLocalUpload).toHaveBeenCalledWith(expect.any(File), "customer-purchase-orders");
-    expect(mocks.purchaseQuote).toHaveBeenCalledWith(
-      "req_owned",
-      expect.objectContaining({
-        accountsPayableEmail: "ap@acme.com",
-        customerPoNumber: "PO-1001",
-        paymentMethod: "purchase-order",
-        poAttachment: expect.objectContaining({ storageKey: "customer-purchase-orders/PO-1001.pdf" }),
-      }),
-    );
-    expect(mocks.revalidatePath).toHaveBeenCalledWith("/orders");
+  it("rejects purchase-order payment before saving a PO file or purchasing", async () => {
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ quoteNumber: "LQ-1001", validUntil: "2099-01-01" }], quote: { quoteValidUntil: "2099-01-01" }, id: "req_owned", status: "QUOTED", title: "Precision bracket" });
+    await expect(purchaseQuoteAction("req_owned", checkoutForm())).rejects.toThrow("Purchase-order payment is not available");
+    expect(mocks.saveLocalUpload).not.toHaveBeenCalled(); expect(mocks.purchaseQuote).not.toHaveBeenCalled();
   });
 });

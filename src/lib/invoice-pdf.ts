@@ -1,3 +1,4 @@
+import type { Invoice } from "@prisma/client";
 import { createRequire } from "node:module";
 
 import { bundledFilesByLineItem, manufacturingReleaseDescription, manufacturingReleaseDescriptionForRequestLine } from "./document-line-item-details";
@@ -145,7 +146,7 @@ function orderReference(order: LatticeRequest) {
     return order.purchasePayment.customerPoNumber;
   }
 
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function invoiceReference(order: LatticeRequest) {
@@ -197,7 +198,8 @@ function invoiceInputForOrder(order: LatticeRequest): InvoicePdfInput {
   }).map(safeText).filter(Boolean);
 
   return {
-    amountPaid: 0,
+    amountPaid: centsToUsd(order.purchasePayment.status === "PAID" ? order.purchasePayment.stripe.amountCents ?? 0 : 0),
+    salesTaxAmount: 0,
     billToLines: billToLines.length ? billToLines : [order.buyerCompany || "Customer"],
     customerNumber: `CUST-${order.buyerCompany.replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase() || "PENDING"}`,
     customerPo: orderReference(order),
@@ -378,7 +380,7 @@ function buildInvoicePdf(invoice: InvoicePdfInput) {
     });
   doc.text("ACH payment instructions are listed on the remittance page.", left, y + 50, { width: 270 });
 
-  drawRemittancePage(doc, invoice);
+  if (invoice.amountPaid < total) drawRemittancePage(doc, invoice);
 
   doc.end();
   return done;
@@ -390,4 +392,10 @@ export function buildDomesticInvoiceTemplatePdf() {
 
 export function buildRequestInvoicePdf(order: LatticeRequest) {
   return buildInvoicePdf(invoiceInputForOrder(order));
+}
+
+export function buildIssuedOrderInvoicePdf(invoice: Invoice) {
+  const strings = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  const lines = Array.isArray(invoice.lineItemsSnapshot) ? invoice.lineItemsSnapshot as Array<{ amountCents: number; description: string; item: string; quantity: number; unitPriceCents: number }> : [];
+  return buildInvoicePdf({ amountPaid: centsToUsd(invoice.amountPaidCents), billToLines: strings(invoice.billToSnapshot), customerPo: invoice.customerPo, dueDate: invoice.dueDate?.toISOString().slice(0, 10), invoiceDate: invoice.issuedAt.toISOString().slice(0, 10), invoiceNumber: invoice.invoiceNumber, lineItems: lines.map((line) => ({ amount: centsToUsd(line.amountCents), description: line.description, item: line.item, quantity: line.quantity, unitPrice: centsToUsd(line.unitPriceCents) })), paymentTerms: invoice.paymentTerms, quoteNumber: invoice.quoteNumber, shipToLines: strings(invoice.shipToSnapshot), salesTaxAmount: centsToUsd(invoice.salesTaxCents), shippingAmount: centsToUsd(invoice.shippingCents), shippingTerms: invoice.shippingTerms });
 }

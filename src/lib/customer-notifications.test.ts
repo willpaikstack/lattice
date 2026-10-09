@@ -318,7 +318,7 @@ describe("customer notifications", () => {
       expect.arrayContaining([
         expect.objectContaining({
           detail: "Supplier status changed to ready to ship.",
-          title: "PO-MANUAL_U updated: Ready to ship",
+          title: "PO-MANUAL_UPDATE updated: Ready to ship",
         }),
       ]),
     );

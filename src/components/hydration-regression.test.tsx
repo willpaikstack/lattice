@@ -21,7 +21,7 @@ vi.mock("@/app/(workspace)/quotes/actions", () => ({
   deleteBuyerQuoteAction: vi.fn(async () => undefined),
 }));
 
-const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
+const incompleteRfqStorageKey = "lattice.incompleteRfqs.v2.company_test";
 
 function localDraft(title: string): LatticeRequest {
   return {
@@ -129,3 +129,5 @@ describe("browser-storage hydration regressions", () => {
     await act(async () => result.root.unmount());
   });
 });
+
+vi.mock("./customer-workspace-scope", () => ({ useCustomerWorkspaceScope: () => "company_test", customerDraftStorageKey: () => "lattice.incompleteRfqs.v2.company_test" }));

@@ -1,3 +1,5 @@
+import { queueCustomerLifecycleEmail } from "./customer-lifecycle-email";
+import { quoteValidUntil, assertQuoteCanBePurchased } from "./quote-validity";
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import { isMockDataMode } from "./data-mode";
@@ -16,6 +18,7 @@ import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclud
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
 
 export type PurchaseQuoteDeliveryInput = {
+  checkoutDetails?: Record<string, string>;
   shipToAddress1?: string;
   shipToAddress2?: string;
   shipToCity?: string;
@@ -135,7 +138,8 @@ function checkoutAmountCents(request: LatticeRequest) {
     throw new Error("This quote does not have a payable amount");
   }
 
-  return subtotalCents + (request.quote.shippingCostCents ?? 0);
+  if (!Number.isInteger(subtotalCents) || subtotalCents < 0 || request.quote.shippingCostCents === null || !Number.isInteger(request.quote.shippingCostCents) || request.quote.shippingCostCents < 0) throw new Error("This quote needs final pricing and shipping before purchasing.");
+  return subtotalCents + request.quote.shippingCostCents;
 }
 
 function normalizePaymentMethod(value: string | null | undefined): PurchasePaymentMethod {
@@ -364,6 +368,8 @@ export async function saveCustomerQuoteForRequest(
     throw new Error("Only active RFQs can receive customer quotes");
   }
 
+  input = { ...input, validUntil: quoteValidUntil(input.quoteDate), notes: current.requiresQualityApproval && !input.notes.includes("Customer Admin quality approval is required before shipment.") ? `${input.notes.trim()}\nCustomer Admin quality approval is required before shipment.`.trim() : input.notes };
+
   const nextStatus = "QUOTED" as const;
 
   try {
@@ -443,7 +449,9 @@ export async function saveCustomerQuoteForRequest(
       include: storedRequestInclude,
     });
 
-    return mapStoredRequest(stored);
+    const saved = mapStoredRequest(stored);
+    if (true) await queueCustomerLifecycleEmail(saved, "QUOTE_ISSUED", saved.customerQuotes.at(-1)?.id ?? saved.updatedAt);
+    return saved;
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma quote save is unavailable; saving customer quote locally.", error);
@@ -584,7 +592,9 @@ export async function updateAdminRfqDecision(id: string, input: AdminRfqDecision
       include: storedRequestInclude,
     });
 
-    return mapStoredRequest(stored);
+    const saved = mapStoredRequest(stored);
+    if (saved.status === "NEEDS_INFO") await queueCustomerLifecycleEmail(saved, "CLARIFICATION_REQUESTED", saved.updatedAt);
+    return saved;
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma RFQ decision update is unavailable; saving decision locally.", error);
@@ -762,6 +772,9 @@ export async function purchaseQuote(id: string, input: PurchaseQuoteInput = {}) 
     throw new Error("Only priced quotes can be converted to orders");
   }
 
+  assertQuoteCanBePurchased(current);
+  if (input.paymentMethod === "purchase-order") throw new Error("Purchase-order payment is not available. Purchase your quote by credit card.");
+
   const delivery = {
     shipToAddress1: cleanText(input.shipToAddress1) || current.shipToAddress1,
     shipToAddress2: input.shipToAddress2 === undefined ? current.shipToAddress2 : cleanText(input.shipToAddress2),
@@ -929,6 +942,7 @@ export async function recordStripeCheckoutSession(
         purchasePaymentMethod: "CARD",
         purchasePaymentStatus: "PAYMENT_PENDING",
         stripeCheckoutSessionId: input.checkoutSessionId,
+        ...(input.checkoutDetails ? { checkoutDetails: input.checkoutDetails, buyerCheckoutNotes: input.checkoutDetails.buyerNotes || "", complianceReviewRequired: input.checkoutDetails.exportControlStatus === "needs-review" } : {}),
         stripeAmountCents: input.amountCents,
         stripeCurrency: input.currency,
       },
@@ -942,12 +956,14 @@ export async function recordStripeCheckoutSession(
       return saveLocalRequest({
         ...current,
         ...delivery,
+        checkoutDetails: input.checkoutDetails ?? current.checkoutDetails,
+        complianceReviewRequired: input.checkoutDetails?.exportControlStatus === "needs-review" || current.complianceReviewRequired,
         purchasePayment: {
           method: "CARD",
           status: "PAYMENT_PENDING",
           customerPoNumber: "",
           accountsPayableEmail: "",
-          buyerCheckoutNotes: "",
+          buyerCheckoutNotes: input.checkoutDetails?.buyerNotes || "",
           card: null,
           stripe: {
             amountCents: input.amountCents,
@@ -988,9 +1004,11 @@ export async function finalizeStripePaidQuote(input: {
     throw new Error("Only priced quotes can be finalized from Stripe checkout");
   }
 
-  const expectedAmount = current.purchasePayment.stripe.amountCents ?? checkoutAmountCents(current);
+  if (current.purchasePayment.stripe.checkoutSessionId !== input.checkoutSessionId) throw new Error("Stripe session does not match this quote.");
+  if (input.currency.toLowerCase() !== "usd") throw new Error("Stripe currency does not match this quote.");
+  const expectedAmount = checkoutAmountCents(current);
 
-  if (input.amountCents !== null && input.amountCents !== expectedAmount) {
+  if (input.amountCents !== expectedAmount) {
     throw new Error("Stripe amount does not match accepted quote total");
   }
 
@@ -1268,15 +1286,20 @@ export async function updateSupplierOrder(requestId: string, input: SupplierOrde
     throw new Error("Order not found");
   }
 
+  if (current.complianceReviewRequired && !current.complianceReviewedAt && ["READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(input.status)) throw new Error("Lattice compliance review is required before shipment.");
+  if (current.requiresQualityApproval && !current.qualityApprovedAt && ["READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(input.status)) throw new Error("Customer Admin quality approval is required before shipment.");
+  if (input.documents?.length && current.requiresQualityApproval && ["READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(input.status)) throw new Error("Upload the revised quality documents before requesting a new Customer Admin approval.");
+
   const updated = applySupplierOrderUpdate(current, input);
   const newUpdate = updated.supplierOrder.updates.at(-1);
 
   try {
     const client = await prisma();
     const stored = await client.request.update({
-      where: { id: requestId },
+      where: { id: requestId, ...((current.requiresQualityApproval || current.complianceReviewRequired) && ["READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(input.status) ? { updatedAt: new Date(current.updatedAt) } : {}) },
       data: {
         supplierOrderStatus: updated.supplierOrder.status,
+        ...(input.documents?.length ? { qualityApprovedAt: null, qualityApprovedBy: null } : {}),
         supplierShopName: updated.supplierOrder.shopName,
         supplierContactName: updated.supplierOrder.contactName,
         supplierNotes: updated.supplierOrder.notes,
@@ -1316,8 +1339,11 @@ export async function updateSupplierOrder(requestId: string, input: SupplierOrde
       include: storedRequestInclude,
     });
 
-    return mapStoredRequest(stored);
+    const saved = mapStoredRequest(stored);
+    if (saved.supplierOrder.status === "SHIPPED" && current.supplierOrder.status !== "SHIPPED") await queueCustomerLifecycleEmail(saved, "SHIPPED", saved.supplierOrder.updates.at(-1)?.id ?? saved.updatedAt);
+    return saved;
   } catch (error) {
+    if ((current.requiresQualityApproval || current.complianceReviewRequired) && ["READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(input.status)) throw error;
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma order progress update is unavailable; saving locally.", error);
       return saveLocalRequest(updated);

@@ -43,6 +43,12 @@ export type StoredRequest = {
   title: string;
   process: string;
   dueDate: Date | null;
+  requiresQualityApproval?: boolean;
+  qualityApprovedAt?: Date | null;
+  qualityApprovedBy?: string | null;
+  complianceReviewRequired?: boolean;
+  complianceReviewedAt?: Date | null;
+  checkoutDetails?: Record<string, string> | null;
   status: LatticeRequest["status"];
   requestOrigin?: LatticeRequest["requestOrigin"];
   guestAccessTokenHash?: string;
@@ -117,8 +123,10 @@ export type StoredRequest = {
     type: string;
     storageKey: string | null;
     cadPreviewUrn?: string | null;
+    lineItemIndex?: number | null;
   }>;
   supplierDocuments?: Array<{
+    storageKey?: string | null;
     id: string;
     name: string;
     sizeBytes: number;
@@ -271,6 +279,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput, optio
     title: submitted.title,
     process: submitted.process,
     dueDate: toDueDate(submitted.dueDate),
+    requiresQualityApproval: submitted.requiresQualityApproval === true,
     status: submitted.status,
     requestOrigin: submitted.requestOrigin,
     guestAccessTokenHash: submitted.guestAccessTokenHash,
@@ -351,6 +360,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput, optio
         type: file.type,
         storageKey: file.storageKey,
         cadPreviewUrn: file.cadPreviewUrn,
+        lineItemIndex: file.lineItemIndex,
       })),
     },
     statusEvents: {
@@ -385,6 +395,12 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
     title: stored.title,
     process: stored.process,
     dueDate: formatDueDate(stored.dueDate),
+    requiresQualityApproval: stored.requiresQualityApproval === true,
+    qualityApprovedAt: stored.qualityApprovedAt?.toISOString() ?? null,
+    qualityApprovedBy: stored.qualityApprovedBy ?? null,
+    complianceReviewRequired: stored.complianceReviewRequired ?? false,
+    complianceReviewedAt: stored.complianceReviewedAt?.toISOString() ?? null,
+    checkoutDetails: stored.checkoutDetails ?? null,
     status: stored.status,
     lineItems: stored.lineItems.map((item) => ({
       id: item.id,
@@ -403,6 +419,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
       type: file.type,
       storageKey: file.storageKey ?? undefined,
       cadPreviewUrn: file.cadPreviewUrn ?? undefined,
+      lineItemIndex: file.lineItemIndex ?? undefined,
     })),
     operatorReview: {
       completeness: stored.operatorCompleteness,
@@ -423,6 +440,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
           ? stored.orderResponsibleParty
           : "Lattice",
       documents: (stored.supplierDocuments ?? []).map((document) => ({
+        storageKey: document.storageKey ?? undefined,
         id: document.id,
         name: document.name,
         sizeBytes: document.sizeBytes,

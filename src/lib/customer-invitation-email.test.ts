@@ -43,7 +43,7 @@ describe("customer invitation email", () => {
     expect(email.text).toContain("We’re excited to have you on board.\n\nThe Lattice Team");
     expect(email.text).not.toContain("William Paik");
     expect(email.text).not.toContain("Next steps");
-    expect(email.text).not.toContain("https://latticeos.co/login");
+    expect(email.text).toContain("https://latticeos.co/login");
     expect(email.text).not.toContain("https://latticeos.co/how-it-works");
   });
 
@@ -58,7 +58,8 @@ describe("customer invitation email", () => {
 
     expect(escaped.html).toContain("Pat");
     expect(escaped.html).not.toContain("<script>");
-    expect(escaped.html).toContain("North &lt; West");
+    expect(escaped.html).not.toContain("North < West");
+    expect(escaped.html).toContain("source=&lt;invite&gt;");
     expect(escaped.html).toContain("pass&lt;word");
   });
 });

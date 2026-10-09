@@ -49,7 +49,7 @@ export function quoteReference(request: LatticeRequest) {
 }
 
 export function orderReference(request: LatticeRequest) {
-  return `PO-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${request.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function isDrawingFile(file: LatticeRequest["files"][number]) {

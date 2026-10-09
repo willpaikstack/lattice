@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentSession } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -83,4 +84,37 @@ export async function updateOrderProgressAction(requestId: string, formData: For
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${requestId}`);
   redirect(`/admin/orders/${requestId}`);
+}
+
+export async function uploadOrderQualityDocument(requestId: string, formData: FormData) {
+  const session = await getCurrentSession();
+  if (session?.user.role !== "admin") throw new Error("Lattice Admin access required.");
+  const { getRequestById } = await import("@/lib/request-repository");
+  const { saveLocalUpload } = await import("@/lib/local-file-storage");
+  const { getPrismaClient } = await import("@/lib/prisma");
+  const order = await getRequestById(requestId);
+  if (!order || order.status !== "PURCHASED" || ["SHIPPED", "DELIVERED"].includes(order.supplierOrder.status)) throw new Error("Upload quality documents before shipment.");
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size < 1 || file.size > 25 * 1024 * 1024) throw new Error("Choose a quality document up to 25 MB.");
+  const stored = await saveLocalUpload(file, "quality-documents");
+  if (!stored.storageKey) throw new Error("Document storage is unavailable.");
+  const client = await getPrismaClient() as import("@prisma/client").PrismaClient;
+  await client.request.update({ where: { id: requestId }, data: { qualityApprovedAt: null, qualityApprovedBy: null, supplierDocuments: { create: { name: stored.name, sizeBytes: stored.sizeBytes, type: stored.type, storageKey: stored.storageKey, category: "INSPECTION_REPORT" } } } });
+  if (order.requiresQualityApproval) {
+    const { queueCustomerLifecycleEmail } = await import("@/lib/customer-lifecycle-email");
+    await queueCustomerLifecycleEmail(order, "QUALITY_APPROVAL_REQUESTED", stored.storageKey);
+  }
+  revalidatePath(`/admin/orders/${requestId}`); revalidatePath(`/orders/${requestId}`);
+}
+
+export async function confirmOrderComplianceReview(requestId: string, data: FormData) {
+  const session = await requireActionRole(["admin"]);
+  const { getRequestById } = await import("@/lib/request-repository");
+  const { getPrismaClient } = await import("@/lib/prisma");
+  const order = await getRequestById(requestId);
+  const note = getString(data, "reviewNote").trim();
+  if (!order || order.status !== "PURCHASED" || !order.complianceReviewRequired || !note) throw new Error("Record the completed compliance review before release.");
+  const client = await getPrismaClient() as import("@prisma/client").PrismaClient;
+  await client.request.update({ where: { id: requestId }, data: { complianceReviewedAt: new Date(), checkoutDetails: { ...order.checkoutDetails, complianceReviewNote: note, complianceReviewedBy: session.user.id } } });
+  revalidatePath(`/admin/orders/${requestId}`); revalidatePath(`/orders/${requestId}`);
 }

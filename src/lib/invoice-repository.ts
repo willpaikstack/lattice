@@ -1,10 +1,10 @@
+import type { PrismaClient } from "@prisma/client";
 import { getPrismaClient } from "./prisma";
 import type { LatticeRequest } from "./request-model";
 import { requestShipToLines } from "./request-model";
 import { getRequestById } from "./request-repository";
 
 const defaultPaymentTerms = "100% Payment in Advance";
-const defaultSalesTaxRate = 0.0825;
 
 /** @public Retained for future durable invoice lifecycle records. */
 export type IssuedInvoiceStatus = "ISSUED" | "PAID" | "VOID";
@@ -152,8 +152,8 @@ function invoiceSnapshotForRequest(request: LatticeRequest) {
   const lineItems = invoiceLineItems(request);
   const subtotalCents = lineItems.reduce((sum, item) => sum + item.amountCents, 0);
   const shippingCents = request.quote.shippingCostCents ?? 0;
-  const salesTaxCents = Math.round(subtotalCents * defaultSalesTaxRate);
-  const amountPaidCents = 0;
+  const amountPaidCents = request.purchasePayment.status === "PAID" ? request.purchasePayment.stripe.amountCents ?? 0 : 0;
+  const salesTaxCents = Math.max(0, amountPaidCents - subtotalCents - shippingCents);
   const amountDueCents = subtotalCents + shippingCents + salesTaxCents - amountPaidCents;
 
   return {
@@ -248,4 +248,19 @@ export async function issueInvoiceForRequest(
   });
 
   return mapStoredInvoice(invoice);
+}
+
+/** One immutable annual invoice per purchased order, including concurrent downloads. */
+export async function getOrIssueOrderInvoice(request: LatticeRequest) {
+  if (request.status !== "PURCHASED") throw new Error("Invoices require a purchased order.");
+  const client = await getPrismaClient() as PrismaClient;
+  const existing = await client.invoice.findUnique({ where: { orderInvoiceKey: request.id } });
+  if (existing) return existing;
+  const snapshot = invoiceSnapshotForRequest(request);
+  const issuedAt = request.purchasePayment.stripe.paidAt ? new Date(request.purchasePayment.stripe.paidAt) : new Date();
+  const year = issuedAt.getUTCFullYear();
+  return client.$transaction(async (tx) => {
+    const sequence = await tx.invoiceSequence.upsert({ where: { year }, create: { year, nextValue: 2 }, update: { nextValue: { increment: 1 } } });
+    return tx.invoice.upsert({ where: { orderInvoiceKey: request.id }, update: {}, create: { ...snapshot, requestId: request.id, orderInvoiceKey: request.id, invoiceNumber: formatInvoiceNumber(year, sequence.nextValue - 1), sequenceYear: year, sequenceValue: sequence.nextValue - 1, customerPo: request.purchasePayment.customerPoNumber, issuedAt, dueDate: issuedAt, status: request.purchasePayment.status === "PAID" ? "PAID" : "ISSUED" } });
+  });
 }

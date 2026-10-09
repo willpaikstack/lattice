@@ -10,7 +10,7 @@ The product is intended to operate similarly to Xometry, Fictiv, Hubs, or Protol
 
 The core use case is helping domestic shops accept jobs they might otherwise no-quote because they are at capacity, lack the right machines, lack available materials, lack labor, or want to advertise capabilities that can be fulfilled through the Lattice supplier network even when those capabilities are not in-house.
 
-The app is being rebuilt from a Bubble prototype into a local Next.js application. The Bubble prototype is a product and UI reference, not an implementation source to copy directly.
+Lattice OS is implemented as an owned-code Next.js application.
 
 Core users:
 
@@ -21,6 +21,10 @@ Core users:
 - Admin/customer management surfaces support internal operations.
 
 ## Current App State
+
+- Customer onboarding initial draft (2026-10-08): `/admin/resources/customer-onboarding` previews the complete screen sequence and four-stop tour using synthetic data and local React state. Admin Resources links to it. Welcome/Tour/Workspace now reuse the actual customer shell and shared dashboard presentation inside an admin-only isolated frame with empty synthetic data. Tour targets track the real desktop/mobile controls; preview actions are intercepted. Slower content fades now preserve setup chrome and the workspace: 180/380ms setup exit/reveal, 500ms arrival, 150/300ms tour bubble exit/reveal, and 350ms finish. Reduced motion uses immediate transitions. The first workspace/welcome reveal now waits for the embedded document and fonts, then shares one 500ms fade; the welcome card clips header artwork to its own rounded outline. A standalone build of the same component is available through `design-exports/customer-onboarding/README.md` and requires the running local app plus an authenticated admin for its workspace frame. Live auth, address persistence, and durable tour progress are not connected to this draft.
+
+- Customer onboarding design direction (2026-10-08, proposed): a premium welcome followed by an optional four-stop contextual tour, ending on completion or skip before the first RFQ. `docs/customer-onboarding-research-and-design.md` contains research, exact screen/tour copy, motion guidance, accessibility behavior, and feature tradeoffs. Help/replay and durable personal tour progress are proposed additions; no onboarding implementation changed in this research session.
 
 - Admin quotes now use the approved review queue plus quotation workbench: Active/Drafts/Archive views, stage/owner filters, contextual RFQ package/supplier/customer quote inspector, and inline quote preparation with a live commercial summary. Existing server actions, issuance/version persistence, supplier uploads, and official branding remain; RFQ files are shown as a shared package without positional part ownership claims. Customer routes are unchanged.
 
@@ -128,7 +132,7 @@ Important folders:
 - `src/components/` - reusable UI components.
 - `src/lib/` - business logic, typed data, persistence, and repository code.
 - `prisma/` - database schema.
-- `docs/` - product research, Bubble audit notes, and implementation plans.
+- `docs/` - product research, implementation plans, and operational references.
 - `docs/app-feature-map.md` - operator-facing map of app features, routes, data sources, maturity status, limitations, and maintenance checklist.
 - `docs/completed-work-log.md` - daily completed-work log for cross-computer handoff history.
 - `fixtures/` - currently disabled for RFQ seeding so artificial quote records do not re-enter the commissioned workflow.
@@ -166,7 +170,7 @@ Avoid making the app feel like a generic startup landing page. Lattice is an ope
 
 The public website entry point is intentionally minimal and invite-only. `/` and `/login` currently use the Figma AI-designed dark technical drawing/grid visual system, but the visible choices should stay constrained to logging in or requesting access.
 
-The Bubble reference worth preserving:
+Product structures established during early research:
 
 - app shell/sidebar information architecture
 - `Request Quote` as a primary action
@@ -174,7 +178,7 @@ The Bubble reference worth preserving:
 - upload-first RFQ flow
 - materials and fabrication capabilities as resource catalogs
 
-The Bubble reference worth improving:
+Current product priorities:
 
 - remove placeholder/debug text
 - replace generic users/transactions with manufacturing RFQ/order data
@@ -252,3 +256,8 @@ Update this file when:
 - the architecture changes
 - important files move
 - the working vertical slice changes
+
+
+## Customer audit implementation, 2026-10-08
+
+See `docs/audits/customer-decisions-implementation-2026-10-08.md` and `docs/audits/customer-checkout-2026-10-08.md`. Customer purchasing is now intended to be credit-card acceptance through Stripe; fifteen-weekday quote validity and optional RFQ quality approval are durable decisions. The local schema includes onboarding progress, company-scoped shared RFQ drafts, support/clarification tickets, quality approval/document keys, checkout/compliance snapshots, one primary annual invoice per order, and lifecycle email events. The configured Development database is reconciled; Production was independently reconciled with additive SQL and the final schema diff is empty. Release `dpl_C2ntGzvTWs3Fnx8r4RdiDPqpzH89` is deployed/promoted to latticeos.co. Live checkout still requires merchant keys/webhook plus shipping/tax finalization and a controlled payment/refund test. Team management/integration self-service remains deferred.

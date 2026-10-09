@@ -149,7 +149,7 @@ describe("customer dashboard summary", () => {
     expect(summary.quoteOrderActivity[0]).toMatchObject({
       event: "Order placed",
       href: "/orders/req_order_new",
-      reference: "PO-ORDER_NE",
+      reference: "PO-ORDER_NEW",
       status: "Awaiting supplier acknowledgment",
     });
     expect(summary.quoteOrderActivity[1]).toMatchObject({

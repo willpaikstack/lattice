@@ -58,9 +58,11 @@ describe("local file route authorization", () => {
     const response = await GET(requestFor(), paramsFor("rfq/2026-06-18/part.step"));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-disposition")).toBe('inline; filename="part.step"');
+    expect(response.headers.get("content-disposition")).toBe('attachment; filename="part.step"');
     expect(response.headers.get("content-length")).toBe("10");
-    expect(response.headers.get("content-type")).toBe("model/step");
+    expect(response.headers.get("content-type")).toBe("application/octet-stream");
+    expect(response.headers.get("content-security-policy")).toBe("sandbox");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     await expect(response.text()).resolves.toBe("step-bytes");
     expect(mocks.readLocalUpload).toHaveBeenCalledWith("rfq/2026-06-18/part.step");
   });

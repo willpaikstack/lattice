@@ -106,7 +106,7 @@ function formatPrice(cents: number | null) {
 }
 
 function orderReference(order: LatticeRequest) {
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function paymentMethodLabel(order: LatticeRequest) {
@@ -468,7 +468,7 @@ export function BuyerOrderDetail({
                         <p className="text-[11px] uppercase tracking-[0.1em] text-[#8a8f98]">{file.type || "CAD file"}</p>
                       </div>
                     </div>
-                    <Download aria-hidden="true" className="h-4 w-4 shrink-0 text-[#8a8f98]" />
+                    {file.storageKey ? <a aria-label={`Download ${file.name}`} href={`/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}`}><Download aria-hidden="true" className="h-4 w-4 shrink-0 text-[#8a8f98]" /></a> : <span className="text-xs text-stone-500">File unavailable</span>}
                   </div>
                 ))}
               </div>
@@ -483,7 +483,7 @@ export function BuyerOrderDetail({
                         <p className="truncate text-[13px] font-semibold text-[#202020]">{document.name}</p>
                         <p className="mt-1 text-[11px] text-[#7b8088]">{documentCategoryLabels[document.category]} - {formatDateTime(document.uploadedAt)}</p>
                       </div>
-                      <p className="text-[12px] font-semibold text-[#6f737a]">{formatFileSize(document.sizeBytes)}</p>
+                      {document.storageKey ? <a className="text-sm underline" href={`/api/local-files/${document.storageKey}?name=${encodeURIComponent(document.name)}`}>Download · {formatFileSize(document.sizeBytes)}</a> : <span className="text-xs text-stone-500">File unavailable</span>}
                     </div>
                   ))
                 ) : (
@@ -647,9 +647,9 @@ export function BuyerOrderDetail({
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Lattice account manager</p>
               <div className="mt-4 rounded-md bg-[#fafafa] p-4 text-[13px] leading-5 text-[#5f6670]">
-                <p className="font-semibold text-[#202020]">Erik Mast</p>
+                <p className="font-semibold text-[#202020]">Lattice support</p>
                 <p className="mt-1">Order help, quality documents, shipping coordination, and supplier follow-up.</p>
-                <p className="mt-2 text-[#2f73c8]">erik.mast@latticeos.com</p>
+                <p className="mt-2 text-[#2f73c8]">support@latticeos.co</p>
               </div>
             </div>
           </section>

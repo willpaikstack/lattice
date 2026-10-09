@@ -117,6 +117,7 @@ describe("customer action center", () => {
     });
     const documentOrder = makeRequest({
       id: "req_documents",
+      requiresQualityApproval: true,
       status: "PURCHASED",
       supplierOrder: {
         ...makeRequest().supplierOrder,

@@ -1,5 +1,7 @@
 "use client";
 
+import { quoteValidUntil } from "@/lib/quote-validity";
+
 import { Clipboard, Download, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -19,11 +21,6 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function addDaysIso(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 const defaultLineItem: CustomerQuoteLineItem = {
   description: "Machined bracket",
@@ -54,7 +51,7 @@ const initialQuote: CustomerQuoteInput = {
   quoteNumber: "LQ-2026-0142",
   shipping: "Billed at actual",
   tax: "Not included",
-  validUntil: addDaysIso(14),
+  validUntil: quoteValidUntil(todayIso()),
 };
 
 function Field({
@@ -114,7 +111,7 @@ export function CustomerQuoteBuilder({
     .join("\n")}`.trim();
 
   function updateQuote<K extends keyof CustomerQuoteInput>(key: K, value: CustomerQuoteInput[K]) {
-    setQuote((current) => ({ ...current, [key]: value }));
+    setQuote((current) => ({ ...current, [key]: value, ...(key === "quoteDate" && typeof value === "string" && value ? { validUntil: quoteValidUntil(value) } : {}) }));
   }
 
   function updateLineItem(id: string, updates: Partial<CustomerQuoteLineItem>) {
@@ -171,7 +168,7 @@ export function CustomerQuoteBuilder({
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Quote number" onChange={(value) => updateQuote("quoteNumber", value)} value={quote.quoteNumber} />
             <Field label="Quote date" onChange={(value) => updateQuote("quoteDate", value)} type="date" value={quote.quoteDate} />
-            <Field label="Valid until" onChange={(value) => updateQuote("validUntil", value)} type="date" value={quote.validUntil} />
+            <label className="block"><span className={labelClass}>Valid until · 15 business days</span><input className={inputClass} readOnly type="date" value={quote.validUntil} /></label>
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Field label="Customer company" onChange={(value) => updateQuote("customerCompany", value)} value={quote.customerCompany} />

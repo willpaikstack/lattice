@@ -1,3 +1,4 @@
+import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
 import { NextResponse } from "next/server";
 
 import { contactSnapshotFromAccountSettings, getAccountSettings } from "@/lib/account-settings";
@@ -117,6 +118,10 @@ async function normalizeStoredFileReference(fileMetadata: UploadedFileInput) {
   if (!fileMetadata.storageKey) {
     throw new Error(`${fileMetadata.name} must be uploaded again before submitting.`);
   }
+
+  if (fileMetadata.storageKey.startsWith("/") || fileMetadata.storageKey.split("/").some((part) => part === ".." || part === ".")) throw new Error("Invalid file storage key");
+  const access = await canCurrentSessionAccessStorageKey(fileMetadata.storageKey);
+  if (!access.authorized) throw new Error("This file is not available to your company. Upload it again.");
 
   if (isDraftUploadStorageKey(fileMetadata.storageKey)) {
     const stored = await copyLocalUpload(fileMetadata.storageKey, fileMetadata);

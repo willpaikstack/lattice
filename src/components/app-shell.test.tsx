@@ -449,6 +449,7 @@ describe("AppShell", () => {
             "/admin/quotes",
             "/admin/vendors",
             "/admin/orders",
+            "/admin/support",
             "/admin/material-inquiries",
             "/admin/resources",
           ],
@@ -458,7 +459,7 @@ describe("AppShell", () => {
 
     const desktopAdminNav = document.querySelector("aside nav section div");
 
-    expect(desktopAdminNav?.textContent).toMatch(/Customers\s*Quote Submissions\s*Overseas Vendors\s*Placed Orders\s*Material Inquiries\s*Resources/);
+    expect(desktopAdminNav?.textContent).toMatch(/Customers\s*Quote Submissions\s*Overseas Vendors\s*Placed Orders\s*Customer Support\s*Material Inquiries\s*Resources/);
     expect(desktopAdminNav?.textContent).not.toContain("Overview");
   });
 

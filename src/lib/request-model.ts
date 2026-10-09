@@ -53,6 +53,7 @@ export type UploadedFileInput = {
   type: string;
   storageKey?: string;
   cadPreviewUrn?: string;
+  lineItemIndex?: number;
 };
 
 export type RequestContactSnapshot = {
@@ -78,6 +79,12 @@ export type DraftRequestInput = {
   title: string;
   process: string;
   dueDate: string;
+  requiresQualityApproval?: boolean;
+  qualityApprovedAt?: string | null;
+  qualityApprovedBy?: string | null;
+  complianceReviewRequired?: boolean;
+  complianceReviewedAt?: string | null;
+  checkoutDetails?: Record<string, string> | null;
   revision?: {
     changeLog: string[];
     revisionNumber: number;
@@ -131,6 +138,7 @@ export type PurchasePaymentSnapshot = {
 };
 
 export type SupplierDocument = {
+  storageKey?: string;
   id: string;
   name: string;
   sizeBytes: number;
@@ -272,6 +280,12 @@ export type LatticeRequest = {
   title: string;
   process: string;
   dueDate: string;
+  requiresQualityApproval?: boolean;
+  qualityApprovedAt?: string | null;
+  qualityApprovedBy?: string | null;
+  complianceReviewRequired?: boolean;
+  complianceReviewedAt?: string | null;
+  checkoutDetails?: Record<string, string> | null;
   status: RequestStatus;
   lineItems: RequestLineItem[];
   files: UploadedFile[];
@@ -388,6 +402,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
     title: input.title.trim(),
     process: input.process.trim(),
     dueDate: input.dueDate,
+    requiresQualityApproval: input.requiresQualityApproval === true,
     status: "DRAFT",
     lineItems: input.lineItems.map((item) => ({
       id: makeId("line"),
@@ -406,6 +421,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
       type: file.type,
       storageKey: file.storageKey,
       cadPreviewUrn: file.cadPreviewUrn,
+      lineItemIndex: file.lineItemIndex,
     })),
     operatorReview: {
       completeness: "READY_FOR_REVIEW",
@@ -644,6 +660,7 @@ export function applySupplierOrderUpdate(
 
   return {
     ...request,
+    ...(input.documents?.length ? { qualityApprovedAt: null, qualityApprovedBy: null } : {}),
     supplierOrder: {
       status: input.status,
       shopName: input.shopName?.trim() || request.supplierOrder.shopName,

@@ -1,5 +1,11 @@
 # Completed Work Log
 
+## 2026-10-08 — Documentation cleanup
+
+- Removed obsolete prototype audit and implementation-planning documents.
+- Reworded the active project context, durable decisions, and historical work-log entries so the documentation describes Lattice OS directly.
+- Left legacy-value compatibility code unchanged; it remains an implementation concern rather than product documentation.
+
 ## 2026-10-07
 
 - Shortened the invitation header tagline to “Qualified manufacturing capacity” and updated the email expectation and onboarding docs. Recommended a shorter introduction for review; the current introduction remains unchanged. PDF creation and attachment wiring remain planned for later.
@@ -86,6 +92,11 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Reconciled the `/how-it-works` capacity evidence and test expectations with the normalized equipment catalog: 335 total CNC machines, comprising 282 milling and 53 turning/turn-mill machines, with 109 explicitly listed as 5-axis; the documented inspection inventory totals 17 CMMs.
 - Added SSR-to-client hydration regression coverage for browser-local RFQ drafts and buyer quote drafts. The tests render without browser storage, hydrate with populated localStorage, and fail on React hydration warnings while preserving the intended post-mount draft restoration. The retired `/simple-quote` route has no active component to cover.
 - Verification: hydration regression suite plus the request-form and buyer-quote component suites passed (33 tests).
+
+## 2026-10-08
+
+- Defined the customer invitation-to-workspace experience in `docs/customer-invitation-join-experience.md`, covering professional tone, the current first-cohort journey, screen and email copy direction, visual/interaction guidance, recovery states, phased delivery, and acceptance criteria.
+- Updated `TODO.md` to use the experience brief as the implementation direction before controlled end-to-end invitation validation. No application behavior changed.
 
 ## Entry Format
 
@@ -499,10 +510,10 @@ Update this file at the end of a substantial work session. Keep entries concise,
 
 ## 2026-05-25
 
-- Built the owned Lattice app foundation from the Bubble prototype reference.
+- Built the owned Lattice app foundation from early product research.
 - Added the Next.js App Router app shell, RFQ creation route, operator request queue/detail, buyer quotes/orders, catalogs, placeholder analytics/projects, and API persistence skeleton.
 - Added Prisma schema, Docker/Postgres development setup, request model/persistence/repository helpers, catalog data, RFQ option data, and initial Vitest coverage.
-- Added Bubble audit/reference documentation and the initial Bubble emulation build plan.
+- Added product research notes and the initial owned-code implementation plan.
 - Verification recorded in git history: commit `92dd2f2`.
 
 Initial backfill note: this log was created on 2026-06-17. Entries before then were reconstructed from local Codex thread summaries, `DECISIONS.md`, `PROJECT_CONTEXT.md`, and git history, so older daily history is selective rather than exhaustive.
@@ -1641,3 +1652,96 @@ Initial backfill note: this log was created on 2026-06-17. Entries before then w
 - Updated the README, project context, decisions, TODO, onboarding playbook, and feature map so the next agent can distinguish completed invitation-PDF work from the remaining controlled delivery check.
 - Recorded the approved PDF asset path, editable output and builder, Resend attachment behavior, current admin customer/quote work, and the concrete post-deployment invitation validation.
 - Added `/tmp/` to `.gitignore` so generated PDF QA scratch files stay local and are not included in the project push. Pushed the project updates to `origin/main` as commit `2c0ed03`; this push does not confirm a Vercel deployment.
+
+## 2026-10-08 — Autodesk APS app ownership transfer
+
+- Confirmed Autodesk completed the ownership transfer for the existing `Lattice CAD Preview` app in the `Lattice OS Dev` developer hub. The app now lists `will@latticeos.co` as Owner.
+- Recorded the owner and transfer status in `docs/autodesk-aps-cad-preview.md`. The existing app and its credentials remain in use; APS variables are already configured in Vercel Development, Preview, and Production.
+- Removed completed credential creation and Vercel configuration steps from the APS TODO. Upload translation and Autodesk Viewer smoke tests remain outstanding.
+- Removed `paik.e.william@gmail.com` from the `Lattice OS Dev` APS hub. Verified Autodesk's success notice and that `will@latticeos.co` remains the sole listed Hub Admin. This action did not delete the personal Autodesk account.
+
+## 2026-10-08 — Customer welcome and contextual tour research
+
+- Researched Hark, Linear, Slack, and Superhuman using public product/help sources; visually inspected Hark public entry and Linear public demo. Recorded limits on inaccessible first-account sequences and video evidence.
+- Added `docs/customer-onboarding-research-and-design.md` with the recommended optional four-stop tour, full journey and copy, motion/color specifications, mobile/accessibility/recovery behavior, feature tradeoffs, and measurable cohort criteria.
+- Matched tour targets to the actual customer navigation and identified Help/replay as proposed new functionality. Updated the earlier brief, project context, and TODO to preserve the user's premium/refined direction and tour-completion endpoint.
+- Documentation only; no application changes, invitations, deployments, or tests.
+
+## 2026-10-08 — Interactive customer onboarding initial draft
+
+- Built the full invitation, sign-in, password, shipping, billing, welcome, four-stop tour, and empty workspace sequence in the admin-only `/admin/resources/customer-onboarding` preview. Added an Admin Resources link.
+- Added selectable storyboard stops, expanded view, sample new/existing identity variants, expired invitation guidance, local address review, skip/replay, reduced-motion CSS, and keyboard tour dismissal/focus. The simulated workspace uses current customer navigation plus proposed Help.
+- Added a standalone Vite entry in `design-exports/customer-onboarding` using the same React component and scoped CSS, with generated assets under gitignored `outputs`. Live account/authentication, addresses, and durable tour progress are not connected.
+- Verified TypeScript, targeted ESLint, standalone production build, and diff whitespace. Browser checks covered the full screen sequence, all four stops, finish/replay/Escape skip, and a 390px narrow layout. Corrected focus targeting, pointer alignment, and narrow tour positioning during review.
+- Updated project context, TODO, feature map, and preview build instructions. No emails, customer mutations, or deployments were performed.
+
+## 2026-10-08 — Restored local Lattice Admin sign-in configuration
+
+- Diagnosed the false not-provisioned screen for `will@latticeos.co`: the Lattice OS 2 checkout had no `.env.local`, database URL, or Clerk keys and was running a temporary keyless instance.
+- Restored the existing development database and Clerk Development configuration from the sibling local checkout into gitignored `.env.local`; restarted the local server on port 3000. No secrets were printed or committed.
+- Verified through Prisma and the configured Clerk API that the existing admin membership is linked to the verified email and has completed password setup. The browser now renders the configured Lattice OS sign-in; the user must sign in again because the old temporary-instance session is no longer applicable. No credential reset or membership change was made.
+- Added new-computer local sign-in configuration instructions to README.
+
+
+## 2026-10-08 — Onboarding tour over the actual customer workspace
+
+- Replaced the simplified workspace mock in preview steps 6–8 with the actual customer `AppShell` and shared `CustomerDashboardView`. Extracted the existing dashboard presentation without changing its live data/filtering contract; the onboarding frame supplies empty sample data.
+- Added the admin-only `/customer-onboarding-workspace` frame outside the workspace route group so customer styles and responsive behavior remain independent of the surrounding admin interface. The four-stop tour measures and highlights the actual desktop/sidebar or mobile controls. Help remains a proposed, preview-only entry.
+- Intercepted preview links and sign-out and disabled notification fetching/sidebar personalization to keep demo actions isolated. Skip, finish, and Help replay retain the same real workspace underneath.
+- Updated the feature map, project context, priorities, and standalone README. Standalone review now requires the running local Next.js app and an authenticated admin for the embedded workspace.
+- TypeScript and targeted ESLint checks pass. Browser inspection showed the actual empty dashboard, all four anchored desktop stops, finish/Help replay, and the compact tour at a 390px viewport. Standalone Vite build succeeds. No automated tests were run.
+
+
+## 2026-10-08 — Refined onboarding transitions
+
+- Added Motion presence transitions to the onboarding draft: setup content fades out over 180ms and reveals over 380ms with a 6px upward settle; the welcome/workspace arrival takes 500ms. Branding, story, form frame, and support remain steady between setup screens.
+- Tour bubbles fade out over 150ms and reveal over 300ms with a 4px settle; highlights crossfade over 300ms. The underlying actual workspace stays mounted during welcome/tour/finish. Finishing or skipping fades the overlay away over 350ms.
+- Outgoing content is inert/hidden from assistive technology, and incoming headings receive focus after reveal. Reduced-motion preferences set animation durations and transforms to zero.
+- Updated the motion specification, feature map, and project context. The changes apply to the review draft and its standalone build; live onboarding persistence remains pending.
+- TypeScript, targeted ESLint, and the standalone Vite build pass. Browser inspection confirmed setup/address changes, welcome arrival, tour-step changes, heading focus, and skip handoff. No automated tests were run.
+
+
+## 2026-10-08 — Synchronized welcome arrival and cleaned popup corners
+
+- Fixed step 6 revealing the welcome before the workspace loaded. The frame reports readiness after document load and font readiness; the entire workspace/welcome composition stays hidden and inert until ready, then shares one 500ms fade. Added a readiness refresh for re-entry and ignored outgoing-frame messages outside the workspace steps.
+- Removed the artwork header’s independent corner radius and clipped it through the welcome card’s rounded boundary, eliminating the white edges caused by overlapping curves.
+- Updated the motion specification, feature map, and project context. Browser inspection confirmed step 6 displays the loaded workspace with clean popup corners.
+- TypeScript, targeted ESLint, and the standalone Vite build pass. No automated tests were run.
+
+
+## 2026-10-08 — Onboarding address fields
+
+- Added an optional Address 2 field beneath Street address in both shipping and billing, with a building/suite/office placeholder.
+- Replaced State / region text inputs with matching native dropdowns containing all 50 US states alphabetically, storing postal abbreviations in local preview state. Shipping-to-billing copy includes Address 2 and state.
+- Updated the feature map. These changes apply to the onboarding review draft; address persistence remains pending.
+- TypeScript, targeted ESLint, and standalone Vite build pass. Browser inspection confirmed the new shipping fields and all 50 state options, plus the billing handoff. No automated tests were run.
+
+
+## 2026-10-08 — Onboarding country dropdown
+
+- Replaced country text inputs with dropdowns limited to United States and Canada in both shipping and billing.
+- Region dropdowns show all 50 US states or Canada’s 13 provinces/territories and use the appropriate label. Changing country clears the prior region; shipping-to-billing copy preserves country and region.
+- Updated the feature map; changes remain local to the onboarding review draft.
+- TypeScript, targeted ESLint, and standalone Vite build pass. Browser inspection confirmed exactly two country choices and the Canadian region switch. No automated tests were run.
+
+## 2026-10-08 — Customer experience audit
+
+- Audited the local customer workspace through the existing Lattice Admin customer bridge, including dashboard/actions, notifications, RFQ draft/configuration/reorder, quote/checkout, order search/detail/help, quote and invoice downloads, materials, equipment, capabilities, quality guide, how-it-works, and account editor controls.
+- Saved the feature matrix, reproduction details, prioritized development work, and explicit testing limits in `docs/audits/customer-experience-2026-10-08.md`. Updated TODO and linked the findings from the feature map; no application behavior was changed.
+- Confirmed transient-only order-support success, inaccessible order/quality documents, expired-quote checkout, first-cohort purchasing policy mismatches, and truncated Action Center counts. Source review also identified role-only draft-file authorization, unscoped browser drafts, positional file/part association, and ignored checkout fields.
+- Typecheck passes. Full suite: 315 passed / 14 failed across 75 files (72 passing, 3 failing). Lint: 9 errors / 1,183 warnings, including a helper misidentified as a Hook and generated onboarding output included in lint.
+- The configured development database lacks `Company.addressOnboardingDeferredAt`, forcing demo fallback. Production customer-role behavior, real uploads/APS, database saves, mobile layout, invitation delivery, and payment operations were not validated; file selection and viewport emulation were limited by browser tooling. No real messages, payments, new orders, credentials, or migrations were performed.
+
+## 2026-10-08 — Customer audit implementation and approved onboarding deployment
+
+- Implemented the customer-approved defaults and annotation changes: optional RFQ quality approval, 15-weekday quote expiration, card-only policy and ownership/amount safeguards, durable checkout/compliance snapshots, shipment holds/document approval, support/clarification history, company-shared/private drafts with deletion markers, explicit file-to-part association, complete Action Center, stable order references and durable annual invoice snapshots. Lifecycle emails have a durable queue; admin retries are implemented; monitoring remains follow-up work.
+- Integrated the approved real customer welcome and four-step tour with saved membership progress, interruption/resume and Help/replay; preserved Clerk/password/address setup. Admin and support sessions do not change customer onboarding progress.
+- Repaired missing Development schema; independently reviewed Production diff and applied additions inside a transaction. Both final diffs are empty. No existing customer data was deleted.
+- Authenticated Vercel CLI, confirmed lattice project/team, built a Production deployment, smoke-tested login 200 and unauthenticated draft denial 403, then promoted `dpl_C2ntGzvTWs3Fnx8r4RdiDPqpzH89` to latticeos.co. Public login 200 and domain deployment identity confirmed.
+- Validation: 350/350 tests across 81 files, typecheck/lint/local production build/Vercel build pass. Eleven additional draft tests cover company isolation, invalid sessions/packages, concurrent deletion guards and stale-browser resurrection. Dead-code audit still reports an older unused login file, five exports and unlisted server-only imports.
+- Separate checkout and implementation reports document remaining customer-role/mobile/upload/invitation/payment tests. Local browser confirmed RFQ checkbox and expired quote renewal message, and saved RFQ screenshot.
+- Stripe connector is unconnected. Browser showed an unactivated New business live account and sandbox Tax Get started; Lattice Production uses a live publishable key whose ownership is not yet established. User business verification/attestations, correct account mapping, live tax registrations and controlled payment/refund tests remain necessary. Kept card checkout disabled; no charge, refund, registration or customer message was made.
+
+- Stripe follow-up after user corrected Chrome profile: Nexus Manufacturing Technologies, Inc. has active Payments/Payouts and no active account tasks. Earlier New business activation warning came from the wrong profile and does not apply. Correct live Tax shows Get started; Tax configuration and runtime-key mapping/testing remain the blockers.
+
+- Added admin-only lifecycle email retry, durable network-failure attempt/status recording and Customer Admin recipients for quality approvals; six isolated tests pass. User confirms New York-only existing registration. Correct Stripe Tax setup has registration/automatic collection Not Started and a digital-services default needing an appropriate manufactured-goods override. No paid/tax-registration mutation performed.

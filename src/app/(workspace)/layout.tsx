@@ -1,5 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { CustomerWorkspaceProvider } from "@/components/customer-workspace-scope";
+import { getCustomerOnboarding } from "@/lib/customer-onboarding";
 import { AppShell } from "@/components/app-shell";
 import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
 import { getCurrentSession } from "@/lib/session";
@@ -19,5 +21,8 @@ export default async function WorkspaceLayout({ children }: Readonly<{ children:
     redirect("/account/set-password");
   }
 
-  return <AppShell sessionRole={session?.user.role} sessionUser={shellUser} supportAdmin={session?.user.supportAdmin ?? undefined}>{children}</AppShell>;
+  const onboarding = await getCustomerOnboarding();
+
+  const draftScope = session?.user.role === "customer" ? session.user.companyId : session?.user.id ? `admin:${session.user.id}` : null;
+  return <CustomerWorkspaceProvider key={draftScope} scope={draftScope}><AppShell onboarding={onboarding} sessionRole={session?.user.role} sessionUser={shellUser} supportAdmin={session?.user.supportAdmin ?? undefined}>{children}</AppShell></CustomerWorkspaceProvider>;
 }

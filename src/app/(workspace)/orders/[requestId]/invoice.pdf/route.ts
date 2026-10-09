@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
-import { buildRequestInvoicePdf, orderInvoicePdfFileName } from "@/lib/invoice-pdf";
+import { getOrIssueOrderInvoice } from "@/lib/invoice-repository";
+import { isMockDataMode } from "@/lib/data-mode";
+import { buildRequestInvoicePdf, buildIssuedOrderInvoicePdf } from "@/lib/invoice-pdf";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { requireRouteRole } from "@/lib/route-authorization";
 
@@ -21,14 +23,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ requ
   }
 
   const preview = new URL(request.url).searchParams.get("preview") === "1";
-  const pdf = await buildRequestInvoicePdf(order);
+  const demo = isMockDataMode() && order.id.startsWith("demo_");
+  const invoice = demo ? null : await getOrIssueOrderInvoice(order);
+  const pdf = invoice ? await buildIssuedOrderInvoicePdf(invoice) : await buildRequestInvoicePdf(order);
   const body = new ArrayBuffer(pdf.byteLength);
   new Uint8Array(body).set(pdf);
 
   return new Response(body, {
     headers: {
       "Cache-Control": "no-store",
-      "Content-Disposition": `${preview ? "inline" : "attachment"}; filename="${orderInvoicePdfFileName(order)}"`,
+      "Content-Disposition": `${preview ? "inline" : "attachment"}; filename="${invoice?.invoiceNumber.toLowerCase() ?? "demo-invoice"}.pdf"`,
       "Content-Type": "application/pdf",
     },
   });

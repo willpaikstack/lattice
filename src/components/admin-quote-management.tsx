@@ -1,5 +1,7 @@
 "use client";
 
+import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
+
 import { ChevronDown, Clock3, ExternalLink, FileCheck2, FileText, Inbox, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -112,11 +114,6 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function addDaysIso(dateValue: string, days: number) {
-  const date = new Date(`${dateValue}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 function defaultQuoteCreatedDate(request: LatticeRequest) {
   if (request.status === "QUOTED") {
@@ -131,7 +128,7 @@ function defaultQuoteValidUntil(request: LatticeRequest, quoteCreatedDate: strin
     return request.quote.quoteValidUntil;
   }
 
-  return addDaysIso(quoteCreatedDate, 30);
+  return calculateQuoteValidUntil(quoteCreatedDate);
 }
 
 function fileDownloadHref(file: LatticeRequest["files"][number]) {
@@ -428,7 +425,7 @@ function AdminQuoteWorkbench({
   const [decisionNote, setDecisionNote] = useState("");
   const isReadOnlyIssuedQuote = isIssuedQuote && !isEditingIssuedQuote;
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
-  const quoteCreatedDate = defaultQuoteCreatedDate(request);
+  const quoteCreatedDate = isEditingIssuedQuote ? todayIsoDate() : defaultQuoteCreatedDate(request);
   const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
   const currentShopName = selectedShopNameFromRequest(request) || overseasVendors[0]?.name || "China supplier team";
   const shopOptions = vendorShopOptions(overseasVendors, currentShopName);
@@ -503,9 +500,10 @@ function AdminQuoteWorkbench({
                       setQuoteLineLeadTimeValues(Object.fromEntries(request.lineItems.map((item) => [item.id, String(lineItemLeadTimeInput(request, item))])));
                       setShippingPrice(formatCurrencyInput(request.quote.shippingCostCents));
                       setSelectedShippingMethod(request.quote.shippingMethod || defaultShippingMethod);
-                      setQuoteValidUntil(defaultQuoteValidUntil(request, quoteCreatedDate));
+                      setQuoteValidUntil(isEditingIssuedQuote ? defaultQuoteValidUntil(request, quoteCreatedDate) : calculateQuoteValidUntil(todayIsoDate()));
                       onDirty(false);
                     }
+                    if (!isEditingIssuedQuote) setQuoteValidUntil(calculateQuoteValidUntil(todayIsoDate()));
                     setIsEditingIssuedQuote((current) => !current);
                   }}
                   type="button"
@@ -843,7 +841,7 @@ function AdminQuoteWorkbench({
                       <input
                         className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
                         name="quoteValidUntil"
-                        onChange={(event) => setQuoteValidUntil(event.target.value)}
+                        readOnly
                         type="date"
                         value={quoteValidUntil}
                       />
@@ -909,6 +907,7 @@ function QuoteInspector({ request, customerProfileHrefs, onPrepare, onDecision, 
       {request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName}<span>Qty {item.quantity}</span></strong><p>{item.material} · {item.surfaceFinish || "Finish not specified"}</p><p>{item.generalTolerance || "Tolerance not specified"}</p>{item.qualityDocumentation?.length ? <p>Quality: {item.qualityDocumentation.join(", ")}</p> : null}{item.notes ? <p>{item.notes}</p> : null}</div>)}
       <details className={styles.history} open><summary>RFQ files ({request.files.length})</summary><p className={styles.muted}>Files belong to the shared RFQ package.</p><div className={styles.fileList}>{request.files.map((file) => <DownloadFileLink file={file} key={file.id} />)}{!request.files.length ? <p>No files attached.</p> : null}</div></details>
     </section>
+    <section><h3>Quality approval</h3><p>{request.requiresQualityApproval ? "Customer Admin approval of quality documents is required before shipment." : "Pre-shipment customer approval was not requested."}</p></section>
     <section><h3>Supplier basis</h3>{supplier ? <><strong>{supplier.shopName}</strong><p className={styles.muted}>{supplier.country} · Selected supplier</p><p className={styles.muted}>{supplier.leadTimeDays ? `${supplier.leadTimeDays} days overall lead time` : "Lead time not specified"}</p></> : <p className={styles.muted}>No supplier selected.</p>}
       <p className={styles.muted}>{request.supplierQuotes.length} supplier quotes · {request.supplierQuoteFiles.length} evidence files</p>
       {request.supplierQuotes.length ? <details className={styles.history}><summary>Supplier responses</summary>{request.supplierQuotes.map((response) => <div key={response.id}><strong>{response.shopName}</strong><p>{response.country} · {response.isSelected || response.status === "SELECTED" ? "Selected" : response.status === "QUOTE_RECEIVED" ? "Quote received" : response.status === "DECLINED" ? "Declined" : "Invited"}</p><p>{formatCurrencyPrecise(response.priceCents)} · {response.leadTimeDays ? `${response.leadTimeDays} days` : "Lead time not specified"}</p>{response.notes ? <p>{response.notes}</p> : null}</div>)}</details> : null}

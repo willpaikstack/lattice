@@ -73,7 +73,7 @@ function relativeDateLabel(value: string, now: Date, futureVerb: string) {
 }
 
 function orderReference(order: LatticeRequest) {
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function quoteReference(request: LatticeRequest) {
@@ -207,7 +207,7 @@ function buildOrderMilestoneWorkflow(order: LatticeRequest): CustomerActionWorkf
 function buildCustomerRequirementWorkflow(order: LatticeRequest): CustomerActionWorkflow | null {
   const documents = order.supplierOrder.documents.filter((document) => document.category !== "PHOTO");
 
-  if (order.status !== "PURCHASED" || order.supplierOrder.status !== "DOCUMENTS_UPLOADED" || documents.length === 0) {
+  if (order.status !== "PURCHASED" || !order.requiresQualityApproval || order.qualityApprovedAt || documents.length === 0) {
     return null;
   }
 

@@ -1,3 +1,5 @@
+import { CustomerQualityApproval } from "@/components/customer-quality-approval";
+import { getCurrentSession } from "@/lib/session";
 import { notFound } from "next/navigation";
 
 import { BuyerOrderDetail } from "@/components/buyer-order-detail";
@@ -18,5 +20,6 @@ export default async function BuyerOrderDetailPage({ params }: BuyerOrderDetailP
     notFound();
   }
 
-  return <BuyerOrderDetail order={customerSafeRequest(order)} />;
+  const session = await getCurrentSession();
+  return <div className="space-y-5">{order.requiresQualityApproval && <CustomerQualityApproval requestId={order.id} approvedAt={order.qualityApprovedAt} canApprove={session?.user.customerRole === "admin" && !session.user.supportAdmin} />}<BuyerOrderDetail order={customerSafeRequest(order)} /></div>;
 }

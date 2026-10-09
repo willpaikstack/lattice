@@ -30,7 +30,7 @@ export default async function StripeCheckoutSuccessPage({
     redirect(`/orders/${encodeURIComponent(requestId)}`);
   }
 
-  const finalized = await finalizeStripeCheckoutSession(sessionId);
+  const finalized = await finalizeStripeCheckoutSession(sessionId, requestId);
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${requestId}`);

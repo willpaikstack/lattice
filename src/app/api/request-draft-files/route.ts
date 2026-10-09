@@ -1,3 +1,4 @@
+import { draftUploadFolder } from "@/lib/draft-upload-scope";
 import { NextResponse } from "next/server";
 
 import { saveLocalUpload } from "@/lib/local-file-storage";
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Choose a file before saving the draft upload." }, { status: 400 });
     }
 
-    const stored = await saveLocalUpload(file, "rfq-drafts");
+    const stored = await saveLocalUpload(file, draftUploadFolder(session));
 
     if (!stored.storageKey) {
       return NextResponse.json({ error: "Draft file storage is not configured." }, { status: 503 });

@@ -217,7 +217,7 @@ describe("Home dashboard", () => {
     expect(screen.getByText("CNC aluminum bracket package")).toBeInTheDocument();
     expect(screen.getByText("Production manifold order")).toBeInTheDocument();
     expect(screen.getAllByText("LQ-3104").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("PO-SCENARIO").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("PO-SCENARIO_ACTIVE_ORDER").length).toBeGreaterThan(0);
     expect(mocks.listBuyerQuotes).toHaveBeenCalled();
     expect(mocks.listBuyerOrders).toHaveBeenCalled();
   });

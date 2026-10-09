@@ -43,6 +43,8 @@ npm run db:push
 npm run dev
 ```
 
+For provisioned-account sign-in on a new computer, configure the existing Lattice Clerk Development instance and separate development database in gitignored `.env.local`: `DATABASE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, and `CLERK_SECRET_KEY`. Restart the development server after setting these values. Workspace access requires both the Clerk identity and the provisioned database membership; a temporary keyless Clerk instance cannot reproduce existing account access.
+
 Open:
 
 - Landing Page: <http://localhost:3000>
@@ -120,3 +122,6 @@ This repo carries lightweight project memory so AI agents on different computers
 - `AGENTS.md` - instructions agents should read before changing the repo.
 
 Keep these files updated before committing/pushing meaningful work.
+
+
+Customer audit follow-through (2026-10-08): decisions and local changes are in `docs/audits/customer-decisions-implementation-2026-10-08.md`; checkout has a separate review in `docs/audits/customer-checkout-2026-10-08.md`. The additive schema is reviewable in `scripts/customer-audit-schema-2026-10-08.sql`. Development and Production are reconciled; release `dpl_C2ntGzvTWs3Fnx8r4RdiDPqpzH89` is deployed to latticeos.co. Correct Stripe merchant-account identification and shipping/tax/payment validation remain required before enabling checkout.

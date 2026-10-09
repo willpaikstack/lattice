@@ -191,7 +191,7 @@ describe("requests API QC", () => {
     );
 
     expect(response.status).toBe(400);
-    await expect(responseJson(response)).resolves.toEqual({ error: "Invalid local file storage key" });
+    await expect(responseJson(response)).resolves.toEqual({ error: "Invalid file storage key" });
     expect(mocks.createSubmittedRequest).not.toHaveBeenCalled();
   });
 

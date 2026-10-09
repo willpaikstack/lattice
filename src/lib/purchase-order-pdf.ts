@@ -148,11 +148,11 @@ function dateOnly(value: string | null | undefined) {
 }
 
 function orderReference(order: LatticeRequest) {
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function supplierPoNumber(order: LatticeRequest) {
-  return `LPO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `LPO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function fileNamePart(value: string) {

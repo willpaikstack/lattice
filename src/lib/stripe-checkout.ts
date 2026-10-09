@@ -1,4 +1,5 @@
 import "server-only";
+import { assertQuoteCanBePurchased } from "./quote-validity";
 
 import Stripe from "stripe";
 
@@ -29,11 +30,17 @@ export type StripeElementsCheckoutSession = {
   sessionId: string;
 };
 
+export function assertCardCheckoutEnabled() {
+  if (process.env.STRIPE_CHECKOUT_ENABLED !== "true") throw new Error("Card purchasing is being set up. Contact support@latticeos.co for help with this quote.");
+}
+
 export async function createStripeElementsCheckoutSessionForRequest(request: LatticeRequest): Promise<StripeElementsCheckoutSession> {
   if (request.status !== "QUOTED") {
     throw new Error("Only priced quotes can be paid by card.");
   }
 
+  assertQuoteCanBePurchased(request);
+  assertCardCheckoutEnabled();
   const publishableKey = getStripePublishableKey();
 
   if (!publishableKey) {
@@ -54,7 +61,7 @@ export async function createStripeElementsCheckoutSessionForRequest(request: Lat
       quoteNumber,
     },
     payment_method_types: ["card"],
-  });
+  }, { idempotencyKey: `quote:${request.id}:${request.customerQuotes.at(-1)?.id ?? request.updatedAt}:${customerId}:${amountCents}` });
 
   if (!paymentIntent.client_secret) {
     throw new Error("Stripe did not return a payment intent client secret.");
@@ -73,7 +80,7 @@ export async function createStripeElementsCheckoutSessionForRequest(request: Lat
   };
 }
 
-export async function finalizeStripePaymentIntent(paymentIntentId: string) {
+export async function finalizeStripePaymentIntent(paymentIntentId: string, expectedRequestId?: string) {
   const stripe = getStripeClient();
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
     expand: ["payment_method"],
@@ -84,6 +91,8 @@ export async function finalizeStripePaymentIntent(paymentIntentId: string) {
   if (!requestId) {
     throw new Error("Stripe payment intent is missing request metadata");
   }
+
+  if (expectedRequestId && requestId !== expectedRequestId) throw new Error("This payment does not belong to your quote.");
 
   if (paymentIntent.status !== "succeeded") {
     return null;
@@ -103,7 +112,7 @@ export async function finalizeStripePaymentIntent(paymentIntentId: string) {
   });
 }
 
-export async function finalizeStripeCheckoutSession(sessionId: string) {
+export async function finalizeStripeCheckoutSession(sessionId: string, expectedRequestId?: string) {
   const stripe = getStripeClient();
   const session = await stripe.checkout.sessions.retrieve(sessionId, {
     expand: ["payment_intent.payment_method"],
@@ -118,6 +127,8 @@ export async function finalizeStripeCheckoutSession(sessionId: string) {
   if (!requestId) {
     throw new Error("Stripe session is missing request metadata");
   }
+
+  if (expectedRequestId && requestId !== expectedRequestId) throw new Error("This checkout does not belong to your quote.");
 
   if (session.payment_status !== "paid") {
     return null;

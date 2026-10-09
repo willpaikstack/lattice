@@ -72,7 +72,7 @@ function quoteAmount(request: LatticeRequest) {
 }
 
 function orderReference(order: LatticeRequest) {
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function buildQuoteOrderActivity(quotes: LatticeRequest[], orders: LatticeRequest[]) {

@@ -1,0 +1,38 @@
+# Customer checkout audit — 2026-10-08
+
+## Scope and conclusion
+
+Separate review of the customer journey from an issued quote to a paid order: quote validity, delivery, shipping, end use, compliance, payment, order release, receipts and recovery. The initial browser audit used the local customer workspace through a Lattice Admin development bridge. Source review and automated authorization tests supplement it. This is not a successful live Stripe transaction or a production customer-role certification.
+
+The existing Stripe Elements and hosted Checkout paths provide a useful foundation. Live purchasing still requires the merchant account configuration, signed webhook configuration, tax configuration, and a controlled payment/refund reconciliation test. Vercel was subsequently authenticated, the Production schema reconciled, and the release deployed/promoted to latticeos.co. Stripe connector access remains unconnected. After the user corrected the Chrome profile, the intended Nexus Manufacturing Technologies, Inc. account shows active Payments/Payouts and no outstanding account tasks. Its live Tax page shows Get started. Runtime-key ownership and tax registrations remain to be verified. Earlier New business/sandbox observations belonged to a different Chrome profile. See the implementation report for account findings.
+
+## Findings and changes
+
+| Area | Customer experience before this work | Change / remaining requirement |
+| --- | --- | --- |
+| Expired quotes | An expired quote could reach payment creation and the purchase mutation. | New issue/reissue saves a 15-weekday expiration. Existing saved expirations remain authoritative. Checkout displays a renewal message; payment creation/actions reject expiry. UTC date boundaries; weekends excluded, public holidays not excluded. |
+| Card payment | Stripe code exists but local keys are missing. A selected inline PaymentIntent could be overwritten by customer-supplied identifiers. | Inline mutations require the quote's stored intent; both inline and hosted finalization bind to the expected RFQ. Stripe intents use an idempotency key per quote version/company customer/amount. Finalization verifies stored session, USD currency and current quote amount. Configure test/live keys and webhook before release. New payment creation is gated by `STRIPE_CHECKOUT_ENABLED=true`; keep it false until shipping/tax and payment validation pass. |
+| Purchase-order terms | PO appeared selectable and could convert a quote without payment or approved credit terms. | PO payment is unavailable in the UI and rejected by the action and repository. Credit card is the initial approval/purchase method. Customer PO document support can be revisited under an approved credit workflow. |
+| Tax exemption | Customers could select an unreviewed exemption. | Exemption choices are disabled and rejected on the server. Set up Stripe Tax / the merchant's applicable tax registrations before live acceptance; disabling exemption does not implement sales-tax calculation. |
+| Payable total | Missing shipping was treated as zero. Checkout omitted tax while the live invoice generator could apply a generic 8.25% rate and report zero paid. | Saved customer/admin invoices now use annual IDs, immutable price/address snapshots, actual payment amount, and the tax amount represented by the charge rather than the generic invoice-template rate. Fully paid invoices omit bank remittance instructions. Missing shipping now blocks server payment creation. **Still required:** finalize tax before charging and reconcile quote → Stripe → invoice. |
+| Delivery fields | Address saved, but required date, dock/carrier instructions and buyer notes were discarded in card checkout. | The server retains a checkout snapshot including these fields, end use, compliance selection, and terms/certification timestamps. Admin order detail shows the snapshot. Requested dates are requests, not a promised delivery commitment. |
+| Shipping account | Company carrier billing was presented without a configured fulfillment workflow. | Disabled for the initial release, rejected on the server. Lattice-managed delivery remains the supported choice. Confirm the issued quote's actual shipping terms rather than assuming every order includes duties. |
+| Compliance | “Needs Lattice review” did not hold shipment. | That selection persists a hold. Ready-to-ship/shipped/delivered mutations reject an uncleared hold. The Lattice Admin records the review note and clears it explicitly. |
+| Purchasing acknowledgments | Required browser checkboxes could be bypassed by directly calling actions. | Server checks the accepted terms, compliance certification, supported payment/shipping/tax choices, and required delivery-address fields before payment submission. |
+| Quality approval | Quality review appeared as a derived workflow without an agreed per-order requirement or durable approval. | RFQ checkbox saves the requirement. Customer Admin reviews downloadable documents and saves approval; shipment is held where required. Re-uploading quality documents invalidates approval. Progress updates use a version check for held releases. |
+| Order documents | Original and quality rows could look actionable without downloads. | Available original/quality files have authorized links. Missing bytes are labeled unavailable. Lattice Admin can upload an actual inspection document. Customer Admin approval refuses a missing quality package. |
+| References and receipt | Truncated cuid prefixes can collide; customer invoice downloads did not use issued annual invoice records. | Order references use the complete immutable request identity. Customer/admin downloads get or issue one immutable annual invoice per order, protected by a unique order invoice key. |
+| Help | Submission showed success without a saved ticket. | Requests persist in the admin support queue. Resend email is attempted when configured; success is not claimed before the database save. No response-time guarantee is added. |
+
+## Required validation before enabling live payment
+
+1. Connect merchant/deployment access and securely configure runtime keys; never paste secret keys into chat. Configure the signed `/api/stripe/webhook` endpoint.
+2. Confirm final shipping price and merchant tax setup. Test taxable and supported zero-tax destinations against Stripe's configured rules; remove the current generic zero-tax assumption from checkout.
+3. With an isolated customer company, test success, declined card, 3-D Secure, interruption, reload, duplicate webhook, late webhook, renewed quote, changed quote amount, another company's intent/session, and webhook-only order creation.
+4. Verify no double charge, exactly one purchased order, exactly one annual receipt snapshot, amount paid/due agreement, and a controlled refund or void.
+5. Test Customer Member vs Customer Admin quality permissions, revised-document invalidation, compliance holds and admin release. Test different-company URLs and files.
+6. Visually verify desktop and an actual mobile viewport with genuine customer sessions. Browser viewport overrides did not take effect during the original audit, so mobile coverage is not claimed.
+
+Official payment reference: [Stripe PaymentIntents](https://docs.stripe.com/api/payment_intents). The implementation uses intent idempotency and signed webhooks; source review alone does not prove a live payment or webhook delivery.
+
+Follow-up browser evidence: expired-quote checkout displays “This quote has expired” with the support renewal instruction. Deployment smoke checks passed for login and unauthenticated draft denial. This does not replace the customer-role/payment/mobile checklist above.

@@ -1,4 +1,5 @@
 "use client";
+import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-workspace-scope";
 
 import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
@@ -9,8 +10,8 @@ import { CadRenderThumbnail } from "@/components/cad-file-preview";
 import { buyerLifecycleTag, type BuyerLifecycleTag } from "@/lib/buyer-lifecycle";
 import type { LatticeRequest } from "@/lib/request-model";
 
-const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
-const deletedQuoteStorageKey = "lattice.deletedBuyerQuotes.v1";
+
+
 const quoteTablePageSize = 3;
 
 const buyerQuoteStatusTone: Record<BuyerLifecycleTag, string> = {
@@ -68,8 +69,8 @@ function quoteRowHref(request: LatticeRequest) {
   return `/quotes/${request.id}`;
 }
 
-function readLocalIncompleteRequests() {
-  if (typeof window === "undefined" || !window.localStorage?.getItem) {
+function readLocalIncompleteRequests(incompleteRfqStorageKey: string | null) {
+  if (!incompleteRfqStorageKey || typeof window === "undefined" || !window.localStorage?.getItem) {
     return [];
   }
 
@@ -87,8 +88,8 @@ function readLocalIncompleteRequests() {
   }
 }
 
-function readDeletedQuoteIds() {
-  if (typeof window === "undefined" || !window.localStorage?.getItem) {
+function readDeletedQuoteIds(deletedQuoteStorageKey: string | null) {
+  if (!deletedQuoteStorageKey || typeof window === "undefined" || !window.localStorage?.getItem) {
     return [];
   }
 
@@ -100,16 +101,17 @@ function readDeletedQuoteIds() {
   }
 }
 
-function writeDeletedQuoteIds(ids: string[]) {
-  if (typeof window === "undefined" || !window.localStorage?.setItem) {
+function writeDeletedQuoteIds(deletedQuoteStorageKey: string | null, ids: string[]) {
+  if (!deletedQuoteStorageKey || typeof window === "undefined" || !window.localStorage?.setItem) {
     return;
   }
 
   window.localStorage.setItem(deletedQuoteStorageKey, JSON.stringify(ids));
 }
 
-function removeLocalIncompleteRequest(id: string) {
-  if (typeof window === "undefined" || !window.localStorage?.setItem) {
+function removeLocalIncompleteRequest(incompleteRfqStorageKey: string | null, id: string) {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("lattice-draft-removed", { detail: id }));
+  if (!incompleteRfqStorageKey || typeof window === "undefined" || !window.localStorage?.setItem) {
     return;
   }
 
@@ -321,6 +323,9 @@ function QuoteTable({
 }
 
 export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
+  const scope = useCustomerWorkspaceScope();
+  const incompleteRfqStorageKey = customerDraftStorageKey(scope);
+  const deletedQuoteStorageKey = scope ? `lattice.deletedBuyerQuotes.v2.${encodeURIComponent(scope)}` : null;
   const [localIncompleteRequests, setLocalIncompleteRequests] = useState<LatticeRequest[]>([]);
   const [deletedQuoteIds, setDeletedQuoteIds] = useState<string[]>([]);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -331,9 +336,9 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
     // Browser storage is intentionally read after hydration so server and client
     // produce the same initial markup.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalIncompleteRequests(readLocalIncompleteRequests());
-    setDeletedQuoteIds(readDeletedQuoteIds());
-  }, []);
+    setLocalIncompleteRequests(readLocalIncompleteRequests(incompleteRfqStorageKey));
+    setDeletedQuoteIds(readDeletedQuoteIds(deletedQuoteStorageKey));
+  }, [deletedQuoteStorageKey, incompleteRfqStorageKey]);
 
   const visibleRequests = useMemo(() => {
     const localIds = new Set(localIncompleteRequests.map((request) => request.id));
@@ -361,13 +366,13 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
     setDeleteError(null);
 
     if (isBrowserDraft) {
-      removeLocalIncompleteRequest(request.id);
+      removeLocalIncompleteRequest(incompleteRfqStorageKey, request.id);
       setLocalIncompleteRequests((currentRequests) =>
         currentRequests.filter((currentRequest) => currentRequest.id !== request.id),
       );
       setDeletedQuoteIds((currentIds) => {
         const nextIds = Array.from(new Set([...currentIds, request.id]));
-        writeDeletedQuoteIds(nextIds);
+        writeDeletedQuoteIds(deletedQuoteStorageKey, nextIds);
         return nextIds;
       });
       return;
@@ -380,7 +385,7 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
         await deleteBuyerQuoteAction(request.id);
         setDeletedQuoteIds((currentIds) => {
           const nextIds = Array.from(new Set([...currentIds, request.id]));
-          writeDeletedQuoteIds(nextIds);
+          writeDeletedQuoteIds(deletedQuoteStorageKey, nextIds);
           return nextIds;
         });
       } catch {

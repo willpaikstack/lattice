@@ -122,7 +122,7 @@ function quotedRequest(): LatticeRequest {
         shipping: "International / DDP - $80.00",
         tax: "Excluded",
         totalCents: 120000,
-        validUntil: "2026-07-18",
+        validUntil: "2099-07-18",
         versionNumber: 1,
       },
     ],
@@ -131,7 +131,7 @@ function quotedRequest(): LatticeRequest {
       estimatedPriceCents: 120000,
       leadTimeDays: 12,
       quoteCreatedDate: "2026-06-18",
-      quoteValidUntil: "2026-07-18",
+      quoteValidUntil: "2099-07-18",
       shippingCostCents: 8000,
       shippingMethod: "International",
       shippingTerms: "DDP",
@@ -188,56 +188,9 @@ describe("request repository QC", () => {
     expect(mocks.saveLocalRequest).not.toHaveBeenCalled();
   });
 
-  it("requires purchase-order number, AP email, and PO file before order conversion", async () => {
-    await expect(purchaseQuote("req_qc_checkout", { paymentMethod: "purchase-order" })).rejects.toThrow("PO number is required");
-    await expect(
-      purchaseQuote("req_qc_checkout", {
-        customerPoNumber: "AMOGY-PO-42",
-        paymentMethod: "purchase-order",
-      }),
-    ).rejects.toThrow("Accounts payable email is required");
-    await expect(
-      purchaseQuote("req_qc_checkout", {
-        accountsPayableEmail: "ap@amogy.co",
-        customerPoNumber: "AMOGY-PO-42",
-        paymentMethod: "purchase-order",
-      }),
-    ).rejects.toThrow("Upload the purchase order file");
-  });
-
-  it("converts a quoted RFQ into a purchased order through PO checkout", async () => {
-    const purchased = await purchaseQuote("req_qc_checkout", {
-      accountsPayableEmail: "ap@amogy.co",
-      buyerCheckoutNotes: "Route invoice through AP.",
-      customerPoNumber: "AMOGY-PO-42",
-      paymentMethod: "purchase-order",
-      poAttachment: {
-        name: "amogy-po-42.pdf",
-        sizeBytes: 8192,
-        storageKey: "customer-purchase-orders/2026-06-18/amogy-po-42.pdf",
-        type: "application/pdf",
-      },
-      shipToCity: "Rochester",
-    });
-
-    expect(purchased.status).toBe("PURCHASED");
-    expect(purchased.shipToCity).toBe("Rochester");
-    expect(purchased.purchasePayment).toMatchObject({
-      accountsPayableEmail: "ap@amogy.co",
-      customerPoNumber: "AMOGY-PO-42",
-      method: "PURCHASE_ORDER",
-      status: "PENDING_REVIEW",
-    });
-    expect(purchased.customerPurchaseOrderAttachment).toMatchObject({
-      name: "amogy-po-42.pdf",
-      sizeBytes: 8192,
-      storageKey: "customer-purchase-orders/2026-06-18/amogy-po-42.pdf",
-    });
-    expect(purchased.statusEvents.at(-1)).toMatchObject({
-      actor: "buyer",
-      from: "QUOTED",
-      to: "PURCHASED",
-    });
+  it("rejects purchase-order payment even with a valid uploaded PO", async () => {
+    await expect(purchaseQuote("req_qc_checkout", { accountsPayableEmail: "ap@amogy.co", customerPoNumber: "PO-42", paymentMethod: "purchase-order", poAttachment: { name: "po.pdf", sizeBytes: 100, type: "application/pdf", storageKey: "po/test.pdf" } })).rejects.toThrow("Purchase-order payment is not available");
+    expect(mocks.saveLocalRequest).not.toHaveBeenCalled();
   });
 
   it("records and finalizes Stripe payments without allowing amount tampering", async () => {

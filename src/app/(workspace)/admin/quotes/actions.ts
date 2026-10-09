@@ -1,4 +1,5 @@
 "use server";
+import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -57,11 +58,6 @@ function getOptionalPriceDollars(formData: FormData, key: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function addDaysIso(dateValue: string, days: number) {
-  const date = new Date(`${dateValue}T00:00:00.000Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
 
 function formatShippingLabel(costCents: number | null, method: string, terms: string) {
   const pieces = [method, terms].filter(Boolean).join(" / ");
@@ -101,7 +97,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
   const shippingMethod = getString(formData, "shippingMethod");
   const shippingTerms = getString(formData, "shippingTerms");
   const quoteCreatedDate = getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10);
-  const quoteValidUntil = getString(formData, "quoteValidUntil") || addDaysIso(quoteCreatedDate, 30);
+  const quoteValidUntil = calculateQuoteValidUntil(quoteCreatedDate);
   const quoteSummary = getString(formData, "quoteSummary").trim();
   const lineItems = current.lineItems.map((item) => ({
     description: item.partName,

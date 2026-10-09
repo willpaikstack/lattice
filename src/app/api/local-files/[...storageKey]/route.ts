@@ -26,13 +26,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ stor
 
     const { contents, sizeBytes } = await readLocalUpload(storageKey);
     const url = new URL(request.url);
-    const contentType = url.searchParams.get("type") || "application/octet-stream";
+    const extension = storageKey.split(".").at(-1)?.toLowerCase();
+    const previewTypes: Record<string, string> = { pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" };
+    const contentType = previewTypes[extension ?? ""] || "application/octet-stream";
     const fileName = downloadName(storageKey, request).replace(/"/g, "");
-    const disposition = url.searchParams.get("preview") === "1" ? "inline" : "attachment";
+    const disposition = url.searchParams.get("preview") === "1" && contentType !== "application/octet-stream" ? "inline" : "attachment";
 
     return new Response(contents, {
       headers: {
         "Content-Disposition": `${disposition}; filename="${fileName}"`,
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox",
         "Content-Length": String(sizeBytes),
         "Content-Type": contentType,
       },

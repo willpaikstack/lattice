@@ -956,7 +956,7 @@ Implications:
 
 Decision: drive the buyer RFQ material dropdown from a researched CNC material library covering Fictiv, Hubs/Protolabs Network, and Xometry offerings, while preserving legacy option values for saved drafts and reorders.
 
-Reason: buyers need to select the same breadth of CNC materials they expect from modern manufacturing networks, and the previous Bubble-era dropdown was too narrow for real RFQ intake.
+Reason: buyers need to select the breadth of CNC materials they expect from modern manufacturing networks, and the previous option list was too narrow for real RFQ intake.
 
 Implications:
 
@@ -1148,7 +1148,7 @@ Implications:
 
 Decision: keep `/requests/new` as an upload-first RFQ flow where the detailed quote configuration stays locked until a CAD file is attached.
 
-Reason: the Bubble prototype's request quote page reveals additional configuration after file upload, which makes the first step obvious and keeps buyers from facing a long form before anchoring the request to a part file.
+Reason: the request quote flow reveals additional configuration after file upload, which makes the first step obvious and keeps buyers from facing a long form before anchoring the request to a part file.
 
 Implications:
 
@@ -1161,7 +1161,7 @@ Implications:
 
 Decision: make the buyer `/dashboard` inbox a customer-facing notification center for order changes, RFQ status updates, uploaded quality documents, and buyer action items.
 
-Reason: the inbox should help end customers understand what changed and what needs attention, rather than remaining an empty Bubble placeholder or generic activity feed.
+Reason: the inbox should help end customers understand what changed and what needs attention, rather than remaining an empty placeholder or generic activity feed.
 
 Implications:
 
@@ -1267,17 +1267,17 @@ Implications:
 - Do not rely only on model memory for Next.js behavior.
 - Check local docs before changing routing, layouts, server actions, metadata, caching, or other Next.js APIs.
 
-## 2026-05-24 - Bubble Is A Product Reference, Not The Implementation
+## 2026-05-24 - Build The Product In Owned Code
 
-Decision: use the Bubble prototype to preserve product intent and information architecture, but rebuild cleanly in owned code.
+Decision: preserve useful product intent and information architecture while building the application in owned code.
 
-Reason: the Bubble prototype captures useful UX direction but includes placeholders, debug text, and unfinished pages.
+Reason: early product research captured useful UX direction alongside placeholders, debug text, and unfinished pages.
 
 Implications:
 
 - Keep useful structures like sidebar navigation, RFQ upload-first flow, materials catalog, capabilities page, dashboard cards, and quote/order modules.
 - Improve labels, data quality, role separation, and operational clarity.
-- Do not copy Bubble implementation constraints.
+- Keep implementation choices aligned with the current product architecture.
 
 ## 2026-05-24 - Product UI Direction Is Light B2B Operations Console
 
@@ -1402,3 +1402,17 @@ Implications:
 - Use option 1's contextual review queue for quote submissions and option 3's workbench for quote preparation. Keep the official logo and route-scoped admin palette.
 - Label `QUOTED` as Customer quote issued; keep supplier receipt separate from RFQ readiness. Requested due dates and owners come from existing request records.
 - Present CAD/drawing files as an RFQ-scoped package rather than assigning files to parts by array position. Keep the existing single supplier-backed line-price model, explicit issuance/editing, and stored quote versions. Unsent edits remain transient; pre-issue PDF generation is not part of this redesign.
+
+
+## 2026-10-08 — Customer audit defaults and purchasing policy update
+
+- Customer-approved quote acceptance is a credit-card purchase through Stripe. This supersedes the earlier manual-payment/disabled-card initial-cohort policy. Live acceptance remains gated on runtime keys, signed webhooks, final shipping/tax totals and controlled reconciliation testing; PO credit terms and unapproved tax exemption stay unavailable.
+- New and reissued quotes are valid for 15 weekdays after the issue date (three working weeks); Saturday/Sunday are excluded, public holidays are not. Existing saved expirations remain authoritative until explicit reissue/renewal.
+- Pre-shipment quality approval is an RFQ checkbox, false by default. Only the owning Customer Admin approves an available document package. Revised documents invalidate the approval; applicable quality/compliance holds block shipment release.
+- Incomplete RFQs are shared inside a company and isolated across companies, including browser caches and file references. Old unscoped browser draft uploads require correct-account re-upload.
+- Support and clarification replies persist in the admin queue, use support@latticeos.co, and promise no response SLA. Revised drawing history is retained.
+- Deploy the approved customer welcome/tour with saved per-user/company progress and Help/replay. Existing Clerk/password/address setup remains authoritative; admin/support impersonation does not change customer progress. Deployment was authorized and completed on 2026-10-08 after independent additive Production schema verification.
+- Customer/admin invoices are immutable annual issued records, one primary invoice per order, with recorded payment amounts; full immutable request identities replace collision-prone abbreviated order references.
+- Clarification requests, issued/revised quotes, requested quality approval and shipment create durable email events. Routine activity stays in-app. Company team/integration self-service remains governed roadmap work.
+
+- Stripe follow-up: use the user-confirmed Nexus Manufacturing Technologies, Inc. account in Chrome’s William (LATTICE) profile. Payments/Payouts active. User confirms existing tax registration in New York only. Tax is not configured in Stripe; avoid the current digital-services default for physical manufactured parts.

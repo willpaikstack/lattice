@@ -273,10 +273,10 @@ export function BuyerQuoteCheckout({
                 </label>
                 <label className="rounded-md border border-[#e7e7e7] bg-white p-4">
                   <span className="flex items-start gap-3">
-                    <input className="mt-1 accent-[#171717]" name="shippingMethod" type="radio" value="buyer-account" />
+                    <input className="mt-1 accent-[#171717]" name="shippingMethod" type="radio" value="buyer-account" disabled />
                     <span>
                       <span className="block text-[14px] font-semibold text-[#202020]">Use company shipping account</span>
-                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Provide account details after order placement. Duties and carrier charges may be billed separately.</span>
+                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Company shipping accounts are not available yet.</span>
                     </span>
                   </span>
                 </label>
@@ -344,6 +344,7 @@ export function BuyerQuoteCheckout({
                     <input
                       className="mt-1 accent-[#171717]"
                       checked={paymentMethod === "purchase-order"}
+                      disabled
                       name="checkoutPaymentChoice"
                       onChange={() => setPaymentMethod("purchase-order")}
                       type="radio"
@@ -354,7 +355,7 @@ export function BuyerQuoteCheckout({
                         <FileText aria-hidden="true" className="h-4 w-4 text-[#6f737a]" />
                         Purchase order
                       </span>
-                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Upload the customer PO for invoice matching and order review.</span>
+                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Not available yet. Purchase this quote by credit card.</span>
                     </span>
                   </span>
                 </label>
@@ -454,8 +455,8 @@ export function BuyerQuoteCheckout({
                 <FieldLabel>Tax status</FieldLabel>
                 <select className="mt-2 h-10 w-full rounded-md border border-[#dedede] bg-white px-3 text-[13px] text-[#202020] outline-none focus:border-[#9b9b9b]" defaultValue="taxable" name="taxStatus">
                   <option value="taxable">Taxable order</option>
-                  <option value="exempt">Tax exempt certificate on file</option>
-                  <option value="needs-certificate">Tax exempt, certificate needed</option>
+                  <option disabled value="exempt">Tax exempt certificate on file</option>
+                  <option disabled value="needs-certificate">Tax exempt, certificate needed</option>
                 </select>
               </div>
               <div className="mt-4">

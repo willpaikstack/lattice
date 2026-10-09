@@ -1,4 +1,5 @@
 "use client";
+import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-workspace-scope";
 
 import {
   DragEvent,
@@ -58,6 +59,7 @@ type ProjectFormState = {
   projectName: string;
   process: string;
   dueDate: string;
+  requiresQualityApproval: boolean;
 };
 
 type LineItemState = {
@@ -117,7 +119,7 @@ const cadFileTypes = "STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT";
 const cadAccept = ".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt";
 const cadFileExtensions = cadAccept.split(",").map((extension) => extension.trim().toLowerCase());
 const drawingAccept = ".pdf,.dxf,.dwg,.png,.jpg,.jpeg";
-const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
+
 const resumeDraftPageSize = 3;
 
 type LineItemField = keyof Omit<
@@ -151,6 +153,7 @@ const makeProjectInitialState = (defaultBuyerCompany = "Amogy Manufacturing"): P
   buyerCompany: defaultBuyerCompany,
   requesterName: "William Paik",
   customerPo: "",
+  requiresQualityApproval: false,
   projectName: "",
   process: "cnc_milling",
   dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
@@ -765,8 +768,8 @@ type StoredIncompleteRfq = {
   updatedAt: string;
 };
 
-function readIncompleteRfqs() {
-  if (typeof window === "undefined" || !window.localStorage?.getItem) {
+function readIncompleteRfqs(incompleteRfqStorageKey: string | null) {
+  if (!incompleteRfqStorageKey || typeof window === "undefined" || !window.localStorage?.getItem) {
     return [];
   }
 
@@ -778,8 +781,8 @@ function readIncompleteRfqs() {
   }
 }
 
-function readLocalIncompleteResumeRequests() {
-  return readIncompleteRfqs()
+function readLocalIncompleteResumeRequests(incompleteRfqStorageKey: string | null) {
+  return readIncompleteRfqs(incompleteRfqStorageKey)
     .map((draft) => draft.request)
     .filter(
       (request): request is LatticeRequest =>
@@ -787,16 +790,18 @@ function readLocalIncompleteResumeRequests() {
     );
 }
 
-function writeIncompleteRfqs(drafts: StoredIncompleteRfq[]) {
-  if (typeof window === "undefined" || !window.localStorage?.setItem) {
+function writeIncompleteRfqs(incompleteRfqStorageKey: string | null, drafts: StoredIncompleteRfq[]) {
+  if (!incompleteRfqStorageKey || typeof window === "undefined" || !window.localStorage?.setItem) {
     return;
   }
 
   window.localStorage.setItem(incompleteRfqStorageKey, JSON.stringify(drafts));
+  window.dispatchEvent(new Event("lattice-drafts-changed"));
 }
 
-function removeIncompleteRfq(id: string) {
-  writeIncompleteRfqs(readIncompleteRfqs().filter((draft) => draft.id !== id));
+function removeIncompleteRfq(incompleteRfqStorageKey: string | null, id: string) {
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("lattice-draft-removed", { detail: id }));
+  writeIncompleteRfqs(incompleteRfqStorageKey, readIncompleteRfqs(incompleteRfqStorageKey).filter((draft) => draft.id !== id));
 }
 
 function makeLocalDraftId() {
@@ -2905,6 +2910,7 @@ export function RequestForm({
   const router = useRouter();
   const [localResumeRequests, setLocalResumeRequests] = useState<LatticeRequest[]>([]);
   const [archivedResumeRequestIds, setArchivedResumeRequestIds] = useState<Set<string>>(() => new Set());
+  const incompleteRfqStorageKey = customerDraftStorageKey(useCustomerWorkspaceScope());
   const [projectForm, setProjectForm] = useState<ProjectFormState>(() => ({
     ...makeProjectInitialState(defaultBuyerCompany),
     ...initialState,
@@ -2946,13 +2952,13 @@ export function RequestForm({
     // Browser storage is intentionally read after hydration so server and client
     // produce the same initial markup.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalResumeRequests(readLocalIncompleteResumeRequests());
+    setLocalResumeRequests(readLocalIncompleteResumeRequests(incompleteRfqStorageKey));
 
     if (initialState || !localDraftId) {
       return;
     }
 
-    const localDraft = readIncompleteRfqs().find((draft) => draft.id === localDraftId);
+    const localDraft = readIncompleteRfqs(incompleteRfqStorageKey).find((draft) => draft.id === localDraftId);
     if (!localDraft) {
       return;
     }
@@ -2971,7 +2977,7 @@ export function RequestForm({
     );
     setDraftQuoteName(restoredInitialState.projectName ?? "");
     setIsQuoteNameCustomized(Boolean(restoredInitialState.projectName?.trim()));
-  }, [defaultBuyerCompany, initialState, localDraftId]);
+  }, [defaultBuyerCompany, initialState, localDraftId, incompleteRfqStorageKey]);
 
   const resumeChoices = useMemo(() => {
     const localIds = new Set(localResumeRequests.map((request) => request.id));
@@ -3215,6 +3221,7 @@ export function RequestForm({
       buyerCompany: projectForm.buyerCompany,
       customerPo: projectForm.customerPo,
       dueDate: projectForm.dueDate,
+      requiresQualityApproval: projectForm.requiresQualityApproval,
       fileName: primaryLineItem.fileName,
       generalTolerance: primaryLineItem.generalTolerance,
       material: primaryLineItem.material,
@@ -3256,6 +3263,7 @@ export function RequestForm({
       title: requestTitle,
       process: optionLabel(processOptions, projectForm.process),
       dueDate: projectForm.dueDate,
+      requiresQualityApproval: projectForm.requiresQualityApproval,
       status: "DRAFT",
       lineItems: configuredLineItems.map((lineItem) => ({
         id: lineItem.id,
@@ -3361,9 +3369,9 @@ export function RequestForm({
       request,
       updatedAt: timestamp,
     };
-    const otherDrafts = readIncompleteRfqs().filter((draft) => draft.id !== draftId);
-    writeIncompleteRfqs([nextDraft, ...otherDrafts].slice(0, 12));
-  }, [activeLocalDraftId, configuredLineItems, hasCadFile, projectForm]);
+    const otherDrafts = readIncompleteRfqs(incompleteRfqStorageKey).filter((draft) => draft.id !== draftId);
+    writeIncompleteRfqs(incompleteRfqStorageKey, [nextDraft, ...otherDrafts].slice(0, 12));
+  }, [activeLocalDraftId, configuredLineItems, hasCadFile, projectForm, incompleteRfqStorageKey]);
 
   useEffect(() => {
     if (isQuoteNameEditing) {
@@ -3740,6 +3748,7 @@ export function RequestForm({
       title: projectForm.projectName,
       process: optionLabel(processOptions, projectForm.process),
       dueDate: projectForm.dueDate,
+      requiresQualityApproval: projectForm.requiresQualityApproval,
       lineItems: configuredLineItems.map((lineItem, index) => {
         const noteLines = [
           index === 0 && projectForm.customerPo.trim()
@@ -3764,8 +3773,9 @@ export function RequestForm({
           notes: noteLines.join("\n"),
         };
       }),
-      files: configuredLineItems.flatMap((lineItem) => [
+      files: configuredLineItems.flatMap((lineItem, lineItemIndex) => [
         {
+          lineItemIndex,
           name: lineItem.fileName,
           sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
           storageKey: lineItem.fileStorageKey,
@@ -3775,6 +3785,7 @@ export function RequestForm({
         ...(lineItem.technicalDrawingName
           ? [
               {
+                lineItemIndex,
                 name: lineItem.technicalDrawingName,
                 sizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
                 storageKey: lineItem.technicalDrawingStorageKey,
@@ -3812,7 +3823,7 @@ export function RequestForm({
       }
 
       if (activeLocalDraftId) {
-        removeIncompleteRfq(activeLocalDraftId);
+        removeIncompleteRfq(incompleteRfqStorageKey, activeLocalDraftId);
       }
       router.replace(`/quotes/${payload.request.id}`);
     } catch (caught) {
@@ -3826,7 +3837,7 @@ export function RequestForm({
     const isLocalDraft = localResumeRequests.some((draft) => draft.id === request.id);
 
     if (isLocalDraft) {
-      removeIncompleteRfq(request.id);
+      removeIncompleteRfq(incompleteRfqStorageKey, request.id);
       return;
     }
 
@@ -4000,6 +4011,11 @@ export function RequestForm({
               onFilesSelected={handleNewCadFilesSelected}
             />
           ) : null}
+
+          <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
+            <input type="checkbox" checked={projectForm.requiresQualityApproval} onChange={(event) => setProjectForm((current) => ({ ...current, requiresQualityApproval: event.target.checked }))} className="mt-1" />
+            <span><strong>Require quality approval before shipment</strong><br />Request Customer Admin approval of inspection documents before Lattice releases this order for shipment. Lattice will confirm this requirement in your quote.</span>
+          </label>
 
           {error ? (
             <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

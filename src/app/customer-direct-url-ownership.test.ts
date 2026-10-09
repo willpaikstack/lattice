@@ -41,6 +41,7 @@ vi.mock("@/lib/account-settings", () => ({
 
 vi.mock("@/lib/invoice-pdf", () => ({
   buildRequestInvoicePdf: mocks.buildRequestInvoicePdf,
+  buildIssuedOrderInvoicePdf: mocks.buildRequestInvoicePdf,
   orderInvoicePdfFileName: mocks.orderInvoicePdfFileName,
 }));
 
@@ -150,3 +151,5 @@ describe("customer direct URL ownership", () => {
     await expect(response.text()).resolves.toBe("pdf-bytes");
   });
 });
+
+vi.mock("@/lib/invoice-repository", () => ({ getOrIssueOrderInvoice: vi.fn(async () => ({ invoiceNumber: "invoice" })) }));

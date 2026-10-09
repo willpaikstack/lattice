@@ -1,4 +1,5 @@
 import "server-only";
+import { ownsDraftUpload } from "./draft-upload-scope";
 
 import { isDraftUploadStorageKey } from "./local-file-storage";
 import type { LatticeRequest, UploadedFile } from "./request-model";
@@ -44,7 +45,7 @@ function storageKeyMatches(file: Pick<UploadedFile, "storageKey"> | null | undef
 }
 
 function requestHasCustomerVisibleStorageKey(request: LatticeRequest, storageKey: string) {
-  return request.files.some((file) => storageKeyMatches(file, storageKey)) || storageKeyMatches(request.customerPurchaseOrderAttachment, storageKey);
+  return request.supplierOrder?.documents?.some((file) => storageKeyMatches(file, storageKey)) || request.files.some((file) => storageKeyMatches(file, storageKey)) || storageKeyMatches(request.customerPurchaseOrderAttachment, storageKey);
 }
 
 function requestHasAdminOnlyStorageKey(request: LatticeRequest, storageKey: string) {
@@ -75,7 +76,7 @@ export async function canCurrentSessionAccessStorageKey(storageKey: string) {
   }
 
   if (isDraftUploadStorageKey(storageKey)) {
-    return { authenticated: true, authorized: session.user.role === "admin" || session.user.role === "customer" };
+    return { authenticated: true, authorized: (session.user.role === "admin" || session.user.role === "customer") && ownsDraftUpload(session, storageKey) };
   }
 
   const requests = await listAdminRequests();

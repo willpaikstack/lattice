@@ -13,8 +13,8 @@ export function bundledFilesByLineItem(request: LatticeRequest) {
   const drawingFiles = request.files.filter(isDrawingFile);
 
   return request.lineItems.map((lineItem, index) => ({
-    cadFile: cadFiles[index] ?? null,
-    drawingFile: drawingFiles[index] ?? null,
+    cadFile: cadFiles.find((file) => file.lineItemIndex === index) ?? (cadFiles.length === request.lineItems.length && cadFiles.every((file) => file.lineItemIndex === undefined) ? cadFiles[index] : null),
+    drawingFile: [...drawingFiles].reverse().find((file) => file.lineItemIndex === index) ?? (drawingFiles.length === request.lineItems.length && drawingFiles.every((file) => file.lineItemIndex === undefined) ? drawingFiles[index] : null),
     lineItem,
   }));
 }

@@ -270,6 +270,12 @@ model Request {
   title                           String
   process                         String
   dueDate                         DateTime?
+  requiresQualityApproval         Boolean @default(false)
+  qualityApprovedAt               DateTime?
+  qualityApprovedBy               String?
+  checkoutDetails                 Json?
+  complianceReviewRequired        Boolean @default(false)
+  complianceReviewedAt            DateTime?
   status                          RequestStatus                    @default(DRAFT)
   requestOrigin                   RequestOrigin                     @default(ACCOUNT)
   guestAccessTokenHash            String                           @default("")
@@ -364,6 +370,7 @@ model InvoiceSequence {
 model Invoice {
   id                String        @id @default(cuid())
   invoiceNumber     String        @unique
+  orderInvoiceKey   String?       @unique
   sequenceYear      Int
   sequenceValue     Int
   status            InvoiceStatus @default(ISSUED)
@@ -483,6 +490,7 @@ model UploadedFile {
   type          String
   storageKey    String?
   cadPreviewUrn String?
+  lineItemIndex Int?
   createdAt     DateTime @default(now())
 }
 
@@ -494,6 +502,7 @@ model SupplierDocument {
   sizeBytes Int
   type      String
   category  SupplierDocumentCategory @default(OTHER)
+  storageKey String?
   createdAt DateTime                 @default(now())
 }
 
@@ -516,4 +525,57 @@ model StatusEvent {
   to        RequestStatus
   actor     String
   createdAt DateTime       @default(now())
+}
+
+// Progress is scoped to the signed-in customer membership, never to support impersonation.
+model CustomerOnboardingProgress {
+  id String @id @default(cuid())
+  userId String
+  companyId String
+  step Int @default(0)
+  completedAt DateTime?
+  updatedAt DateTime @updatedAt
+  @@unique([userId, companyId])
+}
+
+model CustomerSupportRequest {
+  id String @id @default(cuid())
+  requestId String
+  companyId String
+  userId String
+  email String
+  issueType String
+  message String
+  urgency String
+  followUp String
+  status String @default("OPEN")
+  emailDelivery String @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([companyId, requestId])
+  @@index([status, createdAt])
+}
+
+model CustomerRequestDraft {
+  id String @id
+  ownerScope String
+  contents Json
+  editedAt DateTime
+  createdAt DateTime @default(now())
+  @@index([ownerScope, editedAt])
+}
+
+model CustomerEmailEvent {
+  key String @id
+  requestId String
+  companyId String
+  kind String
+  recipient String
+  subject String
+  body String
+  status String @default("PENDING")
+  attempts Int @default(0)
+  createdAt DateTime @default(now())
+  deliveredAt DateTime?
+  @@index([status, createdAt])
 }

@@ -1,0 +1,7 @@
+"use client";
+import { useState, useTransition } from "react";
+import { replyToClarification } from "@/app/(workspace)/quotes/[requestId]/clarification/actions";
+export function CustomerClarification({ requestId, parts }: { requestId: string; parts: string[] }) {
+  const [pending, startTransition] = useTransition(); const [error, setError] = useState("");
+  return <section className="rounded-lg border bg-white p-5"><h2 className="text-lg font-semibold">Reply to Lattice</h2><form className="mt-4 grid gap-3" onSubmit={(event) => { event.preventDefault(); const data = new FormData(event.currentTarget); startTransition(async () => { setError(""); try { await replyToClarification(requestId, data); } catch (caught) { setError(caught instanceof Error ? caught.message : "Reply could not be saved."); } }); }}><label>Part<select name="lineItemIndex" className="ml-3 rounded border p-2">{parts.map((part, index) => <option key={index} value={index}>{part}</option>)}</select></label><label className="grid gap-2">Clarification<textarea required name="message" maxLength={10000} className="min-h-24 rounded border p-3" /></label><label className="grid gap-2">Revised drawing (optional)<input name="drawing" type="file" accept=".pdf,.dwg,.dxf,.png,.jpg,.jpeg" /></label>{error && <p role="alert" className="text-red-800">{error}</p>}<button disabled={pending} className="w-fit rounded-lg bg-stone-950 px-4 py-2 text-white" type="submit">{pending ? "Saving…" : "Send clarification for review"}</button></form></section>;
+}

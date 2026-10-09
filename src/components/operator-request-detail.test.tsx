@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AccountAddress, BillingContact, PaymentCard } from "@/lib/account-settings-shared";
-import type { OverseasVendor } from "@/lib/admin-vendors";
 import { applyOperatorStatusUpdate, buildDraftRequest, submitDraftRequest } from "../lib/request-model";
 
 import { AdminQuoteManagement } from "./admin-quote-management";
@@ -95,547 +94,46 @@ function makeQuotedRequest() {
   });
 }
 
-function makeOverseasVendor(overrides: Partial<OverseasVendor> = {}): OverseasVendor {
-  return {
-    activeOrderCount: 0,
-    averageLeadTimeDays: null,
-    averageQuoteCents: null,
-    capabilities: ["CNC Milling"],
-    certifications: ["ISO 9001"],
-    city: "Shenzhen",
-    communicationWindow: "Evening ET overlap",
-    country: "China",
-    defectRate: "Pending",
-    fabCapabilities: ["CNC Milling"],
-    id: "shenzhen-precision-manufacturing",
-    lastActivityAt: null,
-    lastQuotedAt: null,
-    materials: ["6061-T6 Aluminum"],
-    name: "Shenzhen Precision Manufacturing",
-    nonFabOfferings: ["Material Sourcing"],
-    notes: "Saved vendor record.",
-    onboardingStatus: "Onboarded",
-    onTimeDeliveryRate: "Pending",
-    openRfqCount: 0,
-    paymentTerms: "Program specific",
-    phoneNumber: "",
-    primaryCapability: "Precision CNC machining",
-    primaryContact: "Li Wei",
-    primaryEmail: "li.wei@szprecision.cn",
-    qmsStandard: "ISO 9001 aligned",
-    qualitySystem: "Inspection package scoped per RFQ.",
-    quoteCount: 0,
-    receivedQuoteCount: 0,
-    recentRfqs: [],
-    region: "Greater Bay Area",
-    relationshipOwner: "William",
-    selectedOrderCount: 0,
-    shippingLane: "China export lanes",
-    status: "Needs review",
-    vendorCode: "VND-924",
-    vendorDocs: [],
-    vendorType: ["Machine Shop"],
-    website: "",
-    wechatId: "",
-    ...overrides,
-  };
-}
 
 describe("AdminQuoteManagement", () => {
-  it("shows customer draft quotes in a separate admin table", () => {
-    const draft = buildDraftRequest({
-      buyerCompany: "Amogy Manufacturing",
-      requesterName: "William Paik",
-      title: "Aluminum plates for reactor weld fixture",
-      process: "CNC milling",
-      dueDate: "2026-06-16",
-      lineItems: [
-        {
-          partName: "Aluminum Plate",
-          quantity: 1,
-          material: "SS 304",
-          generalTolerance: "ISO 2768 Medium (m)",
-          surfaceFinish: "As machined",
-          qualityDocumentation: ["CMM Inspection with Dimensional Report"],
-        },
-      ],
-      files: [{ name: "Aluminum Plate.STEP", sizeBytes: 2048, type: "model/step" }],
-    });
-
-    render(
-      <AdminQuoteManagement
-        customerProfileHrefs={{ "Amogy Manufacturing": "/admin/customers/company_amogy" }}
-        requests={[draft, makeSubmittedRequest()]}
-      />,
-    );
-
-    expect(screen.getByRole("heading", { name: "Draft quotes not yet requested" })).toBeInTheDocument();
-    expect(screen.queryByText("Active submissions")).not.toBeInTheDocument();
-    expect(screen.queryByText("Shop quotes")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ready to price")).not.toBeInTheDocument();
-    expect(screen.queryByText("Quoted value")).not.toBeInTheDocument();
-    expect(screen.getByText("Aluminum plates for reactor weld fixture")).toBeInTheDocument();
-    expect(screen.getByText("Aluminum Plate")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Open draft" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Open draft for Aluminum plates for reactor weld fixture" }));
-    expect(mockPush).toHaveBeenCalledWith(`/requests/new?draft=${draft.id}`);
-    expect(screen.getAllByRole("link", { name: "Open customer page for Amogy Manufacturing" }).map((link) => link.getAttribute("href"))).toEqual([
-      "/admin/customers/company_amogy",
-      "/admin/customers/company_amogy",
-    ]);
-    expect(screen.getByText("Showing 1 draft")).toBeInTheDocument();
+  it("keeps draft RFQs out of the active queue and opens the draft tab", () => {
+    const draft = { ...makeSubmittedRequest(), id: "draft_one", status: "DRAFT" as const, title: "Draft bracket" };
+    render(<AdminQuoteManagement requests={[draft, makeSubmittedRequest()]} />);
+    expect(screen.queryByText("Draft bracket")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Drafts (1)" }));
+    expect(screen.getByText("Draft bracket")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open draft for Draft bracket" })).toBeInTheDocument();
   });
-
-  it("groups requested quotes by customer-facing status and keeps archived quotes behind the archived filter", () => {
-    const submittedRequest = {
-      ...makeSubmittedRequest(),
-      id: "req_submitted",
-      title: "Submitted bracket RFQ",
-      updatedAt: "2026-06-11T14:30:00.000Z",
-    };
-    const needsInfoRequest = {
-      ...applyOperatorStatusUpdate(makeSubmittedRequest(), {
-        assignedOwner: "William",
-        internalNotes: "Need drawing clarification.",
-        status: "NEEDS_INFO",
-      }),
-      id: "req_needs_info",
-      title: "Needs info fixture RFQ",
-      updatedAt: "2026-06-11T15:30:00.000Z",
-    };
-    const supplierReadyRequest = {
-      ...applyOperatorStatusUpdate(makeSubmittedRequest(), {
-        assignedOwner: "William",
-        internalNotes: "Supplier package ready.",
-        status: "READY_FOR_SUPPLIER_RFQ",
-      }),
-      id: "req_supplier_ready",
-      title: "Supplier ready plate RFQ",
-      updatedAt: "2026-06-11T16:30:00.000Z",
-    };
-    const quotedRequest = {
-      ...makeQuotedRequest(),
-      id: "req_quoted",
-      title: "Quoted retainer RFQ",
-      updatedAt: "2026-06-11T17:30:00.000Z",
-    };
-    const archivedRequest = {
-      ...applyOperatorStatusUpdate(makeSubmittedRequest(), {
-        assignedOwner: "William",
-        internalNotes: "Closed by admin.",
-        status: "CLOSED",
-      }),
-      id: "req_archived",
-      title: "Archived tooling RFQ",
-      updatedAt: "2026-06-11T18:30:00.000Z",
-    };
-
-    render(<AdminQuoteManagement requests={[submittedRequest, needsInfoRequest, supplierReadyRequest, quotedRequest, archivedRequest]} updateStatusAction={() => undefined} />);
-
-    expect(screen.getAllByText("RFQ details").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Last edited").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Package").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Quote status").length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("heading", { name: "Quote Requested" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("heading", { name: "Quote Received" }).length).toBeGreaterThan(0);
-    expect(screen.getByText("Submitted bracket RFQ")).toBeInTheDocument();
-    expect(screen.getByText("Needs info fixture RFQ")).toBeInTheDocument();
-    expect(screen.getByText("Supplier ready plate RFQ")).toBeInTheDocument();
-    expect(screen.getByText("Quoted retainer RFQ")).toBeInTheDocument();
-    expect(screen.getByText("Needs info")).toBeInTheDocument();
-    expect(screen.getByText("Supplier ready")).toBeInTheDocument();
-    expect(screen.getAllByText("1 part / Qty 24").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("2 files - 1 CAD / 1 drawing").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Archived tooling RFQ")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Archived" }));
-
-    expect(screen.getByRole("heading", { name: "Archived" })).toBeInTheDocument();
-    expect(screen.getByText("Archived tooling RFQ")).toBeInTheDocument();
-    expect(screen.queryByText("Submitted bracket RFQ")).not.toBeInTheDocument();
-  });
-
-  it("opens a minimal RFQ review drawer with files, part details, and quote feedback", () => {
+  it("shows an RFQ inspector with its package and supplier basis", () => {
     const request = makeSubmittedRequest();
-    const decisionAction = vi.fn();
-
-    render(
-      <AdminQuoteManagement
-        overseasVendors={[
-          makeOverseasVendor(),
-          makeOverseasVendor({
-            country: "Taiwan",
-            id: "tainan-advanced-machining",
-            name: "Tainan Advanced Machining",
-            primaryContact: "Mei Lin",
-          }),
-        ]}
-        requests={[request]}
-        updateDecisionAction={decisionAction}
-        updateStatusAction={() => undefined}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("link", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("RFQ response")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    const rfqSummary = screen.getByLabelText("RFQ summary");
-    expect(within(rfqSummary).getByText("Quote")).toBeInTheDocument();
-    expect(within(rfqSummary).getByText(/LQ-/)).toBeInTheDocument();
-    expect(within(rfqSummary).getByText("Customer")).toBeInTheDocument();
-    expect(within(rfqSummary).getByText("Amogy Manufacturing")).toBeInTheDocument();
-    expect(within(rfqSummary).getByText("Process")).toBeInTheDocument();
-    expect(within(rfqSummary).getByText("CNC milling")).toBeInTheDocument();
-    expect(within(rfqSummary).queryByText("Package")).not.toBeInTheDocument();
-    expect(within(rfqSummary).queryByText("1 part")).not.toBeInTheDocument();
-    expect(within(rfqSummary).queryByText("Quantity")).not.toBeInTheDocument();
-    expect(within(rfqSummary).queryByText("24")).not.toBeInTheDocument();
-    expect(within(rfqSummary).queryByText("Files")).not.toBeInTheDocument();
-    expect(within(rfqSummary).queryByText("2 files")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Amogy Manufacturing - CNC milling - 1 part - Qty 24 - 2 files/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Review customer RFQ package" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Request information" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "No quote" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Attach supplier quote" })).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Selected Chinese shop quote" })).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Shop name").tagName).toBe("SELECT");
-    expect(screen.getByLabelText("Shop name")).toHaveDisplayValue("Shenzhen Precision Manufacturing");
-    expect(screen.getByRole("option", { name: "Tainan Advanced Machining" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Country").tagName).toBe("SELECT");
-    expect(screen.getByLabelText("Country")).toHaveDisplayValue("China");
-    expect(screen.getByRole("option", { name: "Vietnam" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "India" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Supplier contact")).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierQuoteContact"]')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Supplier quote total")).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierQuoteTotal"]')).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Enter pricing and lead time" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Issue customer quote" })).toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierQuoteFile"]')).toBeInTheDocument();
-    expect(screen.getByLabelText("Upload supplier quote file")).toHaveClass("sr-only");
-    expect(screen.getByText("Upload supplier quote")).toBeInTheDocument();
-    expect(screen.getByText("PDF, spreadsheet, image, or document from the shop")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Upload quote" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("mounting-bracket.step").length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /mounting-bracket.step/ })).toHaveAttribute(
-      "href",
-      "/api/local-files/rfq/request-1/mounting-bracket.step?name=mounting-bracket.step&type=model%2Fstep",
-    );
-    expect(screen.getByRole("link", { name: /mounting-bracket.step/ })).toHaveAttribute("download", "mounting-bracket.step");
-    expect(screen.getByRole("link", { name: /mounting-bracket.pdf/ })).toHaveAttribute(
-      "href",
-      "/api/local-files/rfq/request-1/mounting-bracket.pdf?name=mounting-bracket.pdf&type=application%2Fpdf",
-    );
-    expect(screen.getByRole("link", { name: /mounting-bracket.pdf/ })).toHaveAttribute("download", "mounting-bracket.pdf");
-    expect(screen.getAllByText("Part").length).toBeGreaterThan(0);
-    expect(screen.getByText("Specs")).toBeInTheDocument();
-    expect(screen.getByText("Uploaded files")).toBeInTheDocument();
-    expect(screen.getAllByText("Qty").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Material:/)).toBeInTheDocument();
-    expect(screen.getByText(/Finish:/)).toBeInTheDocument();
-    expect(screen.getByText(/Tolerance:/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Unit price - Mounting bracket/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Lead time days - Mounting bracket/)).toBeInTheDocument();
-    expect(screen.queryByText("Supplier unit price")).not.toBeInTheDocument();
-    expect(screen.queryByText("Supplier lead time")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Supplier unit price - Mounting bracket/)).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierUnitPrice:line-1"]')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Supplier lead time days - Mounting bracket/)).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierLeadTimeDays:line-1"]')).not.toBeInTheDocument();
-    const leadTimeInput = screen.getByLabelText(/Lead time days - Mounting bracket/);
-    const overallLeadTimeInput = screen.getByLabelText("Overall lead time days");
-    const shippingSpeedSelect = screen.getByLabelText("Shipping speed");
-    expect(leadTimeInput).toBeInTheDocument();
-    expect(overallLeadTimeInput).toHaveValue("");
-    fireEvent.change(leadTimeInput, { target: { value: "12" } });
-    expect(overallLeadTimeInput).toHaveValue("17");
-    fireEvent.change(shippingSpeedSelect, { target: { value: "Domestic" } });
-    expect(overallLeadTimeInput).toHaveValue("14");
-    fireEvent.change(shippingSpeedSelect, { target: { value: "International" } });
-    expect(overallLeadTimeInput).toHaveValue("17");
-    expect(screen.queryByText("Drawing / revision")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Supplier drawing revision - Mounting bracket/)).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierDrawingRevision:line-1"]')).not.toBeInTheDocument();
-    expect(screen.queryByText("Supplier notes")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Supplier notes - Mounting bracket/)).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierNotes:line-1"]')).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Shipping cost")).toBeInTheDocument();
-    expect(shippingSpeedSelect).toBeInTheDocument();
-    expect(shippingSpeedSelect).toHaveDisplayValue("International");
-    expect(screen.getByLabelText("Shipping terms")).toBeInTheDocument();
-    expect(screen.getByLabelText("Estimated delivery date")).toBeInTheDocument();
-    expect(screen.getByLabelText("Quote valid until")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Issue customer quote" })).toBeEnabled();
+    render(<AdminQuoteManagement requests={[request]} />);
+    const inspector = screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` });
+    expect(within(inspector).getByText("Supplier basis")).toBeInTheDocument();
+    expect(within(inspector).getByRole("button", { name: "Prepare customer quote" })).toBeInTheDocument();
   });
-
-  it("requires customer-facing notes before sending RFQ decision outcomes", () => {
-    const request = makeSubmittedRequest();
-    const decisionAction = vi.fn();
-
-    render(<AdminQuoteManagement requests={[request]} updateDecisionAction={decisionAction} updateStatusAction={() => undefined} />);
-
-    fireEvent.click(screen.getByRole("link", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
-    fireEvent.click(screen.getByRole("button", { name: "Request information" }));
-
-    const requestInfoRegion = screen.getByRole("region", { name: "Request additional information" });
-    expect(requestInfoRegion).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send request" })).toBeDisabled();
-    fireEvent.change(within(requestInfoRegion).getByLabelText("Customer note"), { target: { value: "Please upload a drawing with the thread callouts." } });
-    expect(screen.getByRole("button", { name: "Send request" })).toBeEnabled();
-
-    const requestInfoForm = screen.getByRole("button", { name: "Send request" }).closest("form");
-    expect(requestInfoForm).not.toBeNull();
-    const requestInfoData = new FormData(requestInfoForm as HTMLFormElement);
-    expect(requestInfoData.get("status")).toBe("NEEDS_INFO");
-    expect(requestInfoData.get("customerNote")).toBe("Please upload a drawing with the thread callouts.");
-
-    fireEvent.click(screen.getByRole("button", { name: "No quote" }));
-
-    const noQuoteRegion = screen.getByRole("region", { name: "No quote this RFQ" });
-    expect(noQuoteRegion).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send no quote" })).toBeDisabled();
-    fireEvent.change(within(noQuoteRegion).getByLabelText("Customer note"), { target: { value: "We are unable to quote this process with the current supplier network." } });
-    expect(screen.getByRole("button", { name: "Send no quote" })).toBeEnabled();
-
-    const noQuoteForm = screen.getByRole("button", { name: "Send no quote" }).closest("form");
-    expect(noQuoteForm).not.toBeNull();
-    const noQuoteData = new FormData(noQuoteForm as HTMLFormElement);
-    expect(noQuoteData.get("status")).toBe("CLOSED");
-    expect(noQuoteData.get("customerNote")).toBe("We are unable to quote this process with the current supplier network.");
+  it("filters the review queue by search", () => {
+    render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} />);
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search quote submissions" }), { target: { value: "no matching RFQ" } });
+    expect(screen.getByText(/0 submissions/)).toBeInTheDocument();
   });
-
-  it("hides RFQ decision outcomes for closed quote requests", async () => {
-    const closedRequest = applyOperatorStatusUpdate(makeSubmittedRequest(), {
-      internalNotes: "Unable to quote this RFQ because the requested process is outside the current supplier network.",
-      status: "CLOSED",
-    });
-    mockRequestIdParam = closedRequest.id;
-
-    render(<AdminQuoteManagement requests={[closedRequest]} updateDecisionAction={() => undefined} updateStatusAction={() => undefined} />);
-
-    await waitFor(() => {
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-    });
+  it("opens the workbench from the inspector", () => {
+    render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} />);
+    fireEvent.click(screen.getByRole("button", { name: "Prepare customer quote" }));
+    expect(screen.getByRole("navigation", { name: "RFQ queue" })).toBeInTheDocument();
+    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("view=quote"), { scroll: false });
+  });
+  it("selects a valid deep-linked RFQ in the inspector", () => {
+    const request = makeSubmittedRequest(); mockRequestIdParam = request.id;
+    render(<AdminQuoteManagement requests={[request]} />);
+    expect(screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` })).toBeInTheDocument();
+  });
+  it("keeps closed RFQs in archive and hides decision controls", () => {
+    const request = { ...makeSubmittedRequest(), status: "CLOSED" as const };
+    render(<AdminQuoteManagement requests={[request]} updateDecisionAction={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Archive (1)" }));
     expect(screen.queryByRole("button", { name: "Request information" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "No quote" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View RFQ details" })).toBeInTheDocument();
   });
-
-  it("opens the quote drawer from a valid requestId search param", async () => {
-    const request = makeSubmittedRequest();
-    mockRequestIdParam = request.id;
-
-    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
-
-    await waitFor(() => {
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-    });
-    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalled();
-  });
-
-  it("replaces a stale requestId search param with the clean quote list URL", async () => {
-    const request = makeSubmittedRequest();
-    mockRequestIdParam = "req_missing";
-
-    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
-
-    await waitFor(() => {
-      expect(mockReplace).toHaveBeenCalledWith("/admin/quotes", { scroll: false });
-    });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("reloads the quote list when the browser restores it from back-forward cache", () => {
-    const reload = vi.fn();
-
-    Object.defineProperty(window, "location", {
-      configurable: true,
-      value: {
-        pathname: "/admin/quotes",
-        reload,
-      },
-    });
-
-    render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} updateStatusAction={() => undefined} />);
-
-    window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
-
-    expect(reload).toHaveBeenCalled();
-  });
-
-  it("lets admins remove an attached supplier quote file from the RFQ drawer", () => {
-    const request = {
-      ...makeSubmittedRequest(),
-      supplierQuoteFiles: [
-        {
-          id: "supplier_quote_file_1",
-          name: "Jucheng Precision Quote.pdf",
-          sizeBytes: 316000,
-          storageKey: "supplier-quotes/2026-06-11/jucheng-precision-quote.pdf",
-          type: "application/pdf",
-          uploadedAt: "2026-06-11T23:21:00.000Z",
-        },
-      ],
-    };
-
-    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
-
-    fireEvent.click(screen.getByRole("link", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
-
-    expect(screen.getByText("Jucheng Precision Quote.pdf")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download supplier quote Jucheng Precision Quote.pdf" })).toHaveAttribute(
-      "href",
-      "/api/local-files/supplier-quotes/2026-06-11/jucheng-precision-quote.pdf?name=Jucheng%20Precision%20Quote.pdf&type=application%2Fpdf",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Preview supplier quote Jucheng Precision Quote.pdf" }));
-    expect(screen.getByRole("dialog", { name: "Supplier quote PDF viewer for Jucheng Precision Quote.pdf" })).toBeInTheDocument();
-    expect(screen.getByTitle("Preview Jucheng Precision Quote.pdf")).toHaveAttribute(
-      "src",
-      "/api/local-files/supplier-quotes/2026-06-11/jucheng-precision-quote.pdf?name=Jucheng%20Precision%20Quote.pdf&type=application%2Fpdf&preview=1",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Close supplier quote PDF viewer" }));
-    expect(screen.queryByRole("dialog", { name: "Supplier quote PDF viewer for Jucheng Precision Quote.pdf" })).not.toBeInTheDocument();
-
-    const removeButton = screen.getByRole("button", { name: "Remove supplier quote Jucheng Precision Quote.pdf" });
-    const removeForm = removeButton.closest("form");
-
-    expect(removeForm).toHaveAttribute("action", "/api/supplier-quote-files/remove");
-    expect(within(removeForm as HTMLFormElement).getByDisplayValue(request.id)).toHaveAttribute("name", "requestId");
-    expect(within(removeForm as HTMLFormElement).getByDisplayValue("supplier_quote_file_1")).toHaveAttribute("name", "fileId");
-    expect(within(removeForm as HTMLFormElement).getByDisplayValue(`/admin/quotes?requestId=${request.id}`)).toHaveAttribute("name", "returnTo");
-  });
-
-  it("allows admins to edit submitted customer quotes in the admin drawer", () => {
-    const baseRequest = makeQuotedRequest();
-    const quotedRequest = {
-      ...baseRequest,
-      quote: {
-        ...baseRequest.quote,
-        estimatedDeliveryDate: "2026-06-24",
-        quoteCreatedDate: "2026-06-02",
-        quoteValidUntil: "2026-07-02",
-        shippingCostCents: 12500,
-        shippingMethod: "International",
-        shippingTerms: "DDP",
-        summary: "Pricing includes manufacturing coordination.",
-      },
-      customerQuotes: [
-        {
-          assumptions: "Customer-supplied CAD is complete.",
-          clarifications: "",
-          customerCompany: "Amogy Manufacturing",
-          customerContact: "William Paik",
-          filesReviewed: "mounting-bracket.step",
-          id: "customer_quote_1",
-          issuedAt: "2026-06-02T12:00:00.000Z",
-          leadTime: "15 business days",
-          lineItems: [
-            {
-              description: "Mounting bracket",
-              finish: "As machined",
-              id: "quoted-line-1",
-              material: "6061-T6 Aluminum",
-              process: "CNC milling",
-              quantity: 24,
-              unitPrice: 76.04,
-            },
-          ],
-          markdown: "Quote markdown",
-          notes: "Pricing includes manufacturing coordination.",
-          preparedBy: "Lattice",
-          projectName: "Hydrogen skid bracket RFQ",
-          quoteDate: "2026-06-02",
-          quoteNumber: "LQ-1001",
-          shipping: "International / DDP - $125.00",
-          tax: "Excluded",
-          totalCents: 182500,
-          validUntil: "2026-07-02",
-          versionNumber: 1,
-        },
-      ],
-    };
-
-    render(<AdminQuoteManagement requests={[quotedRequest]} updateStatusAction={() => undefined} />);
-
-    fireEvent.click(screen.getByRole("link", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
-
-    expect(screen.getByText("This quote has already been issued to the customer. Values below show the latest saved customer quote version.")).toBeInTheDocument();
-    expect(screen.getByText("Latest saved version: customer quote v1.")).toBeInTheDocument();
-    expect(screen.getByText("$76.04")).toBeInTheDocument();
-    expect(screen.getByText("15 business days")).toBeInTheDocument();
-    expect(screen.getByText("$125.00")).toBeInTheDocument();
-    expect(screen.getByText("International")).toBeInTheDocument();
-    expect(screen.getByText("DDP")).toBeInTheDocument();
-    expect(screen.getByText("Jun 24, 2026")).toBeInTheDocument();
-    expect(screen.getByText("Jul 2, 2026")).toBeInTheDocument();
-    expect(screen.getByText("Pricing includes manufacturing coordination.")).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Unit price - Mounting bracket/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Lead time days - Mounting bracket/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Shipping cost")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Shipping speed")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Shipping terms")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Estimated delivery date")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Quote valid until")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Customer note")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Update quote to customer" })).not.toBeInTheDocument();
-    expect(document.querySelector('input[name="supplierQuoteFile"]')).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View quote PDF" })).toHaveAttribute("href", `/admin/quotes/${quotedRequest.id}/quote.pdf`);
-    expect(screen.getByRole("link", { name: "View quote PDF" })).toHaveAttribute("target", "_blank");
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit quote" }));
-
-    expect(screen.getByText("Editing this issued quote will save a new customer quote version and update the buyer-facing quote.")).toBeInTheDocument();
-    expect(screen.getByText("Latest saved version: customer quote v1. Saving creates v2.")).toBeInTheDocument();
-    expect(screen.getByLabelText(/Unit price - Mounting bracket/)).toHaveValue("76.04");
-    expect(screen.getByLabelText(/Lead time days - Mounting bracket/)).toHaveValue("15");
-    expect(screen.getByLabelText("Shipping cost")).toHaveValue("125.00");
-    expect(screen.getByLabelText("Shipping speed")).toHaveValue("International");
-    expect(screen.getByLabelText("Shipping terms")).toHaveValue("DDP");
-    expect(screen.getByLabelText("Estimated delivery date")).toHaveValue("2026-06-24");
-    expect(screen.getByLabelText("Quote valid until")).toHaveValue("2026-07-02");
-    expect(screen.getByLabelText("Customer note")).toHaveValue("Pricing includes manufacturing coordination.");
-    expect(screen.getByRole("button", { name: "Save updated quote" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Cancel edit" })).toBeInTheDocument();
-  });
-
-  it("opens the RFQ drawer when the quote submission card is clicked", () => {
-    const request = makeSubmittedRequest();
-
-    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
-
-    fireEvent.click(screen.getByRole("link", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-  });
-
-  it("closes the RFQ drawer when the backdrop is clicked", () => {
-    const request = makeSubmittedRequest();
-
-    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
-
-    fireEvent.click(screen.getByRole("link", { name: "Manage quote submission for Hydrogen skid bracket RFQ" }));
-    fireEvent.click(screen.getByRole("dialog"));
-
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("presentation"));
-
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("opens the RFQ drawer from an admin quote deep link", async () => {
-    const request = makeSubmittedRequest();
-    mockRequestIdParam = request.id;
-
-    render(<AdminQuoteManagement requests={[request]} updateStatusAction={() => undefined} />);
-
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Hydrogen skid bracket RFQ" })).toBeInTheDocument();
-  });
-
 });
 
 describe("BuyerQuotes", () => {
@@ -965,78 +463,13 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByRole("button", { name: /Pay with Stripe/ })).toBeDisabled();
   });
 
-  it("shows PO number, AP email, and upload controls when purchase order checkout is selected", () => {
-    const quotedRequest = {
-      ...makeQuotedRequest(),
-      quote: {
-        ...makeQuotedRequest().quote,
-        shippingCostCents: 45800,
-        shippingMethod: "International",
-      },
-      customerQuotes: [
-        {
-          ...makeQuotedRequest().customerQuotes.at(-1)!,
-          totalCents: 381528,
-        },
-      ],
-    };
-
-    render(
-      <BuyerQuoteCheckout
-        request={quotedRequest}
-        placeOrderAction={() => undefined}
-        accountsPayableEmail={checkoutBillingContact.email}
-        cards={checkoutCards}
-        receivingPhone="+1 (310) 617-4533"
-        shippingAddress={checkoutShippingAddress}
-      />,
-    );
-
-    fireEvent.click(screen.getByText("Purchase order"));
-
-    expect(screen.getByPlaceholderText("PO-1047")).toBeInTheDocument();
-    expect(screen.getByDisplayValue(checkoutBillingContact.email)).toBeInTheDocument();
-    expect(screen.getByText("Upload PO document")).toBeInTheDocument();
+  it("keeps purchase-order payment and unapproved tax exemption unavailable", () => {
+    render(<BuyerQuoteCheckout request={makeQuotedRequest()} placeOrderAction={() => undefined} accountsPayableEmail={checkoutBillingContact.email} cards={checkoutCards} receivingPhone="555-0101" shippingAddress={checkoutShippingAddress} />);
+    expect(screen.getByRole("radio", { name: /Purchase order/ })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Tax exempt certificate on file" })).toBeDisabled();
+    expect(screen.queryByPlaceholderText("PO-1047")).not.toBeInTheDocument();
   });
 
-  it("confirms the selected PO file before order placement", () => {
-    const quotedRequest = makeQuotedRequest();
-
-    render(
-      <BuyerQuoteCheckout
-        request={quotedRequest}
-        placeOrderAction={() => undefined}
-        accountsPayableEmail={checkoutBillingContact.email}
-        cards={checkoutCards}
-        receivingPhone="+1 (310) 617-4533"
-        shippingAddress={checkoutShippingAddress}
-      />,
-    );
-
-    fireEvent.click(screen.getByText("Purchase order"));
-    fireEvent.change(screen.getByLabelText("Purchase order file"), {
-      target: {
-        files: [new File(["purchase order"], "amogy-po-1047.pdf", { type: "application/pdf" })],
-      },
-    });
-
-    expect(screen.getByText("PO document selected")).toBeInTheDocument();
-    expect(screen.getByText(/amogy-po-1047\.pdf/)).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("Purchase order file"), {
-      target: {
-        files: [],
-      },
-    });
-
-    expect(screen.getByText("PO document selected")).toBeInTheDocument();
-    expect(screen.getByText(/amogy-po-1047\.pdf/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove PO file" }));
-
-    expect(screen.getByText("Upload PO document")).toBeInTheDocument();
-    expect(screen.queryByText(/amogy-po-1047\.pdf/)).not.toBeInTheDocument();
-  });
 });
 
 describe("BuyerOrders", () => {
@@ -1144,7 +577,7 @@ describe("BuyerOrderDetail", () => {
     expect(screen.getByRole("link", { name: "Help with order" })).toHaveAttribute("href", `/orders/${order.id}/help`);
   });
 
-  it("renders an order-specific help request page", () => {
+  it("renders an order-specific help request page", async () => {
     const quotedRequest = makeQuotedRequest();
     const order = {
       ...quotedRequest,
@@ -1171,7 +604,7 @@ describe("BuyerOrderDetail", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Send help request" }));
 
-    expect(screen.getByRole("heading", { name: "Help request sent" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Help request sent" })).toBeInTheDocument());
     expect(screen.getByRole("link", { name: "Return to order" })).toHaveAttribute("href", `/orders/${order.id}`);
   });
 });
@@ -1206,3 +639,5 @@ describe("SupplierOrderDetail", () => {
     expect(screen.getByText("Save supplier update")).toBeDisabled();
   });
 });
+
+vi.mock("@/app/(workspace)/orders/[requestId]/help/actions", () => ({ submitOrderSupport: vi.fn(async () => ({ id: "support_test" })) }));

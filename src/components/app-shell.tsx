@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowLeft, Bell, ClipboardList, Factory, FileCheck, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Settings, User, X } from "lucide-react";
+import { ArrowLeft, Bell, CircleHelp, ClipboardList, Factory, FileCheck, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Settings, User, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { CustomerOnboarding, type CustomerOnboardingState } from "./customer-onboarding";
 import adminStyles from "./admin-workspace.module.css";
 import { LatticeMarkIcon } from "@/components/lattice-brand";
 import { initialsForName } from "@/lib/current-user";
@@ -88,6 +89,7 @@ const adminNavSections: NavSection[] = [
       { href: "/admin/customers", label: "Customers", icon: "user" },
       { href: "/admin/vendors", label: "Overseas Vendors", icon: "factory" },
       { href: "/admin/orders", label: "Placed Orders", icon: "factory" },
+      { href: "/admin/support", label: "Customer Support", icon: "resources" },
       { href: "/admin/material-inquiries", label: "Material Inquiries", icon: "analytics" },
       { href: "/admin/resources", label: "Resources", icon: "resources" },
     ],
@@ -582,8 +584,9 @@ function PageTransition({
   );
 }
 
-export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: { email: string; name: string }; supportAdmin?: { name: string } }) {
-  const pathname = usePathname();
+export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onboarding, onboardingPreview = false }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: { email: string; name: string }; supportAdmin?: { name: string }; onboardingPreview?: boolean; onboarding?: CustomerOnboardingState | null }) {
+  const currentPathname = usePathname();
+  const pathname = onboardingPreview ? "/dashboard" : currentPathname;
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [pageTransitionPhase, setPageTransitionPhase] = useState<PageTransitionPhase>("idle");
@@ -611,6 +614,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
   const navSections = baseNavSections.map((section) => applyStoredOrder(section, storedNavOrders[section.title]));
 
   useEffect(() => {
+    if (onboardingPreview) return;
     const frame = window.requestAnimationFrame(() => {
       setStoredNavOrdersByTone({
         admin: readStoredNavOrder(sessionUser?.email ?? "anonymous", "admin"),
@@ -619,7 +623,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [sessionUser?.email]);
+  }, [sessionUser?.email, onboardingPreview]);
 
   useEffect(() => {
     if (!pendingHref || pathname !== pendingHref) {
@@ -635,7 +639,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
   }, [pathname, pendingHref]);
 
   useEffect(() => {
-    if (!isNotificationsPanelOpen || inAdminExperience) {
+    if (!isNotificationsPanelOpen || inAdminExperience || onboardingPreview) {
       return;
     }
 
@@ -669,10 +673,10 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
     void loadNotifications();
 
     return () => controller.abort();
-  }, [inAdminExperience, isNotificationsPanelOpen]);
+  }, [inAdminExperience, isNotificationsPanelOpen, onboardingPreview]);
 
   function handleReorderNavItem(sectionTitle: string, draggedHref: string, targetHref: string) {
-    if (!draggedHref || draggedHref === targetHref) {
+    if (onboardingPreview || !draggedHref || draggedHref === targetHref) {
       return;
     }
 
@@ -817,6 +821,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
           )}
 
           {!isNotificationsPanelOpen ? <div className="mt-auto space-y-4 pt-4">
+            {onboardingPreview || onboarding ? <button data-onboarding-help type="button" className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-[14px] font-medium text-stone-600 hover:bg-stone-200/50" onClick={() => window.dispatchEvent(new Event(onboardingPreview ? "lattice-preview-help" : "lattice-customer-help"))}><CircleHelp size={16} aria-hidden="true" />Help</button> : null}
             {supportAdmin ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-950">
                 <p className="font-semibold">Support view</p>
@@ -869,6 +874,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
             <div className="flex items-center justify-between gap-4">
               <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
               <div className="flex items-center gap-2">
+                {onboardingPreview || onboarding ? <button data-onboarding-help type="button" className="rounded-lg px-3 py-2 text-sm text-stone-600" onClick={() => window.dispatchEvent(new Event(onboardingPreview ? "lattice-preview-help" : "lattice-customer-help"))}>Help</button> : null}
                 {!inAdminExperience ? <NotificationButton isOpen={isNotificationsPanelOpen} onClick={() => setIsNotificationsPanelOpen((current) => !current)} pathname={activeNavPathname} /> : null}
                 {!inAdminExperience && canUseAdminWorkspace ? (
                   <Link
@@ -904,6 +910,8 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin }: {
               <span className={adminStyles.accessLabel}><span aria-hidden="true" />Admin workspace</span>
             </div>
           ) : null}
+
+          {onboarding && !inAdminExperience ? <CustomerOnboarding initial={onboarding} /> : null}
 
           <main className="relative w-full overflow-x-hidden" onClick={handleMainClick}>
             <PageTransition

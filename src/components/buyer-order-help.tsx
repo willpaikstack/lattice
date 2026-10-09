@@ -1,5 +1,6 @@
 "use client";
 
+import { submitOrderSupport } from "@/app/(workspace)/orders/[requestId]/help/actions";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, FileText, MessageSquare, PackageCheck, Truck } from "lucide-react";
 import { FormEvent, useState } from "react";
@@ -18,7 +19,7 @@ const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
 };
 
 function orderReference(order: LatticeRequest) {
-  return `PO-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
+  return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
 function quoteReference(order: LatticeRequest) {
@@ -54,11 +55,17 @@ function HelpCard({ label, value }: { label: string; value: string }) {
 
 export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
   const primaryLine = order.lineItems[0];
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
+    const data = new FormData(event.currentTarget);
+    setSending(true); setError("");
+    try { await submitOrderSupport(order.id, data); setSubmitted(true); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to save your support request. Please try again."); }
+    finally { setSending(false); }
   }
 
   return (
@@ -74,7 +81,7 @@ export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
           <div>
             <h1 className="text-[34px] font-semibold leading-tight tracking-normal text-[#171717]">Request help with this order</h1>
             <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[#6f737a]">
-              Send Lattice the issue, context, and urgency. Your account manager will use the order package, supplier status, and files below to follow up.
+              Send Lattice the issue, context, and urgency. The Lattice team will use the order package, supplier status, and files below to follow up.
             </p>
           </div>
           <div className="rounded-md border border-[#e7e7e7] bg-white px-4 py-3 text-right">
@@ -91,6 +98,8 @@ export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
         <HelpCard label="Updated" value={formatDate(order.updatedAt)} />
       </section>
 
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
+      {sending && <p role="status">Saving your support request…</p>}
       {submitted ? (
         <section className="rounded-md border border-emerald-200 bg-emerald-50 p-6 text-emerald-950">
           <div className="flex items-start gap-3">
@@ -98,7 +107,7 @@ export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
             <div>
               <h2 className="text-[18px] font-semibold">Help request sent</h2>
               <p className="mt-2 text-[14px] leading-6 text-emerald-800">
-                Lattice has the order context and your note. Erik Mast will follow up with the next step for {orderReference(order)}.
+                Lattice has the order context and your note. Lattice support will follow up with the next step for {orderReference(order)}.
               </p>
               <Link className="mt-4 inline-flex min-h-10 items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" href={`/orders/${order.id}`}>
                 Return to order
@@ -157,7 +166,7 @@ export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
                 </label>
               </div>
 
-              <button className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#171717] px-5 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" type="submit">
+              <button className="inline-flex min-h-11 items-center justify-center rounded-md bg-[#171717] px-5 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" disabled={sending} type="submit">
                 Send help request
               </button>
             </div>
@@ -216,9 +225,9 @@ export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
                 <MessageSquare aria-hidden="true" className="h-4 w-4" />
                 Account manager
               </div>
-              <p className="mt-4 text-[13px] font-semibold text-[#202020]">Erik Mast</p>
+              <p className="mt-4 text-[13px] font-semibold text-[#202020]">Lattice support</p>
               <p className="mt-1 text-[13px] leading-5 text-[#6f737a]">Order help, supplier follow-up, quality documents, and delivery coordination.</p>
-              <p className="mt-2 text-[13px] text-[#2f73c8]">erik.mast@latticeos.com</p>
+              <p className="mt-2 text-[13px] text-[#2f73c8]">support@latticeos.co</p>
             </section>
           </aside>
         </div>

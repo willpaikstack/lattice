@@ -42,7 +42,7 @@ describe("requests API file persistence", () => {
       ),
     );
     promotedStorageKeys = [];
-    await rm(path.join(uploadsRoot, "rfq-drafts", "test-route"), {
+    await rm(path.join(uploadsRoot, "rfq-drafts", "b9949f0a179694e768f63a3418c2473f7db6b893b725bcbd20e9d478e653114e", "test-route"), {
       force: true,
       recursive: true,
     });
@@ -50,7 +50,7 @@ describe("requests API file persistence", () => {
 
   it("promotes saved draft CAD and drawing files into permanent RFQ storage on submit", async () => {
     const { POST } = await import("./route");
-    const draftFolder = path.join(uploadsRoot, "rfq-drafts", "test-route");
+    const draftFolder = path.join(uploadsRoot, "rfq-drafts", "b9949f0a179694e768f63a3418c2473f7db6b893b725bcbd20e9d478e653114e", "test-route");
     await mkdir(draftFolder, { recursive: true });
     await writeFile(path.join(draftFolder, "plate.step"), "cad-bytes");
     await writeFile(path.join(draftFolder, "plate-drawing.pdf"), "drawing-bytes");
@@ -78,14 +78,14 @@ describe("requests API file persistence", () => {
         {
           name: "plate.step",
           sizeBytes: 9,
-          storageKey: "rfq-drafts/test-route/plate.step",
+          storageKey: "rfq-drafts/b9949f0a179694e768f63a3418c2473f7db6b893b725bcbd20e9d478e653114e/test-route/plate.step",
           type: "model/step",
           cadPreviewUrn: "translated-plate-urn",
         },
         {
           name: "plate-drawing.pdf",
           sizeBytes: 13,
-          storageKey: "rfq-drafts/test-route/plate-drawing.pdf",
+          storageKey: "rfq-drafts/b9949f0a179694e768f63a3418c2473f7db6b893b725bcbd20e9d478e653114e/test-route/plate-drawing.pdf",
           type: "application/pdf",
         },
       ],
