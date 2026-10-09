@@ -1123,15 +1123,14 @@ export async function markStripeCheckoutSessionFailed(checkoutSessionId: string)
       return stored ? mapStoredRequest(stored) : null;
     }
 
-    const updated = await client.request.update({
-      where: { id: stored.id },
+    await client.request.updateMany({
+      where: { id: stored.id, status: "QUOTED", stripeCheckoutSessionId: checkoutSessionId },
       data: {
         purchasePaymentStatus: "PAYMENT_FAILED",
       },
-      include: storedRequestInclude,
     });
-
-    return mapStoredRequest(updated);
+    const updated = await client.request.findUnique({ where: { id: stored.id }, include: storedRequestInclude });
+    return updated ? mapStoredRequest(updated) : null;
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma Stripe failed checkout update is unavailable; saving locally.", error);
