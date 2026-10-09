@@ -276,7 +276,7 @@ async function resetCustomerUserPasswordWithTemporaryPassword(companyId: string,
   const password = temporaryPassword();
   const credentials = createPasswordCredentials(password);
   await setClerkPassword(user, password);
-  await client.user.update({
+  const updatedUser = await client.user.update({
     where: { id: user.id },
     data: {
       ...credentials,
@@ -286,7 +286,7 @@ async function resetCustomerUserPasswordWithTemporaryPassword(companyId: string,
     },
   });
 
-  return { password, user };
+  return { password, user: updatedUser };
 }
 
 function invitationDelivery(
