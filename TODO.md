@@ -161,7 +161,7 @@ npm run build
 ## Stripe next steps — 2026-10-09
 
 - Completed: Nexus shared Test mode is connected, with NY registration and tangible-goods defaults configured. NY/PA synthetic tax calculations passed. Separate Test mode runtime keys and a signed local webhook are configured; never use live credentials for tests.
-- Verify `/api/stripe/configuration` while signed in as Production Lattice Admin: expected Nexus account, active Tax/NY registration, and credentials present. Verify actual signed webhook delivery separately.
+- Production admin check returned 503 on 2026-10-09. Diagnose runtime Stripe authentication/permissions using the redacted `/api/stripe/configuration` diagnostics: expected Nexus account, active Tax/NY registration, and credentials present. Verify actual signed webhook delivery separately.
 - Validate hosted tax, shipping, payment/decline/3DS, cancel/retry/concurrent requests, duplicate/late/webhook-only fulfillment, quote revisions and refund/receipt reconciliation. Then explicitly set `STRIPE_CHECKOUT_ENABLED=true` and deploy. Inline checkout and company card vault are deferred.
 
 ### Stripe payment audit follow-through — 2026-10-09
@@ -171,4 +171,4 @@ npm run build
 - Before live enablement, verify Production merchant readiness/signed delivery, Link bank funding is now disabled in live and Test mode; finish customer-role/mobile, invoice, webhook-only/duplicate/late, cancel/retry/concurrency/revised-quote tests. Recheck hosted UI with Test mode Link now off.
 
 - Completed synthetic invoice PDF totals/address checks and saved import/duties wording. Initial checkout requires finalized DDP terms on the server; existing commercial terms are preserved.
-- Actual PA cancel/retry/payment and $50 partial + $60 remaining refund callbacks/UI passed. Complete asynchronous refund browser tests and ensure live webhook subscribes to all four refund event types after deployment.
+- Actual PA cancel/retry/payment and $50 partial + $60 remaining refund callbacks/UI passed. Complete asynchronous refund browser tests and live webhook now subscribes to all four refund event types.

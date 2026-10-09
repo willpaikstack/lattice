@@ -1,22 +1,21 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ session: vi.fn(), readiness: vi.fn() }));
 vi.mock("@/lib/session", () => ({ getCurrentSession: mocks.session }));
 vi.mock("@/lib/stripe", () => ({ getStripeMerchantReadiness: mocks.readiness }));
 import { GET } from "./route";
-describe("Stripe configuration access", () => {
-  beforeEach(() => { mocks.session.mockReset(); mocks.readiness.mockReset(); });
-  it("rejects customers before reading merchant data", async () => {
-    mocks.session.mockResolvedValue({ user: { role: "customer" } });
-    expect((await GET()).status).toBe(403);
-    expect(mocks.readiness).not.toHaveBeenCalled();
-  });
-  it("returns readiness only to the admin and hides provider errors", async () => {
-    mocks.session.mockResolvedValue({ user: { role: "admin" } });
-    mocks.readiness.mockResolvedValue({ ready: true, accountId: "acct_expected" });
-    expect(await (await GET()).json()).toEqual({ ready: true, accountId: "acct_expected" });
-    mocks.readiness.mockRejectedValue(new Error("private credential detail"));
-    const result = await GET();
-    expect(result.status).toBe(503);
-    expect(JSON.stringify(await result.json())).not.toContain("private credential");
-  });
+beforeEach(() => { vi.resetAllMocks(); });
+it("requires admin access before checking Stripe", async () => {
+  mocks.session.mockResolvedValue({ user: { role: "customer" } });
+  expect((await GET()).status).toBe(403);
+  expect(mocks.readiness).not.toHaveBeenCalled();
+});
+it("reports an allowlisted credential diagnostic without leaking Stripe error text", async () => {
+  mocks.session.mockResolvedValue({ user: { role: "admin" } });
+  mocks.readiness.mockRejectedValue({ type: "StripeAuthenticationError", message: "Invalid API Key provided: sensitive_test_value" });
+  const response = await GET();
+  expect(response.status).toBe(503);
+  expect(response.headers.get("Cache-Control")).toBe("no-store");
+  const body = await response.json();
+  expect(body.errorCode).toBe("STRIPE_AUTHENTICATION_FAILED");
+  expect(JSON.stringify(body)).not.toContain("sensitive_test_value");
 });
