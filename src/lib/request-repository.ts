@@ -904,6 +904,15 @@ export async function purchaseQuote(id: string, input: PurchaseQuoteInput = {}) 
   }
 }
 
+async function requireStoredMockStripeRequest(id: string) {
+  if (process.env.NODE_ENV !== "development" || !isMockDataMode() || !isArtificialRequestId(id)) return;
+  const client = await prisma();
+  if (!await client.request.findUnique({ where: { id }, include: storedRequestInclude })) {
+    // Synthetic requests live only in the isolated development mock store.
+    throw new Error("Mock Stripe checkout uses the local request store.");
+  }
+}
+
 export async function recordStripeCheckoutSession(
   id: string,
   input: PurchaseQuoteDeliveryInput & {
@@ -939,6 +948,7 @@ export async function recordStripeCheckoutSession(
   };
 
   try {
+    await requireStoredMockStripeRequest(id);
     const client = await prisma();
     const stored = await client.request.update({
       where: { id, ...(input.expectedUpdatedAt ? { updatedAt: new Date(input.expectedUpdatedAt), status: "QUOTED" } : {}) },
@@ -1050,6 +1060,7 @@ export async function finalizeStripePaidQuote(input: {
   };
 
   try {
+    await requireStoredMockStripeRequest(input.requestId);
     const client = await prisma();
     const stored = await client.request.update({
       where: { id: input.requestId, status: "QUOTED", stripeCheckoutSessionId: input.checkoutSessionId, updatedAt: new Date(current.updatedAt) },

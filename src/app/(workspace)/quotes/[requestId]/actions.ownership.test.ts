@@ -172,4 +172,17 @@ describe("checkout server action ownership", () => {
     expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ amountCents: 12000, checkoutDetails: expect.objectContaining({ checkoutQuoteVersion: "quote_v1" }) }));
   });
 
+  it("replaces an expired idempotency replay before redirecting or recording payment", async () => {
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", validUntil: "2099-01-01" }], quote: { shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "" } }, id: "req_owned", status: "QUOTED", title: "Bracket", updatedAt: "2026-10-09T00:00:00.000Z" });
+    mocks.quoteCheckoutAmountCents.mockReturnValue(12000);
+    mocks.getAppBaseUrl.mockReturnValue("https://latticeos.co");
+    const create = vi.fn().mockResolvedValueOnce({ id: "cs_expired", status: "expired", url: "https://checkout.stripe.com/expired" })
+      .mockResolvedValueOnce({ id: "cs_replacement", status: "open", url: "https://checkout.stripe.com/replacement" });
+    mocks.getStripeClient.mockReturnValue({ customers: { create: vi.fn().mockResolvedValue({ id: "cus_order" }) }, checkout: { sessions: { create } } });
+    await expect(purchaseQuoteAction("req_owned", checkoutForm("card"))).rejects.toThrow("NEXT_REDIRECT:https://checkout.stripe.com/replacement");
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[1][1].idempotencyKey).toBe(`${create.mock.calls[0][1].idempotencyKey}:cs_expired`);
+    expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ checkoutSessionId: "cs_replacement" }));
+  });
+
 });

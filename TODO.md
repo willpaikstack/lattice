@@ -163,3 +163,11 @@ npm run build
 - Completed: Nexus shared Test mode is connected, with NY registration and tangible-goods defaults configured. NY/PA synthetic tax calculations passed. Next configure separate Test mode runtime keys in gitignored `.env.local` (requested from William) and a local signed test webhook; never use live credentials for tests.
 - Verify `/api/stripe/configuration` while signed in as Production Lattice Admin: expected Nexus account, active Tax/NY registration, and credentials present. Verify actual signed webhook delivery separately.
 - Validate hosted tax, shipping, payment/decline/3DS, cancel/retry/concurrent requests, duplicate/late/webhook-only fulfillment, quote revisions and refund/receipt reconciliation. Then explicitly set `STRIPE_CHECKOUT_ENABLED=true` and deploy. Inline checkout and company card vault are deferred.
+
+### Stripe payment audit follow-through — 2026-10-09
+
+- Completed local credential, merchant/NY readiness and signed webhook setup; actual NY checkout, decline, failed/successful 3DS and full Stripe test refund passed. 365 automated tests pass.
+- Develop full/partial refund reconciliation and visible payment status; define credit notes separately from the immutable original invoice. Test refunds currently leave the Lattice order showing its original paid state.
+- Before live enablement, verify Production merchant readiness/signed delivery, disable Link bank funding for the required card-only release, and finish customer-role/mobile, invoice, webhook-only/duplicate/late, cancel/retry/concurrency/revised-quote tests. Recheck hosted UI with Test mode Link now off.
+
+- Synthetic invoice PDF totals/address were verified. Also reconcile displayed import/duties wording with the saved quote shipping terms; current checkout/order copy claims DDP even when a quote says DDU. Do not silently change existing commercial quote terms.

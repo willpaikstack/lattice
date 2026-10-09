@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ requ
   }
 
   const preview = new URL(request.url).searchParams.get("preview") === "1";
-  const demo = isMockDataMode() && order.id.startsWith("demo_");
+  const demo = isMockDataMode() && (order.id.startsWith("demo_") || order.id.startsWith("fixture_"));
   const invoice = demo ? null : await getOrIssueOrderInvoice(order);
   const pdf = invoice ? await buildIssuedOrderInvoicePdf(invoice) : await buildRequestInvoicePdf(order);
   const body = new ArrayBuffer(pdf.byteLength);

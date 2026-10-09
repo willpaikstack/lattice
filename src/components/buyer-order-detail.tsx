@@ -363,8 +363,11 @@ export function BuyerOrderDetail({
             <div className="grid gap-5 p-6 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Ship to</p>
-                <p className="mt-3 text-[14px] font-semibold text-[#202020]">{order.requesterName}</p>
-                <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">{order.buyerCompany}<br />123 Main Street<br />Brooklyn, NY 11201</p>
+                <p className="mt-3 text-[14px] font-semibold text-[#202020]">{order.shipToName || order.requesterName}</p>
+                <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">
+                  {[order.shipToCompany || order.buyerCompany, order.shipToAddress1, order.shipToAddress2, [order.shipToCity, order.shipToState, order.shipToZipCode].filter(Boolean).join(", ")].filter(Boolean).map((line, index) => <span className="block" key={index}>{line}</span>)}
+                  {!order.shipToAddress1 && <span className="block">Delivery address not recorded</span>}
+                </p>
               </div>
               <dl className="space-y-3 text-[13px]">
                 <DefinitionRow label="Shipping method" value="Lattice managed landed delivery" />
@@ -577,7 +580,6 @@ export function BuyerOrderDetail({
                   </>
                 ) : null}
                 <DefinitionRow label="Ordered by" value={order.requesterName} />
-                <DefinitionRow label="Billing address" value={<span>{order.buyerCompany}<br />Brooklyn, NY 11201</span>} />
               </dl>
               {order.customerPurchaseOrderAttachment ? (
                 <div className="mt-4 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3">

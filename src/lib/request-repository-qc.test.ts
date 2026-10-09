@@ -179,6 +179,34 @@ describe("request repository QC", () => {
     vi.unstubAllEnvs();
   });
 
+  it("pays a local mock quote while a healthy database has no synthetic record", async () => {
+    vi.stubEnv("LATTICE_DATA_MODE", "mock");
+    const request = currentRequestFixture();
+    request.id = "fixture_stripe_local";
+    const update = vi.fn().mockRejectedValue({ code: "P2025" });
+    const healthyClient = { request: { findUnique: vi.fn().mockResolvedValue(null), update } };
+    mocks.getPrismaClient.mockResolvedValue(healthyClient as never);
+    try {
+      await recordStripeCheckoutSession(request.id, {
+        amountCents: 128000, checkoutSessionId: "cs_test_local", currency: "usd", expectedUpdatedAt: request.updatedAt,
+      });
+      const paid = await finalizeStripePaidQuote({
+        requestId: request.id, amountCents: 139360, taxCents: 11360, shippingCents: 8000,
+        checkoutSessionId: "cs_test_local", currency: "usd", card: null,
+        paymentIntentId: "pi_test_local", paidAt: "2026-10-09T12:00:00.000Z",
+      });
+      expect(paid.status).toBe("PURCHASED");
+      expect(paid.checkoutDetails?.taxCents).toBe("11360");
+      expect(update).not.toHaveBeenCalled();
+    } finally {
+      mocks.getPrismaClient.mockImplementation(async () => ({
+        customerQuoteVersion: { count: vi.fn(async () => 0) },
+        request: { create: mocks.unavailable, delete: mocks.unavailable, findFirst: mocks.unavailable,
+          findMany: mocks.unavailable, findUnique: mocks.unavailable, update: mocks.unavailable },
+      }));
+    }
+  });
+
   it("calculates accepted checkout totals with shipping", () => {
     expect(quoteCheckoutAmountCents(currentRequestFixture())).toBe(128000);
   });

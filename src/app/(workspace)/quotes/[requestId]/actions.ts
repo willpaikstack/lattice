@@ -163,7 +163,7 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
     }, { idempotencyKey: `checkout-customer:${checkoutKey}` });
     const baseUrl = getAppBaseUrl();
     const quoteNumber = request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
-    const session = await stripe.checkout.sessions.create({
+    const createSession = (idempotencyKey: string) => stripe.checkout.sessions.create({
       mode: "payment",
       integration_identifier: `lattice_hosted_tax_checkout_${checkoutKey.slice(0, 8).split("").map((digit) => String.fromCharCode(97 + parseInt(digit, 16))).join("")}`,
       customer: customer.id,
@@ -198,7 +198,14 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
       },
       success_url: `${baseUrl}/quotes/${encodeURIComponent(requestId)}/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/quotes/${encodeURIComponent(requestId)}/stripe/cancel`,
-    }, { idempotencyKey: `checkout-session:${checkoutKey}` });
+    }, { idempotencyKey });
+    let session = await createSession(`checkout-session:${checkoutKey}`);
+    // A failed database write expires the session. Stripe may replay that
+    // expired session on retry, so replace it under a new deterministic key.
+    for (let attempt = 0; session.status === "expired" && attempt < 3; attempt++) {
+      session = await createSession(`checkout-session:${checkoutKey}:${session.id}`);
+    }
+    if (session.status === "expired") throw new Error("Checkout could not restart. Refresh and try again.");
 
     if (!session.url) {
       throw new Error("Stripe did not return a checkout URL.");
