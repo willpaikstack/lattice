@@ -11,15 +11,17 @@ Environment: latticeos.co, application repair e7d5db5, controlled company Apple 
 - Customer sees submitted details and saved shipping snapshot; operator queue sees the same title, Submitted status and two permanent file links. Customer CAD and operator drawing downloads match source bytes by SHA-256.
 - Anonymous CAD/drawing requests return HTTP 401; anonymous customer RFQ page redirects to login. Established a read-only scoped support session as controlled Will Testpaik / Greno Industries, verified badge and identity, then requested only the Apple proof RFQ and its known file URLs: RFQ renders 404 and both file routes return File not found. Exited back to operator afterward. This tests server company scoping through support, not a genuine second-customer login.
 
+- Old temporary-password rejection passed: isolated Incognito login with the invitation credential returned “Password is incorrect. Try again, or use another method.” Closed the isolated window; genuine customer session was preserved.
+- Production documentation deployment `dpl_3ykgU6kKzJXdchfrQK2r9hdpjDje` (commit a14955e, lattice-6kr0dq3py-willpaikstacks-projects.vercel.app) became Ready and aliased to latticeos.co. Reloaded operator proof record and downloaded the same CAD/drawing links afterward; both still match fixture bytes.
+- Genuine customer Help → Replay showed the welcome, all four tour steps and completion. Reload at step two resumed step two; reload after completion did not reopen welcome/tour. Customer identity and RFQ remained available.
+
 ## Limits and outstanding checks
 
 - The reused test company retained its earlier Skip for now timestamp; `/account/continue` therefore legitimately bypassed incomplete addresses. Password reset does not erase company deferral. A clean account's automatic gate is still unproven; completed address persistence is proven.
-- Old temporary-password rejection after personal-password setup is not yet manually checked.
-- File survival across a subsequent Production deployment still requires a download after redeploy.
-- Mobile/accessibility and genuine welcome/tour progress have not been verified in this session.
+- Mobile/accessibility, skip behavior and a clean-account first welcome have not been verified in this session.
 - Customer quote detail lists the drawing filename as text with no download link; operator drawing download works. Review customer drawing retrieval before rollout.
 - Settings displays card-payment availability although live checkout remains disabled. Review the copy; do not infer that ordering is enabled.
 - The synthetic STEP has no solids, so APS translation/rendering is not proven.
 - Receiving support replies and broader recovery remain untested.
 
-Screenshots: `output/qa/customer-addresses-2026-10-09.png` and `output/qa/customer-rfq-submitted-2026-10-09.png` (local, untracked).
+Screenshots: `output/qa/customer-addresses-2026-10-09.png`, `output/qa/customer-rfq-submitted-2026-10-09.png`, `output/qa/customer-tour-resume-2026-10-09.png`, and `output/qa/customer-rfq-verified-2026-10-09.png` (local, untracked).
