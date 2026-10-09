@@ -269,3 +269,7 @@ Stripe Test mode update (2026-10-09): the existing Nexus shared Test mode is now
 ### Stripe runtime checkpoint — 2026-10-09
 
 Nexus Test mode app credentials now authenticate locally. Signed CLI-forwarded webhooks, NY hosted totals, declined card, failed/successful 3DS and a full Stripe test refund were exercised. Local mock checkout/finalization and expired-session retries were repaired; order shipment now displays its saved delivery snapshot. Production checkout is still disabled. Refund status/accounting synchronization remains missing; see the latest checkout audit and work log for evidence and remaining validation. Local secrets remain only in gitignored .env.local.
+
+### Checkout refund/delivery follow-through — 2026-10-09
+
+Refund reconciliation refreshes current paginated Stripe refunds for the order-owned payment/session, tracks successful/pending/failed amounts in checkout JSON and updates customer payment display; original capture/order/invoice stay intact. Initial card purchasing requires finalized DDP delivery terms; saved non-DDP orders display their actual terms. PA browser checkout/cancel/retry/payment and partial/full refund callbacks/UI passed with $0 tax. Link is disabled in live and Test mode default payment configurations; cards remain enabled. Production purchasing remains gated off. See the separate checkout audit for tested coverage and remaining launch/accounting checks.

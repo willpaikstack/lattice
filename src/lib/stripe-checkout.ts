@@ -5,7 +5,7 @@ import Stripe from "stripe";
 
 import { ensureStripeCustomerForAccount } from "./account-settings";
 import type { LatticeRequest } from "./request-model";
-import { finalizeStripePaidQuote, markStripeCheckoutSessionFailed, quoteCheckoutAmountCents, recordStripeCheckoutSession } from "./request-repository";
+import { finalizeStripePaidQuote, markStripeCheckoutSessionFailed, quoteCheckoutAmountCents, recordStripeCheckoutSession, recordStripeRefund } from "./request-repository";
 import { getStripeClient, getStripePublishableKey, stripePaymentMethodCardSnapshot } from "./stripe";
 
 function paymentIntentFromSession(session: Stripe.Checkout.Session) {
@@ -165,4 +165,30 @@ export async function finalizeStripeCheckoutSession(sessionId: string, expectedR
 
 export async function handleStripeCheckoutFailure(sessionId: string) {
   return markStripeCheckoutSessionFailed(sessionId);
+}
+
+/** Retrieve current cumulative refunds so duplicate/out-of-order events are harmless. */
+export async function reconcileStripeChargeRefund(chargeId: string) {
+  const stripe = getStripeClient();
+  const charge = await stripe.charges.retrieve(chargeId);
+  const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+  if (!paymentIntentId) return null;
+  const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 });
+  const session = sessions.data[0];
+  const paymentIntent = session ? null : await stripe.paymentIntents.retrieve(paymentIntentId);
+  const requestId = session?.metadata?.requestId || paymentIntent?.metadata?.requestId;
+  if (!requestId) return null;
+  let refundedAmountCents = 0;
+  let pendingRefundAmountCents = 0;
+  let failedRefundAmountCents = 0;
+  // Fetch all current refunds instead of trusting an old webhook or aggregate charge amount.
+  for await (const refund of stripe.refunds.list({ charge: charge.id, limit: 100 })) {
+    if (refund.status === "succeeded") refundedAmountCents += refund.amount;
+    else if (refund.status === "pending" || refund.status === "requires_action") pendingRefundAmountCents += refund.amount;
+    else if (refund.status === "failed") failedRefundAmountCents += refund.amount;
+  }
+  return recordStripeRefund({ requestId, paymentIntentId,
+    checkoutSessionId: session?.id || paymentIntentId, chargeId: charge.id,
+    amountCents: charge.amount, refundedAmountCents, pendingRefundAmountCents, failedRefundAmountCents, currency: charge.currency,
+  });
 }

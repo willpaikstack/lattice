@@ -174,4 +174,10 @@ Release verification (2026-10-08): Development/Production additive schema reconc
 - Local Test mode credentials and signed webhook forwarding work. Hosted NY checkout, decline, failed/successful 3DS and a full test refund were exercised; $119.76 payment and $9.76 tax match the saved order. Production remains disabled.
 - Checkout can replace expired idempotency replay sessions; isolated local mock quotes can be paid while the development database is healthy. Synthetic mock invoice rendering does not issue durable invoice numbers.
 - Order shipment displays the saved delivery snapshot. The fabricated billing-address row was removed; an actual order-owned billing snapshot remains future work.
-- Refunds performed in Stripe do not yet synchronize Lattice payment status/credit notes. Test mode Link is disabled after its bank-payment option appeared; live card-only settings and remaining customer/mobile/invoice/concurrency/webhook verification are pending.
+- Refunds performed in Stripe synchronize successful/pending/failed amounts and customer payment status; credit notes remain follow-up. Test mode Link is disabled after its bank-payment option appeared; live card-only settings and remaining customer/mobile/invoice/concurrency/webhook verification are pending.
+
+### Refund and delivery behavior — 2026-10-09
+
+- Checkout requires finalized DDP shipping terms; missing/non-DDP terms show an operator-update explanation and are rejected on the server. Existing quote terms are preserved.
+- Orders display saved shipping/import terms and refunded/partially refunded status, with separate pending/failed refund amounts. Current Stripe refund objects reconcile through signed charge/refund callbacks; original captured payment and issued invoice remain unchanged. Credit-note automation and production cancellation policy are separate work.
+- Browser-tested PA checkout/cancel/retry/payment ($110, no tax), partial/full refunds and signed callbacks. NY decline/3DS/tax and original invoice verified earlier. Live and Test mode Link bank funding disabled; cards enabled. Live purchasing remains disabled until remaining launch verification passes.

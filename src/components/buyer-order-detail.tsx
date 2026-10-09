@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, CalendarDays, Download, ExternalLink, FileText, HelpCircle, ImageIcon, PackageCheck, ReceiptText, RotateCcw, Truck, User } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import { packageTrackingLink } from "@/lib/package-tracking";
 import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 import { customerOrderStatusLabel, isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
@@ -265,6 +266,10 @@ export function BuyerOrderDetail({
   const structuredSupplierQuoteReady = hasPricedSupplierQuoteLines(selectedSupplier);
   const status = supplierStatusLabels[order.supplierOrder.status];
   const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
+  const refundedCents = Number(order.checkoutDetails?.refundedAmountCents || 0);
+  const pendingRefundCents = Number(order.checkoutDetails?.pendingRefundAmountCents || 0);
+  const failedRefundCents = Number(order.checkoutDetails?.failedRefundAmountCents || 0);
+  const paymentStatus = refundedCents > 0 ? (refundedCents === order.purchasePayment.stripe.amountCents ? "Refunded" : "Partially refunded") : pendingRefundCents > 0 ? "Refund pending" : order.purchasePayment.status === "PAID" ? "Paid" : "Pending";
   const trackingNumber = order.supplierOrder.trackingNumber || "Pending shipment";
   const tracking = packageTrackingLink(order.supplierOrder.trackingNumber);
   const milestoneLate = isOrderMilestoneLate(order);
@@ -370,8 +375,8 @@ export function BuyerOrderDetail({
                 </p>
               </div>
               <dl className="space-y-3 text-[13px]">
-                <DefinitionRow label="Shipping method" value="Lattice managed landed delivery" />
-                <DefinitionRow label="Import terms" value="DDP - Lattice coordinates import" />
+                <DefinitionRow label="Shipping method" value="Lattice managed delivery" />
+                <DefinitionRow label="Import terms" value={order.quote.shippingTerms || "Not recorded"} />
                 <DefinitionRow label="Carrier" value={tracking?.carrier ?? "Pending booking"} />
                 <DefinitionRow label="Tracking number" value={trackingNumber} />
                 <DefinitionRow label="Tracking source" value={tracking?.carrier ?? "Pending shipment"} />
@@ -534,7 +539,7 @@ export function BuyerOrderDetail({
                 <DefinitionRow label="Subtotal" value={formatPrice(subtotalCents)} />
                 <DefinitionRow label={`Shipping${order.quote.shippingMethod ? ` (${order.quote.shippingMethod})` : ""}`} value={formatPrice(shippingCents)} />
                 <DefinitionRow label="Tax" value={formatPrice(taxCents)} />
-                <DefinitionRow label="Duties / tariffs" value="Included" />
+                <DefinitionRow label="Duties / tariffs" value={hasFinalLandedDeliveryTerms(order.quote.shippingTerms) ? "Included" : "Per accepted quote"} />
               </dl>
               <div className="border-t border-[#eeeeee] pt-4">
                 <div className="flex justify-between gap-4">
@@ -571,7 +576,11 @@ export function BuyerOrderDetail({
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Billing and payment</p>
               <dl className="mt-4 space-y-3 text-[13px]">
+                <DefinitionRow label="Payment status" value={paymentStatus} />
                 <DefinitionRow label="Payment method" value={paymentMethodLabel(order)} />
+                {refundedCents > 0 && <DefinitionRow label="Refunded amount" value={formatPrice(refundedCents)} />}
+                {pendingRefundCents > 0 && <DefinitionRow label="Pending refund" value={formatPrice(pendingRefundCents)} />}
+                {failedRefundCents > 0 && <DefinitionRow label="Failed refunds" value={`${formatPrice(failedRefundCents)} — contact Lattice support`} />}
                 {order.purchasePayment.method === "CARD" ? <DefinitionRow label="Card" value={cardPaymentLabel(order)} /> : null}
                 {order.purchasePayment.method === "PURCHASE_ORDER" ? (
                   <>

@@ -1,5 +1,6 @@
 "use server";
 
+import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import { assertQuoteCanBePurchased } from "@/lib/quote-validity";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -51,6 +52,7 @@ async function requireCheckoutSession(requestId: string) {
   }
 
   assertQuoteCanBePurchased(request);
+  if (!hasFinalLandedDeliveryTerms(request.quote.shippingTerms)) throw new Error("This quote needs final DDP delivery terms before card purchasing. Contact Lattice for an updated quote.");
   return request;
 }
 

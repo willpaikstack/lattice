@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-import { finalizeStripeCheckoutSession, finalizeStripePaymentIntent, handleStripeCheckoutFailure } from "@/lib/stripe-checkout";
+import { finalizeStripeCheckoutSession, finalizeStripePaymentIntent, handleStripeCheckoutFailure, reconcileStripeChargeRefund } from "@/lib/stripe-checkout";
 import { getStripeClient } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +50,19 @@ export async function POST(request: Request) {
     case "checkout.session.expired": {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.metadata?.requestId) await handleStripeCheckoutFailure(session.id);
+      break;
+    }
+    case "refund.created":
+    case "refund.updated":
+    case "refund.failed": {
+      const refund = event.data.object as Stripe.Refund;
+      const chargeId = typeof refund.charge === "string" ? refund.charge : refund.charge?.id;
+      if (chargeId) await reconcileStripeChargeRefund(chargeId);
+      break;
+    }
+    case "charge.refunded": {
+      const charge = event.data.object as Stripe.Charge;
+      await reconcileStripeChargeRefund(charge.id);
       break;
     }
     default:

@@ -1422,3 +1422,9 @@ Implications:
 Use Stripe-hosted Checkout with automatic tax for initial quote purchasing so the customer sees the final tax-inclusive payable total before payment. The inline zero-tax form remains gated off. The user confirmed New York as Nexus's only existing tax registration; record NY in Stripe, use General - Tangible Goods and tax-exclusive prices, and do not infer other registrations. Use an order-specific Stripe customer shipping snapshot until a governed company card vault exists. The deployed application must verify its server key's account against `STRIPE_MERCHANT_ACCOUNT_ID`. Keep live purchasing disabled until isolated payment/refund and signed-webhook validation passes.
 
 2026-10-09 testing environment: use the existing Nexus shared Test mode selected by William for this existing integration. Treat `livemode=false` and test runtime credentials as required for all simulated payments; its account ID is the same as the live account ID. Additional dedicated sandboxes are unnecessary for this initial validation.
+
+## 2026-10-09 — Refunds and initial delivery scope
+
+Stripe refunds update a separate payment ledger from current refund statuses, including pending and failed amounts. Preserve original capture and immutable sale invoice; refunds do not automatically cancel manufacturing or rewrite issued documents. Credit-note/accounting adjustment automation remains required follow-up.
+
+Initial card checkout supports finalized DDP delivery only. Quotes with other or missing shipping terms need operator reissue before purchasing; do not silently change agreed quote terms. Display saved terms on existing orders. Disable Link in both shared Test mode and live default payment configuration to prevent its bank-funding option in the card-only release.

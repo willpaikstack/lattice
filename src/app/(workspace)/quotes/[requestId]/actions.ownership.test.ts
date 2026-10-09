@@ -154,12 +154,12 @@ describe("checkout server action ownership", () => {
   });
 
   it("rejects purchase-order payment before saving a PO file or purchasing", async () => {
-    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ quoteNumber: "LQ-1001", validUntil: "2099-01-01" }], quote: { quoteValidUntil: "2099-01-01" }, id: "req_owned", status: "QUOTED", title: "Precision bracket" });
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ quoteNumber: "LQ-1001", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", quoteValidUntil: "2099-01-01" }, id: "req_owned", status: "QUOTED", title: "Precision bracket" });
     await expect(purchaseQuoteAction("req_owned", checkoutForm())).rejects.toThrow("Purchase-order payment is not available");
     expect(mocks.saveLocalUpload).not.toHaveBeenCalled(); expect(mocks.purchaseQuote).not.toHaveBeenCalled();
   });
   it("creates a taxed hosted checkout with separate shipping and a reviewed address", async () => {
-    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", quoteNumber: "LQ-1001", validUntil: "2099-01-01" }], quote: { quoteValidUntil: "2099-01-01", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "" } }, id: "req_owned", status: "QUOTED", title: "Bracket", updatedAt: "2026-10-09T00:00:00.000Z" });
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", quoteNumber: "LQ-1001", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", quoteValidUntil: "2099-01-01", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "" } }, id: "req_owned", status: "QUOTED", title: "Bracket", updatedAt: "2026-10-09T00:00:00.000Z" });
     mocks.quoteCheckoutAmountCents.mockReturnValue(12000);
     mocks.getAppBaseUrl.mockReturnValue("https://latticeos.co");
     const createCustomer = vi.fn().mockResolvedValue({ id: "cus_order" });
@@ -173,7 +173,7 @@ describe("checkout server action ownership", () => {
   });
 
   it("replaces an expired idempotency replay before redirecting or recording payment", async () => {
-    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", validUntil: "2099-01-01" }], quote: { shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "" } }, id: "req_owned", status: "QUOTED", title: "Bracket", updatedAt: "2026-10-09T00:00:00.000Z" });
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "" } }, id: "req_owned", status: "QUOTED", title: "Bracket", updatedAt: "2026-10-09T00:00:00.000Z" });
     mocks.quoteCheckoutAmountCents.mockReturnValue(12000);
     mocks.getAppBaseUrl.mockReturnValue("https://latticeos.co");
     const create = vi.fn().mockResolvedValueOnce({ id: "cs_expired", status: "expired", url: "https://checkout.stripe.com/expired" })
@@ -183,6 +183,13 @@ describe("checkout server action ownership", () => {
     expect(create).toHaveBeenCalledTimes(2);
     expect(create.mock.calls[1][1].idempotencyKey).toBe(`${create.mock.calls[0][1].idempotencyKey}:cs_expired`);
     expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ checkoutSessionId: "cs_replacement" }));
+  });
+
+  it("blocks unsupported or unfinished delivery terms before creating a card payment", async () => {
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ validUntil: "2099-01-01" }], quote: { shippingTerms: "DAP" }, id: "req_owned", status: "QUOTED" });
+    await expect(purchaseQuoteAction("req_owned", checkoutForm("card"))).rejects.toThrow("final DDP delivery terms");
+    expect(mocks.getStripeClient).not.toHaveBeenCalled();
+    expect(mocks.recordStripeCheckoutSession).not.toHaveBeenCalled();
   });
 
 });

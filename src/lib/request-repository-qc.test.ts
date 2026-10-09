@@ -49,7 +49,7 @@ vi.mock("./local-request-store", () => ({
 }));
 
 import { buildDraftRequest, submitDraftRequest } from "./request-model";
-import { finalizeStripePaidQuote, purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession } from "./request-repository";
+import { finalizeStripePaidQuote, purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession, recordStripeRefund } from "./request-repository";
 
 function quotedRequest(): LatticeRequest {
   const submitted = submitDraftRequest(
@@ -205,6 +205,39 @@ describe("request repository QC", () => {
           findMany: mocks.unavailable, findUnique: mocks.unavailable, update: mocks.unavailable },
       }));
     }
+  });
+
+  it("tracks partial/full refunds without rewriting the captured payment or purchasing twice", async () => {
+    const request = currentRequestFixture();
+    request.status = "PURCHASED";
+    request.purchasePayment = { ...request.purchasePayment, status: "PAID", stripe: {
+      amountCents: 128000, checkoutSessionId: "cs_refund", currency: "usd", paidAt: "2026-10-09T00:00:00.000Z", paymentIntentId: "pi_refund",
+    } };
+    const input = { requestId: request.id, paymentIntentId: "pi_refund", checkoutSessionId: "cs_refund", chargeId: "ch_refund", amountCents: 128000, refundedAmountCents: 5000, currency: "usd" };
+    await expect(recordStripeRefund({ ...input, paymentIntentId: "pi_other" })).rejects.toThrow("does not match");
+    await expect(recordStripeRefund({ ...input, refundedAmountCents: 128001 })).rejects.toThrow("totals do not match");
+    await recordStripeRefund(input);
+    await recordStripeRefund({ ...input, refundedAmountCents: 128000 });
+    await recordStripeRefund({ ...input, refundedAmountCents: 128000 }); // Duplicate current snapshot is a no-op.
+    expect(currentRequestFixture().checkoutDetails?.refundedAmountCents).toBe("128000");
+    expect(currentRequestFixture().purchasePayment.stripe.amountCents).toBe(128000);
+    expect(currentRequestFixture().status).toBe("PURCHASED");
+    expect(mocks.saveLocalRequest).toHaveBeenCalledTimes(2);
+    await recordStripeRefund({ ...input, refundedAmountCents: 0, failedRefundAmountCents: 128000 });
+    expect(currentRequestFixture().checkoutDetails?.refundedAmountCents).toBe("0");
+    expect(currentRequestFixture().checkoutDetails?.failedRefundAmountCents).toBe("128000");
+  });
+
+  it("retries a refund database conflict without overwriting the local order", async () => {
+    const request = currentRequestFixture();
+    request.status = "PURCHASED";
+    request.purchasePayment = { ...request.purchasePayment, status: "PAID", stripe: {
+      amountCents: 128000, checkoutSessionId: "cs_refund", currency: "usd", paidAt: "2026-10-09T00:00:00.000Z", paymentIntentId: "pi_refund",
+    } };
+    mocks.getPrismaClient.mockResolvedValueOnce({ request: { findUnique: mocks.unavailable } } as never)
+      .mockResolvedValueOnce({ request: { update: vi.fn().mockRejectedValue({ code: "P2025" }) } } as never);
+    await expect(recordStripeRefund({ requestId: request.id, paymentIntentId: "pi_refund", checkoutSessionId: "cs_refund", chargeId: "ch_refund", amountCents: 128000, refundedAmountCents: 5000, currency: "usd" })).rejects.toMatchObject({ code: "P2025" });
+    expect(mocks.saveLocalRequest).not.toHaveBeenCalled();
   });
 
   it("calculates accepted checkout totals with shipping", () => {

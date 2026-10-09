@@ -1122,6 +1122,53 @@ export async function finalizeStripePaidQuote(input: {
   }
 }
 
+/** Refunds adjust the payment ledger, never the accepted order or original invoice. */
+export async function recordStripeRefund(input: {
+  requestId: string; paymentIntentId: string; checkoutSessionId: string;
+  chargeId: string; amountCents: number; refundedAmountCents: number; currency: string;
+  pendingRefundAmountCents?: number; failedRefundAmountCents?: number;
+}) {
+  const current = await getRequestById(input.requestId);
+  if (!current || current.status !== "PURCHASED") throw new Error("Refund order is not finalized yet.");
+  const payment = current.purchasePayment.stripe;
+  if (payment.paymentIntentId !== input.paymentIntentId || payment.checkoutSessionId !== input.checkoutSessionId) {
+    throw new Error("Stripe refund does not match this order.");
+  }
+  if (input.currency.toLowerCase() !== payment.currency.toLowerCase() || input.amountCents !== payment.amountCents ||
+      !Number.isInteger(input.refundedAmountCents) || input.refundedAmountCents < 0 || input.refundedAmountCents > input.amountCents) {
+    throw new Error("Stripe refund totals do not match this order.");
+  }
+  const pending = input.pendingRefundAmountCents || 0;
+  const failed = input.failedRefundAmountCents || 0;
+  if (!Number.isInteger(pending) || pending < 0 || pending + input.refundedAmountCents > input.amountCents ||
+      !Number.isInteger(failed) || failed < 0) throw new Error("Stripe refund totals do not match this order.");
+  // Current Stripe refund objects may reverse a previously successful refund after failure.
+  if (Number(current.checkoutDetails?.refundedAmountCents || 0) === input.refundedAmountCents &&
+      Number(current.checkoutDetails?.pendingRefundAmountCents || 0) === pending &&
+      Number(current.checkoutDetails?.failedRefundAmountCents || 0) === failed) return current;
+  const checkoutDetails = { ...current.checkoutDetails,
+    refundedAmountCents: String(input.refundedAmountCents), refundChargeId: input.chargeId,
+    pendingRefundAmountCents: String(pending), failedRefundAmountCents: String(failed),
+    refundSyncedAt: new Date().toISOString(),
+  };
+  try {
+    await requireStoredMockStripeRequest(input.requestId);
+    const client = await prisma();
+    const stored = await client.request.update({
+      where: { id: input.requestId, status: "PURCHASED", stripePaymentIntentId: input.paymentIntentId, updatedAt: new Date(current.updatedAt) },
+      data: { checkoutDetails }, include: storedRequestInclude,
+    });
+    return mapStoredRequest(stored);
+  } catch (error) {
+    // Retry a conflicting webhook rather than overwriting a newer order snapshot.
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2025") throw error;
+    if (process.env.NODE_ENV === "development") {
+      return saveLocalRequest({ ...current, checkoutDetails, updatedAt: new Date().toISOString() });
+    }
+    throw error;
+  }
+}
+
 export async function markStripeCheckoutSessionFailed(checkoutSessionId: string) {
   try {
     const client = await prisma();

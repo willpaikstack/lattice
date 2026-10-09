@@ -5,6 +5,7 @@ import { ArrowLeft, CalendarDays, CheckCircle2, CreditCard, FileText, Landmark, 
 import type { FormEvent, ReactNode } from "react";
 import { useMemo, useRef, useState } from "react";
 
+import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import type { AccountAddress, PaymentCard } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
 import { StripeElementsPayment } from "./stripe-elements-payment";
@@ -153,6 +154,7 @@ export function BuyerQuoteCheckout({
   const quoteId = quoteReference(request);
   const subtotalCents = request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
   const shippingCents = request.quote.shippingCostCents;
+  const deliveryReady = hasFinalLandedDeliveryTerms(request.quote.shippingTerms);
   const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const latestQuote = request.customerQuotes.at(-1);
@@ -282,8 +284,8 @@ export function BuyerQuoteCheckout({
                   <span className="flex items-start gap-3">
                     <input className="mt-1 accent-[#171717]" defaultChecked name="shippingMethod" type="radio" value="lattice-managed" />
                     <span>
-                      <span className="block text-[14px] font-semibold text-[#202020]">Lattice managed landed delivery</span>
-                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Lattice coordinates supplier shipment, import clearance, duties, and delivery to your receiving address.</span>
+                      <span className="block text-[14px] font-semibold text-[#202020]">Lattice managed delivery</span>
+                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Shipment and import responsibilities follow the accepted quote. Shipping terms: {request.quote.shippingTerms || "Not finalized"}.</span>
                     </span>
                   </span>
                 </label>
@@ -519,7 +521,7 @@ export function BuyerQuoteCheckout({
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-[#6f737a]">Duties / tariffs</dt>
-                    <dd className="font-semibold text-[#202020]">Included</dd>
+                    <dd className="font-semibold text-[#202020]">{deliveryReady ? "Included" : "Per accepted quote"}</dd>
                   </div>
                 </dl>
 
@@ -552,9 +554,10 @@ export function BuyerQuoteCheckout({
                   <span>I accept the quote basis, production lead time, Lattice purchasing terms, and understand the order will be reviewed before supplier release.</span>
                 </label>
 
+                {!deliveryReady && <p className="text-[13px] leading-5 text-[#5f6670]">This quote needs final DDP delivery terms before card purchasing. Contact Lattice for an updated quote.</p>}
                 <button
                   className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b] disabled:cursor-not-allowed disabled:bg-[#cfd4dc] disabled:text-[#667085]"
-                  disabled={!checkoutAvailable || !termsAccepted || subtotalCents === null || shippingCents === null || cardPaymentSubmitting || (paymentMethod === "card" && !hostedCheckout && !cardPaymentReady)}
+                  disabled={!checkoutAvailable || !deliveryReady || !termsAccepted || subtotalCents === null || shippingCents === null || cardPaymentSubmitting || (paymentMethod === "card" && !hostedCheckout && !cardPaymentReady)}
                   type="submit"
                 >
                   <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
