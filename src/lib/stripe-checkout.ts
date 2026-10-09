@@ -41,6 +41,7 @@ export async function createStripeElementsCheckoutSessionForRequest(request: Lat
 
   assertQuoteCanBePurchased(request);
   assertCardCheckoutEnabled();
+  if (process.env.STRIPE_INLINE_CHECKOUT_ENABLED !== "true") throw new Error("Use the secure Stripe checkout page to review tax and pay.");
   const publishableKey = getStripePublishableKey();
 
   if (!publishableKey) {
@@ -134,12 +135,25 @@ export async function finalizeStripeCheckoutSession(sessionId: string, expectedR
     return null;
   }
 
+  if (!session.automatic_tax?.enabled || session.automatic_tax.status !== "complete") {
+    throw new Error("Stripe tax calculation is incomplete.");
+  }
+  const taxCents = session.total_details?.amount_tax;
+  const shippingCents = session.total_details?.amount_shipping;
+  if (!Number.isInteger(taxCents) || taxCents! < 0 || !Number.isInteger(shippingCents) ||
+      !Number.isInteger(session.amount_subtotal) ||
+      session.amount_total !== session.amount_subtotal! + shippingCents! + taxCents!) {
+    throw new Error("Stripe checkout totals cannot be reconciled.");
+  }
+
   const paymentIntent = paymentIntentFromSession(session);
   const paymentMethod = paymentMethodFromIntent(paymentIntent);
   const card = stripePaymentMethodCardSnapshot(paymentMethod);
 
   return finalizeStripePaidQuote({
     amountCents: session.amount_total,
+    taxCents: taxCents!,
+    shippingCents: shippingCents!,
     card,
     checkoutSessionId: session.id,
     currency: session.currency ?? "usd",

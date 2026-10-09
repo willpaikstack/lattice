@@ -4,12 +4,12 @@ import { assertQuoteCanBePurchased } from "@/lib/quote-validity";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { ensureStripeCustomerForAccount } from "@/lib/account-settings";
+import { createHash } from "node:crypto";
 import type { AccountAddress } from "@/lib/account-settings-shared";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { quoteCheckoutAmountCents, recordStripeCheckoutSession, updateRequestShippingAddress } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
-import { getAppBaseUrl, getStripeClient } from "@/lib/stripe";
+import { assertStripeMerchantReady, getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 import { assertCardCheckoutEnabled, finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
 
 function formText(formData: FormData, key: string) {
@@ -133,47 +133,90 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
 
   assertCardCheckoutEnabled();
   const delivery = purchaseDeliveryInputFromForm(formData);
+  await assertStripeMerchantReady();
   if (paymentMethod === "card") {
     const amountCents = quoteCheckoutAmountCents(request);
     const stripe = getStripeClient();
-    const { customerId } = await ensureStripeCustomerForAccount();
+    // Order-specific customer: use the reviewed shipping snapshot for tax,
+    // without changing a shared customer address during another checkout.
+    const previousSessionId = request.purchasePayment.stripe.checkoutSessionId;
+    if (previousSessionId.startsWith("cs_")) {
+      const previous = await stripe.checkout.sessions.retrieve(previousSessionId);
+      if (previous.status === "complete") throw new Error("A payment is already completing for this quote. Check your orders before trying again.");
+      if (previous.status === "open") await stripe.checkout.sessions.expire(previousSessionId);
+    }
+    const checkoutKey = createHash("sha256").update(JSON.stringify({
+      requestId, previousSessionId, quoteVersion: request.customerQuotes.at(-1)?.id ?? request.updatedAt,
+      amountCents, delivery: { ...delivery, checkoutDetails: { ...delivery.checkoutDetails, termsAcceptedAt: undefined, complianceCertifiedAt: undefined } },
+    })).digest("hex");
+    const customer = await stripe.customers.create({
+      email: request.requesterEmail || undefined,
+      name: delivery.shipToCompany || delivery.shipToName,
+      shipping: {
+        name: delivery.shipToName,
+        phone: delivery.shipToPhone || undefined,
+        address: { line1: delivery.shipToAddress1, line2: delivery.shipToAddress2,
+          city: delivery.shipToCity, state: delivery.shipToState,
+          postal_code: delivery.shipToZipCode, country: "US" },
+      },
+      metadata: { requestId },
+    }, { idempotencyKey: `checkout-customer:${checkoutKey}` });
     const baseUrl = getAppBaseUrl();
     const quoteNumber = request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer: customerId,
+      integration_identifier: `lattice_hosted_tax_checkout_${checkoutKey.slice(0, 8).split("").map((digit) => String.fromCharCode(97 + parseInt(digit, 16))).join("")}`,
+      customer: customer.id,
+      automatic_tax: { enabled: true },
+      customer_update: { address: "auto" },
       payment_method_types: ["card"],
       line_items: [
         {
           quantity: 1,
           price_data: {
             currency: "usd",
-            unit_amount: amountCents,
+            unit_amount: amountCents - (request.quote.shippingCostCents ?? 0),
+            tax_behavior: "exclusive",
             product_data: {
               name: `${quoteNumber} - ${request.title}`,
+              tax_code: "txcd_99999999",
               description: "Lattice accepted quote payment",
             },
           },
         },
       ],
+      shipping_options: [{ shipping_rate_data: {
+        display_name: request.quote.shippingMethod || "Lattice-managed delivery",
+        type: "fixed_amount",
+        fixed_amount: { amount: request.quote.shippingCostCents ?? 0, currency: "usd" },
+        tax_behavior: "exclusive",
+        tax_code: "txcd_92010001",
+      } }],
       metadata: {
         requestId,
         quoteNumber,
       },
       success_url: `${baseUrl}/quotes/${encodeURIComponent(requestId)}/stripe/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/quotes/${encodeURIComponent(requestId)}/stripe/cancel`,
-    });
+    }, { idempotencyKey: `checkout-session:${checkoutKey}` });
 
     if (!session.url) {
       throw new Error("Stripe did not return a checkout URL.");
     }
 
-    await recordStripeCheckoutSession(requestId, {
+    try {
+      await recordStripeCheckoutSession(requestId, {
       ...delivery,
+      checkoutDetails: { ...delivery.checkoutDetails, checkoutQuoteVersion: request.customerQuotes.at(-1)?.id ?? "" },
       amountCents,
       checkoutSessionId: session.id,
       currency: "usd",
-    });
+      expectedUpdatedAt: request.updatedAt,
+      });
+    } catch (error) {
+      await stripe.checkout.sessions.expire(session.id).catch(() => undefined);
+      throw error;
+    }
 
     redirect(session.url);
   }

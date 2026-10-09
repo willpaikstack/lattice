@@ -161,3 +161,10 @@ Also update `PROJECT_CONTEXT.md`, `DECISIONS.md`, or `TODO.md` when the change a
 - Development schema and automated checks repaired. Production deploy/schema, genuine customer/mobile and live-provider testing remain pending. No production deployment is claimed.
 
 Release verification (2026-10-08): Development/Production additive schema reconciled; deployment `dpl_B2YnUGqkNVau3QQBBBgkMj3yjk73` promoted to latticeos.co. 351 tests, typecheck, lint and local/Vercel builds pass. Live card checkout stays disabled pending merchant identity/activation, Tax/shipping and controlled payment verification. Genuine customer/mobile end-to-end validation remains outstanding.
+
+### Stripe checkout update — 2026-10-09
+
+- `/quotes/[requestId]/checkout`: initial release uses Stripe-hosted card checkout with automatic tax; Lattice displays tax pending and a pre-tax total, Stripe displays the final total before payment. Button explains setup and is disabled while purchasing is gated off. Fixed US delivery snapshot and separately taxed shipping; PO/exemption still disabled. Inline checkout is separately gated and deferred.
+- `/api/stripe/webhook`: completes paid, tax-reconciled hosted sessions including delayed success; ignores unrelated events, retains shipment holds, records actual tax and amount paid. Optimistic updates protect order finalization. Signed delivery and genuine sandbox payment tests remain outstanding.
+- `/api/stripe/configuration`: Lattice Admin-only read-only merchant ID, active Tax/NY registration, payments and secret-presence diagnostics. No secret keys are returned; a configured webhook secret is not proof of a valid signed delivery.
+- Live Nexus Stripe configuration: NY registration active, tangible goods default, tax-exclusive pricing. Plugin sandbox connection and separate test app credentials remain required. Runtime checkout remains disabled pending validation.

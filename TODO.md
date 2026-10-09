@@ -157,3 +157,9 @@ npm run build
 - `/admin/vendors`
 - `/materials`
 - `/capabilities`
+
+## Stripe next steps — 2026-10-09
+
+- Connect a Nexus sandbox through the existing plugin session; a management URL and Dashboard creation instructions have been supplied to William. Use separate sandbox runtime keys and webhook secret in Development, never live credentials for tests.
+- Verify `/api/stripe/configuration` while signed in as Production Lattice Admin: expected Nexus account, active Tax/NY registration, and credentials present. Verify actual signed webhook delivery separately.
+- Validate hosted tax, shipping, payment/decline/3DS, cancel/retry/concurrent requests, duplicate/late/webhook-only fulfillment, quote revisions and refund/receipt reconciliation. Then explicitly set `STRIPE_CHECKOUT_ENABLED=true` and deploy. Inline checkout and company card vault are deferred.

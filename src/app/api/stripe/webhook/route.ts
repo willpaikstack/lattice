@@ -32,23 +32,24 @@ export async function POST(request: Request) {
   }
 
   switch (event.type) {
-    case "checkout.session.completed": {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      if (session.mode === "payment") {
+      if (session.mode === "payment" && session.metadata?.requestId) {
         await finalizeStripeCheckoutSession(session.id);
       }
       break;
     }
     case "payment_intent.succeeded": {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
-      await finalizeStripePaymentIntent(paymentIntent.id);
+      if (paymentIntent.metadata?.requestId) await finalizeStripePaymentIntent(paymentIntent.id);
       break;
     }
     case "checkout.session.async_payment_failed":
     case "checkout.session.expired": {
       const session = event.data.object as Stripe.Checkout.Session;
-      await handleStripeCheckoutFailure(session.id);
+      if (session.metadata?.requestId) await handleStripeCheckoutFailure(session.id);
       break;
     }
     default:

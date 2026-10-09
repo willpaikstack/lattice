@@ -268,4 +268,23 @@ describe("request repository QC", () => {
 
     expect(idempotentRetry.statusEvents).toHaveLength(eventCount);
   });
+  it("reconciles Stripe tax and rejects altered shipping", async () => {
+    await recordStripeCheckoutSession("req_qc_checkout", { amountCents: 128000, checkoutSessionId: "cs_tax", currency: "usd" });
+    const paid = { amountCents: 139360, taxCents: 11360, card: null, checkoutSessionId: "cs_tax", currency: "usd", paidAt: "2026-10-08T13:00:00.000Z", paymentIntentId: "pi_tax", requestId: "req_qc_checkout" };
+    await expect(finalizeStripePaidQuote({ ...paid, shippingCents: 1 })).rejects.toThrow("shipping does not match");
+    await expect(finalizeStripePaidQuote({ ...paid, taxCents: -1 })).rejects.toThrow("Invalid Stripe tax");
+    await expect(finalizeStripePaidQuote({ ...paid, amountCents: 128000 })).rejects.toThrow("amount does not match");
+    const order = await finalizeStripePaidQuote(paid);
+    expect(order.purchasePayment.stripe.amountCents).toBe(139360);
+    expect(order.checkoutDetails?.taxCents).toBe("11360");
+  });
+
+  it("does not fall back to a local purchase when a concurrent database update wins", async () => {
+    await recordStripeCheckoutSession("req_qc_checkout", { amountCents: 128000, checkoutSessionId: "cs_race", currency: "usd" });
+    mocks.saveLocalRequest.mockClear();
+    mocks.getPrismaClient.mockResolvedValueOnce({ request: { findUnique: mocks.unavailable } } as never).mockResolvedValueOnce({ request: { update: vi.fn().mockRejectedValue({ code: "P2025" }) } } as never);
+    await expect(finalizeStripePaidQuote({ amountCents: 128000, card: null, checkoutSessionId: "cs_race", currency: "usd", paidAt: "2026-10-09T13:00:00.000Z", paymentIntentId: "pi_race", requestId: "req_qc_checkout" })).rejects.toThrow("changed while payment was finalizing");
+    expect(mocks.saveLocalRequest).not.toHaveBeenCalled();
+  });
+
 });

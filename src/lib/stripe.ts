@@ -72,3 +72,33 @@ export function stripePaymentMethodCardSnapshot(paymentMethod: Stripe.PaymentMet
     expires: `${String(card.exp_month).padStart(2, "0")}/${card.exp_year}`,
   };
 }
+
+export async function getStripeMerchantReadiness() {
+  const stripe = getStripeClient();
+  const [account, settings, registrations] = await Promise.all([
+    stripe.accounts.retrieve(null),
+    stripe.tax.settings.retrieve(),
+    stripe.tax.registrations.list({ status: "active", limit: 100 }),
+  ]);
+  const expectedAccountId = process.env.STRIPE_MERCHANT_ACCOUNT_ID || "";
+  const accountMatches = Boolean(expectedAccountId) && account.id === expectedAccountId;
+  const newYorkRegistered = registrations.data.some((registration) =>
+    registration.country === "US" && registration.country_options.us?.state === "NY" &&
+    registration.country_options.us.type === "state_sales_tax");
+  return {
+    accountId: account.id,
+    expectedAccountId,
+    accountMatches,
+    paymentsEnabled: account.charges_enabled,
+    taxActive: settings.status === "active",
+    newYorkRegistered,
+    webhookSecretConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+    checkoutEnabled: process.env.STRIPE_CHECKOUT_ENABLED === "true",
+    ready: accountMatches && account.charges_enabled && settings.status === "active" && newYorkRegistered && Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+  };
+}
+
+export async function assertStripeMerchantReady() {
+  const readiness = await getStripeMerchantReadiness();
+  if (!readiness.ready) throw new Error("Card purchasing is being configured. Contact support@latticeos.co for help with this quote.");
+}

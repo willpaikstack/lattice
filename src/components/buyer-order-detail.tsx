@@ -209,7 +209,7 @@ function lineItemTotalCents(order: LatticeRequest, item: RequestLineItem) {
 function moneyBreakdown(order: LatticeRequest) {
   const subtotalCents = order.customerQuotes.at(-1)?.totalCents ?? order.quote.estimatedPriceCents;
   const shippingCents = order.quote.shippingCostCents;
-  const taxCents = subtotalCents === null ? null : 0;
+  const taxCents = subtotalCents === null ? null : Math.max(0, (order.purchasePayment.stripe.amountCents ?? subtotalCents + (shippingCents ?? 0)) - subtotalCents - (shippingCents ?? 0));
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
 
   return { shippingCents, subtotalCents, taxCents, totalCents };

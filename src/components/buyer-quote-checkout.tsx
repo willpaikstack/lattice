@@ -116,6 +116,8 @@ function CheckoutSection({
 
 export function BuyerQuoteCheckout({
   accountsPayableEmail,
+  hostedCheckout = false,
+  checkoutAvailable = true,
   cards,
   finalizeStripeCardPaymentAction,
   paymentNotice,
@@ -126,6 +128,8 @@ export function BuyerQuoteCheckout({
   stripeElementsSession,
   updateStripeElementsSessionAction,
 }: {
+  hostedCheckout?: boolean;
+  checkoutAvailable?: boolean;
   accountsPayableEmail?: string;
   cards?: PaymentCard[];
   finalizeStripeCardPaymentAction?: (paymentIntentId: string, formData: FormData) => Promise<{ redirectTo: string }>;
@@ -179,6 +183,18 @@ export function BuyerQuoteCheckout({
 
     if (!termsAccepted) {
       setCardPaymentError("Accept the quote terms before placing the order.");
+      return;
+    }
+
+    if (hostedCheckout) {
+      setCardPaymentSubmitting(true);
+      try {
+        await placeOrderAction(new FormData(event.currentTarget));
+      } catch (error) {
+        setCardPaymentError(error instanceof Error ? error.message : "Unable to start checkout. Try again or contact support@latticeos.co.");
+      } finally {
+        setCardPaymentSubmitting(false);
+      }
       return;
     }
 
@@ -335,7 +351,7 @@ export function BuyerQuoteCheckout({
                         <CreditCard aria-hidden="true" className="h-4 w-4 text-[#6f737a]" />
                         Pay securely with Stripe
                       </span>
-                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">Enter payment details inline through Stripe before this quote becomes an order.</span>
+                      <span className="mt-1 block text-[13px] leading-5 text-[#5f6670]">{hostedCheckout ? "Review the final total and pay by credit card on Stripe’s secure checkout page." : "Enter payment details inline through Stripe before this quote becomes an order."}</span>
                     </span>
                   </span>
                 </label>
@@ -377,7 +393,7 @@ export function BuyerQuoteCheckout({
                     </div>
                   </div>
                   <div className="mt-4 grid gap-3">
-                    <StripeElementsPayment
+                    {hostedCheckout ? <p className="text-[13px] leading-5 text-[#5f6670]">{checkoutAvailable ? "Continue to Stripe to review sales tax and the final payable total before entering your card." : "Card purchasing is being configured. Contact support@latticeos.co for help with this quote."}</p> : <StripeElementsPayment
                       enabled={paymentMethod === "card"}
                       finalizeStripeCardPaymentAction={finalizeStripeCardPaymentAction}
                       onError={setCardPaymentError}
@@ -386,12 +402,12 @@ export function BuyerQuoteCheckout({
                       requestId={request.id}
                       session={stripeElementsSession ?? null}
                       updateStripeElementsSessionAction={updateStripeElementsSessionAction}
-                    />
-                    <p className="rounded-md border border-[#dfe8f7] bg-[#f7fbff] p-3 text-[13px] font-medium text-[#35536d]">
+                    />}
+                    {!hostedCheckout ? <p className="rounded-md border border-[#dfe8f7] bg-[#f7fbff] p-3 text-[13px] font-medium text-[#35536d]">
                       {availableCards.length > 0
                         ? "Saved Stripe cards may appear inside the secure card field."
                         : "No saved Stripe cards are on file. Enter card details above to pay this quote."}
-                    </p>
+                    </p> : null}
                     {cardPaymentError ? <p className="rounded-md border border-[#f1d8a5] bg-[#fff7e8] p-3 text-[13px] font-medium text-[#8a5b08]">{cardPaymentError}</p> : null}
                   </div>
                 </div>
@@ -499,7 +515,7 @@ export function BuyerQuoteCheckout({
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-[#6f737a]">Tax</dt>
-                    <dd className="font-semibold text-[#202020]">{formatPrice(taxCents)}</dd>
+                    <dd className="font-semibold text-[#202020]">{hostedCheckout ? "Calculated on Stripe" : formatPrice(taxCents)}</dd>
                   </div>
                   <div className="flex justify-between gap-4">
                     <dt className="text-[#6f737a]">Duties / tariffs</dt>
@@ -509,10 +525,10 @@ export function BuyerQuoteCheckout({
 
                 <div className="border-t border-[#eeeeee] pt-4">
                   <div className="flex justify-between gap-4">
-                    <p className="text-[14px] font-semibold text-[#202020]">Total</p>
+                    <p className="text-[14px] font-semibold text-[#202020]">{hostedCheckout ? "Total before tax" : "Total"}</p>
                     <p className="text-[22px] font-semibold text-[#171717]">{formatPrice(totalCents)}</p>
                   </div>
-                  <p className="mt-1 text-[12px] leading-5 text-[#7b8088]">Accepted quote total using saved production, shipping, and tax terms.</p>
+                  <p className="mt-1 text-[12px] leading-5 text-[#7b8088]">{hostedCheckout ? "Stripe will show the final total including applicable sales tax before you pay." : "Accepted quote total using saved production, shipping, and tax terms."}</p>
                 </div>
 
                 <div className="rounded-md bg-[#fbfaf7] p-4">
@@ -538,11 +554,11 @@ export function BuyerQuoteCheckout({
 
                 <button
                   className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b] disabled:cursor-not-allowed disabled:bg-[#cfd4dc] disabled:text-[#667085]"
-                  disabled={!termsAccepted || totalCents === null || (paymentMethod === "card" && (!cardPaymentReady || cardPaymentSubmitting))}
+                  disabled={!checkoutAvailable || !termsAccepted || subtotalCents === null || shippingCents === null || cardPaymentSubmitting || (paymentMethod === "card" && !hostedCheckout && !cardPaymentReady)}
                   type="submit"
                 >
                   <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
-                  {paymentMethod === "card" ? (cardPaymentSubmitting ? "Processing payment..." : "Pay with Stripe") : "Place order"}
+                  {paymentMethod === "card" ? (cardPaymentSubmitting ? "Processing payment..." : hostedCheckout ? "Continue to Stripe" : "Pay with Stripe") : "Place order"}
                 </button>
                 <Link className="flex min-h-10 w-full items-center justify-center rounded-md border border-[#dedede] bg-white px-4 text-[13px] font-semibold text-[#30343a] transition hover:bg-[#fafafa]" href={`/quotes/${request.id}`}>
                   Back to quote

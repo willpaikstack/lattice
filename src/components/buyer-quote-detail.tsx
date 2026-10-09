@@ -316,8 +316,7 @@ export function BuyerQuoteDetail({
   const requestCalloutCopy = latestCustomerQuote?.notes || (operatorCustomerNote && (request.status === "NEEDS_INFO" || request.status === "CLOSED") ? operatorCustomerNote : status.requestCopy);
   const subtotalCents = latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents;
   const shippingCents = request.quote.shippingCostCents;
-  const taxCents = subtotalCents === null ? null : 0;
-  const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
+  const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0);
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
   const shippingAddressLines = quoteShippingAddressLines(request, savedShippingAddress);
   const lineItemFiles = bundledFilesByLineItem(request);
@@ -582,12 +581,12 @@ export function BuyerQuoteDetail({
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="font-semibold text-[#202020]">Tax</dt>
-                  <dd className="font-semibold text-[#202020]">{formatSummaryPrice(taxCents)}</dd>
+                  <dd className="font-semibold text-[#202020]">Calculated at checkout</dd>
                 </div>
               </dl>
               <div className="border-t border-[#eeeeee] pt-4">
                 <div className="flex justify-between gap-4">
-                  <p className="text-[14px] font-semibold text-[#202020]">Total</p>
+                  <p className="text-[14px] font-semibold text-[#202020]">Total before tax</p>
                   <p className="text-[22px] font-semibold text-[#171717]">{formatSummaryPrice(totalCents)}</p>
                 </div>
               </div>

@@ -1416,3 +1416,7 @@ Implications:
 - Clarification requests, issued/revised quotes, requested quality approval and shipment create durable email events. Routine activity stays in-app. Company team/integration self-service remains governed roadmap work.
 
 - Stripe follow-up: use the user-confirmed Nexus Manufacturing Technologies, Inc. account in Chrome’s William (LATTICE) profile. Payments/Payouts active. User confirms existing tax registration in New York only. Tax is not configured in Stripe; avoid the current digital-services default for physical manufactured parts.
+
+## 2026-10-09 — Initial card checkout and merchant tax configuration
+
+Use Stripe-hosted Checkout with automatic tax for initial quote purchasing so the customer sees the final tax-inclusive payable total before payment. The inline zero-tax form remains gated off. The user confirmed New York as Nexus's only existing tax registration; record NY in Stripe, use General - Tangible Goods and tax-exclusive prices, and do not infer other registrations. Use an order-specific Stripe customer shipping snapshot until a governed company card vault exists. The deployed application must verify its server key's account against `STRIPE_MERCHANT_ACCOUNT_ID`. Keep live purchasing disabled until isolated payment/refund and signed-webhook validation passes.

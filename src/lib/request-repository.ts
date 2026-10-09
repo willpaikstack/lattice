@@ -910,6 +910,7 @@ export async function recordStripeCheckoutSession(
     amountCents: number;
     checkoutSessionId: string;
     currency: string;
+    expectedUpdatedAt?: string;
   },
 ) {
   const current = await getRequestById(id);
@@ -920,6 +921,10 @@ export async function recordStripeCheckoutSession(
 
   if (current.status !== "QUOTED") {
     throw new Error("Only priced quotes can start card checkout");
+  }
+  if (input.expectedUpdatedAt && current.updatedAt !== input.expectedUpdatedAt) {
+    if (current.purchasePayment.stripe.checkoutSessionId === input.checkoutSessionId) return current;
+    throw new Error("This quote changed while checkout was starting. Refresh and try again.");
   }
 
   const delivery = {
@@ -936,7 +941,7 @@ export async function recordStripeCheckoutSession(
   try {
     const client = await prisma();
     const stored = await client.request.update({
-      where: { id },
+      where: { id, ...(input.expectedUpdatedAt ? { updatedAt: new Date(input.expectedUpdatedAt), status: "QUOTED" } : {}) },
       data: {
         ...delivery,
         purchasePaymentMethod: "CARD",
@@ -951,6 +956,11 @@ export async function recordStripeCheckoutSession(
 
     return mapStoredRequest(stored);
   } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2025") {
+      const latest = await getRequestById(id);
+      if (latest?.purchasePayment.stripe.checkoutSessionId === input.checkoutSessionId) return latest;
+      throw new Error("This quote changed while checkout was starting. Refresh and try again.");
+    }
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma Stripe checkout session save is unavailable; saving locally.", error);
       return saveLocalRequest({
@@ -983,6 +993,8 @@ export async function recordStripeCheckoutSession(
 
 export async function finalizeStripePaidQuote(input: {
   amountCents: number | null;
+  taxCents?: number;
+  shippingCents?: number;
   card: NonNullable<LatticeRequest["purchasePayment"]["card"]> | null;
   checkoutSessionId: string;
   currency: string;
@@ -997,6 +1009,7 @@ export async function finalizeStripePaidQuote(input: {
   }
 
   if (current.status === "PURCHASED") {
+    if (current.purchasePayment.stripe.checkoutSessionId !== input.checkoutSessionId) throw new Error("Stripe session does not match this order.");
     return current;
   }
 
@@ -1006,7 +1019,13 @@ export async function finalizeStripePaidQuote(input: {
 
   if (current.purchasePayment.stripe.checkoutSessionId !== input.checkoutSessionId) throw new Error("Stripe session does not match this quote.");
   if (input.currency.toLowerCase() !== "usd") throw new Error("Stripe currency does not match this quote.");
-  const expectedAmount = checkoutAmountCents(current);
+  const taxCents = input.taxCents ?? 0;
+  if (!Number.isInteger(taxCents) || taxCents < 0) throw new Error("Invalid Stripe tax amount.");
+  if (input.shippingCents !== undefined && input.shippingCents !== current.quote.shippingCostCents) throw new Error("Stripe shipping does not match this quote.");
+  const savedQuoteVersion = current.checkoutDetails?.checkoutQuoteVersion;
+  if (savedQuoteVersion && savedQuoteVersion !== (current.customerQuotes.at(-1)?.id ?? "")) throw new Error("This quote was revised after checkout started.");
+  const expectedAmount = checkoutAmountCents(current) + taxCents;
+  const checkoutDetails = { ...current.checkoutDetails, taxCents: String(taxCents) };
 
   if (input.amountCents !== expectedAmount) {
     throw new Error("Stripe amount does not match accepted quote total");
@@ -1033,9 +1052,10 @@ export async function finalizeStripePaidQuote(input: {
   try {
     const client = await prisma();
     const stored = await client.request.update({
-      where: { id: input.requestId },
+      where: { id: input.requestId, status: "QUOTED", stripeCheckoutSessionId: input.checkoutSessionId, updatedAt: new Date(current.updatedAt) },
       data: {
         status: "PURCHASED",
+        checkoutDetails,
         purchasePaymentMethod: "CARD",
         purchasePaymentStatus: "PAID",
         purchaseCardId: card?.id ?? "",
@@ -1061,11 +1081,17 @@ export async function finalizeStripePaidQuote(input: {
 
     return mapStoredRequest(stored);
   } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2025") {
+      const latest = await getRequestById(input.requestId);
+      if (latest?.status === "PURCHASED" && latest.purchasePayment.stripe.checkoutSessionId === input.checkoutSessionId) return latest;
+      throw new Error("This quote changed while payment was finalizing. Contact Lattice support.");
+    }
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma Stripe paid checkout finalization is unavailable; saving locally.", error);
       return saveLocalRequest({
         ...current,
         status: "PURCHASED",
+        checkoutDetails,
         purchasePayment,
         statusEvents: [
           ...current.statusEvents,

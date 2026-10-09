@@ -199,7 +199,7 @@ function invoiceInputForOrder(order: LatticeRequest): InvoicePdfInput {
 
   return {
     amountPaid: centsToUsd(order.purchasePayment.status === "PAID" ? order.purchasePayment.stripe.amountCents ?? 0 : 0),
-    salesTaxAmount: 0,
+    salesTaxAmount: centsToUsd(Number(order.checkoutDetails?.taxCents ?? 0)),
     billToLines: billToLines.length ? billToLines : [order.buyerCompany || "Customer"],
     customerNumber: `CUST-${order.buyerCompany.replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase() || "PENDING"}`,
     customerPo: orderReference(order),
