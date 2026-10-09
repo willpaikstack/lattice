@@ -19,3 +19,14 @@ it("reports an allowlisted credential diagnostic without leaking Stripe error te
   expect(body.errorCode).toBe("STRIPE_AUTHENTICATION_FAILED");
   expect(JSON.stringify(body)).not.toContain("sensitive_test_value");
 });
+it("returns verified readiness to admins and hides unrecognized provider errors", async () => {
+  mocks.session.mockResolvedValue({ user: { role: "admin" } });
+  mocks.readiness.mockResolvedValue({ ready: true, accountId: "acct_expected" });
+  expect(await (await GET()).json()).toEqual({ ready: true, accountId: "acct_expected" });
+  mocks.readiness.mockRejectedValue(new Error("private credential detail"));
+  const response = await GET();
+  const body = await response.json();
+  expect(response.status).toBe(503);
+  expect(body.errorCode).toBe("STRIPE_CONFIGURATION_UNVERIFIED");
+  expect(JSON.stringify(body)).not.toContain("private credential");
+});

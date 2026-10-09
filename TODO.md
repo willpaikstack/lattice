@@ -172,3 +172,8 @@ npm run build
 
 - Completed synthetic invoice PDF totals/address checks and saved import/duties wording. Initial checkout requires finalized DDP terms on the server; existing commercial terms are preserved.
 - Actual PA cancel/retry/payment and $50 partial + $60 remaining refund callbacks/UI passed. Complete asynchronous refund browser tests and live webhook now subscribes to all four refund event types.
+
+### Current Production blocker — 2026-10-09
+
+- Authenticated admin diagnostic confirms STRIPE_AUTHENTICATION_FAILED: Production STRIPE_SECRET_KEY is present but rejected. William must replace it securely in Vercel with a valid live Nexus key. Then redeploy, recheck merchant/Tax readiness and signed delivery before enabling live checkout. Local test credentials work.
+- Investigate unavailable attachments on the two legacy Impeller RFQs and verify fresh Production upload/download; do not assume missing bytes are recoverable from file names.
