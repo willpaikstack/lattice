@@ -4,13 +4,13 @@ vi.mock("./stripe", () => ({ getStripeClient: () => ({ refunds: { list: mocks.li
 vi.mock("./request-repository", () => ({ recordStripeRefund: mocks.recordRefund, finalizeStripePaidQuote: mocks.finalize, markStripeCheckoutSessionFailed: vi.fn(), quoteCheckoutAmountCents: vi.fn(), recordStripeCheckoutSession: vi.fn() }));
 vi.mock("./account-settings", () => ({ ensureStripeCustomerForAccount: vi.fn() }));
 import { finalizeStripeCheckoutSession, reconcileStripeChargeRefund } from "./stripe-checkout";
-function session() { return { id: "cs_owned", mode: "payment", metadata: { requestId: "req_owned" }, payment_status: "paid", automatic_tax: { enabled: true, status: "complete" }, total_details: { amount_tax: 888, amount_shipping: 1000 }, amount_subtotal: 10000, amount_total: 11888, currency: "usd", created: 1, payment_intent: { id: "pi_owned", payment_method: null } }; }
+function session() { return { id: "cs_owned", mode: "payment", metadata: { requestId: "req_owned", customerPoNumber: "QA-PO-1047" }, payment_status: "paid", automatic_tax: { enabled: true, status: "complete" }, total_details: { amount_tax: 888, amount_shipping: 1000 }, amount_subtotal: 10000, amount_total: 11888, currency: "usd", created: 1, payment_intent: { id: "pi_owned", payment_method: null } }; }
 describe("taxed checkout reconciliation", () => {
   beforeEach(() => { mocks.retrieve.mockReset(); mocks.finalize.mockReset(); });
   it("passes trusted tax and shipping amounts to order finalization", async () => {
     mocks.retrieve.mockResolvedValue(session());
     await finalizeStripeCheckoutSession("cs_owned", "req_owned");
-    expect(mocks.finalize).toHaveBeenCalledWith(expect.objectContaining({ amountCents: 11888, taxCents: 888, shippingCents: 1000, checkoutSessionId: "cs_owned", requestId: "req_owned" }));
+    expect(mocks.finalize).toHaveBeenCalledWith(expect.objectContaining({ amountCents: 11888, taxCents: 888, shippingCents: 1000, checkoutSessionId: "cs_owned", customerPoNumber: "QA-PO-1047", requestId: "req_owned" }));
   });
   it("rejects incomplete automatic tax", async () => {
     mocks.retrieve.mockResolvedValue({ ...session(), automatic_tax: { enabled: true, status: "requires_location_inputs" } });

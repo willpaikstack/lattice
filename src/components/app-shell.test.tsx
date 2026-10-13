@@ -17,9 +17,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-vi.mock("motion/react", async () => {
-  const React = await import("react");
-
+vi.mock("motion/react", () => {
   type MotionDivProps = HTMLAttributes<HTMLDivElement> & {
     animate?: { opacity?: number } | boolean;
     children?: ReactNode;
@@ -31,17 +29,14 @@ vi.mock("motion/react", async () => {
   function MotionDiv({ animate, children, initial, onAnimationComplete, transition, ...props }: MotionDivProps) {
     void initial;
     void transition;
-
-    React.useEffect(() => {
-      if (typeof animate === "object" && animate?.opacity === 0) {
-        onAnimationComplete?.();
-      }
-    }, [animate, onAnimationComplete]);
+    void animate;
+    void onAnimationComplete;
 
     return <div {...props}>{children}</div>;
   }
 
   return {
+    useReducedMotion: () => false,
     motion: {
       div: MotionDiv,
     },
@@ -133,6 +128,14 @@ describe("AppShell", () => {
         }),
       ),
     );
+  });
+
+  it("starts sidebar navigation without waiting for an animation and retains the current content", () => {
+    render(<AppShell sessionRole="customer" sessionUser={testCustomer}><div>Current dashboard content</div></AppShell>);
+    fireEvent.click(screen.getAllByRole("link", { name: "How Lattice works" })[0]);
+    expect(mockPush).toHaveBeenCalledWith("/how-it-works");
+    expect(screen.getByText("Current dashboard content")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Home" }).length).toBeGreaterThan(0);
   });
 
   it("leaves the public landing page outside the app shell", () => {
@@ -262,7 +265,7 @@ describe("AppShell", () => {
     expectAllLinksNamed("Materials", "/materials");
     expectAllLinksNamed("Capabilities", "/capabilities");
     expectAllLinksNamed("Inspection & Certificates", "/quality-documentation");
-    expectAllLinksNamed("How it works", "/how-it-works");
+    expectAllLinksNamed("How Lattice works", "/how-it-works");
     expect(screen.getAllByText("Your Resources").length).toBeGreaterThan(0);
     expect(screen.getByText("William Paik")).toBeInTheDocument();
     expect(screen.getByText("will@latticeos.co")).toBeInTheDocument();
@@ -283,7 +286,7 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByText("Workspace")).toBeInTheDocument();
-    expectAllLinksNamed("How it works", "/how-it-works");
+    expectAllLinksNamed("How Lattice works", "/how-it-works");
   });
 
   it("keeps the customer sidebar header while the bell swaps the content below it", async () => {
@@ -355,7 +358,7 @@ describe("AppShell", () => {
     expect(requestQuoteLinks).toHaveLength(1);
     expect(requestQuoteLinks[0]).toHaveAttribute("href", "/requests/new");
     expect(requestQuoteLinks[0]).toHaveAttribute("aria-current", "page");
-    expect(requestQuoteLinks[0]).toHaveClass("border-stone-200/60", "bg-white", "font-medium", "text-stone-900", "shadow-sm");
+    expect(requestQuoteLinks[0]).toHaveClass("border-[#505050]", "bg-[#505050]", "font-semibold");
   });
 
   it("keeps compact navigation as a row of sidebar-style links with icons", () => {
@@ -483,6 +486,7 @@ describe("AppShell", () => {
 
     await waitFor(() => {
       expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Capabilities\s*Inspection & Certificates/);
+      expect(customerNav?.textContent).toMatch(/How Lattice works\s*Equipment explorer/);
     });
   });
 

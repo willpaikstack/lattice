@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     }
 
     const preview = await getCadPreviewStatus(urn);
-    return NextResponse.json({ preview });
+    return NextResponse.json({ preview }, { headers: { "Cache-Control": "no-store" } });
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "Unable to inspect CAD preview";
     return NextResponse.json({ error: message }, { status: 500 });

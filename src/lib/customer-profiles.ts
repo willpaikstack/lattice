@@ -135,9 +135,9 @@ async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => 
   try {
     return await operation();
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma is unavailable; using local customer profile fallback data.", error);
-    }
+    if (process.env.NODE_ENV !== "development") throw error;
+
+    console.warn("Prisma is unavailable; using local customer profile fallback data.", error);
     return fallback();
   }
 }

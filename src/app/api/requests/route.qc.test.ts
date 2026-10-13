@@ -1,3 +1,4 @@
+import { restrictionPolicyVersion } from "@/lib/rfq-manufacturing";
 import { File } from "node:buffer";
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -24,6 +25,7 @@ const mocks = vi.hoisted(() => {
       id: "req_created",
       files: input.files,
     })),
+    getRequestById: vi.fn<(id: string) => Promise<null | { id: string }>>(async () => null),
     getAccountSettings: vi.fn(async () => ({})),
     getCurrentSession: vi.fn(async () => state.session),
     listOperatorRequests: vi.fn(async () => [{ id: "req_admin_queue" }]),
@@ -33,6 +35,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("@/lib/request-repository", () => ({
   createSubmittedRequest: mocks.createSubmittedRequest,
+  getRequestById: mocks.getRequestById,
   listOperatorRequests: mocks.listOperatorRequests,
 }));
 
@@ -60,10 +63,11 @@ function session(role: "admin" | "customer" | "supplier") {
 
 function validInput(overrides: Partial<DraftRequestInput> = {}): DraftRequestInput {
   return {
+    intakeDeclaration: { restrictionStatus: "unrestricted", policyVersion: restrictionPolicyVersion, endUse: "commercial", endUseNotes: "" },
     buyerCompany: "Amogy Manufacturing",
     dueDate: "2026-07-01",
     files: [{ name: "bracket.step", sizeBytes: 2048, type: "model/step" }],
-    lineItems: [{ material: "6061-T6 Aluminum", partName: "Bracket", quantity: 4 }],
+    lineItems: [{ material: "6061-T6 Aluminum", partName: "Bracket", quantity: 4, surfaceFinish: "As machined (Ra 3.2 um / Ra 126 uin)", manufacturingDetails: { process: "cnc_milling", customerPartNumber: "", cadRevision: "", drawingRevision: "", materialKey: "al_6061_t6", finishKey: "as_machined_ra_3_2", fileHistory: [] } }],
     process: "CNC machining",
     requesterName: "Buyer Ops",
     title: "Bracket RFQ",
@@ -78,11 +82,65 @@ async function responseJson(response: Response) {
 describe("requests API QC", () => {
   beforeEach(() => {
     mocks.state.session = null;
+    mocks.getRequestById.mockReset().mockResolvedValue(null);
     mocks.createSubmittedRequest.mockClear();
     mocks.listOperatorRequests.mockClear();
     mocks.getCurrentSession.mockClear();
     mocks.contactSnapshotFromAccountSettings.mockClear();
     mocks.getAccountSettings.mockClear();
+  });
+
+  it("rejects restricted packages before creating an RFQ", async () => {
+    mocks.state.session = session("customer");
+    const { POST } = await import("./route");
+    const input = validInput(); input.intakeDeclaration!.restrictionStatus = "restricted";
+    const response = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining("does not accept") });
+    expect(mocks.createSubmittedRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns a recoverable service error if the submission database write fails", async () => {
+    mocks.state.session = session("customer");
+    mocks.createSubmittedRequest.mockRejectedValueOnce(new Error("private database details"));
+    const { POST } = await import("./route");
+    const response = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(validInput()) }));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "The RFQ could not be saved to the database. Your draft is retained; please try again." });
+  });
+
+  it("does not parse or create a retry when the idempotency lookup database is unavailable", async () => {
+    mocks.state.session = session("customer");
+    mocks.getRequestById.mockRejectedValueOnce(new Error("database unavailable"));
+    const { POST } = await import("./route");
+    const response = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "Idempotency-Key": "local_draft_retry" }, body: "unparsed retry" }));
+    expect(response.status).toBe(503);
+    expect(mocks.createSubmittedRequest).not.toHaveBeenCalled();
+  });
+
+  it("returns the original RFQ before parsing a retried submission", async () => {
+    mocks.state.session = session("customer");
+    mocks.getRequestById.mockResolvedValue({ id: "rfq_existing" });
+    const { POST } = await import("./route");
+    const response = await POST(new Request("http://localhost/api/requests", {
+      method: "POST", body: "lost-response-retry", headers: { "Idempotency-Key": "local_draft_retry" },
+    }));
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ request: { id: "rfq_existing" } });
+    expect(mocks.getRequestById).toHaveBeenCalledWith(expect.stringMatching(/^rfq_[a-f0-9]{40}$/), { requireDatabase: true });
+    expect(mocks.createSubmittedRequest).not.toHaveBeenCalled();
+  });
+
+  it("scopes retry identifiers to the signed-in user", async () => {
+    const { POST } = await import("./route");
+    const retry = () => new Request("http://localhost/api/requests", {
+      method: "POST", body: "invalid", headers: { "Idempotency-Key": "local_draft_retry" },
+    });
+    mocks.state.session = session("customer");
+    await POST(retry());
+    mocks.state.session.user.id = "customer_2";
+    await POST(retry());
+    expect(mocks.getRequestById.mock.calls[0][0]).not.toBe(mocks.getRequestById.mock.calls[1][0]);
   });
 
   it("keeps the request queue admin-only", async () => {
@@ -127,7 +185,7 @@ describe("requests API QC", () => {
         buyerCompany: "Test Company",
         contact: expect.objectContaining({ shipToCompany: "Test Company" }),
       }),
-      { buyerCompanyId: "company_test" },
+      { buyerCompanyId: "company_test", requireDatabase: true },
     );
   });
 

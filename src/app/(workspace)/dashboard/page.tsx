@@ -6,6 +6,7 @@ import {
 } from "@/lib/customer-dashboard";
 import { customerSafeRequest } from "@/lib/customer-partner-privacy";
 import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
+import { getPendingQuoteRenewalIds } from "@/lib/quote-renewal-status";
 import { filterCustomerVisibleRequests } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
@@ -31,7 +32,8 @@ export default async function Home({ searchParams }: DashboardPageProps = {}) {
   // strictly filtered to the signed-in customer's company.
   const visibleQuotes = scenarioData ? quotes : filterCustomerVisibleRequests(quotes, session);
   const visibleOrders = scenarioData ? orders : filterCustomerVisibleRequests(orders, session);
-  const dashboard = buildCustomerDashboardSummary(visibleQuotes, visibleOrders);
+  const pendingRenewalIds = scenarioData ? undefined : await getPendingQuoteRenewalIds(visibleQuotes);
+  const dashboard = buildCustomerDashboardSummary(visibleQuotes, visibleOrders, new Date(), pendingRenewalIds);
   const userName = session?.user.name || clerkUserDisplayName(clerkUser) || "there";
   return <CustomerDashboardView dashboard={dashboard} userName={userName} scenario={scenario} />;
 }

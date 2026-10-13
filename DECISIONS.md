@@ -1,5 +1,30 @@
 # Decisions
 
+## 2026-10-12 - Upload RFQ Files Directly and Reveal CAD Geometry Earlier
+
+Decision: stage 1 of CAD preview performance work preloads Autodesk Viewer assets during upload/translation, reveals fitted geometry before optional toolbar tools, and uploads RFQ files directly to private R2/S3 storage. Autodesk reads the saved CAD object through an ownership-checked streaming path; RFQ submission sends file references after saves complete. Private remote downloads use short-lived signed redirects after authorization.
+
+Reason: avoid duplicate customer CAD transfers, remove the 4.5 MB Vercel file-payload bottleneck, and overlap viewer startup with Autodesk conversion. The CAD preview remains optional for submission.
+
+Implications:
+
+- Issue signed PUTs only after role, company scope, intake declaration, format, and size validation. Sign a unique key, exact byte length, content type, and filename metadata; confirm storage before returning a reference.
+- Keep the bucket private and configure CORS for exact app origins before rollout. Do not persist signed URLs or storage credentials in customer drafts.
+- CAD and drawing uploads use the same 200 MiB ceiling. Local development retains its file path.
+- Translation reuse and completion webhooks are separate future stages. No production speed estimate is supported until representative files are timed against the deployed flow.
+
+## 2026-10-10 - Adopt the Refined Materials Family Atlas on the First Page
+
+Decision: use the approved concept A layout on `/materials`: left texture swatches, concise family descriptions, existing catalog counts/examples, explicit family navigation, and the unlisted-material link with availability/reference notes. Scope the change to the first page; leave the sidebar and family guides unchanged.
+
+Reason: William selected the browse-first concept for usability and credibility and requested an easy rollback.
+
+Implications:
+
+- Preserve the complete original `MaterialFamilyCatalog`; restoring the overview page import and JSX reverses the redesign independently.
+- Keep the existing no-search family atlas and canonical material data. Search and comparison are future proposals only.
+- Do not copy invented examples or altered branding from generated imagery.
+
 ## 2026-10-08 - Attach the Lattice Overview PDF to Customer Invitations
 
 Decision: include the approved one-page “How Lattice works” guide as a PDF attachment on customer invitation emails. The delivery asset is `public/email/lattice-invitation-overview.pdf`; the editable output and reproducible builder are `output/pdf/lattice-invitation-overview.pdf` and `scripts/build-lattice-invitation-one-pager.py`. Resend receives the PDF as Base64 content with the filename “Lattice - How It Works.pdf”.
@@ -1428,3 +1453,99 @@ Use Stripe-hosted Checkout with automatic tax for initial quote purchasing so th
 Stripe refunds update a separate payment ledger from current refund statuses, including pending and failed amounts. Preserve original capture and immutable sale invoice; refunds do not automatically cancel manufacturing or rewrite issued documents. Credit-note/accounting adjustment automation remains required follow-up.
 
 Initial card checkout supports finalized DDP delivery only. Quotes with other or missing shipping terms need operator reissue before purchasing; do not silently change agreed quote terms. Display saved terms on existing orders. Disable Link in both shared Test mode and live default payment configuration to prevent its bank-funding option in the card-only release.
+
+## 2026-10-09 — First-customer launch target and PO reference
+
+William targets first-customer launch/onboarding for Tuesday, October 13, 2026. Initial purchasing is credit card with a customer PO reference; PO credit terms remain disabled. Preserve the PO number through card checkout, webhook finalization, order and invoice. The customer/job specifics are not yet known. Launch is conditional on the readiness gates in docs/first-customer-launch-readiness-2026-10-09.md; the date is a target, not certification or authorization to enable unverified purchasing.
+
+## 2026-10-10 — Action resolution and continuous workspace navigation
+
+Expired quotes require operator reissue. Customers request updated pricing/lead time through a saved `QUOTE_RENEWAL` support ticket; sending that request transfers the next action to Lattice, while a valid reissued quote restores customer review. Existing support storage is reused without a schema change or automatic email. Admin demo renewals remain isolated in the mock local store.
+
+The dual public/customer How it works URL shares the workspace route-group layout so signed-in sidebar navigation preserves the shell and draft context. Navigation requests start at click time; animation must not hide the current page while a server response is pending. Shared-draft loading must not block unrelated workspace pages or the shell.
+
+### 2026-10-10 — Preserve the original page fade-in
+
+William wants the original 320 ms fade-in retained. Start route loading immediately on click and fade the destination as soon as it arrives; do not add a visible loading bar or wait for an exit animation before requesting the route.
+
+## 2026-10-10 — Sidebar Request Quote visual priority
+
+William selected Solid primary from the three button previews. The follow-up softens the fill to #505050 charcoal, retains white text and the leading plus at 46px height, and removes the redundant trailing arrow, shadow, and hover lift to reduce emphasis.
+
+
+## 2026-10-11 — RFQ configuration defaults and submission
+
+New RFQ parts require an explicit material selection; do not preselect SS 304 or another grade. Preserve explicit materials saved in existing drafts/reorders. The progress indicator follows the actual Upload → Configure → Submit flow, without a Review step. Keep the existing Request Quote action, show Submitting… while pending, and deduplicate retries using a stable draft/submission identifier scoped to the signed-in user and company. Database uniqueness is the durable concurrency protection; development fallback additionally coalesces in-process submissions. Exposing process/date and moving process to each part remains a proposal/example, not an approved feature change.
+
+
+## 2026-10-12 — Per-part manufacturing intake and overseas eligibility
+
+Offer exactly CNC Milling (new-part default), CNC Turning and Sheet Metal Fabrication per RFQ part. Preserve explicit saved processes; derive the request-level process summary and quoted per-part process from those choices. Use optional structured JSON metadata for per-part number/revisions, file history and reference CAD envelope. Keep new-part material unselected; retain saved explicit grades. Apply the researched conservative material/process/finish service matrix in both UI and API, without silently replacing incompatible choices.
+
+For Lattice's China manufacturing workflow, refuse declared ITAR/export-restricted, CUI, US-only or incompatible restricted-handling packages. Unconfirmed/unsure/obsolete-policy declarations block file upload and Autodesk translation until eligibility is clarified. Customers must explicitly declare eligibility; this does not replace regulatory classification or end-user/destination review. Required Prototype/Commercial/Mixed-other use has no default and travels to admin review; mixed-other includes an explanation. No automatic customs/tax exemption follows from prototype intent. Existing legacy requests are not retroactively certified.
+
+Persist the declaration in Request.intakeDeclaration and per-part requirements in RequestLineItem.manufacturingDetails. Apply additive SQL before deployment; local DB was updated, production was not. Continue to use Upload/Configure/Submit. Requested delivery remains the existing hidden metadata assumption pending a separate date-control decision. CoC/traceability, certification qualification, NDA workflow, drawing deviations, detailed critical features and marking controls are explained proposals, not implemented approval in this session.
+
+
+## 2026-10-12 — CAD selection followed by export declaration dialog
+
+Replace the inline restriction questionnaire with a Xometry-style staged CAD selection dialog. Keep new CAD batches local until the buyer explicitly confirms eligibility and continues. Apply this to initial, additional and replacement CAD selections; keep the current server policy gate and no default answer. Back/Close discards pending selections. Yes/Unsure can save the stopping declaration but never upload the batch. Keep intended use on the configuration page and provide a declaration summary/change control for existing drafts. This is UI flow emulation, not adoption of Xometry’s EAR99 classification wording or automatic export clearance.
+
+
+## 2026-10-12 — Binary export declaration copy
+
+Customer export declaration offers only Yes and No, with neither preselected for a new batch. Use Xometry-inspired regulatory categories (ITAR, EAR, dual-use, military/defense, firearms and CUI), plus U.S.-only/other restricted handling. Remove country-centered dialog copy and the Unsure selection. Legacy unsure status remains unsupported for upload/submission and reopens with no selection. Yes still refuses the package; there is no automatic EAR99 clearance assertion.
+
+
+## 2026-10-12 — Export dialog Continue states
+
+Continue uses the platform’s black primary button when No is selected. Yes and unanswered states keep the same Continue label faded and disabled. Remove the Save & stop action; restricted choices cannot advance through the dialog. Back/Close discard the pending batch and unsaved dialog choice.
+
+
+## 2026-10-12 — Preload viewer during export declaration
+
+Fetch public Autodesk viewer JavaScript/CSS when valid CAD selection opens the restrictions popup. Do not send CAD bytes or initiate APS translation during the declaration. No → Continue starts the existing asynchronous save/translation pipeline while the buyer configures parts. Share the existing deduplicated loader, tolerate preload failure and retain preview-time retry.
+
+
+## 2026-10-12 — User-directed speculative CAD upload and translation
+
+Supersedes the earlier wait-for-No processing decision: start CAD upload and Autodesk translation on valid file selection during the restrictions popup, per explicit user direction after discussion of transmission risk. Use a distinct advance_cad_preview intent with status unconfirmed and the current policy version; do not invent an unrestricted customer declaration. Limit this exception to supported CAD files in authenticated, company-scoped upload/preview routes. Drawings and RFQ submission keep the existing eligibility gate. Reuse File-keyed pending upload and translation promises on No → Continue. Yes remains disabled; Back/Close discard UI selections but do not retract uploaded data or cancel cloud jobs. Disclose this in the popup. This implementation does not establish legal eligibility or shift liability to the uploader.
+
+
+## 2026-10-12 — Remove popup processing note
+
+Remove the explanatory early-upload/Autodesk-processing sentence beneath the staged CAD file list, per user request. Advance upload/translation behavior and Yes/No continuation rules are unchanged. This supersedes the earlier decision to show that sentence in the popup.
+
+
+## 2026-10-12 — Preserve a prepared CAD viewer across intake steps
+
+Warm the actual converted model for the first file in each pending CAD batch, after APS translation succeeds. Keep the mounted Autodesk component in a stable portal container, parked at real dimensions behind the popup; reparent that container into the configured part rather than recreating the viewer. Keep the parked preview invisible/inert and resize/refit on handoff. Limit unconfirmed warm-up to one model per batch. Retain accepted prepared viewers with their parts, and dispose canceled/removed/replaced viewers and form-session resources. No cross-session shared model cache, no new cloud cancellation guarantee and no guaranteed 20-second translation target.
+
+## 2026-10-12 — Capture optional target shipment dates per part
+
+William selected a date input below each part’s Manufacturing notes instead of the proposed expandable quote-wide lead-time duration control. Leave it blank by default, retain it in drafts/submission/reorders, and show it to admin as a preference requiring quote confirmation. Distinguish shipment from delivery/transit.
+
+## 2026-10-12 — Add a separate source-aware Equipment explorer
+
+Build a new `/equipment-explorer` resource below How Lattice works, preserving the original `/equipment` page. Use a technical directory with a desktop card alternative, six process groups and critical documented specifications. Derive browsable counts from the actual customer-visible population (150); do not aggregate mixed fleet quantities as machine counts. Keep archived partner documents and identities internal while exposing an opaque record reference and existing public model literature. Source-specific corrections belong to the new server projection until the legacy catalog is separately reviewed. Missing dimensions, material limits or precision bases are not inferred. Part suitability is confirmed during RFQ review.
+
+## 2026-10-13 — Disable previous-file history for quotes
+
+At William’s request, remove Previous files and stop archiving replaced/deleted quote attachments for now. Clear history when restoring drafts/reorders and validating new submissions; stop promoting history files from draft storage. Preserve legacy schema/parser compatibility without a migration or bulk deletion of existing submitted records/storage objects.
+
+## 2026-10-13 — Remove buyer-company intake requirement
+
+Supersedes the RFQ form-default portion of the 2026-06-05 buyer-company decision. Buyer company is not an intake field or a required free-text submission value. Customer RFQs connect to the authenticated company ID and use server-resolved account/company data. Customers without a company assignment still receive the account-setup error. Admin-created RFQs may be unassigned; persistence must not create a blank company to satisfy the old requirement. Company ownership and account settings remain intact.
+
+## 2026-10-13 — Separate quotes for different intended uses
+
+Prototype and Commercial parts must be submitted in separate quotes. Added/replacement CAD popup selections cannot change an existing quote’s declared intended use. A mismatch blocks Continue and offers a fresh quote in a new tab to preserve the current draft.
+
+
+## 2026-10-13 — Use the submission database as the administrative RFQ source of truth
+
+William requested an operational admin queue/detail synchronized with the customer submission database. Administrative lists and direct detail reads use persisted database records, excluding demo/fixture/local/browser records even on the development machine. Submission persistence, administrative quote/decision writes, and supplier-evidence metadata must fail explicitly when the database cannot save; they must not report success from a local fallback.
+
+Each part's saved CAD/drawing package uses `UploadedFile.lineItemIndex` against deterministic creation/ID ordering of request line items. This supersedes the earlier admin redesign's deliberate shared-only presentation for indexed records. Legacy missing/invalid indexes stay shared; never infer associations from file-array position. Preserve the submitted schema's labels, metadata, requirements/notes and file references. Unassigned company context remains explicit.
+
+The dedicated `/admin/quotes/[requestId]` page is the technical review surface; the existing `view=quote` workbench retains quote preparation/issuance and stored versions. Read-only views may refresh automatically, while unsent workbench edits remain protected from polling. Three detail-design alternatives were prepared; no final redesigned layout has been selected.

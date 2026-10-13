@@ -19,6 +19,7 @@ import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-que
 
 export type PurchaseQuoteDeliveryInput = {
   checkoutDetails?: Record<string, string>;
+  customerPoNumber?: string;
   shipToAddress1?: string;
   shipToAddress2?: string;
   shipToCity?: string;
@@ -116,9 +117,9 @@ async function withDemoFallback<T>(operation: () => Promise<T>, fallback: () => 
   try {
     return await operation();
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("Prisma is unavailable; using local request fallback data.", error);
-    }
+    if (process.env.NODE_ENV !== "development") throw error;
+
+    console.warn("Prisma is unavailable; using local request fallback data.", error);
     return fallback();
   }
 }
@@ -202,19 +203,45 @@ export async function updateRequestShippingAddress(id: string, input: RequestShi
   }
 }
 
-export async function createSubmittedRequest(input: DraftRequestInput, options?: { buyerCompanyId?: string }) {
+const pendingSubmissions = new Map<string, Promise<LatticeRequest>>();
+
+export async function createSubmittedRequest(input: DraftRequestInput, options?: { buyerCompanyId?: string; submissionId?: string; requireDatabase?: boolean }) {
+  const key = options?.submissionId;
+  if (!key) return persistSubmittedRequest(input, options);
+  const pending = pendingSubmissions.get(key);
+  if (pending) return pending;
+  const operation = persistSubmittedRequest(input, options);
+  pendingSubmissions.set(key, operation);
+  try {
+    return await operation;
+  } finally {
+    pendingSubmissions.delete(key);
+  }
+}
+
+async function persistSubmittedRequest(input: DraftRequestInput, options?: { buyerCompanyId?: string; submissionId?: string; requireDatabase?: boolean }) {
   try {
     const client = await prisma();
     const stored = await client.request.create({
-      data: buildSubmittedRequestCreateInput(input, options),
+      data: { ...buildSubmittedRequestCreateInput(input, options), ...(options?.submissionId ? { id: options.submissionId } : {}) },
       include: storedRequestInclude,
     });
 
     return mapStoredRequest(stored);
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (options?.submissionId && error && typeof error === "object" && "code" in error && error.code === "P2002") {
+      const client = await prisma();
+      const existing = await client.request.findUnique({ where: { id: options.submissionId }, include: storedRequestInclude });
+      if (existing) return mapStoredRequest(existing);
+      throw error;
+    }
+    if (process.env.NODE_ENV === "development" && !options?.requireDatabase) {
       console.warn("Prisma is unavailable; saving submitted request locally.", error);
-      return saveLocalRequest({ ...submitDraftRequest(buildDraftRequest(input)), buyerCompanyId: options?.buyerCompanyId ?? null });
+      if (options?.submissionId) {
+        const existing = await getLocalRequestById(options.submissionId);
+        if (existing) return existing;
+      }
+      return saveLocalRequest({ ...submitDraftRequest(buildDraftRequest(input)), ...(options?.submissionId ? { id: options.submissionId } : {}), buyerCompanyId: options?.buyerCompanyId ?? null });
     }
 
     throw error;
@@ -222,46 +249,29 @@ export async function createSubmittedRequest(input: DraftRequestInput, options?:
 }
 
 export async function listOperatorRequests() {
-  return withDemoFallback(
-    async () => {
-      const client = await prisma();
-      const storedRequests = await client.request.findMany({
-        where: {
-          status: {
-            in: ["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"],
-          },
-          NOT: [{ id: { startsWith: "demo_" } }, { id: { startsWith: "fixture_" } }],
-        },
-        include: storedRequestInclude,
-        orderBy: {
-          updatedAt: "desc",
-        },
-      });
-
-      return getOperatorQueueRequests(await includeLocalDevelopmentRequests(requestsForDataMode(storedRequests).map(mapStoredRequest)));
-    },
-    async () => getOperatorQueueRequests(sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests()))),
-  );
+  return getOperatorQueueRequests(await listAdminRequests());
 }
 
+/** Administrative operations always use the submission database, including locally. */
 export async function listAdminRequests() {
-  return withDemoFallback(
-    async () => {
-      const client = await prisma();
-      const storedRequests = await client.request.findMany({
-        include: storedRequestInclude,
-        orderBy: {
-          updatedAt: "desc",
-        },
-      });
-
-      return includeLocalDevelopmentRequests(requestsForDataMode(storedRequests).map(mapStoredRequest));
-    },
-    async () => sortRequestsNewestFirst(requestsForDataMode(await listLocalRequests())),
-  );
+  const client = await prisma();
+  const stored = await client.request.findMany({
+    where: { NOT: [{ id: { startsWith: "demo_" } }, { id: { startsWith: "fixture_" } }] },
+    include: storedRequestInclude,
+    orderBy: { updatedAt: "desc" },
+  });
+  return realRequestsOnly(stored).map(mapStoredRequest);
 }
 
-export async function getRequestById(id: string) {
+export type RequestDataOptions = { requireDatabase?: boolean };
+
+export async function getRequestById(id: string, options: RequestDataOptions = {}) {
+  if (options.requireDatabase) {
+    if (isArtificialRequestId(id)) return null;
+    const client = await prisma();
+    const stored = await client.request.findUnique({ where: { id }, include: storedRequestInclude });
+    return stored ? mapStoredRequest(stored) : null;
+  }
   if (isArtificialRequestId(id) && !isMockDataMode()) {
     return null;
   }
@@ -357,8 +367,9 @@ export async function saveCustomerQuoteForRequest(
     quoteSummary: string;
     selectedSupplierQuote?: SelectedSupplierQuoteInput | null;
   },
+  options: RequestDataOptions = {},
 ) {
-  const current = await getRequestById(id);
+  const current = await getRequestById(id, options);
 
   if (!current) {
     throw new Error("Request not found");
@@ -453,7 +464,7 @@ export async function saveCustomerQuoteForRequest(
     if (true) await queueCustomerLifecycleEmail(saved, "QUOTE_ISSUED", saved.customerQuotes.at(-1)?.id ?? saved.updatedAt);
     return saved;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && !options.requireDatabase) {
       console.warn("Prisma quote save is unavailable; saving customer quote locally.", error);
       const timestamp = new Date().toISOString();
       const updated = {
@@ -547,8 +558,8 @@ export async function saveCustomerQuoteForRequest(
   }
 }
 
-export async function updateAdminRfqDecision(id: string, input: AdminRfqDecisionInput) {
-  const current = await getRequestById(id);
+export async function updateAdminRfqDecision(id: string, input: AdminRfqDecisionInput, options: RequestDataOptions = {}) {
+  const current = await getRequestById(id, options);
 
   if (!current) {
     throw new Error("Request not found");
@@ -596,7 +607,7 @@ export async function updateAdminRfqDecision(id: string, input: AdminRfqDecision
     if (saved.status === "NEEDS_INFO") await queueCustomerLifecycleEmail(saved, "CLARIFICATION_REQUESTED", saved.updatedAt);
     return saved;
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && !options.requireDatabase) {
       console.warn("Prisma RFQ decision update is unavailable; saving decision locally.", error);
       const timestamp = new Date().toISOString();
 
@@ -628,8 +639,8 @@ export async function updateAdminRfqDecision(id: string, input: AdminRfqDecision
   }
 }
 
-export async function addSupplierQuoteFile(requestId: string, file: UploadedFileInput) {
-  const current = await getRequestById(requestId);
+export async function addSupplierQuoteFile(requestId: string, file: UploadedFileInput, options: RequestDataOptions = {}) {
+  const current = await getRequestById(requestId, options);
 
   if (!current) {
     throw new Error("Request not found");
@@ -665,7 +676,7 @@ export async function addSupplierQuoteFile(requestId: string, file: UploadedFile
 
     return mapStoredRequest(stored);
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && !options.requireDatabase) {
       console.warn("Prisma supplier quote file save is unavailable; saving supplier quote file locally.", error);
       const timestamp = new Date().toISOString();
       return saveLocalRequest({
@@ -699,8 +710,8 @@ export async function addSupplierQuoteFile(requestId: string, file: UploadedFile
   }
 }
 
-export async function removeSupplierQuoteFile(requestId: string, fileId: string) {
-  const current = await getRequestById(requestId);
+export async function removeSupplierQuoteFile(requestId: string, fileId: string, options: RequestDataOptions = {}) {
+  const current = await getRequestById(requestId, options);
 
   if (!current) {
     throw new Error("Request not found");
@@ -737,7 +748,7 @@ export async function removeSupplierQuoteFile(requestId: string, fileId: string)
 
     return mapStoredRequest(stored);
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && !options.requireDatabase) {
       console.warn("Prisma supplier quote file removal is unavailable; removing supplier quote file locally.", error);
       const timestamp = new Date().toISOString();
       return saveLocalRequest({
@@ -946,6 +957,10 @@ export async function recordStripeCheckoutSession(
     shipToState: cleanText(input.shipToState) || current.shipToState,
     shipToZipCode: cleanText(input.shipToZipCode) || current.shipToZipCode,
   };
+  const customerPoNumber = cleanText(input.customerPoNumber);
+  if (customerPoNumber.length > 100 || /[\u0000-\u001f\u007f]/.test(customerPoNumber)) {
+    throw new Error("PO reference must be 100 characters or fewer and cannot contain control characters.");
+  }
 
   try {
     await requireStoredMockStripeRequest(id);
@@ -954,6 +969,7 @@ export async function recordStripeCheckoutSession(
       where: { id, ...(input.expectedUpdatedAt ? { updatedAt: new Date(input.expectedUpdatedAt), status: "QUOTED" } : {}) },
       data: {
         ...delivery,
+        customerPoNumber,
         purchasePaymentMethod: "CARD",
         purchasePaymentStatus: "PAYMENT_PENDING",
         stripeCheckoutSessionId: input.checkoutSessionId,
@@ -981,7 +997,7 @@ export async function recordStripeCheckoutSession(
         purchasePayment: {
           method: "CARD",
           status: "PAYMENT_PENDING",
-          customerPoNumber: "",
+          customerPoNumber,
           accountsPayableEmail: "",
           buyerCheckoutNotes: input.checkoutDetails?.buyerNotes || "",
           card: null,
@@ -1007,6 +1023,7 @@ export async function finalizeStripePaidQuote(input: {
   shippingCents?: number;
   card: NonNullable<LatticeRequest["purchasePayment"]["card"]> | null;
   checkoutSessionId: string;
+  customerPoNumber?: string;
   currency: string;
   paidAt: string;
   paymentIntentId: string;
@@ -1046,7 +1063,7 @@ export async function finalizeStripePaidQuote(input: {
   const purchasePayment = {
     method: "CARD" as const,
     status: "PAID" as const,
-    customerPoNumber: "",
+    customerPoNumber: current.purchasePayment.customerPoNumber || cleanText(input.customerPoNumber),
     accountsPayableEmail: "",
     buyerCheckoutNotes: current.purchasePayment.buyerCheckoutNotes,
     card,
@@ -1069,6 +1086,7 @@ export async function finalizeStripePaidQuote(input: {
         checkoutDetails,
         purchasePaymentMethod: "CARD",
         purchasePaymentStatus: "PAID",
+        customerPoNumber: purchasePayment.customerPoNumber,
         purchaseCardId: card?.id ?? "",
         purchaseCardBrand: card?.brand ?? "",
         purchaseCardLast4: card?.last4 ?? "",

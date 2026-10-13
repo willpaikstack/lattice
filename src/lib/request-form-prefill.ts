@@ -1,3 +1,4 @@
+import { processLabel } from "./rfq-manufacturing";
 import type { RequestFormInitialState } from "@/components/request-form";
 import type { LatticeRequest } from "@/lib/request-model";
 import {
@@ -9,11 +10,6 @@ import {
   surfaceFinishOptions,
 } from "@/lib/rfq-options";
 
-function dueDateFromToday(daysFromToday: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + daysFromToday);
-  return date.toISOString().slice(0, 10);
-}
 
 function optionValueFromLabel(options: RfqOption[], label: string | undefined, fallback: string) {
   if (!label?.trim()) {
@@ -108,14 +104,20 @@ function copiedRequestInitialState(
     projectName: string;
   },
 ): RequestFormInitialState {
-  const primaryLineItem = request.lineItems[0];
   const cadFiles = request.files.filter(isCadFile);
   const drawingFiles = request.files.filter(isDrawingFile);
   const lineItems = request.lineItems.map((lineItem, index) => {
-    const cadFile = cadFiles[index];
-    const drawingFile = drawingFiles[index];
+    const cadFile = cadFiles.find(file => file.lineItemIndex === index) ?? (cadFiles.every(file => file.lineItemIndex == null) ? cadFiles[index] : undefined);
+    const drawingFile = drawingFiles.find(file => file.lineItemIndex === index) ?? (drawingFiles.every(file => file.lineItemIndex == null) ? drawingFiles[index] : undefined);
 
     return {
+      process: optionValueFromLabel(processOptions, processLabel(lineItem.manufacturingDetails?.process || request.process), "cnc_milling"),
+      customerPartNumber: lineItem.manufacturingDetails?.customerPartNumber ?? "",
+      cadRevision: lineItem.manufacturingDetails?.cadRevision ?? "",
+      drawingRevision: lineItem.manufacturingDetails?.drawingRevision ?? "",
+      targetShipDate: lineItem.manufacturingDetails?.targetShipDate ?? "",
+      fileHistory: [],
+      cadMetadata: lineItem.manufacturingDetails?.cadMetadata,
       cadPreview: cadFile?.cadPreviewUrn
         ? {
             status: "ready" as const,
@@ -128,9 +130,8 @@ function copiedRequestInitialState(
       fileStorageKey: cadFile?.storageKey,
       fileType: cadFile?.type ?? "",
       generalTolerance: optionValueFromLabel(generalToleranceOptions, lineItem.generalTolerance, "iso_2768_medium_m"),
-      material: optionValueFromLabel(rfqMaterialOptions, lineItem.material, "ss_304"),
+      material: optionValueFromLabel(rfqMaterialOptions, lineItem.material, ""),
       notes: lineItemNotesWithoutGeneratedDrawingPrompts(lineItem.notes),
-      partName: lineItem.partName,
       qualityDocumentation: lineItem.qualityDocumentation?.length
         ? lineItem.qualityDocumentation.map((label) => optionValueFromLabel(qualityDocumentationOptions, label, "standard_inspection"))
         : ["standard_inspection"],
@@ -146,20 +147,18 @@ function copiedRequestInitialState(
   const primaryInitialLineItem = lineItems[0];
 
   return {
-    buyerCompany: request.buyerCompany,
-    customerPo: "",
-    dueDate: dueDateFromToday(request.quote.leadTimeDays ? request.quote.leadTimeDays + 7 : 21),
+    restrictionStatus: request.intakeDeclaration?.restrictionStatus ?? "unconfirmed",
+    restrictionPolicyVersion: request.intakeDeclaration?.policyVersion ?? "",
+    endUse: request.intakeDeclaration?.endUse ?? "",
+    endUseNotes: request.intakeDeclaration?.endUseNotes ?? "",
     fileName: primaryInitialLineItem?.fileName ?? "",
     generalTolerance: primaryInitialLineItem?.generalTolerance ?? "iso_2768_medium_m",
     lineItems,
-    material: primaryInitialLineItem?.material ?? "ss_304",
+    material: primaryInitialLineItem?.material ?? "",
     notes: compactLines(notes),
-    partName: primaryLineItem?.partName ?? request.title,
-    process: optionValueFromLabel(processOptions, request.process, "cnc_milling"),
     projectName,
     qualityDocumentation: primaryInitialLineItem?.qualityDocumentation ?? ["standard_inspection"],
     quantity: primaryInitialLineItem?.quantity ?? "1",
-    requesterName: request.requesterName,
     surfaceFinish: primaryInitialLineItem?.surfaceFinish ?? "as_machined_ra_3_2",
     technicalDrawingName: primaryInitialLineItem?.technicalDrawingName ?? "",
   };
@@ -180,40 +179,5 @@ export function reorderInitialState(order: LatticeRequest): RequestFormInitialSt
 }
 
 export function draftInitialState(draft: LatticeRequest): RequestFormInitialState {
-  const primaryLineItem = draft.lineItems[0];
-  const primaryFile = draft.files[0];
-  const drawingFile = draft.files.find((file) => file !== primaryFile && isDrawingFile(file));
-
-  return {
-    buyerCompany: draft.buyerCompany,
-    customerPo: "",
-    cadPreview: primaryFile?.cadPreviewUrn
-      ? {
-          status: "ready",
-          fileName: primaryFile.name,
-          urn: primaryFile.cadPreviewUrn,
-        }
-      : undefined,
-    dueDate: draft.dueDate || dueDateFromToday(14),
-    fileName: primaryFile?.name ?? "",
-    fileSizeBytes: primaryFile?.sizeBytes ?? 0,
-    fileStorageKey: primaryFile?.storageKey,
-    fileType: primaryFile?.type ?? "",
-    generalTolerance: optionValueFromLabel(generalToleranceOptions, primaryLineItem?.generalTolerance, "iso_2768_medium_m"),
-    material: optionValueFromLabel(rfqMaterialOptions, primaryLineItem?.material, "ss_304"),
-    notes: primaryLineItem?.notes ?? "",
-    partName: primaryLineItem?.partName ?? draft.title,
-    process: optionValueFromLabel(processOptions, draft.process, "cnc_milling"),
-    projectName: draft.title,
-    qualityDocumentation: primaryLineItem?.qualityDocumentation?.length
-      ? primaryLineItem.qualityDocumentation.map((label) => optionValueFromLabel(qualityDocumentationOptions, label, "standard_inspection"))
-      : ["standard_inspection"],
-    quantity: String(primaryLineItem?.quantity ?? 1),
-    requesterName: draft.requesterName,
-    surfaceFinish: optionValueFromLabel(surfaceFinishOptions, primaryLineItem?.surfaceFinish, "as_machined_ra_3_2"),
-    technicalDrawingName: drawingFile?.name ?? "",
-    technicalDrawingSizeBytes: drawingFile?.sizeBytes ?? 0,
-    technicalDrawingStorageKey: drawingFile?.storageKey,
-    technicalDrawingType: drawingFile?.type ?? "",
-  };
+  return copiedRequestInitialState(draft, { notes: [draft.lineItems[0]?.notes], projectName: draft.title });
 }

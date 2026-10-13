@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { Readable } from "node:stream";
 import { CopyObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export type StoredLocalUpload = {
   name: string;
@@ -48,6 +51,7 @@ function getR2Client(config: R2Configuration) {
     endpoint: config.endpoint,
     forcePathStyle: true,
     region: "auto",
+    requestChecksumCalculation: "WHEN_REQUIRED",
   });
 
   return r2Client;
@@ -108,6 +112,72 @@ export async function saveLocalUpload(file: File, folder = "rfq"): Promise<Store
   };
 
   return saveLocalUploadBytes(metadata, Buffer.from(await file.arrayBuffer()), folder);
+}
+
+// Only a short-lived, object-specific URL leaves the server. The browser sends
+// the file bytes to the bucket, with its exact length included in the signature.
+export async function prepareDirectUpload(metadata: Omit<StoredLocalUpload, "storageKey">, folder: string) {
+  const remote = remoteStorage();
+  if (!remote) return { mode: "local" as const };
+
+  const storageKey = path.posix.join(folder, new Date().toISOString().slice(0, 10), `${randomUUID()}-${safeFileName(metadata.name)}`);
+  const type = metadata.type || "application/octet-stream";
+  const uploadUrl = await getSignedUrl(remote.client, new PutObjectCommand({
+    Bucket: remote.config.bucket,
+    Key: storageKey,
+    ContentLength: metadata.sizeBytes,
+    ContentType: type,
+    Metadata: { "lattice-name": encodeURIComponent(metadata.name), "lattice-size": String(metadata.sizeBytes) },
+  }), { expiresIn: 900, signableHeaders: new Set(["content-type", "content-length"]) });
+
+  return { mode: "direct" as const, storageKey, uploadUrl, headers: { "Content-Type": type } };
+}
+
+// HEAD avoids downloading large CAD files just to validate or submit a reference.
+export async function inspectStoredUpload(storageKey: string) {
+  const safeKey = assertSafeStorageKey(storageKey);
+  const remote = remoteStorage();
+  if (!remote) {
+    return { name: path.posix.basename(safeKey), sizeBytes: (await stat(localUploadPath(safeKey))).size, type: "application/octet-stream" };
+  }
+  const response = await remote.client.send(new HeadObjectCommand({ Bucket: remote.config.bucket, Key: safeKey }));
+  return {
+    name: response.Metadata?.["lattice-name"] ? decodeURIComponent(response.Metadata["lattice-name"]) : path.posix.basename(safeKey),
+    sizeBytes: response.ContentLength ?? 0,
+    type: response.ContentType || "application/octet-stream",
+    expectedSizeBytes: response.Metadata?.["lattice-size"] ? Number(response.Metadata["lattice-size"]) : undefined,
+  };
+}
+
+export async function completeDirectUpload(storageKey: string): Promise<StoredLocalUpload> {
+  const stored = await inspectStoredUpload(storageKey);
+  if (!("expectedSizeBytes" in stored) || !Number.isSafeInteger(stored.expectedSizeBytes) || stored.expectedSizeBytes !== stored.sizeBytes || stored.sizeBytes <= 0) {
+    throw new Error("The file upload is incomplete. Upload the file again before continuing.");
+  }
+  return { name: stored.name, sizeBytes: stored.sizeBytes, type: stored.type, storageKey };
+}
+
+// Stream the saved CAD file to Autodesk without buffering the whole file in a
+// function or sending it from the customer a second time.
+export async function openStoredUploadStream(storageKey: string): Promise<ReadableStream<Uint8Array>> {
+  const safeKey = assertSafeStorageKey(storageKey);
+  const remote = remoteStorage();
+  if (!remote) return Readable.toWeb(createReadStream(localUploadPath(safeKey))) as ReadableStream<Uint8Array>;
+  const response = await remote.client.send(new GetObjectCommand({ Bucket: remote.config.bucket, Key: safeKey }));
+  if (!response.Body) throw new Error("Stored file has no contents");
+  return response.Body.transformToWebStream();
+}
+
+export async function storedUploadDownloadUrl(storageKey: string, contentType: string, contentDisposition: string) {
+  const safeKey = assertSafeStorageKey(storageKey);
+  const remote = remoteStorage();
+  if (!remote) return null;
+  return getSignedUrl(remote.client, new GetObjectCommand({
+    Bucket: remote.config.bucket,
+    Key: safeKey,
+    ResponseContentType: contentType,
+    ResponseContentDisposition: contentDisposition,
+  }), { expiresIn: 300 });
 }
 
 async function saveLocalUploadBytes(

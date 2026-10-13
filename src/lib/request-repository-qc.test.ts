@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import * as persistence from "./request-persistence";
+
 import type { LatticeRequest } from "./request-model";
 
 const mocks = vi.hoisted(() => {
@@ -49,7 +51,7 @@ vi.mock("./local-request-store", () => ({
 }));
 
 import { buildDraftRequest, submitDraftRequest } from "./request-model";
-import { finalizeStripePaidQuote, purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession, recordStripeRefund } from "./request-repository";
+import { createSubmittedRequest, finalizeStripePaidQuote, listAdminRequests, purchaseQuote, quoteCheckoutAmountCents, recordStripeCheckoutSession, recordStripeRefund, saveCustomerQuoteForRequest } from "./request-repository";
 
 function quotedRequest(): LatticeRequest {
   const submitted = submitDraftRequest(
@@ -179,6 +181,75 @@ describe("request repository QC", () => {
     vi.unstubAllEnvs();
   });
 
+  it("persists issued and revised quote versions without losing the prior commercial record", async () => {
+    const fixture = quotedRequest();
+    const original = fixture.customerQuotes[0];
+    mocks.state.currentRequest = { ...fixture, status: "SUBMITTED", customerQuotes: [] };
+    const input = {
+      ...original,
+      estimatedPriceCents: 120000,
+      leadTimeDays: 12,
+      quoteSummary: "First issued quote",
+      shippingCostCents: 8000,
+      shippingMethod: "International",
+      shippingTerms: "DDP",
+    };
+    const issued = await saveCustomerQuoteForRequest(fixture.id, input);
+    expect(issued.status).toBe("QUOTED");
+    expect(issued.customerQuotes).toHaveLength(1);
+    expect(issued.customerQuotes[0]).toMatchObject({ versionNumber: 1, totalCents: 120000 });
+    const revised = await saveCustomerQuoteForRequest(fixture.id, {
+      ...input,
+      estimatedPriceCents: 140000,
+      lineItems: input.lineItems.map((item) => ({ ...item, unitPrice: 350 })),
+      quoteSummary: "Revised pricing",
+    });
+    expect(revised.customerQuotes).toHaveLength(2);
+    expect(revised.customerQuotes[0]).toMatchObject({ versionNumber: 1, totalCents: 120000 });
+    expect(revised.customerQuotes[1]).toMatchObject({ versionNumber: 2, totalCents: 140000 });
+    expect(revised.quote.estimatedPriceCents).toBe(140000);
+  });
+
+  it("returns the database RFQ when another server already created its identifier", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const request = quotedRequest();
+    request.id = "rfq_database_race";
+    const map = vi.spyOn(persistence, "mapStoredRequest").mockReturnValue(request);
+    const previousClient = mocks.getPrismaClient.getMockImplementation()!;
+    const create = vi.fn().mockRejectedValue({ code: "P2002" });
+    const findUnique = vi.fn().mockResolvedValue({ id: request.id });
+    mocks.getPrismaClient.mockResolvedValue({ request: { create, findUnique } } as never);
+    try {
+      const result = await createSubmittedRequest({ buyerCompany: "Test", dueDate: "2026-10-30",
+        files: [{ name: "bracket.step", sizeBytes: 10, type: "model/step" }],
+        lineItems: [{ material: "SS 304", partName: "Bracket", quantity: 1 }],
+        process: "CNC Milling", requesterName: "Buyer", title: "Bracket",
+      }, { submissionId: request.id });
+      expect(result).toEqual(request);
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ id: request.id }) }));
+      expect(findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: request.id } }));
+      expect(mocks.saveLocalRequest).not.toHaveBeenCalled();
+    } finally {
+      map.mockRestore();
+      mocks.getPrismaClient.mockImplementation(previousClient);
+    }
+  });
+
+  it("deduplicates concurrent submissions in local development and later retries", async () => {
+    const input = { buyerCompany: "Test", dueDate: "2026-10-30", files: [{ name: "bracket.step", sizeBytes: 10, type: "model/step" }],
+      lineItems: [{ material: "SS 304", partName: "Bracket", quantity: 1 }],
+      process: "CNC Milling", requesterName: "Buyer", title: "Bracket" };
+    const options = { buyerCompanyId: "company_test", submissionId: "rfq_same_submission" };
+    const [first, second] = await Promise.all([
+      createSubmittedRequest(input, options), createSubmittedRequest(input, options),
+    ]);
+    expect(first.id).toBe(options.submissionId);
+    expect(second).toEqual(first);
+    expect(mocks.saveLocalRequest).toHaveBeenCalledOnce();
+    expect(await createSubmittedRequest(input, options)).toEqual(first);
+    expect(mocks.saveLocalRequest).toHaveBeenCalledOnce();
+  });
+
   it("pays a local mock quote while a healthy database has no synthetic record", async () => {
     vi.stubEnv("LATTICE_DATA_MODE", "mock");
     const request = currentRequestFixture();
@@ -205,6 +276,14 @@ describe("request repository QC", () => {
           findMany: mocks.unavailable, findUnique: mocks.unavailable, update: mocks.unavailable },
       }));
     }
+  });
+
+  it("fails closed instead of presenting local fallback data when production database reads fail", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("LATTICE_DATA_MODE", "customer");
+
+    await expect(listAdminRequests()).rejects.toThrow("database unavailable");
+    expect(mocks.listLocalRequests).not.toHaveBeenCalled();
   });
 
   it("tracks partial/full refunds without rewriting the captured payment or purchasing twice", async () => {
@@ -258,11 +337,13 @@ describe("request repository QC", () => {
     await recordStripeCheckoutSession("req_qc_checkout", {
       amountCents: 128000,
       checkoutSessionId: "pi_qc_checkout",
+      customerPoNumber: " QA-PO-1047 ",
       currency: "usd",
     });
 
     expect(currentRequestFixture().purchasePayment).toMatchObject({
       method: "CARD",
+      customerPoNumber: "QA-PO-1047",
       status: "PAYMENT_PENDING",
       stripe: {
         amountCents: 128000,
@@ -308,6 +389,7 @@ describe("request repository QC", () => {
       },
       method: "CARD",
       status: "PAID",
+      customerPoNumber: "QA-PO-1047",
       stripe: {
         amountCents: 128000,
         checkoutSessionId: "pi_qc_checkout",

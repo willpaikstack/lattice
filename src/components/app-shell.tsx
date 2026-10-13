@@ -1,16 +1,17 @@
 "use client";
 
-import { ArrowLeft, Bell, CircleHelp, ClipboardList, Factory, FileCheck, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Settings, User, X } from "lucide-react";
+import { ArrowLeft, Bell, CircleHelp, ClipboardList, Factory, FileCheck, FileSearch, FileText, GripVertical, Inbox, Layers, LayoutDashboard, LogOut, Plus, Settings, User, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { CustomerOnboarding, type CustomerOnboardingState } from "./customer-onboarding";
 import adminStyles from "./admin-workspace.module.css";
 import { LatticeMarkIcon } from "@/components/lattice-brand";
 import { initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
+import { pageTransition } from "@/lib/page-transition";
 
 type IconName = "home" | "analytics" | "project" | "money" | "admin" | "factory" | "queue" | "back" | "user" | "logout" | "resources" | "quality";
 
@@ -24,8 +25,6 @@ type NavSection = {
   title: string;
   items: NavItem[];
 };
-
-type PageTransitionPhase = "idle" | "exit" | "enter";
 
 type NavigationOptions = {
   keepNotificationsPanelOpen?: boolean;
@@ -50,10 +49,6 @@ type SidebarNotificationResponse = {
   totalCount: number;
 };
 
-const pageTransition = {
-  duration: 0.32,
-  ease: [0.22, 1, 0.36, 1] as const,
-};
 const dayInMilliseconds = 24 * 60 * 60 * 1000;
 const notificationDateFormatter = new Intl.DateTimeFormat("en", {
   day: "numeric",
@@ -76,7 +71,8 @@ const customerNavSections: NavSection[] = [
       { href: "/capabilities", label: "Capabilities", icon: "queue" },
       { href: "/equipment", label: "Equipment", icon: "factory" },
       { href: "/quality-documentation", label: "Inspection & Certificates", icon: "quality" },
-      { href: "/how-it-works", label: "How it works", icon: "resources" },
+      { href: "/how-it-works", label: "How Lattice works", icon: "resources" },
+      { href: "/equipment-explorer", label: "Equipment explorer", icon: "factory" },
     ],
   },
 ];
@@ -124,7 +120,7 @@ function isAdminRoute(pathname: string) {
 }
 
 function isNavItemActive(pathname: string, href: string) {
-  if (href === "/" || href === "/admin/quotes") {
+  if (href === "/") {
     return pathname === href;
   }
 
@@ -150,9 +146,21 @@ function applyStoredOrder(section: NavSection, orderedHrefs: string[] | undefine
   const orderedHrefSet = new Set(orderedItems.map((item) => item.href));
   const remainingItems = section.items.filter((item) => !orderedHrefSet.has(item.href));
 
+  // Introduce the explorer beside its requested neighbor for existing saved
+  // sidebars too, while preserving any later explicit user reordering.
+  const combinedItems = [...orderedItems, ...remainingItems];
+  if (!orderedHrefSet.has("/equipment-explorer")) {
+    const explorerIndex = combinedItems.findIndex(item => item.href === "/equipment-explorer");
+    if (explorerIndex !== -1) {
+      const [explorer] = combinedItems.splice(explorerIndex, 1);
+      const guideIndex = combinedItems.findIndex(item => item.href === "/how-it-works");
+      combinedItems.splice(guideIndex === -1 ? combinedItems.length : guideIndex + 1, 0, explorer);
+    }
+  }
+
   return {
     ...section,
-    items: [...orderedItems, ...remainingItems],
+    items: combinedItems,
   };
 }
 
@@ -561,23 +569,19 @@ function ProfileMenu({ user }: { user: { email: string; name: string } }) {
 
 function PageTransition({
   children,
-  onAnimationComplete,
   pathname,
-  phase,
 }: {
   children: React.ReactNode;
-  onAnimationComplete: () => void;
   pathname: string;
-  phase: PageTransitionPhase;
 }) {
+  const reducedMotion = useReducedMotion();
   return (
     <motion.div
-      animate={phase === "exit" ? { opacity: 0 } : { opacity: 1 }}
+      animate={{ opacity: 1 }}
       className="min-h-full w-full px-5 py-6 lg:px-10 lg:py-8"
-      initial={phase === "enter" ? { opacity: 0 } : false}
+      initial={reducedMotion || pathname === "/quotes" || pathname === "/orders" || pathname === "/requests/new" ? false : { opacity: 0 }}
       key={pathname}
-      onAnimationComplete={onAnimationComplete}
-      transition={pageTransition}
+      transition={reducedMotion ? { duration: 0 } : pageTransition}
     >
       {children}
     </motion.div>
@@ -589,7 +593,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
   const pathname = onboardingPreview ? "/dashboard" : currentPathname;
   const router = useRouter();
   const [pendingHref, setPendingHref] = useState<string | null>(null);
-  const [pageTransitionPhase, setPageTransitionPhase] = useState<PageTransitionPhase>("idle");
+  const [isNavigating, startNavigation] = useTransition();
   const [isNotificationsPanelOpen, setIsNotificationsPanelOpen] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
   const [sidebarNotifications, setSidebarNotifications] = useState<SidebarNotificationResponse>({
@@ -632,7 +636,6 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
 
     const frame = window.requestAnimationFrame(() => {
       setPendingHref(null);
-      setPageTransitionPhase("enter");
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -734,18 +737,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
     }
 
     setPendingHref(href);
-    setPageTransitionPhase("exit");
-  }
-
-  function handlePageAnimationComplete() {
-    if (pageTransitionPhase === "exit" && pendingHref) {
-      router.push(pendingHref);
-      return;
-    }
-
-    if (pageTransitionPhase === "enter") {
-      setPageTransitionPhase("idle");
-    }
+    startNavigation(() => router.push(href));
   }
 
   function handleMainClick() {
@@ -781,15 +773,13 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
             {!inAdminExperience ? (
               <Link
                 aria-current={isRequestQuoteRoute ? "page" : undefined}
-                className={`mt-8 flex h-11 w-full items-center justify-center rounded-lg border px-4 text-[14px] transition duration-150 active:scale-[0.99] ${
-                  isRequestQuoteRoute
-                    ? "border-stone-200/60 bg-white font-medium text-stone-900 shadow-sm"
-                    : "border-stone-200/70 bg-transparent font-semibold text-stone-700 shadow-none hover:border-stone-300 hover:bg-stone-200/50 hover:text-stone-900"
-                }`}
+                className="mt-8 flex h-[46px] w-full items-center gap-2.5 rounded-[7px] border border-[#505050] bg-[#505050] px-3.5 text-[13px] font-semibold transition-colors duration-150 hover:border-black hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-stone-600 motion-reduce:transition-none"
                 href="/requests/new"
                 onClick={(event) => handleNavigate(event, "/requests/new")}
+                style={{ color: "#ffffff" }}
               >
-                Request Quote
+                <Plus aria-hidden="true" className="h-[17px] w-[17px] shrink-0" />
+                <span>Request Quote</span>
               </Link>
             ) : inAdminExperience ? (
               <div className={useAdminTheme ? adminStyles.workspaceLabel : "mt-12 rounded-md border border-[#ffd1d4] bg-[#fff1f2] p-3"}>
@@ -913,11 +903,9 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
 
           {onboarding && !inAdminExperience ? <CustomerOnboarding initial={onboarding} /> : null}
 
-          <main className="relative w-full overflow-x-hidden" onClick={handleMainClick}>
+          <main aria-busy={isNavigating} className="relative w-full overflow-x-hidden" onClick={handleMainClick}>
             <PageTransition
-              onAnimationComplete={handlePageAnimationComplete}
               pathname={pathname}
-              phase={pageTransitionPhase}
             >
               {children}
             </PageTransition>

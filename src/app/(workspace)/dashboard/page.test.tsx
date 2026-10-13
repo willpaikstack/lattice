@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/quote-renewal-status", () => ({ getPendingQuoteRenewalIds: async () => new Set<string>() }));
 
 import {
   buildDraftRequest,
@@ -153,7 +154,7 @@ describe("Home dashboard", () => {
 
     render(await Home());
 
-    expect(screen.getByRole("heading", { name: "Hi William Paik" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hi William" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /View Active RFQs/ })).toHaveAttribute("href", "/quotes");
     expect(screen.getByRole("link", { name: /View Orders/ })).toHaveAttribute("href", "/orders");
     expect(screen.getByRole("link", { name: /View Shipped/ })).toHaveAttribute("href", "/shipped");
@@ -182,7 +183,7 @@ describe("Home dashboard", () => {
 
     render(await Home());
 
-    expect(screen.getByRole("heading", { name: "Hi Avery Hoyer" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Hi Avery" })).toBeInTheDocument();
   });
 
   it("renders lean operational summaries when live records are empty", async () => {

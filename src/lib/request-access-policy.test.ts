@@ -209,6 +209,18 @@ describe("request access policy", () => {
     await expect(canCurrentSessionAccessStorageKey("rfq/2026-06-18/missing.step")).resolves.toEqual({ authenticated: true, authorized: false });
   });
 
+  it("restricts previous revision downloads to the owning company", async () => {
+    const key = "rfq/test/previous.step";
+    mocks.state.requests = [request({ lineItems: [{ id: "part_1", partName: "Part", quantity: 1, material: "SS 304", manufacturingDetails: {
+      process: "cnc_turning", customerPartNumber: "P-1", cadRevision: "B", drawingRevision: "C", materialKey: "ss_304", finishKey: "as_machined_ra_3_2",
+      fileHistory: [{ kind: "cad", name: "previous.step", type: "model/step", sizeBytes: 10, storageKey: key, revision: "A", replacedAt: "2026-10-12T12:00:00Z" }],
+    } }] })];
+    mocks.state.session = session("customer", "buyer@acme.com", "company_acme");
+    await expect(canCurrentSessionAccessStorageKey(key)).resolves.toMatchObject({ authorized: true });
+    mocks.state.session = session("customer", "buyer@other.com", "company_other");
+    await expect(canCurrentSessionAccessStorageKey(key)).resolves.toMatchObject({ authorized: false });
+  });
+
   it("blocks unscoped legacy drafts and only shares draft uploads within their company", async () => {
     const { draftUploadFolder } = await import("./draft-upload-scope");
     const owner = session("customer", "buyer@acme.com", "company_acme");

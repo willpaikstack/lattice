@@ -1,14 +1,16 @@
 "use client";
+import { processLabel } from "@/lib/rfq-manufacturing";
 
 import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
 import { ChevronDown, Clock3, ExternalLink, FileCheck2, FileText, Inbox, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { KeyboardEvent, MouseEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import type { KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./admin-quotes.module.css";
 
+import { groupAdminRfqFiles } from "@/lib/admin-rfq-package";
 import type { OverseasVendor } from "@/lib/admin-vendors";
 import { quotedLineForRequestItem, type LatticeRequest } from "@/lib/request-model";
 import adminStyles from "./admin-workspace.module.css";
@@ -28,9 +30,9 @@ type AdminQuoteStatusGroup = "QUOTE_REQUESTED" | "QUOTE_RECEIVED" | "ARCHIVED";
 type QueueView = "ACTIVE" | "DRAFTS" | "ARCHIVED";
 type RfqDecisionStatus = "NEEDS_INFO" | "CLOSED";
 
-const incompleteRfqStorageKey = "lattice.incompleteRfqs.v1";
 
-type AdminQuoteAction = (formData: FormData) => void | Promise<void>;
+type AdminQuoteActionResult = { error: string } | { success: true };
+type AdminQuoteAction = (formData: FormData) => void | AdminQuoteActionResult | Promise<void | AdminQuoteActionResult>;
 
 const rfqDecisionCopy: Record<RfqDecisionStatus, { actionLabel: string; body: string; submitLabel: string; title: string }> = {
   CLOSED: {
@@ -45,12 +47,6 @@ const rfqDecisionCopy: Record<RfqDecisionStatus, { actionLabel: string; body: st
     submitLabel: "Send request",
     title: "Request additional information",
   },
-};
-
-type StoredIncompleteRfq = {
-  id: string;
-  request?: LatticeRequest;
-  updatedAt: string;
 };
 
 function formatCurrencyPrecise(cents: number | null | undefined) {
@@ -204,6 +200,7 @@ function CustomerProfileShortcut({
   companyName: string;
   customerProfileHrefs: Record<string, string>;
 }) {
+  if (!customerProfileHrefs[companyName]) return null;
   return (
     <Link
       aria-label={`Open customer page for ${companyName}`}
@@ -227,31 +224,13 @@ function DrawerMetaItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function readLocalDraftRequests() {
-  if (typeof window === "undefined" || !window.localStorage?.getItem) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(incompleteRfqStorageKey) ?? "[]");
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return (parsed as StoredIncompleteRfq[])
-      .map((draft) => draft.request)
-      .filter((request): request is LatticeRequest => Boolean(request?.id && request.status === "DRAFT"));
-  } catch {
-    return [];
-  }
-}
-
 function sortByUpdatedAtNewest(requests: LatticeRequest[]) {
   return [...requests].sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
 }
 
 function bundledFilesByPart(request: LatticeRequest) {
-  return { bundles: request.lineItems.map((lineItem) => ({ lineItem, files: [] as LatticeRequest["files"] })), unassignedFiles: request.files };
+  const { parts, unassignedFiles } = groupAdminRfqFiles(request);
+  return { bundles: parts, unassignedFiles };
 }
 
 function lineItemUnitPriceInput(request: LatticeRequest, lineItem: LatticeRequest["lineItems"][number]) {
@@ -415,7 +394,13 @@ function AdminQuoteWorkbench({
   updateDecisionAction?: AdminQuoteAction;
   updateStatusAction?: AdminQuoteAction;
 }) {
+  const router = useRouter();
+  const saveInFlight = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+  const [decisionPending, setDecisionPending] = useState(false);
+  const [decisionError, setDecisionError] = useState("");
   const status = statusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const selectedShopQuote = selectedSupplierQuote(request);
@@ -437,13 +422,29 @@ function AdminQuoteWorkbench({
   );
   const overallSupplierLeadTimeDays = calculatedSupplierLeadTimeDays(Object.values(quoteLineLeadTimeValues), selectedShippingMethod);
   const quoteResponseFormId = `quote-response-${request.id}`;
-  const canSendRfqDecision = Boolean(updateDecisionAction) && request.status !== "CLOSED" && request.status !== "PURCHASED" && !isReadOnlyIssuedQuote;
+  const canSendRfqDecision = !isSaving && !decisionPending && Boolean(updateDecisionAction) && request.status !== "CLOSED" && request.status !== "PURCHASED" && !isReadOnlyIssuedQuote;
   const activeDecisionCopy = activeDecision ? rfqDecisionCopy[activeDecision] : null;
   const decisionNoteIsReady = decisionNote.trim().length > 0;
 
   const hasCompletePricing = request.lineItems.length > 0 && request.lineItems.every((item) => quoteLinePrices[item.id]?.trim() && Number.isFinite(Number(quoteLinePrices[item.id])) && Number(quoteLinePrices[item.id]) >= 0);
   const partsTotal = request.lineItems.reduce((sum, item) => sum + Math.round((Number(quoteLinePrices[item.id]) || 0) * item.quantity * 100), 0);
   const shippingCents = shippingPrice.trim() && Number.isFinite(Number(shippingPrice)) ? Math.round(Number(shippingPrice) * 100) : null;
+
+  const isInactive = request.status === "CLOSED" || request.status === "PURCHASED" || request.status === "DRAFT" || request.isArchived;
+  if (isInactive) return (
+    <section className={styles.inspector} aria-label="Archived RFQ details">
+      <button className={styles.textButton} type="button" onClick={onClose}>← Review queue</button>
+      <h2>{request.title}</h2>
+      <p className={styles.muted}>This RFQ is {request.isArchived ? "archived" : status.label.toLowerCase()} and cannot receive a customer quote.</p>
+      <p>{request.buyerCompany}</p>
+      {request.operatorReview.internalNotes ? <p>{request.operatorReview.internalNotes}</p> : null}
+      <section><h3>RFQ package</h3>{request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName} · Qty {item.quantity}</strong><PartManufacturingSummary item={item} fallbackProcess={request.process} /><p>{item.material}</p></div>)}
+        <div className={styles.fileList}>{request.files.map((file) => <DownloadFileLink key={file.id} file={file} />)}</div>
+      </section>
+      <SupplierQuoteFiles readOnly request={request} returnTo={quoteDetailHref(request)} variant="admin" />
+      <QuoteHistory request={request} />
+    </section>
+  );
 
   return (
     <div className={styles.workbench}>
@@ -452,7 +453,7 @@ function AdminQuoteWorkbench({
           <div className="flex flex-col gap-4 px-6 py-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <button className={styles.textButton} onClick={onClose} type="button">← Review queue</button>
+                <button className={styles.textButton} disabled={isSaving || decisionPending} onClick={onClose} type="button">← Review queue</button>
                 <span className={`inline-flex rounded-md border px-2 py-0.5 text-[11px] font-semibold ${status.tone}`}>{status.label}</span>
               </div>
               <h2 className="mt-2 text-[26px] font-semibold tracking-tight text-[#171717]">{request.title}</h2>
@@ -492,12 +493,12 @@ function AdminQuoteWorkbench({
                 </>
               ) : null}
               {isIssuedQuote ? (
-                <button
+                <button disabled={isSaving || decisionPending}
                   className="inline-flex h-10 items-center justify-center rounded-md border border-[#d7d7d7] bg-white px-3 text-[12px] font-semibold text-[#262626] transition hover:bg-[#f8fafc]"
                   onClick={() => {
                     if (isEditingIssuedQuote) {
                       setQuoteLinePrices(Object.fromEntries(request.lineItems.map((item) => [item.id, lineItemUnitPriceInput(request, item)])));
-                      setQuoteLineLeadTimeValues(Object.fromEntries(request.lineItems.map((item) => [item.id, String(lineItemLeadTimeInput(request, item))])));
+                      setQuoteLineLeadTimeValues(Object.fromEntries(request.lineItems.map((item) => [item.id, String(lineItemLeadTimeInput(request, item) ?? "")])));
                       setShippingPrice(formatCurrencyInput(request.quote.shippingCostCents));
                       setSelectedShippingMethod(request.quote.shippingMethod || defaultShippingMethod);
                       setQuoteValidUntil(isEditingIssuedQuote ? defaultQuoteValidUntil(request, quoteCreatedDate) : calculateQuoteValidUntil(todayIsoDate()));
@@ -525,6 +526,7 @@ function AdminQuoteWorkbench({
               ) : null}
               <button
                 aria-label="Back to review queue"
+                disabled={isSaving || decisionPending}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-md text-[#262626] transition hover:bg-[#f8fafc]"
                 onClick={onClose}
                 type="button"
@@ -557,7 +559,26 @@ function AdminQuoteWorkbench({
                   Cancel
                 </Link>
               </div>
-              <form action={updateDecisionAction} className="mt-4 grid gap-3">
+              <form onSubmit={async (event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                if (!updateDecisionAction || saveInFlight.current) return;
+                saveInFlight.current = true;
+                setDecisionPending(true);
+                setDecisionError("");
+                try {
+                  const result = await updateDecisionAction(formData);
+                  if (result && "error" in result) { setDecisionError(result.error); return; }
+                  onDirty(false);
+                  setActiveDecision(null);
+                  setDecisionNote("");
+                  router.replace(quoteDetailHref(request), { scroll: false });
+                  router.refresh();
+                } catch {
+                  setDecisionError("Unable to save this decision. Your note is retained; please try again.");
+                } finally { saveInFlight.current = false; setDecisionPending(false); }
+              }} className="mt-4 grid gap-3">
+                {decisionError ? <p role="alert" className="text-sm text-red-700">{decisionError}</p> : null}
                 <input name="requestId" type="hidden" value={request.id} />
                 <input name="status" type="hidden" value={activeDecision} />
                 <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
@@ -565,6 +586,7 @@ function AdminQuoteWorkbench({
                   <textarea
                     className="min-h-28 rounded-md border border-[#d9d9d9] bg-white px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
                     name="customerNote"
+                    disabled={decisionPending || isSaving}
                     onChange={(event) => setDecisionNote(event.currentTarget.value)}
                     placeholder={
                       activeDecision === "NEEDS_INFO"
@@ -580,17 +602,17 @@ function AdminQuoteWorkbench({
                     className={`h-10 rounded-md px-4 text-[13px] font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-[#d6d6d6] ${
                       activeDecision === "CLOSED" ? "bg-[#c23b40] hover:bg-[#9f2f34]" : "bg-[#262626] hover:bg-[#171717]"
                     }`}
-                    disabled={!decisionNoteIsReady}
+                    disabled={!decisionNoteIsReady || decisionPending || isSaving}
                     type="submit"
                   >
-                    {activeDecisionCopy.submitLabel}
+                    {decisionPending ? "Saving decision…" : activeDecisionCopy.submitLabel}
                   </button>
                 </div>
               </form>
             </section>
           ) : null}
           <SupplierQuoteFiles
-            readOnly={isReadOnlyIssuedQuote}
+            readOnly={isReadOnlyIssuedQuote || isSaving || decisionPending}
             removeHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files/remove"}
             request={request}
             returnTo={`/admin/quotes?requestId=${encodeURIComponent(request.id)}&view=quote`}
@@ -598,7 +620,7 @@ function AdminQuoteWorkbench({
             uploadHref={isReadOnlyIssuedQuote ? undefined : "/api/supplier-quote-files"}
             variant="admin"
           >
-            <fieldset key={String(isReadOnlyIssuedQuote)} className="grid gap-4 lg:grid-cols-3" disabled={isReadOnlyIssuedQuote}>
+            <fieldset key={String(isReadOnlyIssuedQuote)} className="grid gap-4 lg:grid-cols-3" disabled={isReadOnlyIssuedQuote || isSaving || decisionPending}>
               <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                 Shop name
                 <select
@@ -643,11 +665,27 @@ function AdminQuoteWorkbench({
               </label>
             </fieldset>
           </SupplierQuoteFiles>
-          <form action={async (formData) => {
-            if (!updateStatusAction || isSaving) return;
+          <form onSubmit={async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.currentTarget);
+            if (!updateStatusAction || saveInFlight.current) return;
+            saveInFlight.current = true;
             setIsSaving(true);
-            try { await updateStatusAction(formData); } finally { setIsSaving(false); }
+            setSaveError("");
+            setSaveMessage("");
+            try {
+              const result = await updateStatusAction(formData);
+              if (result && "error" in result) { setSaveError(result.error); return; }
+              onDirty(false);
+              setIsEditingIssuedQuote(false);
+              setSaveMessage("Customer quote saved and available in the customer workspace.");
+              router.replace(`${quoteDetailHref(request)}&view=quote`, { scroll: false });
+              router.refresh();
+            } catch {
+              setSaveError("Unable to save the quote. Your edits are retained; please try again.");
+            } finally { saveInFlight.current = false; setIsSaving(false); }
           }} id={quoteResponseFormId}>
+            <fieldset disabled={isSaving || decisionPending} className={styles.quoteFields}>
             <input name="requestId" type="hidden" value={request.id} />
             <input name="status" type="hidden" value="QUOTED" />
             <input name="assignedOwner" type="hidden" value={request.operatorReview.assignedOwner ?? ""} />
@@ -681,9 +719,9 @@ function AdminQuoteWorkbench({
                     <span>Lead time</span>
                   </div>
                   <div className="divide-y divide-[#eeeeee]">
-                    {bundles.map(({ lineItem }) => (
+                    {bundles.map(({ lineItem, files }) => (
                       <div className="grid grid-cols-[minmax(130px,0.8fr)_minmax(170px,1fr)_55px_100px_110px] items-center gap-2 px-4 py-4 text-[13px] text-[#30343a]" key={lineItem.id}>
-                        <p className="min-w-0 truncate font-semibold text-[#202020]">{lineItem.partName}</p>
+                        <div className="min-w-0"><p className="font-semibold text-[#202020]">{lineItem.partName}</p><div className="mt-2 grid gap-2">{files.map(file => <DownloadFileLink key={file.id} file={file} />)}</div></div>
                         <dl className="grid gap-1.5 text-[12px] leading-5 text-[#64748b]">
                           <div>
                             <dt className="inline font-semibold text-[#30343a]">Material: </dt>
@@ -697,6 +735,7 @@ function AdminQuoteWorkbench({
                             <dt className="inline font-semibold text-[#30343a]">Tolerance: </dt>
                             <dd className="inline">{lineItem.generalTolerance || "Not specified"}</dd>
                           </div>
+                          <div><dt className="sr-only">Manufacturing details</dt><dd><PartManufacturingSummary item={lineItem} fallbackProcess={request.process} /></dd></div>
                           {lineItem.qualityDocumentation?.length ? <div><dt className="inline font-semibold">Quality: </dt><dd className="inline">{lineItem.qualityDocumentation.join(", ")}</dd></div> : null}
                           {lineItem.notes ? <div><dt className="inline font-semibold">Notes: </dt><dd className="inline">{lineItem.notes}</dd></div> : null}
                         </dl>
@@ -859,9 +898,11 @@ function AdminQuoteWorkbench({
                 </>
               )}
             </section>
+            </fieldset>
           </form>
           </div>
           <aside className={styles.quoteSummary} aria-label="Customer quote summary">
+            <section><strong>Customer intended use</strong><p>{request.intakeDeclaration?.endUse || "Not declared (legacy RFQ)"}</p>{request.intakeDeclaration?.endUseNotes ? <p>{request.intakeDeclaration.endUseNotes}</p> : null}<p>Restrictions: {request.intakeDeclaration?.restrictionStatus || "Not declared"}</p></section>
             <p className={styles.eyebrow}>Customer quote</p>
             <h3>{isIssuedQuote ? latestCustomerQuote?.quoteNumber : "Prepare for review"}</h3>
             <span className={styles.pill}>{isReadOnlyIssuedQuote ? `Issued · v${latestCustomerQuote?.versionNumber}` : isIssuedQuote ? "Editing issued quote" : "Not yet issued"}</span>
@@ -877,7 +918,9 @@ function AdminQuoteWorkbench({
               <p className={styles.eyebrow}>Quote summary</p><strong>{request.buyerCompany}</strong><p>{request.title}</p>
               {request.lineItems.map((item) => <div key={item.id}><span>{item.partName}</span><span>Qty {item.quantity}</span></div>)}
             </div>
-            {!isReadOnlyIssuedQuote ? <QuoteSubmit pending={isSaving} action={updateStatusAction} formId={quoteResponseFormId} label={isIssuedQuote ? "Save updated quote" : "Issue customer quote"} /> : null}
+            {saveError ? <p role="alert" className="mt-4 text-sm text-red-700">{saveError}</p> : null}
+            {saveMessage ? <p role="status" className="mt-4 text-sm text-emerald-700">{saveMessage}</p> : null}
+            {!isReadOnlyIssuedQuote ? <QuoteSubmit pending={isSaving} disabled={!hasCompletePricing || decisionPending} action={updateStatusAction} formId={quoteResponseFormId} label={isIssuedQuote ? "Save updated quote" : "Issue customer quote"} /> : null}
             {!isReadOnlyIssuedQuote ? <p className={styles.muted}>Issuing saves the quote and makes it available in the customer workspace. Unsent edits are not saved.</p> : null}
             <QuoteHistory request={request} />
           </aside>
@@ -887,8 +930,8 @@ function AdminQuoteWorkbench({
   );
 }
 
-function QuoteSubmit({ formId, action, label, pending }: { formId: string; action?: AdminQuoteAction; label: string; pending: boolean }) {
-  return <button className={styles.primaryButton} disabled={!action || pending} form={formId} type="submit">{pending ? "Saving quote…" : label}</button>;
+function QuoteSubmit({ formId, action, label, pending, disabled }: { formId: string; action?: AdminQuoteAction; label: string; pending: boolean; disabled: boolean }) {
+  return <button className={styles.primaryButton} disabled={!action || pending || disabled} form={formId} type="submit">{pending ? "Saving quote…" : label}</button>;
 }
 
 function QuoteHistory({ request }: { request: LatticeRequest }) {
@@ -902,11 +945,12 @@ function QuoteInspector({ request, customerProfileHrefs, onPrepare, onDecision, 
   const quote = request.customerQuotes.at(-1);
   const completeness = { READY_FOR_REVIEW: "Ready for review", MISSING_INFO: "Missing information", COMPLETE: "Complete" }[request.operatorReview.completeness];
   return <aside className={styles.inspector} aria-label={`RFQ inspector: ${request.title}`}>
-    <header><p className={styles.eyebrow}>{quoteReference(request)}</p><h2>{request.title}</h2><div className={styles.companyCell}><span>{request.buyerCompany}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><p className={styles.muted}>{request.process} · {request.requesterName}</p><span className={styles.pill}>{completeness}</span></header>
+    <header><p className={styles.eyebrow}>{quoteReference(request)}</p><h2>{request.title}</h2><div className={styles.companyCell}><span>{request.buyerCompanyId ? request.buyerCompany : "Unassigned company"}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><p className={styles.muted}>{request.process} · {request.requesterName}</p><span className={styles.pill}>{completeness}</span></header>
     <section><h3>RFQ package <span>{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"}</span></h3>
-      {request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName}<span>Qty {item.quantity}</span></strong><p>{item.material} · {item.surfaceFinish || "Finish not specified"}</p><p>{item.generalTolerance || "Tolerance not specified"}</p>{item.qualityDocumentation?.length ? <p>Quality: {item.qualityDocumentation.join(", ")}</p> : null}{item.notes ? <p>{item.notes}</p> : null}</div>)}
+      {request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName}<span>Qty {item.quantity}</span></strong><PartManufacturingSummary item={item} fallbackProcess={request.process} /><p>{item.material} · {item.surfaceFinish || "Finish not specified"}</p><p>{item.generalTolerance || "Tolerance not specified"}</p>{item.qualityDocumentation?.length ? <p>Quality: {item.qualityDocumentation.join(", ")}</p> : null}{item.notes ? <p>{item.notes}</p> : null}</div>)}
       <details className={styles.history} open><summary>RFQ files ({request.files.length})</summary><p className={styles.muted}>Files belong to the shared RFQ package.</p><div className={styles.fileList}>{request.files.map((file) => <DownloadFileLink file={file} key={file.id} />)}{!request.files.length ? <p>No files attached.</p> : null}</div></details>
     </section>
+    <section><h3>Intake requirements</h3><p>Intended use: {request.intakeDeclaration?.endUse || "Not declared (legacy RFQ)"}</p>{request.intakeDeclaration?.endUseNotes ? <p>{request.intakeDeclaration.endUseNotes}</p> : null}<p>Restrictions: {request.intakeDeclaration?.restrictionStatus || "Not declared (legacy RFQ)"}</p><p className={styles.muted}>Customer declaration; operator eligibility review still required.</p></section>
     <section><h3>Quality approval</h3><p>{request.requiresQualityApproval ? "Customer Admin approval of quality documents is required before shipment." : "Pre-shipment customer approval was not requested."}</p></section>
     <section><h3>Supplier basis</h3>{supplier ? <><strong>{supplier.shopName}</strong><p className={styles.muted}>{supplier.country} · Selected supplier</p><p className={styles.muted}>{supplier.leadTimeDays ? `${supplier.leadTimeDays} days overall lead time` : "Lead time not specified"}</p></> : <p className={styles.muted}>No supplier selected.</p>}
       <p className={styles.muted}>{request.supplierQuotes.length} supplier quotes · {request.supplierQuoteFiles.length} evidence files</p>
@@ -947,20 +991,9 @@ export function AdminQuoteManagement({
   const [isWorkbench, setIsWorkbench] = useState(false);
   const [hasUnsentEdits, setHasUnsentEdits] = useState(false);
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
-  const [localDraftRequests, setLocalDraftRequests] = useState<LatticeRequest[]>([]);
 
   const quoteRequests = useMemo(() => requests.filter((request) => request.status !== "DRAFT" && request.status !== "PURCHASED"), [requests]);
-  const draftRequests = useMemo(() => {
-    const merged = new Map<string, LatticeRequest>();
-
-    requests
-      .filter((request) => request.status === "DRAFT")
-      .forEach((request) => merged.set(request.id, request));
-
-    localDraftRequests.forEach((request) => merged.set(request.id, request));
-
-    return sortByUpdatedAtNewest([...merged.values()]);
-  }, [localDraftRequests, requests]);
+  const draftRequests = useMemo(() => sortByUpdatedAtNewest(requests.filter(request => request.status === "DRAFT")), [requests]);
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       if (!deepLinkedRequestId) {
@@ -1009,14 +1042,6 @@ export function AdminQuoteManagement({
   }, [query, quoteRequests, view, stageFilter, ownerFilter]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setLocalDraftRequests(readLocalDraftRequests());
-    }, 0);
-
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {
       if (event.persisted && window.location.pathname === "/admin/quotes") {
         window.location.reload();
@@ -1035,6 +1060,14 @@ export function AdminQuoteManagement({
     return () => window.removeEventListener("beforeunload", warn);
   }, [hasUnsentEdits]);
 
+  useEffect(() => {
+    if (hasUnsentEdits || isWorkbench) return;
+    const refresh = () => { if (document.visibilityState === "visible") router.refresh(); };
+    window.addEventListener("focus", refresh);
+    const interval = window.setInterval(refresh, 30000);
+    return () => { window.removeEventListener("focus", refresh); window.clearInterval(interval); };
+  }, [hasUnsentEdits, isWorkbench, router]);
+
   function closeDetail() {
     if (hasUnsentEdits && !window.confirm("Leave this RFQ? Your unsent quote edits will be discarded.")) return;
     setHasUnsentEdits(false);
@@ -1043,19 +1076,6 @@ export function AdminQuoteManagement({
 
     if (deepLinkedRequestId) {
       router.replace("/admin/quotes", { scroll: false });
-    }
-  }
-
-  function openDetail(event: MouseEvent<HTMLAnchorElement>, request: LatticeRequest) {
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-      return;
-    }
-
-    event.preventDefault();
-    setDetailRequest(request);
-
-    if (deepLinkedRequestId !== request.id) {
-      router.push(quoteDetailHref(request), { scroll: false });
     }
   }
 
@@ -1121,7 +1141,7 @@ export function AdminQuoteManagement({
             <tbody>{filteredRequests.map((request) => {
               const quote = request.customerQuotes.at(-1);
               return <tr key={request.id} data-selected={selectedRequest?.id === request.id}>
-                <td><Link aria-label={`Manage quote submission for ${request.title}`} href={quoteDetailHref(request)} onClick={(event) => openDetail(event, request)} scroll={false}>{request.title}</Link><div className={styles.companyCell}><span>{request.buyerCompany}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><small>{quoteReference(request)}</small></td>
+                <td><Link aria-label={`Manage quote submission for ${request.title}`} href={`/admin/quotes/${encodeURIComponent(request.id)}`} scroll={false}>{request.title}</Link><div className={styles.companyCell}><span>{request.buyerCompanyId ? request.buyerCompany : "Unassigned company"}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><small>{quoteReference(request)}</small></td>
                 <td><span className={`${styles.stage} ${statusCopy[request.status].tone}`}>{statusCopy[request.status].label}</span>{request.isArchived ? <small>Archived</small> : null}<small>{request.supplierQuoteFiles.length ? "Supplier evidence attached" : request.supplierQuotes.some((q) => q.status === "QUOTE_RECEIVED" || q.status === "SELECTED") ? "Supplier quote received" : "No supplier evidence"}</small></td>
                 <td><strong>{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"} · {request.lineItems.reduce((sum, item) => sum + item.quantity, 0)} units</strong><small>{request.files.length} {request.files.length === 1 ? "file" : "files"} · {request.process}</small></td>
                 <td><strong>{request.dueDate ? formatDate(request.dueDate) : "Not specified"}</strong><small>{request.operatorReview.assignedOwner || "Unassigned"}</small></td>
@@ -1210,4 +1230,13 @@ export function AdminQuoteManagement({
 
     </div>
   );
+}
+
+function PartManufacturingSummary({ item, fallbackProcess }: { item: LatticeRequest["lineItems"][number]; fallbackProcess: string }) {
+  const details = item.manufacturingDetails;
+  return <div className="text-sm"><p>Process: {processLabel(details?.process || fallbackProcess)}</p>{details ? <>
+    <p>Part #: {details.customerPartNumber || "Not specified"} · CAD rev: {details.cadRevision || "Not specified"} · Drawing rev: {details.drawingRevision || "Not specified"}</p>
+    {details.targetShipDate ? <p>Target ship date: {details.targetShipDate} (customer preference)</p> : null}
+    {details.cadMetadata ? <p>CAD envelope (mm): {details.cadMetadata.dimensionsMm.map(value => value.toFixed(2)).join(" × ")} · Model units: {details.cadMetadata.sourceUnit}</p> : null}
+  </> : null}</div>;
 }

@@ -18,6 +18,8 @@ describe("auth route roles", () => {
     expect(canRoleAccessPath("admin", "/roadmap")).toBe(true);
     expect(canRoleAccessPath("admin", "/supplier/orders")).toBe(false);
 
+    expect(canRoleAccessPath("customer", "/equipment-explorer")).toBe(true);
+    expect(canRoleAccessPath("supplier", "/equipment-explorer")).toBe(false);
     expect(canRoleAccessPath("customer", "/quotes/req_123")).toBe(true);
     expect(canRoleAccessPath("customer", "/orders/req_123")).toBe(true);
     expect(canRoleAccessPath("customer", "/roadmap")).toBe(false);

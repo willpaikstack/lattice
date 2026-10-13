@@ -96,6 +96,18 @@ function makeQuotedRequest() {
 
 
 describe("AdminQuoteManagement", () => {
+  it("shows intended use, eligibility and each part's engineering identity to the admin", () => {
+    const request = makeSubmittedRequest();
+    request.intakeDeclaration = { restrictionStatus: "unrestricted", policyVersion: "overseas-intake-2026-10-12", endUse: "prototype", endUseNotes: "Evaluation only" };
+    request.lineItems[0].manufacturingDetails = { process: "cnc_turning", customerPartNumber: "SHAFT-10", cadRevision: "B", drawingRevision: "C", materialKey: "al_6061_t6", finishKey: "as_machined_ra_3_2", fileHistory: [] };
+    render(<AdminQuoteManagement requests={[request]} />);
+    const inspector = screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` });
+    expect(inspector).toHaveTextContent("Intended use: prototype");
+    expect(inspector).toHaveTextContent("Restrictions: unrestricted");
+    expect(inspector).toHaveTextContent("CNC Turning");
+    expect(inspector).toHaveTextContent("SHAFT-10");
+    expect(inspector).toHaveTextContent("CAD rev: B");
+  });
   it("keeps draft RFQs out of the active queue and opens the draft tab", () => {
     const draft = { ...makeSubmittedRequest(), id: "draft_one", status: "DRAFT" as const, title: "Draft bracket" };
     render(<AdminQuoteManagement requests={[draft, makeSubmittedRequest()]} />);
@@ -237,7 +249,7 @@ describe("BuyerQuoteDetail", () => {
           versionNumber: 1,
           quoteNumber: "LQ-1001",
           quoteDate: "2026-06-02",
-          validUntil: "2026-06-16",
+          validUntil: "2099-06-16",
           customerCompany: quotedRequest.buyerCompany,
           customerContact: quotedRequest.requesterName,
           projectName: quotedRequest.title,
@@ -288,6 +300,9 @@ describe("BuyerQuoteDetail", () => {
       "/api/local-files/rfq/request-1/mounting-bracket.step?name=mounting-bracket.step&type=model%2Fstep",
     );
     expect(fileLinks[0]).toHaveAttribute("download", "mounting-bracket.step");
+    const drawingLinks = screen.getAllByRole("link", { name: "Download drawing mounting-bracket.pdf" });
+    expect(drawingLinks[0]).toHaveAttribute("href", "/api/local-files/rfq/request-1/mounting-bracket.pdf?name=mounting-bracket.pdf&type=application%2Fpdf");
+    expect(drawingLinks[0]).toHaveAttribute("download", "mounting-bracket.pdf");
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Shipping address")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", "/account/settings?edit=shipping");
@@ -455,7 +470,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText("$4,273.28")).toBeInTheDocument();
     expect(screen.queryByText("$35.00")).not.toBeInTheDocument();
     expect(screen.queryByText("$338.61")).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("PO-1047")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Customer PO reference (optional)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Pay with Stripe/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("checkbox", { name: /I accept the quote basis/ }));
@@ -467,7 +482,8 @@ describe("BuyerQuoteDetail", () => {
     render(<BuyerQuoteCheckout request={makeQuotedRequest()} placeOrderAction={() => undefined} accountsPayableEmail={checkoutBillingContact.email} cards={checkoutCards} receivingPhone="555-0101" shippingAddress={checkoutShippingAddress} />);
     expect(screen.getByRole("radio", { name: /Purchase order/ })).toBeDisabled();
     expect(screen.getByRole("option", { name: "Tax exempt certificate on file" })).toBeDisabled();
-    expect(screen.queryByPlaceholderText("PO-1047")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Customer PO reference (optional)")).toBeInTheDocument();
+    expect(screen.getByText("For your records and invoice matching. Payment is still due by card.")).toBeInTheDocument();
   });
 
 });

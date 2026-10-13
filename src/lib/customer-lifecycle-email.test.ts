@@ -55,4 +55,10 @@ describe("durable lifecycle email delivery", () => {
     expect(mocks.upsert.mock.calls.map(([arg]) => arg.create.recipient)).toEqual(["first@example.com", "second@example.com"]);
     expect(mocks.update).toHaveBeenCalledTimes(2);
   });
+  it("uses the configured app URL for quote notifications", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+    vi.stubEnv("APP_BASE_URL", "http://localhost:3000/");
+    await queueCustomerLifecycleEmail({ id: "rfq_a", buyerCompanyId: "company_a", requesterEmail: "will@latticeos.co", title: "Synthetic checkout rehearsal" } as LatticeRequest, "QUOTE_ISSUED", "quote-v1");
+    expect(mocks.upsert.mock.calls[0][0].create.body).toContain("http://localhost:3000/quotes/rfq_a");
+  });
 });

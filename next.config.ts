@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     ],
   },
   output: "standalone",
+  outputFileTracingIncludes: { "/api/pdf-viewer-worker": ["./node_modules/pdfjs-dist/build/pdf.worker.min.mjs"] },
   serverExternalPackages: ["pdfkit"],
 };
 

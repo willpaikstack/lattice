@@ -34,6 +34,24 @@ body {
   }
 }
 
+/* Enabled actions use a pointer; disabled actions remain visibly unavailable. */
+button:not(:disabled):not([aria-disabled="true"]),
+[role="button"]:not([aria-disabled="true"]),
+input[type="button"]:not(:disabled),
+input[type="submit"]:not(:disabled),
+input[type="reset"]:not(:disabled) {
+  cursor: pointer;
+}
+
+button:disabled,
+button[aria-disabled="true"],
+[role="button"][aria-disabled="true"],
+input[type="button"]:disabled,
+input[type="submit"]:disabled,
+input[type="reset"]:disabled {
+  cursor: not-allowed;
+}
+
 button,
 input,
 select,
@@ -47,4 +65,29 @@ textarea {
   opacity: 1 !important;
   visibility: visible !important;
   z-index: 20 !important;
+}
+
+.workspace-skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 55%), transparent);
+  transform: translateX(-100%);
+  animation: workspace-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes workspace-shimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-skeleton::after {
+    animation: none;
+    display: none;
+  }
 }

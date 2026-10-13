@@ -1,5 +1,9 @@
 # Completed Work Log
 
+## 2026-10-10 — Material dropdown design and UX review
+
+Reviewed the live material dropdown in the in-app browser at `/requests/new`, including family browsing, searches for 304 and 6061, and no-results behavior; supplemented with source review. The selected material remained SS 304. Feedback: require an intentional material choice for new parts instead of silently defaulting SS 304; consolidate equivalent aliases into searchable canonical choices; retain distinct conditions such as T6/T651; reduce always-visible reference-code density; improve family access when reopening the menu auto-scrolls deep into an expanded group; add an unlisted-material recovery action; and label the search field/restore focus after Escape. The current typography, selected-value hierarchy, pinned search, and family grouping provide a strong base. Desktop review only; no application implementation or submitted RFQ changes.
+
 ## 2026-10-08 — Documentation cleanup
 
 - Removed obsolete prototype audit and implementation-planning documents.
@@ -1813,3 +1817,502 @@ Release verified: application commit `e7d5db5` is Production Ready as `dpl_CT4gR
 Recovered the controlled Apple account through successful operator reset/resend, verified actual Gmail receipt and SHA-matching invitation PDF, then used the genuine customer Chrome profile after operator personal-password setup. The missing address prompt was explained by the reused company's saved deferral. Explicit shipping/billing onboarding completed with autofill, required-ZIP rejection and persisted synthetic addresses. Submitted clearly marked noncommercial RFQ LQ-CMV1KWIX (`cmv1kwix8000006jkor2qk48u`) with CAD/drawing fixtures. Customer CAD and operator drawing downloads match source bytes; operator queue contains the same submission. Anonymous files return 401 and the RFQ redirects to login. A verified second-company support scope receives 404/File not found for the Apple RFQ/files, then exited to admin. No orders, payments, quotes or supplier outreach were performed. Updated TODO, feature map and dated proof audit to distinguish passed checks from clean-account, old-password, redeploy, mobile/tour and recovery gaps. Identified customer drawing-download and checkout-availability-copy gaps. Preserved unrelated edits/deletions.
 
 Follow-through: the old emailed temporary password was rejected in an isolated Incognito login after personal-password setup. Production deployment a14955e / `dpl_3ykgU6kKzJXdchfrQK2r9hdpjDje` became Ready and aliased to latticeos.co; both proof uploads downloaded afterward with matching SHA-256 bytes. Genuine customer Help/replay, welcome, all four steps, refresh/resume at step two and completion persistence passed. Saved final customer and resumed-tour screenshots locally; updated remaining checks to clean-account first-run, genuine second login, mobile/accessibility, skip and recovery.
+
+## 2026-10-09 — First-customer launch readiness plan
+
+Reviewed shared project memory, latest onboarding/payment evidence and checkout/storage/email source. Created a ten-task ranked launch plan with proposed owners, completion tests, release sequencing and deferrable work. Distinguished demonstrated Production RFQ/onboarding behavior from remaining database-backed purchase, live Stripe, accounting, customer isolation/mobile and operating gates. Identified that PO-reference/upload fields are unavailable in card checkout. Asked whether the first customer needs PO credit terms and requested customer/job/date context; these remain unresolved. Linked the plan from TODO. No app behavior, credentials, customer data, deployments or purchasing flags changed; no new runtime tests were run for this documentation assessment. Preserved pre-existing working-tree changes.
+
+## 2026-10-09 — Launch scope and Tuesday schedule confirmed
+
+Updated launch plan, TODO, decisions and project context with William’s confirmed card-paid PO reference and Tuesday, October 13 onboarding target. Replaced pending purchasing clarification with concrete PO-number persistence scope, suggested Fri–Tue work sequence and Monday go/no-go review. Customer/job details remain unknown; distinguish Tuesday purchase capability from the date of an actual supplier-backed order. No app behavior or deployment changed.
+
+## 2026-10-09 — Production Stripe credential update attempt
+
+In William (LATTICE) Chrome profile, confirmed the replacement `STRIPE_SECRET_KEY` was saved in Vercel for Production. Redeployed current main source as `dpl_D9wkovFTeL16Q5tfvj7cjyB7gqEb`; Vercel reports Ready/current and assigns latticeos.co. The authenticated production readiness endpoint changed from `STRIPE_AUTHENTICATION_FAILED` to `STRIPE_PERMISSION_DENIED`. This indicates Stripe accepted the credential but denied at least one API operation required by readiness. Live checkout remains disabled. Reopened the Production secret editor for William to enter a live Nexus standard secret key; secret was not read or copied. No payment, key exposure to application data, checkout enablement, or customer operation occurred.
+
+## 2026-10-09 — Production Stripe credential verified
+
+William updated the Vercel Production `STRIPE_SECRET_KEY`. Created Production redeploy `dpl_85f4PGEqBd1k1UdmzDmxFRC44d3o`; Vercel reported Ready and assigned `latticeos.co`. The authenticated redacted `/api/stripe/configuration` diagnostic now reports `ready: true`, with the expected Nexus account match, payments enabled, active Tax, NY registration, and webhook secret configured. No key value was viewed or copied. Checkout remains disabled; actual signed webhook delivery and remaining payment/launch checks are still required before enabling production checkout.
+
+## 2026-10-09 — Production Stripe webhook inspection
+
+Inspected the Nexus Live event destination in Stripe Workbench. `Lattice OS production payments` is active at `https://latticeos.co/api/stripe/webhook` and subscribes to the nine configured checkout/payment/refund event types. The Event deliveries view currently lists no deliveries, so the Production signing secret has not yet been proven by an actual Live event. Per Stripe’s docs, test and live endpoints use different signing secrets; a test event cannot establish Live signature verification. No event was resent, no Stripe settings changed, and no payment was created. Next safe proof is the first real subscribed event in the controlled initial customer purchase; otherwise William must explicitly authorize a controlled live charge/refund test.
+
+## 2026-10-09 — PO-reference checkout implementation and Task 3 preparation
+
+Added optional customer PO-reference capture to card checkout, with a 100-character limit and control-character rejection. The checkout server action saves it before redirect/payment confirmation, includes it in hosted Checkout or inline PaymentIntent metadata, and preserves it through webhook finalization. The order's existing PO display and immutable invoice snapshot/PDF now receive the reference; the legacy invoice-issue path also defaults to the saved order PO. PO credit, AP email, and PO-file checkout remain disabled. Lifecycle quote emails now build links from `APP_BASE_URL`/`NEXT_PUBLIC_APP_URL`, allowing local/preview tests to target the matching environment.
+
+Confirmed the configured local Stripe key authenticates as Nexus Test mode (`livemode=false`) and the separate Neon development database is reachable with no companies, RFQs, or invoices. No synthetic records, emails, or payments have been created. Focused tests, typecheck, targeted lint, the full 379-test suite, and optimized build pass. The database-backed RFQ-to-paid-order rehearsal remains outstanding; local `RESEND_API_KEY` is absent, so the user-authorized test quote receipt could not yet be verified. Updated the Notion tracker and launch docs. Production checkout remains disabled; no Live Stripe calls or customer-contact actions were performed.
+
+## 2026-10-10 — Resend credential and test delivery check
+
+Confirmed `RESEND_API_KEY` is present and non-empty in local `.env.local` without printing or copying its value. Restarted the local Next.js instance in customer data mode so it loads the current environment; the signed-in operator workspace is reachable. Left the existing sample draft untouched. Sent one explicitly labeled test-only delivery email from `support@latticeos.co` to the admin address using a stable idempotency key; Resend accepted it (HTTP 200, message ID `01a12356-2258-77d9-ad81-a5e03f2210ec`). This confirms provider acceptance, not inbox receipt. Updated the Notion launch tracker and readiness note. No customer RFQ, quote, payment, or order was created; the database-backed Test-mode purchase rehearsal and receipt confirmation remain open. Production checkout remains disabled.
+
+## 2026-10-10 — First-customer closeout and safety hardening
+
+Added authenticated download links for customer technical drawings in both quote-detail layouts and changed Account Settings to show card availability only when the server-side hosted-checkout gate and Stripe credential are configured. Updated production error handling so RFQ and admin customer-profile reads fail closed when Prisma is unavailable rather than returning local fallback records; added regression coverage for both paths. Drafted `docs/first-customer-operations-runbook.md` covering quote release, payment reconciliation, supplier/quality holds, failed-email review, refunds/cancellations, and outage response, with William-owned policies identified for approval. Targeted tests passed (40 tests/4 files); full suite passed (382 tests/86 files), typecheck, ESLint, and optimized build passed. Local account-settings browser smoke rendered correctly with the local Test checkout gate enabled. The development Neon DB remains empty of companies, requests, orders and invoices, so no DB-backed customer purchase was run. Production Vercel environment inspection was denied (403 for current connector scope; Vercel CLI is not installed), so no environment values were read or changed. Production checkout remains disabled; no production deployment, Live payment, refund, or customer outreach was performed.
+
+## 2026-10-10 — Materials usability and credibility design audit
+
+Audited the local customer Materials atlas, Aluminum and Stainless guides, polymer behavior/directory, and unlisted-material inquiry, with desktop/mobile sampling and shared-template/data review. Confirmed condition selection changes values/citations; calculated authored reference-text contrast and identified featured/directory naming/rating divergence, an undiscoverable inquiry entry, large imagery ahead of working data, and dense mobile rows. Saved the evidence, prioritized recommendations, scope limitations, proposed information hierarchy, and decision status in `docs/audits/materials-design-2026-10-10.md`. Generated and visually reviewed three raster alternatives using built-in ImageGen: refined atlas, recommended technical catalog, and comparison workbench. Images and exact prompts are in `docs/audits/materials-design-2026-10-10/`; recorded generated-copy/logo/condition-control limitations. Updated TODO with the proposed review step. No design was approved, product behavior changed, inquiry submitted, test transaction performed, or deployment created; feature map and durable decisions remain unchanged. No application tests run for documentation/concept-only work.
+
+## 2026-10-10 — Reversible Materials first-page redesign
+
+Implemented William's selected concept A as `MaterialFamilyAtlas`, mounted only by the Materials overview. Added left-side existing texture swatches, concise family descriptions, current counts/grade examples, Explore family affordances, the unlisted-material entry, and availability/reference notes. Preserved the original component untouched for a two-line import/JSX rollback; documented restoration in the implementation note. Sidebar, family guides, datasets, and RFQ/inquiry forms were not edited. Updated overview test expectations and shared feature map, context, decision, and TODO notes. Six existing tests across overview/family/inquiry suites passed, targeted ESLint and typecheck passed, and desktop/mobile browser review confirmed the layout and inquiry navigation without form submission. Saved actual app screenshots. No deployment or customer-data mutation; unrelated existing workspace changes remain untouched.
+
+## 2026-10-10 — Local customer Action Center, greeting, and navigation fixes
+
+- Added explicit continuation copy/labels to Action Center rows and direct anchors for clarification, expired quote renewal, overdue order activity and quality-document review. Quality documents link back to the Customer Admin approval control; order activity links to saved Order help.
+- Added customer quote-renewal requests using existing `CustomerSupportRequest` records (`QUOTE_RENEWAL`) and an RFQ link in the admin support queue. Expired quote detail/checkout routes explain renewal and hide acceptance. Saved waiting state survives refresh and hands dashboard ownership to Lattice; a valid reissued quote restores review. No schema change or outbound email was introduced.
+- Added isolated admin demo renewal storage in `.data/mock/quote-renewals.json`. Browser-tested one LOCAL DEMO ONLY request, confirmed it in the admin queue, and confirmed the Home action moved to waiting on Lattice. Real database-backed customer renewal/reissue remains an integration follow-up.
+- Dashboard now greets with the first name. Sidebar navigation no longer waits for the 320 ms exit animation; existing content stays visible while the server loads the next route. Added immediate pending feedback, a 160 ms nonblank reveal and reduced-motion behavior.
+- Moved How it works into the shared `(workspace)` layout without changing its URL or public/customer presentations. Draft synchronization gates only draft-dependent screens and no longer replaces the shell or unrelated pages. Checked Home → How it works and back locally with the existing signed-in admin session.
+- Verification: 396 tests across 89 files pass; typecheck, full lint, optimized production build, and diff whitespace check pass. Updated date-sensitive quote fixtures and the async retry assertion. Regenerated stale Next route types after moving the explainer route.
+- Local screenshots: `output/qa/local-dashboard-actions-2026-10-10.png`, `output/qa/local-quote-renewal-2026-10-10.png`, and `output/qa/local-renewal-support-2026-10-10.png`. Updated project context, decisions, TODO and feature map. Changes remain local; no deployment, production schema/data changes or customer emails. Existing unrelated working-tree changes were preserved.
+
+## 2026-10-10 — Restore requested fade-in and remove navigation bar
+
+Restored the original 320 ms opacity-zero-to-one destination fade with its original easing, retaining immediate route requests and reduced-motion support. Removed the blue one-third-width loading indicator added in the preceding local fix. The prior page remains visible while navigation is pending, and How it works retains the shared workspace layout. Updated feature map, project context and decision record. Validation: AppShell regression tests and targeted ESLint/diff checks passed; local browser navigation showed no added bar while waiting for the next page. Local-only change, not deployed.
+
+## 2026-10-10 — Try a 640 ms page fade
+
+Changed the shared page fade-in from 320 ms to 640 ms at William’s request. Updated project context and feature map. Local-only timing change; no tests rerun.
+
+## 2026-10-10 — Set page fade to 2 seconds
+
+Changed the shared page fade-in from 640 ms to 2 seconds at William’s request. Updated project context and feature map. Local-only timing change; no tests rerun.
+
+## 2026-10-10 — Set page fade to 1 second
+
+Changed the shared page fade-in from 2 seconds to 1 second at William’s request. Updated project context and feature map. Local-only timing change; no tests rerun.
+
+## 2026-10-10 — Quotes and Orders loading skeletons
+
+Implemented the approved loading design locally: three muted gray rows with a subtle CSS shimmer, persistent list headings, and placeholder summary cards for Orders. Added Next.js route loading boundaries and reused the Quotes skeleton during shared-draft synchronization, preserving the merge-before-mount requirement. Loaded content uses a single 1-second fade with the existing easing; shared timing is now in `src/lib/page-transition.ts`. Reduced-motion users receive static skeletons and immediate content, and assistive technology receives a loading status. Updated project context and the feature map.
+
+Validation: targeted ESLint and full TypeScript checks passed. Reviewed components against the Vercel React best practices checklist for hooks, component structure, accessibility, and animation performance. No automated tests added/run or browser validation performed in this step. No deployment, schema change, or external service mutation.
+
+## 2026-10-10 — Replace fabric-like steel swatches
+
+Generated two new representative surface images using built-in ImageGen: darker machined alloy steel and brighter surface-ground tool steel. Saved versioned assets as `public/materials/alloy-steel-machined-v4.png` and `public/materials/tool-steel-ground-v4.png`, and applied them only through local overrides in `MaterialFamilyAtlas`. Original assets, original catalog component, family data/guides, and sidebar remain untouched. Exact prompts and rollback instructions are in `docs/audits/materials-design-2026-10-10/steel-swatch-prompts.md`. Browser verification confirmed both optimized images loaded and read as metal at card size; saved `steel-swatches-implemented.jpg`. Targeted ESLint and whitespace checks passed. No new tests for this reversible image-only change; no deployment.
+
+## 2026-10-10 — Implement solid primary Request Quote button
+
+Applied William’s selected design to the customer sidebar in AppShell: graphite fill, white label, plus/arrow icons, 46px height, 7px corners, subtle shadow/hover lift, visible keyboard focus, and reduced-motion support. Existing RFQ link and navigation handler retained. Updated decision and feature-map records. Targeted ESLint passed; inspected the live local dashboard and saved output/qa/sidebar-solid-primary-2026-10-10.png. No automated tests for this styling change; not deployed.
+
+## 2026-10-10 — Soften sidebar Request Quote emphasis
+
+Changed the fill from #171717 to #505050 charcoal, removed the trailing arrow, and removed shadow/hover lift. Kept the plus, white label, height, keyboard focus, and navigation. Updated current decision/feature-map entries. Targeted ESLint passed and local browser inspection confirmed the styling; screenshot saved as output/qa/sidebar-soft-charcoal-2026-10-10.png. No automated tests or deployment for this styling adjustment.
+
+## 2026-10-10 — Black sidebar RFQ hover
+
+Updated the sidebar Request Quote hover fill and border to black at William’s request; the resting charcoal color remains. Updated the feature map. Styling-only change; no tests run or deployment.
+
+## 2026-10-10 — Complete material-card surface refresh
+
+Generated and applied eight further swatches using built-in ImageGen: aluminum, stainless steel, brass, copper, titanium, precision alloys, magnesium/zinc, and engineering polymer. Versioned v4 assets are saved in `public/materials/`; exact prompts, saved paths, and rollback instructions are in `docs/audits/materials-design-2026-10-10/remaining-swatch-prompts.md`. Local atlas overrides preserve all prior files and the archived original catalog. Inconel/Incoloy and mild steel remain on their existing images; approved alloy/tool steel images are retained. Browser inspection confirmed all 12 images loaded, the requested exclusions were unchanged, and the new surfaces read correctly at card size; saved `all-swatches-implemented.jpg`. Targeted ESLint and whitespace checks passed; no new tests for this reversible image-only update. Sidebar, family guides, material data, and other unrelated work were not edited. No deployment.
+
+## 2026-10-10 — Remove glare from three metal swatches
+
+Used built-in ImageGen editing to remove the strong reflected stripes from alloy steel, stainless steel, and precision alloys while preserving their gray metallic textures and machining marks. Saved v5 matte assets in `public/materials/` and switched only those three atlas paths; v4 files remain for rollback. Exact prompt and asset paths are in `docs/audits/materials-design-2026-10-10/glare-reduction.md`. Browser review verified all three new images loaded and the glare was removed at card size; saved `glare-reduced-implemented.jpg`. Targeted ESLint and whitespace checks passed. No new tests for this reversible image-only adjustment; other cards/sidebar/guides unchanged and no deployment.
+
+
+## 2026-10-10 — Match Inspection & Certificates content width
+
+Matched the documentation page’s horizontal padding, 1320px outer container, and desktop article grid to How it works. Removed the separate 740px article cap. Sidebar, content, and vertical spacing remain unchanged. Live browser measurements confirmed both articles at 879px wide with the same left edge at the current viewport. Targeted ESLint passed; screenshot saved as `output/qa/inspection-width-2026-10-10.jpg`. Updated the feature map. Reversible styling-only change; no automated tests or deployment.
+
+
+## 2026-10-10 — Rename customer workflow navigation
+
+Changed the customer sidebar resource link from “How it works” to “How Lattice works” at William’s request. Kept its route and appearance unchanged and updated existing navigation test expectations and the feature map.
+
+## 2026-10-10 — Make Open items clicks visibly target Action Center
+
+Added a small client interaction wrapper around the shared dashboard presentation. The Open items card now briefly highlights the Action Center in amber, transfers focus for keyboard/assistive-technology users, and scrolls it into view when needed. Repeated clicks restart the highlight, including when the current URL already ends with #action-center; reduced motion avoids animated scrolling/fading. Other dashboard links retain their existing navigation. Updated the feature map. Targeted ESLint and full TypeScript checks passed. Local browser click confirmed focus and highlight; screenshot saved to output/qa/action-center-highlight-2026-10-10.png. No automated tests run or deployment.
+
+Validation: browser confirmed the renamed link still points to `/how-it-works`; saved `output/qa/how-lattice-works-label-2026-10-10.jpg`. AppShell tests: 26 passed, with one unrelated failure from the older Request Quote button style expectation.
+
+## 2026-10-10 — Request Quote form skeleton
+
+Implemented the approved upload-area and field skeleton for `/requests/new`, sharing the existing shimmer styles and form heading. Wired it into the route loading boundary and shared-draft gate. The loaded form body uses the shared 1-second reveal, with the parent route fade disabled to avoid stacked fades. Reduced-motion users receive static placeholders and immediate content. Existing draft merge-before-mount behavior is retained. Updated existing draft-gate assertions for the new heading/status without running automated tests. Targeted ESLint and full TypeScript checks passed. Local browser navigation showed the form skeleton and preserved sidebar; evidence saved to output/qa/request-form-loading-2026-10-10.png. Updated project context and feature map. No deployment.
+
+## 2026-10-10 — Request Quote workflow audit fixes
+
+Added gray unique IDs to draft rows (saved quote number or full draft/request ID). Replaced draft row/Continue anchors with Next Link, keyed RequestForm by draft/reorder identity, and restarted draft synchronization on persisted pageshow restores to avoid stale loading after Back. Centralized the nine part-file formats and drawing extensions; shared labels/pickers and client/server guards now enforce supported CAD files, nonempty bytes and 200 MiB CAD limit. Draft storage and request uploads accept separate supported drawings. An authenticated read-only APS formats call returned 200 with all nine formats in SVF2; no CAD bytes uploaded to APS. Local browser continued the demo pump-cover draft and Back restored the clean upload page; saved output/qa/request-draft-id-and-back-2026-10-10.png. Targeted ESLint and full TypeScript passed before the final simple submission guard; that guard passed targeted lint. No automated tests run. Shared-draft availability warning was observed and remains a follow-up; browser drafts remained usable. Not deployed.
+
+## 2026-10-10 — Diagnose and fix shared-draft availability warning
+
+Read-only development database check confirmed CustomerRequestDraft is reachable. Continuing the synthetic pump-cover RFQ saves a demo_draft_* entry in browser storage; the provider posted every local entry, but the server only accepts local_draft_* IDs and rejects the whole batch when a demo entry is present. Added shared-draft-policy to exclude known demo_/fixture_ IDs from database saves and deletes, preserving the local preview and leaving all genuine draft/server validation unchanged. Successful GET now clears a stale failure flag. Added regression coverage for mixed demo/genuine batches, local preservation, synthetic deletion, and restored-load recovery. All 17 targeted policy/provider/API tests, targeted lint and full TypeScript passed. Reloaded local page, continued the pump-cover draft, checked no warning after sync debounce, and returned with Back; warning remained absent. Screenshot: output/qa/shared-draft-warning-fixed-2026-10-10.png. Updated TODO, project context and feature map. No deployment or database schema change.
+
+## 2026-10-10 — Request quote configuration audit
+
+Audited the customer RFQ builder at `/requests/new` from source and the existing customer browser-audit notes. Recorded three findings: hidden default process/date values are submitted without customer review, the progress indicator promises Review/Submit stages that do not exist, and disabled submission can leave readiness requirements unclear. Chrome was signed out, so this pass does not claim fresh visual/customer-role or mobile verification. No application behavior changed. See `docs/audits/request-quote-configuration-2026-10-10.md`.
+
+## 2026-10-10 — Make RFQ draft completion operational
+
+Replaced the three existence checks that yielded 60% for typical started drafts with the actual required-field/file readiness checklist. Saved browser/shared initialState drives completion, including all parts, finish-specific details, stored CAD bytes, drawing-required flags and optional drawing bytes when selected. Server draft fallback restores request data. Submission button readiness uses the same calculation; incomplete multi-part packages cannot round to 100%. Added numeric progressbar accessibility and five regression cases; updated the old 40% test to 0% for a draft with no part file. All 28 completion/request-form tests, targeted lint and full TypeScript passed. Local browser inspected recalculated draft rows. No deployment.
+
+
+## 2026-10-11 — Local PostgreSQL SSL warning repair
+
+Changed the gitignored local DATABASE_URL from sslmode=require to sslmode=verify-full to explicitly preserve certificate and hostname verification and remove the pg-connection-string warning appearing in the Next.js development overlay. A direct PostgreSQL connection and SELECT 1 passed without the warning. Restarted the detached local development server. No application code, schema, or production configuration changed.
+
+
+## 2026-10-11 — Part configuration browser and source audit
+
+Audited the existing authenticated local RFQ configuration draft on desktop and at a temporary 390 × 844 viewport. Confirmed local solid CAD rendering, material/inspection selector behavior, mobile clipping (299px card with 402px content), and tolerance-modal focus escaping to the background form. Reviewed hidden process/date/default-material assumptions, skipped Review/Submit stages, submission pending/repeat-click risk, and readiness/compatibility/design opportunities. Saved desktop/mobile screenshots under output/qa and detailed findings in docs/audits/part-configuration-2026-10-11.md. Restored the desktop viewport and closed menus/dialogs. No field/file/RFQ changes, submission, application code changes, deployment, or automated tests.
+
+
+## 2026-10-11 — Implement approved RFQ part configuration fixes
+
+Implemented the six requested audit fixes: responsive part cards with smaller mobile padding, shrinkable grids and wrapping dropdown labels; blank material for new parts while preserving saved explicit choices; Upload/Configure/Submit progress without Review; pending/repeat-click protection plus stable user/company-scoped submission identities and database uniqueness recovery; shared focus containment/background inertness/restoration for ISO, drawing, and deletion dialogs; and a linked per-part readiness checklist that expands collapsed parts and focuses missing controls. Provided a per-part process/request-level delivery-date example separately without implementing that proposal.
+
+Validation: 47 targeted Vitest cases pass across request form, request API, and request repository (including new retry, identity scope, local concurrency, database uniqueness race, focus, and checklist navigation cases). Full TypeScript and targeted ESLint pass. Authenticated existing draft inspected at 320 × 844 and 390 × 844; part form sections have no horizontal overflow and submit remains reachable. ISO dialog initially focuses its close button, Tab stays inside, Escape restores the opening button. Saved mobile/checklist/desktop screenshots under output/qa; restored desktop viewport and page position. Existing draft fields/files retained, no RFQ submitted, no deployment or schema migration. Updated operator feature map, project context, decisions, and follow-up priorities.
+## 2026-10-12 — Quote configuration competitor audit
+
+Inspected the authenticated local Lattice RFQ configuration and William's four Chrome tabs for Xometry, Hubs/Protolabs Network, Fictiv and Protolabs. Compared actual configuration controls, export/restricted handling, prototype/commercial intent, engineering identity, certificates, delivery/origin, bulk editing, price breaks and manufacturing feedback. Hubs' initially empty upload page was explored using its built-in CNC sample, creating the unsubmitted sample quote 46NFXPPJK-V1; no user CAD was uploaded. Protolabs' empty new-quote page was supplemented with existing expired CNC quote 1104-984 and its Manufacturing Analysis. Fictiv's existing sheet-metal part was inspected without changing its process or specifications. No classifications selected, configurations saved with changed values, Lattice RFQ submitted or orders placed. Restored the original vendor pages.
+
+Saved detailed recommendations and evidence limits in `docs/audits/quote-configuration-competitors-2026-10-12.md`, with local screenshots in `output/qa/quote-competitors-2026-10-12/`. Recommendations prioritize pre-upload eligibility/restricted-data screening (including storage and Autodesk translation), explicit end use, visible process/date, part/revision identity, inserts, CoC/traceability and compatibility. Reviewed official eCFR/BIS references for the file-handling/classification rationale; do not treat UI declarations as regulatory clearance or prototype status as a customs exemption. Added the audit to TODO for product review; kept existing source-inspection/build-and-hold exclusions and the three-step progress decision. No application feature, schema, environment or deployment changed; no automated tests ran for this read-only audit.
+
+## 2026-10-12 — Implement manufacturing requirements and restricted-work intake
+
+Implemented William's selected competitor-audit follow-ups: per-part CNC Milling/CNC Turning/Sheet Metal Fabrication (Milling default), material/process-aware finish menus with shared server enforcement, customer part number and CAD/drawing revisions, prior-file references/revisions/timestamps on replacement/removal, and Autodesk-derived reference CAD envelope with mm/in display. Added explicit, unselected restrictions and Prototype/Commercial/Mixed-other declarations; mixed-other requires explanation. Current overseas policy refuses declared restricted work and blocks new file storage/APS translation/submission for unconfirmed/unsure/obsolete declarations. Shared historical draft metadata remains syncable; legacy requests are shown as undeclared rather than certified. Admin inspector/workbench displays declarations and part engineering data; quote/supplier preparation uses each part's process and saved drawing revision. Prior-file downloads are company-scoped, and pending prior uploads must save before replacement.
+
+Added optional Request.intakeDeclaration and RequestLineItem.manufacturingDetails JSON columns using the additive SQL in scripts/rfq-manufacturing-schema-2026-10-12.sql on the configured local-development database, regenerated Prisma Client and restarted the detached local server. A real PostgreSQL/Prisma JSON round-trip passed inside an intentionally rolled-back transaction; no synthetic RFQ remained. Production was not changed. Research/implementation scope and all question-only feature examples are documented in docs/rfq-intake-requirements-2026-10-12.md. Finish rules use Protolabs Network's published conservative service matrix; custom substrates and supplier availability remain operator review. The hidden 14-day due-date behavior was explained and retained pending separate approval. CoC/traceability, country-picker, supplier certification, NDA, drawing-deviation, detailed critical-feature and marking controls remain proposals. Updated feature map, project context, decisions and TODO.
+
+Validation: final rerun has 130 targeted tests across 12 files passing; full TypeScript and targeted ESLint pass. Browser confirmed the real current CAD envelope and mm/in conversion, the three process choices, revision fields, filtered stainless finish menu, successful shared-draft synchronization and no form-section horizontal overflow at 390px. The current eligibility/end-use choices were already selected in the browser by the user; the agent did not classify the customer's files. Browser inspection changed only display units temporarily and opened/closed menus, then restored mm, the original viewport and page position. Screenshots saved under output/qa/rfq-manufacturing-2026-10-12. No RFQ submitted, no customer part specification edited, no deployment.
+
+Concurrent upload/submission and Viewer asset-preload edits appeared during the final checks. Preserved those edits, confirmed the direct-storage prepare/complete endpoints keep eligibility enforcement, and updated repeated-submission checks to await asynchronous submission and saved-preview checks to assert the stable restored-viewer path. The final 130-case rerun, TypeScript and targeted lint pass.
+
+
+## 2026-10-12 — CAD preview speed stage 1
+
+Implemented the approved first stage: shared Autodesk Viewer asset preloading while files upload/translate, and fitted geometry display before Measure/Explode/Section extensions finish. Remote RFQ CAD/drawing uploads now use company-scoped, 15-minute presigned PUTs with exact length/type/key/name metadata and HEAD-verified completion. The browser sends file bytes once to private storage; the CAD API authorizes and validates the saved object, then streams it to Autodesk without buffering the entire model. Submission waits/retries pending file saves and sends references only. Local development retains filesystem uploads. Drawing files now share the existing 200 MiB CAD ceiling. Authorized remote downloads redirect to five-minute signed GETs so large CAD/PDF downloads also avoid Vercel payload limits; stored reference validation uses HEAD.
+
+Added a read-first CORS configuration helper that merges a dedicated exact-origin bucket rule and preserves unrelated rules, plus setup/release instructions in the APS guide. Updated README, project context, decisions, TODO and operator feature map. Added the AWS SDK S3 presigner dependency. Preserved the existing unrelated workspace edits. Translation reuse, token caching and completion notifications remain outside this stage.
+
+Validation: all 81 targeted Vitest cases across 12 files pass, including a synthetic 8 MiB direct upload, submission during an unfinished upload without retransmission, exact-length signatures, incomplete-save denial, company ownership, eligibility gates, streaming without full-file buffering, signed downloads and geometry display while tools remain pending. Full TypeScript, targeted ESLint and the optimized Next.js production build pass. The build was run directly without the deployment migration/bootstrap wrapper. No database schema, account settings, customer RFQs, bucket configuration, or deployment changed. This computer has local storage enabled and no S3/R2 credentials, so live bucket CORS, signed browser PUTs, real APS streaming and measured latency improvement remain deployment checks documented in the guide.
+
+
+## 2026-10-12 — Export intake popup flow
+
+- Inspected the live Xometry popup in the user’s Chrome tab and the supplied screenshot. Replaced Lattice’s inline export questionnaire with a staged selection modal, prominent radio cards, removable file rows, expandable batches, Back/Close, and Continue.
+- Initial, added and replacement CAD batches stay local until explicit unrestricted confirmation. No answer is preselected. Restricted/unsure declarations explain the stop and can be saved without uploading staged files. Existing drafts retain a compact declaration summary/change action. Intended use remains on configuration and reaches existing admin metadata. Server storage/APS/submission gates are retained.
+- Reused the focus containment/restoration hook, provided Escape/backdrop close and a scrollable body with a fixed footer. Extracted drawing URL memoization into a dedicated hook to preserve its lifetime under the React compiler after staging callbacks were added. Corrected quote-name generation for multi-file additions/replacements.
+- Updated existing request-form fixtures to explicitly confirm staged batches. No automated tests were run for this request. Full TypeScript and targeted ESLint passed. Live localhost inspection confirmed the unselected dialog, disabled Continue and local staged file list; no staged fixture was uploaded and no RFQ submitted. Desktop evidence: `output/qa/export-intake-2026-10-12/export-restrictions-desktop.png`. Local changes only; no deployment.
+
+## 2026-10-12 — Export dialog Yes/No copy refinement
+
+- Removed the customer’s Unsure selection and require Yes or No, with no default for new file batches. Legacy unsure declarations reopen without a selected answer and remain blocked by existing server guards.
+- Replaced country-centered intro, choice and refusal copy with Xometry-inspired U.S. regulatory categories, retaining CUI, U.S.-only and other restricted handling coverage. Yes still refuses uploads; No explicitly confirms the absence of restricted requirements. No automatic EAR99 clearance statement was introduced.
+- Updated the existing UI fixture and durable product notes/feature map. TypeScript and targeted ESLint passed; no automated tests run. Live browser showed exactly two unchecked choices and disabled Continue. Screenshot: `output/qa/export-intake-2026-10-12/export-restrictions-yes-no.png`. No customer files were uploaded or declarations selected by the agent.
+
+
+## 2026-10-12 — Export controls reference link
+
+Added the customer-requested sentence, “Certain parts may be subject to various US regulations,” and linked “Learn more about export controls” to the supplied State Department DDTC ITAR landing URL. The link opens in a new tab with noopener/noreferrer and visible keyboard focus. Updated the operator feature map. No automated tests run for this copy/link change.
+
+
+## 2026-10-12 — Quality approval control on Configure only
+
+Moved visibility of “Require quality approval before shipment” to the Configure stage (CAD present and export eligibility confirmed). The initial Upload page no longer shows this checkbox; its saved value and submission behavior are preserved. Updated the feature map. No automated tests run for this display-only change.
+
+
+## 2026-10-12 — Export dialog Continue styling and gating
+
+Changed enabled Continue to the platform’s black primary style. Only No enables it (and a new batch must still contain a file); Yes and unanswered states keep the faded, disabled Continue label. Removed Save & stop from this dialog and updated decisions/intake requirements/feature map. No automated tests run.
+
+
+## 2026-10-12 — Earlier Autodesk viewer preload
+
+Moved the initial public viewer asset warm-up to valid CAD staging, overlapping the export declaration popup. The call is asynchronous and uses the existing shared promise/retry behavior; it does not upload files or start translation. No → Continue already starts asynchronous CAD save/translation during configuration, so that pipeline is retained. Updated the APS guide, context, decisions and feature map. No automated tests run for this request.
+
+
+## 2026-10-12 — Advance CAD processing during export declaration
+
+- Implemented the explicitly requested speculative CAD upload/APS translation on valid file selection, alongside viewer asset preloading. Added a CAD-only advance processing intent accepted only for unconfirmed/current-policy declarations; actual customer eligibility remains unanswered until No → Continue.
+- Reused File-keyed upload and preview promises when confirmed parts enter configuration. Failed speculative uploads/preview requests can retry; no duplicate upload/translation is created for the same pending File. Auth, company-scoped storage access, CAD type/size validation, drawing restrictions and RFQ submission eligibility remain enforced.
+- Replaced the inaccurate on-device-only popup note with disclosure that upload/translation start while answering and Yes cannot undo transmission. Back/removal discard UI references; already-started cloud jobs are not canceled or erased. Updated the existing UI fixture, APS guide, feature map, context, decisions and intake notes. This supersedes prior privacy gate assumptions; legal eligibility/liability was not established.
+- Full TypeScript and targeted ESLint passed. No automated tests or live CAD translation timing measurement were run. Local code only, no deployment.
+
+
+## 2026-10-12 — Remove popup processing sentence
+
+Removed the selected “CAD files upload and begin processing…” note beneath the CAD file list. Processing and continuation behavior are unchanged. Updated decisions, operator feature map, APS guide and intake notes. Targeted ESLint passed; no automated tests run for this copy-only change.
+
+
+## 2026-10-12 — Refresh translation status during step 1
+
+- Traced CAD staging → draft persistence → APS start; translation already starts before No/Continue. Local server logs showed successful CAD start responses. The displayed queued state was a hardcoded cached start result and Configure previously waited five seconds before its first status poll.
+- Added two-second, non-overlapping status checks while the popup is open and an immediate fresh status read when attaching the preview to configured parts. Configure polls immediately/every two seconds with stable dependencies; unrelated renders do not restart polling. Kept a single upload/translation per File and retained running jobs across temporary status/network errors. Added no-store on browser status fetch, status endpoint and upstream manifest reads.
+- Updated status tests and existing form fixtures. A form check confirms translation POST occurs while the dialog is still mounted and only one translation POST occurs after Continue; current progress replaces queued. All 38 targeted tests passed across form, status helper, APS service and preview route. Full TypeScript and targeted ESLint passed. No fresh live customer file was uploaded by the agent; actual Autodesk queue/conversion time was not benchmarked. Updated feature map, APS guide and project context.
+
+## 2026-10-12 — Live sample CAD timing verification
+
+Uploaded the user-provided A10201.SLDPRT in three isolated localhost tabs and waited 27.5, 20.1 and 60.0 seconds before Configure. Confirmed one translation-start POST per upload during the unanswered popup and status polling before Continue. Two directly observed Autodesk jobs finished at approximately 40.0 and 42.3 seconds after selection, explaining why a 20-second wait still showed real 99% processing. A 60-second wait bypassed translation waiting, but browser model download/viewer initialization still ran after Continue; final geometry and CAD envelope were visually verified. No application code changes or new speed guarantee. Detailed findings and sampled provider status evidence are in `docs/cad-popup-timing-verification-2026-10-12.md` and `output/qa/cad-timing-2026-10-12/`. Three trial drafts were uniquely labeled and archived; no RFQ submitted, no other drafts altered, no cloud files/jobs deleted.
+
+
+## 2026-10-12 — Prepare and preserve the actual CAD model behind the popup
+
+Implemented first-file model warm-up after translation succeeds, using a sized invisible/inert parking area and a stable portal container. Configure takes over the same mounted Autodesk viewer and canvases, while ResizeObserver refits to the card; precomputed envelope metadata reaches the configured part. Cancellation, removal/replacement, part deletion and form unmount release unused viewer/container resources. Other batch files use the normal path. Cloud job cancellation and content-based translation reuse were not added.
+
+Verified with the user-provided A10201.SLDPRT: a fully loaded viewer existed behind the still-open popup, and the same instance ID `_r_2_` and two canvases were reused after Continue. Its width changed from 600 to approximately 351 pixels; visible handoff was observed at 0.295 seconds including automation overhead. This is a local warm-model observation; translation time is unchanged. Evidence is saved in `output/qa/cad-model-preload-2026-10-12/viewer-handoff.json`. All 37 targeted tests passed across prepared-host lifecycle, viewer, form and status helper, including preservation without remount and disposal on cancellation. Full TypeScript and targeted ESLint passed. No RFQ was submitted. Updated feature map, APS guide, context, decisions and TODO.
+
+The isolated prepared-viewer test draft was renamed and archived through the normal UI after verification. No other drafts were changed. Development hot reload reset the temporary form after the measured handoff; the saved draft was reopened for the final screenshot and cleanup. The preserved-instance handoff evidence was recorded before that reload. Targeted tests were rerun after cleanup-related code changes: all 37 passed.
+
+## 2026-10-12 — APS account allowance inspection
+
+Used the requested William/Lattice Chrome profile, which was already authenticated, to inspect Lattice OS Dev and the Lattice CAD Preview application. Confirmed the configured local client ID matches that visible application without printing credentials. Hub analytics is available. The linked Autodesk team is William paik - 3614; the work account’s account-home role is User, Products and services shows no assigned products, and Subscriptions and contracts exposes no plan details. Therefore the team’s actual APS free/paid entitlement, remaining translation allowance and token balance are unverified; the published API rate must not be presented as a verified account-specific monthly quota. Requested identification of the subscription/token owner account. No account permissions, subscription, billing plan or credentials were changed.
+
+## 2026-10-12 — Compact quote intake dropdowns
+
+- Replaced Configure’s large intended-use radio card with the shared compact dropdown in the same location; Prototype/Commercial/Mixed-other values, no default, conditional explanation and persistence remain.
+- Moved export restrictions into a separate dropdown below the quote name, replacing the Change link/modal editing path. Selections record the current policy through the existing declaration handler; restricted work continues to block configuration/submission. The initial CAD-selection popup remains.
+- Updated the feature map and intake reference. No schema/deployment changes. Tests were not run (not requested).
+
+## 2026-10-12 — Intended-use second page in CAD intake popup
+
+- Added a second popup page after the unrestricted answer. Prototype/Commercial/Mixed-other choice is required; mixed requires details. Existing quote choices are retained for additional/replacement batches, and the Configure dropdown stays editable.
+- Continue saves intended use with the restriction declaration through existing draft/admin persistence. Back returns to the first popup page with answers retained; question focus moves on page changes.
+- The page change is local to the dialog: staged CAD files, upload promises, translation polling and prepared viewer hosts stay mounted and active until final Continue. No new translation request or cancellation is introduced by switching pages.
+- Applied the React best-practices review for state isolation, focus and derived validity. No tests run (not requested), deployment or schema changes.
+
+## 2026-10-12 — Prototype/commercial copy and removal of Mixed-other
+
+- Updated both popup and Configure dropdown descriptions to the customer-provided Prototype/Commercial reference wording, retaining the current design.
+- Removed Mixed/other and the explanation control from both entry points. Client readiness and server submission require Prototype or Commercial; legacy submitted mixed metadata remains readable, while mixed drafts prompt for a new choice. Selecting a supported use clears obsolete mixed notes.
+- Autodesk processing lifecycle is unchanged. Documentation updated; tests not run (not requested).
+
+## 2026-10-12 — Intended-use explanatory copy
+
+- Confirmed Prototype/Commercial option descriptions match the supplied reference. Updated the second popup page’s introductory sentence to “This classification is required for us to determine accurate pricing and any import considerations.”
+- Retained the existing layout and Autodesk processing behavior. No tests run (copy-only change; not requested).
+
+## 2026-10-12 — Separate quote and part containers (reversible layout trial)
+
+- Quote name, restrictions and intended use now occupy their own card. Each existing part card sits below as a separate sibling; additional upload/quality/submission controls have their own card. Upload-only layout retains its existing container.
+- Set `separatePartContainers = false` in `src/components/request-form.tsx` to restore the prior shared quote/part card presentation. Part components retain their keys and data/preview behavior.
+- Updated the feature map. No tests run (not requested).
+
+## 2026-10-12 — Compact quote header summary controls
+
+- Restyled quote-wide dropdowns with slim rectangular triggers and an intended-use icon tile, inspired by the supplied Fictiv screenshot. Header places quote name at left and controls at right, stacking on small screens.
+- Added an opt-in compact presentation to CustomSelect; other form dropdowns retain their existing style. Popup answers remain the stored values, with no repeated confirmation requirement; controls provide occasional correction.
+- Reviewed React state/focus behavior using the React best-practices skill. Updated feature map; no tests run (not requested).
+
+## 2026-10-12 — Quote header column layout
+
+- Stacked quote name, export restrictions and intended use vertically at all screen widths, retaining compact dropdown styling. No tests run (not requested).
+
+## 2026-10-12 — Quote details single row
+
+- Placed quote name and both compact dropdowns on one row with shrinking columns and wrapped text. Supersedes the column layout. Tests not run (not requested).
+
+## 2026-10-12 — Narrow quote dropdowns and align intended-use arrow
+
+- Restricted quote-header dropdown widths to 240px (restrictions) and 192px (intended use), shrinking when necessary. Compact trigger text takes remaining space, placing the arrow immediately before the intended-use icon tile. Tests not run (not requested).
+
+
+## 2026-10-12 — Autodesk account and upload capacity audit
+
+Inspected the logged-in Chrome APS hub and Autodesk Account. Lattice OS Dev contains the single Lattice CAD Preview application. October 5–12 analytics show 20 simple translations, zero complex translations and 379 basic calls. Confirmed the work login's billing team role is User with no assigned products/accessible subscription; remaining allowance and actual Free/Paid tier cannot be established from these views. Read the current official rate sheet in Chrome: Free allowance is 60 simple jobs, 20 complex jobs and 300,000 basic calls/month; paid equivalents are $1/simple job, $4.50/complex job and $3/300,000 basic calls. Data Management has no monthly upload quota in that rate sheet, distinct from conversion and individual-file constraints. Source recheck confirms 200 MiB per CAD/drawing in Lattice, with no per-RFQ aggregate cap. Saved evidence, caveats, production-path uncertainty and primary sources in docs/audits/autodesk-upload-limits-2026-10-12.md. No files uploaded, account/configuration changes, purchases, deployment, or tests during this read-only investigation.
+
+## 2026-10-12 — Remove part identity fields and update competitor comparison
+
+- Removed Customer part number, CAD revision and Drawing revision controls from Configure. Historical metadata/replacement history remain stored; no migration or destructive data change.
+- Added `docs/audits/quote-configuration-update-2026-10-12.md`, comparing current implementation with the earlier observed competitor features and prioritizing delivery, save state, documentation and manual engineering review. Competitor pages were not freshly inspected.
+- Updated feature map. Tests not run (not requested).
+
+## 2026-10-12 — Equipment page audit and design proposals
+
+- Reviewed the local customer Equipment page, Materials overview, shared customer style, equipment source/projection/catalog code and prior decisions. Researched IBM Carbon table guidance, NN/G workplace table patterns and manufacturer specification presentation.
+- Identified headline/result count disagreement (162 vs 150), a mixed-unit numeric-substring set aggregate, conflated tolerance/accuracy claims, ambiguous envelope headings, redundant filters/introduction, truncation and mobile-reading concerns.
+- Prepared three interactive design proposals: recommended Technical directory, Materials-aligned Process atlas, and Specification workbench. Used selected existing catalog examples, explicit claim bases and local-only preview interactions. No generated machine imagery was needed.
+- Saved the audit and proposed follow-through in `docs/audits/equipment-design-2026-10-12.md`; recorded the review step in TODO. No application implementation, supplier-data mutation, approved product decision or deployment. Feature map stays unchanged because behavior is unchanged. Application tests were not run for this proposal-only work; preview syntax and browser interactions were checked.
+
+## 2026-10-12 — Optional per-part target ship date
+
+- Reduced Manufacturing notes top padding from 32px to 12px and removed its extra 20px label margin. Added a blank-by-default optional date input immediately below notes. Copy distinguishes preferred shipment from arrival and confirms availability in the quote.
+- Persisted targetShipDate in local/shared draft snapshots and RequestLineItem manufacturing JSON; reorder prefill and admin part review include it. Server checks date format/calendar validity; no database migration needed.
+- This user-approved date control supersedes the proposed expandable lead-time duration design; it is per-part. Existing legacy request dueDate metadata is not used as the new field’s default. Updated feature map. Tests not run (not requested).
+
+## 2026-10-12 — Lattice target-date calendar redesign
+
+- Replaced the native date picker with a custom single-month calendar matching the trigger’s measured width, neutral/charcoal Lattice theme, month/year controls, Today/Clear actions and understated current/outside-month dates.
+- Popover portals outside the part card to prevent overflow clipping, updates position on scroll/resize, and opens above when necessary. Arrow/Home/End/PageUp/PageDown navigation, Escape, outside dismissal and focus return are implemented. Date storage/validation remain unchanged.
+- Reviewed Apple picker guidance, Uber Base Web datepicker and Airbnb react-dates as design references; retained project styling and added no package dependency. Applied React best-practices review. Tests not run (not requested).
+
+## 2026-10-12 — New Equipment explorer alongside the existing catalog
+
+- Built `/equipment-explorer` below How Lattice works without changing `/equipment` or its source records. Added a responsive technical directory/card layout, six process groups, 150-record counts, composed search/configuration/evidence filters, pagination, source disclosures and existing RFQ links.
+- Added a server-only safe projection, stable opaque equipment references and source-qualified labels. Checked original PDF headings and selected axis classifications; documented scoped corrections and remaining source-audit limitations in `docs/audits/equipment-explorer-implementation-2026-10-12.md`. No synthetic machine photos, invented availability or automatic part-fit claims.
+- Verified 24 focused tests, saved-sidebar placement, typecheck and scoped lint; inspected desktop/mobile behavior and evidence disclosure. Broader sidebar run had one existing Request Quote styling expectation failure (26/27 passed), unrelated to the explorer. Updated feature map, project context, decisions and TODO. Local implementation only; no deployment.
+
+## 2026-10-13 — Comparative audit of Equipment and Equipment explorer
+
+- Inspected both live pages, equivalent Hermle C400 details, original-page mobile behavior and catalog source logic. Original compact rows were 71px versus 168px for the explorer at the same desktop viewport.
+- Confirmed original 162/150 count disagreement, mixed-unit 664-set aggregate, misleading universal specification headings, omitted rotary envelope in expanded Hermle details, redundant filters and mobile horizontal scrolling.
+- Recommended combining the original desktop density with the explorer's source-qualified values, process navigation and mobile cards; identified the explorer's repeated evidence text and generic missing-spec cells as further improvements. Saved `docs/audits/equipment-comparison-2026-10-13.md`.
+- Feedback only. No application implementation, deployment, tests or approved product-direction change; feature map remains unchanged.
+
+## 2026-10-13 — Certificate of Conformance RFQ choice
+
+- Added optional Certificate of Conformance (CoC) to shared quality-documentation options, preserving Standard Inspection and independent MTR selection. Existing option-label persistence carries CoC through draft, submission and admin review without a schema change.
+- Added CoC to the quality-documentation guide, distinguishing finished-part conformity from raw-material test reports and separately requested heat/lot linkage. No new supplier certification/traceability promise or inserts feature.
+- Updated feature map; tests not run (not requested).
+
+## 2026-10-13 — Searchable quality-documentation selector
+
+- Added typing/search inside the quality-documentation selection box. Filters options by label/key, preserves selected chips, supports arrow/Enter/Escape controls and displays an empty-result message. Query clears when closed; Standard Inspection remains included. No persistence changes.
+- Updated feature map. Tests not run (not requested).
+
+## 2026-10-13 — Custom Inspection inline hint
+
+- Added “(add details to manufacturing notes section)” beside Custom Inspection in the quality-documentation dropdown, matching drawing-required hint typography and allowing wrapping. Tests not run (copy-only change; not requested).
+
+## 2026-10-13 — Remove Previous files from quote configuration
+
+- Removed previous-file history from customer configuration and admin inspection. CAD/drawing replacement and drawing removal no longer archive the prior file or wait for its save. Restored drafts/reorders and new submissions clear history; the submission route no longer promotes old files.
+- Updated intake requirements, feature map and durable project memory. Existing submitted records and physical storage objects were not purged; no migration or deployment.
+- Focused checks: two form regression cases passed for CAD replacement with legacy history and drawing removal; eleven request route checks passed, including ignoring unavailable/unowned deleted-history references. Typecheck, targeted lint and diff whitespace checks passed. Read-only inspection of the open local draft confirmed Previous files is absent. No customer quote was submitted through the browser.
+
+## 2026-10-13 — Minimal CAD dimensions in preview header
+
+- Removed the envelope card below the viewer. Dimensions now sit beside CAD FILE PREVIEW in small muted text with compact mm/in selection. Model-unit/reference caveats moved to a tooltip; no pending metadata filler is shown. Header wraps when needed.
+- CAD metadata extraction/persistence remain unchanged. Updated feature map. Tests not run (not requested).
+
+## 2026-10-13 — Quality dropdown outside-click dismissal
+
+- Changed quality-documentation dismissal to capture-phase pointerdown/click listeners, so mouse/touch/outside clicks close the dropdown even when another control stops propagation. Closing clears search; selected documents remain intact. Tests not run (not requested).
+
+## 2026-10-13 — Hide quality search while closed
+
+- Quality-documentation search no longer shows a placeholder or occupies layout space when closed. Opening reveals/focuses the blank search input; selected chips remain. Escape restores the dropdown button. No tests run (not requested).
+
+## 2026-10-13 — Nonblocking drawing-required configuration
+
+- Removed automatic drawing-dialog opening for quality-documentation and drawing-required engineering flags. Added small inline reminders at the drawing upload and quality selector, with an explicit Upload a drawing action. Selections remain removable.
+- Removed the drawing dialog’s upload-before-close rule; Done/backdrop/Escape close it without clearing specifications. Existing required-drawing readiness/checklist and submit guards remain. Filename-only references do not satisfy required drawing bytes.
+- Updated feature map. Tests not run (not requested).
+
+## 2026-10-13 — Material picker UX audit and design alternatives
+
+- Audited current desktop picker in browser and source, retaining the customer’s material choice. Confirmed grade/UNS search and empty-result behavior, duplicate-looking SS 304 alias, and focus loss on Escape. Catalog/search/accessibility/placement findings are in `docs/audits/material-picker-2026-10-13.md`.
+- Used built-in imagegen to propose A search-first dropdown (recommended), B family browser and C selection drawer. Saved final concepts under `output/design/material-picker-2026-10-13/`; no application behavior changed. No automated/mobile tests ran.
+
+## 2026-10-13 — Move shipment approval into quality configuration
+
+- Moved the existing order-wide Require quality approval before shipment control from the submission/upload card to immediately below Quality documentation in the first line-item card. Shows once to avoid duplicated linked controls; copy explicitly states entire-order scope.
+- Retained existing draft/submission/admin approval behavior and disabled edits during submission. Updated feature map. Tests not run (not requested).
+
+## 2026-10-13 — Material search and explicit alias consolidation
+
+- Implemented token-based and normalized spacing/punctuation search, including reordered family/grade terms and compact aliases. Exact identity matches rank first.
+- Consolidated five explicit duplicate name pairs in the RFQ picker: SS 304 → 304 Stainless Steel; SS 316 → 316 Stainless Steel; Brass C360 → Brass 360; Copper C110 → Copper 110; Bronze C932 → Bronze 932. Aliases remain searchable; old stored values display the canonical choice without rewriting history. Distinct grades/tempers and ambiguous polymer aliases remain separate.
+- No-results copy now reads “No materials found - email support@latticeos.co for procurement support,” with a mailto link.
+- Family browsing recommendations only: one open family at a time, fixed search row, bounded grade scrolling; no filters. No change to Escape focus behavior at user request.
+- Local changes only; no tests run (not requested), schema changes or deployment.
+
+## 2026-10-13 — Reversible search-first material picker (concept A)
+
+- Implemented `SearchFirstMaterialSelect` with focused search, quick family filters/additional-family control, result count, concise grade/UNS rows and selected checkmark. Reuses existing normalized search and canonical aliases without changing catalog data.
+- Added empty-result reset and existing `/materials/inquiry` link in a separate tab so the draft stays open. Anchored portal matches input width, flips above when needed and repositions on scroll/resize. Arrow/Home/End/Enter controls and Escape/selection focus restoration are included.
+- Preserved the full original picker as `LegacyMaterialSelect`. Set `useSearchFirstMaterialPicker = false` in `src/components/request-form.tsx` to revert presentation.
+- Applied React best-practices review for memoized filtering, isolated state and listener cleanup. Updated feature map and project context. Tests not run (not requested); no deployment/schema change.
+
+## 2026-10-13 — App-wide enabled-button pointer cursor
+
+- Added shared pointer cursor styles for enabled buttons, button inputs and role=button controls, with not-allowed styling for disabled/aria-disabled buttons. Applies to the intake Continue action when enabled.
+- Searched existing source cursor overrides; explicit default styles were limited to disabled controls. Updated feature map.
+- Live browser check passed after the stylesheet refreshed: all four enabled controls in the current intake popup (including Continue) report pointer; a separate fresh upload page had seven visible buttons with zero cursor mismatches, including disabled Previous using not-allowed. No pending upload/declaration was changed.
+
+## 2026-10-13 — Additional-part configuration handoff
+
+- Confirmed additional drop-zone intake shares stageCadFiles with initial uploads: draft upload and APS job start during the popup; staged polling/preload continue across both questions and cached promises are reused on confirmation.
+- Added explicit expanded-card reveal after confirmation. New batches scroll/focus the first newly added part header; replacements/initial targeted uploads reveal their target. This avoids focus returning only to the lower upload/checklist area. No material prerequisite was added; readiness affects submission only.
+- Updated feature map. Tests not run (not requested); no deployment/schema change.
+
+## 2026-10-13 — Hidden RFQ requirement audit
+
+- Traced Buyer company is required to legacy hidden client state plus mandatory model validation; admin API path does not replace buyer company from account context. Also found hidden hardcoded requester identity, required/invented dueDate, hidden customerPo note injection, hidden partName readiness and redundant project-level process checks.
+- Recorded removed fields that are not blockers and backend drawing/document/tolerance validation parity gaps in `docs/audits/rfq-hidden-requirements-2026-10-13.md`. No app/draft changes or submission performed.
+
+## 2026-10-13 — Remove obsolete RFQ intake state and requirements
+
+- Removed hidden requesterName/customerPo/dueDate/partName state, hardcoded/default values, PO-note injection, and request-level process readiness from RequestForm and prefill. Legacy keys are ignored when restoring drafts and omitted from newly saved intake snapshots.
+- Request model accepts absent requesterName/dueDate/process/partName fields. Filename-derived labels provide operational part descriptions; aggregate process remains derived from per-part manufacturing choices. Optional blank dueDate persists as null.
+- User also requested historical-value deletion; asked for exact environment and record scope before preparing that destructive operation. No historical records purged yet. Buyer/company ownership remains a separate unresolved issue from the prior audit. Tests not run (not requested).
+
+## 2026-10-13 — Purge authorized development/local legacy values
+
+- User specified all development records and all records on this machine. Ran `scripts/purge-development-rfq-values.mjs`, guarded to the inspected `.env.local` development endpoint. Development database contained zero Request/RequestLineItem rows and 18 shared draft records; four shared drafts required value cleanup. A second pass changed zero shared drafts.
+- Cleaned all 11 records in `.data/mock/requests.json`. `.data/requests.json` was absent. Request/order objects and uploads retained; legacy requesterName, dueDate, request-level process, partName and hidden customerPo/note injection values removed or blanked for storage compatibility. Per-part process, optional targetShipDate, buyer/company ownership and actual purchasing PO fields are retained.
+- Added a reusable cleaner at browser draft read/write/sync and shared-draft API save boundaries to prevent reintroduction. Development browser cleanup covers all app draft storage keys on the current origin. Active in-app browser confirmed one scanned store, zero remaining changes, zero unreadable stores; other browser profiles/origins apply the same cleanup when the updated local app loads. Closed profiles were not directly inspected.
+- No Production database changes, schema migration or file deletion. No automated tests run.
+
+## 2026-10-13 — Fix Quotes RangeError after legacy date purge
+
+- Runtime logs identified `BuyerQuotes`/`QuoteTable` calling Intl.DateTimeFormat with an empty removed dueDate, causing RangeError: Invalid time value. Removed the obsolete due-date formatter/display from the buyer Quotes table.
+- This was a regression from the preceding cleanup; record timestamps and optional target shipment dates are unrelated and retained. Updated feature map.
+- Live browser confirmed `/quotes` renders draft and quoted rows after the fix without the error overlay. Saved `output/qa/quotes-range-error-2026-10-13/quotes-restored.png`. No RFQ mutation/submission or automated tests.
+
+## 2026-10-13 — Fix remaining Buyer company submission blocker
+
+- Identified the remaining model assertion requiring buyerCompany and the form default/restore/payload path for this deleted input. Removed both; intake snapshots no longer carry buyerCompany.
+- Request API derives customer company display data on the server and retains the authenticated company ID and missing-membership guard. Admin submissions use an unassigned company context. Persistence omits the company relation for an unassigned RFQ instead of creating a blank Company. Existing ownership and company records retained.
+- Reviewed affected source paths and updated feature map/context/decision. No actual RFQ submitted and no automated tests run.
+
+## 2026-10-13 — Fix second/later CAD viewer initialization race
+
+- Live draft inspection found first viewer ready with canvas and second viewer loading without a canvas. Inspected the deployed Autodesk 7.108.0 SDK: concurrent Initializer auth callbacks share tokenRefreshInterval; later callbacks can update the token without resolving their initialization callback.
+- Introduced one shared SDK runtime initialization promise and kept per-part GuiViewer3D/model creation separate. Added startup/token error handling, a 30-second initialization timeout, and mounted guards for model errors. Popup translation/preloading unchanged.
+- Live browser confirmed both existing line-item viewers have a canvas and state ready after the fix. A third upload was not performed; the same shared startup path applies to later parts. No RFQ submitted or automated tests run.
+
+## 2026-10-13 — Implement compact quote deletion dialog (option A)
+
+- Replaced BuyerQuotes window.confirm with an app-styled compact portal dialog for in-progress/received quotes and draft discard. Includes trash icon, title, permanent-deletion explanation, quote name/reference, outlined Cancel and charcoal destructive action.
+- Reused dialog focus containment/restoration and background inert behavior; added scroll lock, Escape/backdrop cancellation, pending-action disabling, a synchronous duplicate-click guard, and inline deletion errors. A false server deletion result now reports failure instead of hiding the quote.
+- Updated operator feature map. No quote records deleted and no automated tests run.
+
+## 2026-10-13 — Restore previous material dropdown design
+
+- User requested reversal of the concept-A material dropdown. Set the existing reversible toggle to false so all RFQ part cards use LegacyMaterialSelect again. Preserved the alternate component and material data/validation.
+- Updated project context and feature map. No automated tests run.
+
+
+## 2026-10-13 — Make admin Quote Submissions saves recoverable and validated
+
+- Quote issuance and Request information/No quote now return structured success/error results. Client submit handlers retain controlled and uncontrolled inputs after failure, display inline alerts, block concurrent saves synchronously, and refresh the same RFQ after success rather than redirecting to the root queue. Quote success clears unsent-edit state and exits explicit reissue editing.
+- Server checks require explicit non-negative per-part currency with at most two decimals, positive whole-number optional lead times, valid dates/shipping selections and supported integer totals. Empty prices no longer become zero; explicit zero remains supported. Optional shipping/lead time and the existing single supplier-backed line-price model remain unchanged. Inactive/archived issuance/decisions are refused; the inactive workbench shows read-only RFQ package, supplier evidence and quote history.
+- Added action/UI regression coverage for validation, failure retention/retry, pending saves, inactive records, customer decisions, correct totals/validity, authorization and safe errors. Added an isolated repository test verifying initial issuance and revised-version persistence without rewriting the earlier quote.
+- Verification: 45 focused action/UI/repository tests passed; changed-file lint passed. Local authenticated browser confirmed demo RFQ preparation, disabled issuance before pricing, $125 parts + $25 shipping = $150 total, 7 manufacturing days + 5 shipping days = 12 overall days. Temporary demo edits were discarded by returning to the queue; no live quote/decision was issued, customer email sent or deployment performed.
+- Broader checks: typecheck reports pre-existing optional-process/removed legacy-intake field errors in request API/form tests; the persistence test has a pre-existing expected-metadata mismatch for targetShipDate. No changed quote-file type errors remain. Genuine database-backed customer issuance/PDF and supplier upload validation remain follow-up work.
+
+## 2026-10-13 — Implement approved part-removal dialog
+
+- Restyled RemoveLineItemConfirmationModal to the approved compact mockup: centered trash badge, Remove this part? heading, explanation, part name/line number, divider and outlined Cancel/black Remove part actions.
+- Mounted at document.body through a portal; reused focus containment/restoration/background inert logic, added scroll lock and backdrop/Escape cancellation. Part-removal logic unchanged.
+- Updated feature map. No parts removed and no automated tests run.
+
+## 2026-10-13 — Guard intended-use mismatches on additional CAD
+
+- Added quoteEndUse to the upload declaration dialog. Choosing a different valid use displays a separate-quote notice, disables Continue and offers Request a new quote in a new tab. The customer may correct the selection or cancel.
+- Added a confirm-handler guard before any project/part state mutation. Existing quote use is retained; first/legacy unclassified quotes can establish use. Translation/preloading remains active during the popup; rejected CAD is not appended.
+- Updated feature map and decision. No automated tests run. Authentication investigation from the preceding interruption is still unresolved.
+
+## 2026-10-13 — Synchronize admin RFQs with submission database and add operational detail review
+
+- Replaced administrative database/local/browser merging with database-only non-demo RFQ reads. Added the missing `/admin/quotes/[requestId]` page and direct queue links; old review query URLs redirect there while quotation/decision workbench links remain. Missing database requests return not-found; read failures have a retryable error state. Queue/detail refresh on focus and every 30 seconds while visible, excluding workbench edits.
+- Strict database persistence now applies to submission/idempotency, quote issuance, customer decisions and supplier-evidence metadata. Failed writes no longer report a local administrative save. Submission errors return safe 503 recovery text. Explicit local test/mock repository paths remain available outside these entry points.
+- Detail review uses deterministic saved part ordering and `UploadedFile.lineItemIndex`, never file-array position. Shows each part's CAD/drawing files, original private downloads, material/finish/tolerance, quantities, inspection documentation, manufacturing/special notes, target shipment preference and saved model envelope/units. Request declarations, quality approval, contact/delivery snapshot and operator/supplier context are visible. Missing legacy associations stay shared; missing company membership remains Unassigned company. Removed name-guessed broken customer shortcuts.
+- Added lazy saved-CAD readiness/viewer handling and PDF.js drawing rendering with page/zoom controls, authorized byte loading, cancellation and accessible text. The packaged worker is locally served with versioned URL and standalone file tracing. PDF byte loading repaired the live browser's streaming-reader failure; the restrictive file-response sandbox is retained. Image drawings render directly; unsupported native formats retain download fallback. File responses use private/no-store caching.
+- Verification: 80 focused tests across 12 suites pass, covering database-only failures, persistence/versioning, schema mapping, part/file identity, detail routing/authorization, PDF controls, submission service errors, private downloads and existing quote actions. Changed-file lint and diff whitespace checks pass. Current production source has no type errors from these changes; full typecheck remains blocked by pre-existing removed-field fixtures in request-form.test.tsx and request-form-completion.test.ts. A production/release build is not claimed.
+- Authenticated browser confirmed the queue matches the configured Development database's one RFQ; opening its direct detail works, both saved CAD models render, the existing uploaded PDF attachment renders in-page, part switching shows the correct selected requirements, and 390px review has no horizontal overflow. Saved proof under output/qa/admin-rfq-detail-2026-10-13/. A temporarily ended session was restored before verification; no access check was bypassed. No RFQ record mutation/quote/decision/email/deployment was performed.
+- Prepared three interactive synthetic detail design alternatives (Part review, All-part dossier, Tabbed workbench); the functional baseline remains independent of final design selection. Updated feature map, context, decisions, TODO and docs/audits/admin-rfq-detail-2026-10-13.md with the schema contract and remaining release checks.
+
+## 2026-10-13 — Prepare shared Git and Production release
+
+- Verified origin/main and Vercel willpaikstacks-projects/lattice as release targets. Reconciled removed intake-field fixtures, current material selections, declaration steps, deletion dialogs, and drawing-readiness expectations in regression coverage. Local typecheck and production build pass; final regression/lint checks run before publication.
+- Applied only the two idempotent additive JSONB columns from scripts/rfq-manufacturing-schema-2026-10-12.sql to the inspected Vercel Production database and verified both exist. No historical-value purge or customer record mutation.
+- Production private-storage browser preflight lacked a valid CORS response. Stage the release with a one-time build command running the existing exact-origin CORS configuration script inside Vercel; protected storage secrets remain on Vercel.
+- Local QA captures stay off Git/deployment uploads because they can contain customer CAD/account details. Production promotion and final deployment evidence are recorded in a follow-up entry.

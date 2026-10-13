@@ -1,0 +1,144 @@
+<style>
+#equipment-designs .los{--los-bg:#f8f7f4;--los-paper:#ffffff;--los-ink:#202020;--los-muted:#59616a;--los-line:#dcdfe2;--los-blue:#0969c3;--los-soft:#edf0f3; color-scheme:light;font:14px/1.5 Arial,Helvetica,sans-serif;color:var(--los-ink);background:var(--los-bg);display:grid;grid-template-columns:185px minmax(0,1fr);min-height:1050px;border:1px solid var(--los-line)}
+#equipment-designs *{box-sizing:border-box}
+#equipment-designs .los aside{background:#fbfaf7;border-right:1px solid var(--los-line);padding:24px 15px}
+#equipment-designs .brand{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:700;margin:0 10px 30px}
+#equipment-designs .brand i{width:22px;height:22px}
+#equipment-designs .primary{background:#505050;color:white;border:1px solid #505050;border-radius:6px;padding:11px 14px;font-size:13px}
+#equipment-designs aside .primary{width:100%;text-align:left}
+#equipment-designs .navlabel{font-size:11px;color:#697079;letter-spacing:1.4px;margin:25px 9px 10px}
+#equipment-designs .navitem{display:flex;align-items:center;gap:10px;padding:10px;border-radius:6px;color:#50555c;font-size:13px;margin:3px 0}
+#equipment-designs .navitem i{width:16px;height:16px}
+#equipment-designs .navitem.active{background:white;border:1px solid #e1e3e5;color:#202020;font-weight:600}
+#equipment-designs main{padding:32px 28px;min-width:0}
+#equipment-designs h1{font-size:40px;letter-spacing:-1.6px;font-weight:700;line-height:1.1;margin:0 0 12px}
+#equipment-designs h2{font-size:19px;font-weight:600;line-height:1.3;margin:0}
+#equipment-designs h3{font-size:15px;font-weight:600;margin:0}
+#equipment-designs p{margin:0}
+#equipment-designs .intro{color:var(--los-muted);font-size:15px;margin-bottom:19px;max-width:570px}
+#equipment-designs .qualification{background:var(--los-soft);padding:12px 14px;border-radius:6px;color:#43505f;font-size:13px;margin-bottom:22px;display:flex;gap:10px;align-items:flex-start}
+#equipment-designs .qualification i{width:17px;height:17px;flex-shrink:0;margin-top:2px}
+#equipment-designs .meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--los-muted);font-size:12px;margin-bottom:17px}
+#equipment-designs .toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+#equipment-designs label{font-size:12px;color:#4e5660;display:flex;flex-direction:column;gap:5px}
+#equipment-designs .searchlabel{flex:1;min-width:160px}
+#equipment-designs input,#equipment-designs select{font:14px Arial,sans-serif;border:1px solid #cbd0d5;background:white;color:#30363d;border-radius:6px;min-height:40px;padding:9px 11px;max-width:100%;width:100%}
+#equipment-designs button{font-family:inherit;line-height:1.4}
+#equipment-designs .textaction{border:0;background:transparent;color:var(--los-blue);padding:8px 0;font-size:13px;text-align:left}
+#equipment-designs .reset{border:0;background:transparent;color:var(--los-muted);padding:10px 4px;font-size:13px}
+#equipment-designs .sectionline{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:22px 0 12px}
+#equipment-designs .sectionline span{font-size:12px;color:var(--los-muted)}
+#equipment-designs table{width:100%;border-collapse:collapse;background:var(--los-paper);font-size:13px}
+#equipment-designs th{background:#edf0f3;color:#495561;font-weight:500;text-align:left;font-size:12px;padding:12px 10px}
+#equipment-designs td{padding:15px 10px;border-bottom:1px solid var(--los-line);vertical-align:top;overflow-wrap:anywhere}
+#equipment-designs td:first-child{width:33%}
+#equipment-designs .machine{font-weight:600;font-size:14px;display:block}
+#equipment-designs .sub{color:var(--los-muted);font-size:12px;display:block;margin-top:3px}
+#equipment-designs .number{font-variant-numeric:tabular-nums}
+#equipment-designs .detailrow td{background:#f1f4f6;padding:18px}
+#equipment-designs .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}
+#equipment-designs .fields dt{color:var(--los-muted);font-size:12px}
+#equipment-designs .fields dd{margin:3px 0 0;font-size:14px;font-weight:500;overflow-wrap:anywhere}
+#equipment-designs .footnote{font-size:12px;color:#5b6570;margin-top:16px}
+#equipment-designs .atlas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#equipment-designs .process{display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;border:1px solid var(--los-line);border-radius:6px;background:white;padding:17px;text-align:left;color:var(--los-ink)}
+#equipment-designs .process i{width:25px;height:25px;color:#46596a;margin-top:3px}
+#equipment-designs .process p{font-size:13px;color:var(--los-muted);margin-top:5px}
+#equipment-designs .process .view{display:block;font-size:13px;color:var(--los-blue);margin-top:11px}
+#equipment-designs .process[aria-pressed=true]{border-color:#61778f;background:#f3f6fa}
+#equipment-designs .workbench{display:grid;grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);border:1px solid var(--los-line);border-radius:6px;background:white}
+#equipment-designs .machinelist{border-right:1px solid var(--los-line)}
+#equipment-designs .pick{display:block;width:100%;padding:17px 15px;border:0;border-bottom:1px solid var(--los-line);background:white;color:var(--los-ink);text-align:left}
+#equipment-designs .pick[aria-pressed=true]{background:#edf3fa;box-shadow:inset 3px 0 #0969c3}
+#equipment-designs .inspector{padding:24px 21px;min-width:0}
+#equipment-designs .inspector h2{font-size:24px;margin:6px 0}
+#equipment-designs .eyebrow{font-size:11px;letter-spacing:1.2px;color:#5d6873;text-transform:uppercase}
+#equipment-designs .inspector dl{margin:23px 0}
+#equipment-designs .inspector .fields{grid-template-columns:1fr;gap:17px}
+#equipment-designs .inspector .sub{margin:9px 0 18px}
+#equipment-designs .empty{padding:25px;background:white;color:var(--los-muted)}
+#equipment-designs .mockstatus{color:var(--los-muted);font-size:12px;min-height:20px;margin-top:12px}
+#equipment-designs [hidden]{display:none!important}
+@media(max-width:760px){#equipment-designs .los{grid-template-columns:1fr;min-height:1350px}#equipment-designs .los aside{display:none}#equipment-designs main{padding:24px 18px}#equipment-designs .workbench{grid-template-columns:1fr}#equipment-designs .machinelist{border-right:0}#equipment-designs .machinelist .pick{padding:12px 15px}#equipment-designs td,#equipment-designs th{padding:11px 7px}}
+@media(max-width:480px){#equipment-designs h1{font-size:34px}#equipment-designs .atlas{grid-template-columns:1fr}#equipment-designs .los{min-height:1800px}#equipment-designs .toolbar label{width:100%}#equipment-designs table thead{display:none}#equipment-designs table tr:not(.detailrow){display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--los-line);padding:10px}#equipment-designs table td{border:0;padding:7px;width:auto!important}#equipment-designs table td:first-child{grid-column:1/-1}#equipment-designs td[data-label]:before{content:attr(data-label);display:block;font-size:11px;color:var(--los-muted);margin-bottom:3px}#equipment-designs .fields{grid-template-columns:1fr}#equipment-designs .process{padding:15px}#equipment-designs input,#equipment-designs select{font-size:16px}}
+@media(pointer:coarse){#equipment-designs button,#equipment-designs select{min-height:44px}}
+</style>
+<div id="equipment-designs" class="viz-carousel" aria-label="Equipment page design alternatives">
+  <section data-variant="Technical directory" aria-label="Technical directory design"><div class="los" data-concept="directory"><aside></aside><main>
+    <h1>Equipment</h1><p class="intro">Explore the machines behind the Lattice network.</p>
+    <div class="qualification"><i data-lucide="info" aria-hidden="true"></i><p>Supplier-reported specifications. Part fit, achievable tolerance, and availability are confirmed during RFQ review.</p></div>
+    <div class="meta"><span>150 catalog records · 6 process categories</span><span>Network coverage · not live availability</span></div>
+    <div class="toolbar"><label class="searchlabel">Search equipment<input type="search" placeholder="Make, model, or equipment type"></label><label>Process<select aria-label="Directory process"></select></label><button type="button" class="reset cursor-interaction">Reset</button></div>
+    <div class="sectionline"><h2 class="categoryheading">CNC Milling</h2><span>Selected catalog examples</span></div>
+    <div class="results"></div><p class="footnote">Source labels are retained: machining accuracy and best tolerance describe different claims. Travel alone does not establish usable part size.</p>
+    <div class="mockstatus" aria-live="polite"></div>
+  </main></div></section>
+  <section data-variant="Process atlas" aria-label="Process atlas design" hidden><div class="los" data-concept="atlas"><aside></aside><main>
+    <h1>Equipment</h1><p class="intro">Browse by process. Explore the documented machines.</p>
+    <div class="qualification"><i data-lucide="info" aria-hidden="true"></i><p>Catalog coverage is not live availability. Machine suitability and final-part requirements are confirmed during RFQ review.</p></div>
+    <div class="meta"><span>150 catalog records · 6 process categories</span><span>Specifications supplied by the partner network</span></div>
+    <div class="atlas"></div>
+    <div class="sectionline"><h2 class="categoryheading">CNC Milling</h2><span>Selected catalog examples</span></div>
+    <div class="results"></div><div class="mockstatus" aria-live="polite"></div>
+  </main></div></section>
+  <section data-variant="Specification workbench" aria-label="Specification workbench design" hidden><div class="los" data-concept="workbench"><aside></aside><main>
+    <h1>Equipment</h1><p class="intro">Find a machine. Inspect its documented specifications.</p>
+    <div class="qualification"><i data-lucide="info" aria-hidden="true"></i><p>Supplier-reported data supports initial review. Final-part tolerance and machine availability are confirmed during RFQ.</p></div>
+    <div class="toolbar"><label class="searchlabel">Search equipment<input type="search" placeholder="Make, model, or equipment type"></label><label>Process<select aria-label="Workbench process"></select></label><button type="button" class="reset cursor-interaction">Reset</button></div>
+    <div class="meta"><span>150 catalog records · 6 process categories</span><span>Selected catalog examples</span></div>
+    <div class="workbench"><div class="machinelist"></div><section class="inspector" aria-label="Selected machine specifications" aria-live="polite"></section></div>
+    <div class="mockstatus" aria-live="polite"></div>
+  </main></div></section>
+</div>
+<script>
+(()=>{
+const root=document.getElementById('equipment-designs');
+const categories=[['CNC Milling',76,'Prismatic parts and multi-axis machining','box'],['CNC Lathe',11,'Turning, turn-mill, and Swiss-type machines','rotate-cw'],['QC & Inspection',36,'Dimensional measurement and material testing','scan-line'],['Manual Machines',15,'Supporting drilling, grinding, and tapping','wrench'],['Sheet Metal',10,'Laser cutting and press-brake forming','layers'],['EDM',2,'Wire electrical discharge machining','zap']];
+const machines=[
+ {id:'hermle',model:'Hermle C400',type:'5-axis CNC milling machine',category:'CNC Milling',sets:'2 sets',envelope:'850 × 700 × 500 mm',basis:'3-axis envelope',claim:'Best tolerance',precision:'±0.005 mm',fields:[['3-axis envelope','850 × 700 × 500 mm'],['5-axis envelope','Ø650 × H500 mm'],['Best tolerance · supplier reported','±0.005 mm'],['Max RPM','18,000 RPM'],['Control','Heidenhain TNC640']]},
+ {id:'makino',model:'Makino PS105',type:'3-axis CNC milling machine',category:'CNC Milling',sets:'8 sets',envelope:'1050 × 510 × 460 mm',basis:'Processing envelope',claim:'Best tolerance',precision:'±0.005 mm',fields:[['Processing envelope','1050 × 510 × 460 mm'],['Best tolerance · supplier reported','±0.005 mm'],['Max RPM','14,000 RPM'],['Control','Fanuc 0i MF']]},
+ {id:'baoling',model:'Baoling PMD-850',type:'3-axis engraving and milling machine',category:'CNC Milling',sets:'2 sets',envelope:'620 × 780 × 340 mm',basis:'Envelope',claim:'Machining accuracy',precision:'±0.02 mm',fields:[['Envelope','620 × 780 × 340 mm'],['Machining accuracy · supplier reported','±0.02 mm'],['Max RPM','20,000 RPM']]},
+ {id:'heideman',model:'Heideman T55MY',type:'CNC turning center',category:'CNC Lathe',sets:'2 sets',envelope:'Ø300 × 429 mm',basis:'Listed turning envelope',claim:'Reported precision',precision:'±0.005 mm',fields:[]},
+ {id:'zeiss',model:'ZEISS CONTURA 7/10/6',type:'Coordinate measuring machine',category:'QC & Inspection',sets:'5 sets',fields:[]},
+ {id:'manual',model:'SWJ-12',type:'Benchtop tapping machine',category:'Manual Machines',sets:'1 set',fields:[]},
+ {id:'eko',model:'EKO ES3512',type:'Press brake',category:'Sheet Metal',sets:'4 sets',fields:[]},
+ {id:'sodick',model:'Sodick SDK-0970',type:'Wire EDM machine',category:'EDM',sets:'3 sets',envelope:'600 × 470 × 23 mm',basis:'Listed envelope',claim:'Reported precision',precision:'0.001 mm',fields:[]}
+];
+const shell='<div class="brand"><i data-lucide="component" aria-hidden="true"></i>LATTICE</div><button type="button" class="primary cursor-interaction">＋ Request Quote</button><div class="navlabel">WORKSPACE</div><div class="navitem"><i data-lucide="layout-grid" aria-hidden="true"></i>Home</div><div class="navitem"><i data-lucide="inbox" aria-hidden="true"></i>Quotes</div><div class="navitem"><i data-lucide="clipboard-list" aria-hidden="true"></i>Orders</div><div class="navlabel">YOUR RESOURCES</div><div class="navitem"><i data-lucide="layers" aria-hidden="true"></i>Materials</div><div class="navitem"><i data-lucide="wrench" aria-hidden="true"></i>Capabilities</div><div class="navitem active"><i data-lucide="factory" aria-hidden="true"></i>Equipment</div><div class="navitem"><i data-lucide="clipboard-check" aria-hidden="true"></i>Inspection &amp; Certificates</div><div class="navitem"><i data-lucide="book-open" aria-hidden="true"></i>How Lattice works</div>';
+const fields=m=>'<dl class="fields">'+m.fields.map(([label,value])=>'<div><dt>'+label+'</dt><dd class="number">'+value+'</dd></div>').join('')+'</dl>';
+root.querySelectorAll('.los').forEach(app=>{
+app.querySelector('aside').innerHTML=shell;
+const kind=app.dataset.concept,input=app.querySelector('input'),select=app.querySelector('select');let category='CNC Milling',selected='hermle',expanded=null;
+if(select)select.innerHTML='<option value="all">All processes</option>'+categories.map(([name])=>'<option>'+name+'</option>').join('');
+if(select)select.value=category;
+const status=app.querySelector('.mockstatus');
+const choose=m=>{selected=m.id;render()};
+const filtered=()=>machines.filter(m=>(category==='all'||m.category===category)&&(!input||(m.model+' '+m.type).toLowerCase().includes(input.value.toLowerCase())));
+function render(){
+ const rows=filtered();const simple=category!=='all'&&['QC & Inspection','Manual Machines','Sheet Metal'].includes(category);
+ if(kind==='workbench'){
+ if(rows.length&&!rows.some(m=>m.id===selected))selected=rows[0].id;
+ const list=app.querySelector('.machinelist');list.innerHTML=rows.length?rows.map(m=>'<button type="button" class="pick cursor-interaction" data-pick="'+m.id+'" aria-pressed="'+(m.id===selected)+'"><span class="machine">'+m.model+'</span><span class="sub">'+m.type+'</span><span class="sub">'+m.sets+'</span></button>').join(''):'<p class="empty">No preview records match.</p>';
+ const m=rows.find(m=>m.id===selected)||rows[0];if(m)selected=m.id;
+ app.querySelector('.inspector').innerHTML=m?'<div class="eyebrow">'+m.category+'</div><h2>'+m.model+'</h2><p class="sub">'+m.type+' · '+m.sets+'</p>'+fields(m)+(m.fields.length?'':'<p class="sub">Further specifications are not included in this preview.</p>')+'<p class="footnote">Supplier-reported specifications. Machine travel and 5-axis working envelope are shown separately where documented.</p>':'<p>No machine selected.</p>';
+ list.querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>choose(machines.find(m=>m.id===b.dataset.pick))));
+ }else{
+ app.querySelector('.categoryheading').textContent=category==='all'?'Equipment directory':category;
+ app.querySelector('.results').innerHTML=rows.length?'<table aria-label="Equipment examples"><thead><tr><th>Make / model</th>'+(!simple?'<th>Reported envelope</th><th>Precision claim</th>':'')+'<th>Sets</th></tr></thead><tbody>'+rows.map(m=>'<tr><td><span class="machine">'+m.model+'</span><span class="sub">'+m.type+'</span><button class="textaction cursor-interaction" type="button" data-expand="'+m.id+'" aria-expanded="'+(expanded===m.id)+'">'+(expanded===m.id?'Hide specifications':'View specifications')+'</button></td>'+(!simple?'<td class="number" data-label="Reported envelope">'+(m.envelope||'Not shown in preview')+(m.basis?'<span class="sub">'+m.basis+'</span>':'')+'</td><td class="number" data-label="Precision claim">'+(m.precision||'Not shown in preview')+(m.claim?'<span class="sub">'+m.claim+'</span>':'')+'</td>':'')+'<td class="number" data-label="Sets">'+m.sets+'</td></tr>'+(expanded===m.id?'<tr class="detailrow"><td colspan="4">'+(m.fields.length?fields(m):'Further specifications are not included in this preview.')+'</td></tr>':'')).join('')+'</tbody></table>':'<p class="empty">No preview records match.</p>';
+ app.querySelectorAll('[data-expand]').forEach(b=>b.addEventListener('click',()=>{expanded=expanded===b.dataset.expand?null:b.dataset.expand;render()}));
+ }
+ if(kind==='atlas')app.querySelectorAll('[data-category]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.category===category)));
+}
+if(kind==='atlas'){
+app.querySelector('.atlas').innerHTML=categories.map(([name,count,description,icon])=>'<button class="process cursor-interaction" type="button" data-category="'+name+'" aria-pressed="'+(name===category)+'"><i data-lucide="'+icon+'" aria-hidden="true"></i><div><h3>'+name+'</h3><p>'+count+' catalog records</p><p>'+description+'</p><span class="view">Explore equipment →</span></div></button>').join('');
+app.querySelectorAll('[data-category]').forEach(b=>b.addEventListener('click',()=>{category=b.dataset.category;expanded=null;render();status.textContent='Showing preview examples for '+category+'.'}));
+}
+if(input)input.addEventListener('input',render);
+if(select)select.addEventListener('change',()=>{category=select.value;expanded=null;render()});
+const reset=app.querySelector('.reset');if(reset)reset.addEventListener('click',()=>{input.value='';category='CNC Milling';select.value=category;render()});
+app.querySelector('aside .primary').addEventListener('click',()=>{status.textContent='Design preview only. The app’s Request Quote action remains unchanged.'});
+render();
+if(globalThis.Tweak){const settings={roomy:true};const tweak=new Tweak({container:app,onChange:()=>{app.querySelector('main').style.padding=settings.roomy?'32px 28px':'24px 18px'}});tweak.addToggle(settings,'roomy',{label:'Roomier content spacing'});}
+});
+})();
+</script>

@@ -1,9 +1,12 @@
+import { validateManufacturingIntake } from "@/lib/rfq-manufacturing";
 import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
+import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { contactSnapshotFromAccountSettings, getAccountSettings } from "@/lib/account-settings";
-import { copyLocalUpload, isDraftUploadStorageKey, readLocalUpload, saveLocalUpload } from "@/lib/local-file-storage";
-import { createSubmittedRequest, listOperatorRequests } from "@/lib/request-repository";
+import { copyLocalUpload, isDraftUploadStorageKey, inspectStoredUpload, saveLocalUpload } from "@/lib/local-file-storage";
+import { manufacturingUploadError } from "@/lib/cad-upload-policy";
+import { createSubmittedRequest, getRequestById, listOperatorRequests } from "@/lib/request-repository";
 import type { DraftRequestInput, UploadedFileInput } from "@/lib/request-model";
 import { getCurrentSession } from "@/lib/session";
 
@@ -28,14 +31,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Customer or admin access required." }, { status: session ? 403 : 401 });
     }
 
-    const submittedInput = await withAccountDefaults(await parseSubmittedRequest(request));
     const companyId = session.user.role === "customer" ? session.user.companyId : null;
 
     if (session.user.role === "customer" && !companyId) {
       return NextResponse.json({ error: "Your account has not been assigned to a customer company yet. Contact Lattice to finish account setup." }, { status: 403 });
     }
 
-    const companyName = session.user.role === "customer" ? session.user.companyName ?? submittedInput.buyerCompany : submittedInput.buyerCompany;
+    const submissionKey = request.headers.get("Idempotency-Key");
+    if (submissionKey !== null && !/^[A-Za-z0-9_-]{8,128}$/.test(submissionKey)) {
+      return NextResponse.json({ error: "Invalid RFQ submission identifier." }, { status: 400 });
+    }
+    // A stable, identity-scoped primary key deduplicates concurrent requests
+    // across server instances without relying on process memory or a migration.
+    const submissionId = submissionKey ? `rfq_${createHash("sha256").update(`${session.user.id}\0${companyId ?? ""}\0${submissionKey}`).digest("hex").slice(0,40)}` : undefined;
+    if (submissionId) {
+      try {
+        const existing = await getRequestById(submissionId, { requireDatabase: true });
+        if (existing) return NextResponse.json({ request: existing }, { status: 200 });
+      } catch {
+        return NextResponse.json({ error: "The RFQ database is unavailable. Your draft is retained; please try again." }, { status: 503 });
+      }
+    }
+    const submittedInput = await withAccountDefaults(await parseSubmittedRequest(request));
+
+    const companyName = session.user.role === "customer" ? session.user.companyName?.trim() || submittedInput.buyerCompany || "" : "";
     const input = {
       ...submittedInput,
       buyerCompany: companyName,
@@ -44,8 +63,12 @@ export async function POST(request: Request) {
         shipToCompany: submittedInput.contact?.shipToCompany || companyName,
       },
     };
-    const created = await createSubmittedRequest(input, { buyerCompanyId: companyId ?? undefined });
-    return NextResponse.json({ request: created }, { status: 201 });
+    try {
+      const created = await createSubmittedRequest(input, { buyerCompanyId: companyId ?? undefined, ...(submissionId ? { submissionId } : {}), requireDatabase: true });
+      return NextResponse.json({ request: created }, { status: 201 });
+    } catch {
+      return NextResponse.json({ error: "The RFQ could not be saved to the database. Your draft is retained; please try again." }, { status: 503 });
+    }
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "Unable to create request";
     return NextResponse.json({ error: message }, { status: 400 });
@@ -58,6 +81,8 @@ async function withAccountDefaults(input: DraftRequestInput): Promise<DraftReque
 
   return {
     ...input,
+    // Resolve the display name on the server; ownership comes from the session company ID.
+    buyerCompany: settings.companyName,
     contact: {
       ...defaults,
       ...(input.contact ?? {}),
@@ -70,6 +95,7 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
 
   if (!contentType.includes("multipart/form-data")) {
     const input = (await request.json()) as DraftRequestInput;
+    validateManufacturingIntake(input);
     await assertStoredFileReferences(input);
     return input;
   }
@@ -82,6 +108,7 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
   }
 
   const input = JSON.parse(rawInput) as DraftRequestInput;
+  validateManufacturingIntake(input);
 
   input.files = await Promise.all(
     input.files.map(async (fileMetadata, index) => {
@@ -98,6 +125,8 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
       if (uploadedFile.size <= 0) {
         throw new Error(`${fileMetadata.name} is empty and cannot be submitted.`);
       }
+      const uploadError = manufacturingUploadError(uploadedFile);
+      if (uploadError) throw new Error(uploadError);
 
       const stored = await saveLocalUpload(uploadedFile);
 
@@ -138,11 +167,11 @@ async function normalizeStoredFileReference(fileMetadata: UploadedFileInput) {
     };
   }
 
-  const stored = await readLocalUpload(fileMetadata.storageKey);
+  const stored = await inspectStoredUpload(fileMetadata.storageKey);
 
   return {
     ...fileMetadata,
-    sizeBytes: fileMetadata.sizeBytes > 0 ? fileMetadata.sizeBytes : stored.sizeBytes,
+    sizeBytes: stored.sizeBytes,
   };
 }
 

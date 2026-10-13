@@ -3,6 +3,7 @@
 import { ChevronDown, Search } from "lucide-react";
 import {
   type KeyboardEvent,
+  type ReactNode,
   useEffect,
   useId,
   useMemo,
@@ -26,6 +27,8 @@ type CustomSelectProps = {
   error?: string;
   required?: boolean;
   showSearch?: boolean;
+  compact?: boolean;
+  accessory?: ReactNode;
 };
 
 export function CustomSelect({
@@ -38,6 +41,8 @@ export function CustomSelect({
   error,
   required = false,
   showSearch = false,
+  compact = false,
+  accessory,
 }: CustomSelectProps) {
   const labelId = useId();
   const [isOpen, setIsOpen] = useState(false);
@@ -150,8 +155,8 @@ export function CustomSelect({
   }
 
   return (
-    <div className="grid w-full gap-2 text-sm font-medium text-slate-700" ref={containerRef}>
-      <span id={labelId}>
+    <div className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700" ref={containerRef}>
+      <span id={labelId} className={compact ? "sr-only" : undefined}>
         {label}
         {required ? <span className="ml-1 text-[#d4183d]">*</span> : null}
       </span>
@@ -169,14 +174,16 @@ export function CustomSelect({
           </option>
         ))}
       </select>
-      <div className="relative">
+      <div className="relative min-w-0">
         <button
           aria-controls={isOpen ? `${labelId}-menu` : undefined}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
           aria-label={`${label} dropdown`}
           className={[
-            "flex min-h-[54px] w-full items-center justify-between rounded-[14px] border bg-white px-5 py-3 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition-all duration-150",
+            compact
+              ? "flex min-h-12 w-full items-center justify-between rounded-[3px] border bg-white px-3 py-0 text-left outline-none transition-all duration-150"
+              : "flex min-h-[54px] w-full items-center justify-between rounded-[14px] border bg-white px-5 py-3 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04)] outline-none transition-all duration-150",
             disabled
               ? "cursor-not-allowed border-[#dce4ee] bg-[#f3f3f5] opacity-55"
               : "cursor-pointer",
@@ -200,7 +207,7 @@ export function CustomSelect({
         >
           <span
             className={[
-              "min-w-0 truncate text-[15px] font-semibold leading-6",
+              compact ? "min-w-0 flex-1 break-words text-sm font-medium leading-5" : "min-w-0 break-words text-[15px] font-semibold leading-6",
               selectedOption ? "text-[#020617]" : "text-slate-400",
             ].join(" ")}
           >
@@ -213,6 +220,7 @@ export function CustomSelect({
               isOpen ? "rotate-180" : "",
             ].join(" ")}
           />
+          {compact && accessory ? <span aria-hidden="true" className="-mr-3 ml-3 flex w-12 shrink-0 self-stretch items-center justify-center border-l border-slate-200 bg-[#e8faf3]">{accessory}</span> : null}
         </button>
 
         {isOpen ? (
@@ -223,7 +231,7 @@ export function CustomSelect({
           >
             {showSearch ? (
               <div className="border-b border-[#e4e8ee] bg-[#f8f9fa] p-3">
-                <div className="relative">
+                <div className="relative min-w-0">
                   <Search
                     aria-hidden="true"
                     className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#64748b]"
@@ -284,7 +292,7 @@ export function CustomSelect({
                       role="option"
                       type="button"
                     >
-                      <span className="block truncate text-[15px] font-semibold leading-5">
+                      <span className="block break-words text-[15px] font-semibold leading-5">
                         {option.label}
                       </span>
                       {option.description ? (

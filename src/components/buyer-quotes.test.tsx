@@ -8,7 +8,7 @@ import { buildDraftRequest, submitDraftRequest } from "@/lib/request-model";
 import { BuyerQuotes } from "./buyer-quotes";
 
 vi.mock("@/app/(workspace)/quotes/actions", () => ({
-  deleteBuyerQuoteAction: vi.fn(async () => undefined),
+  deleteBuyerQuoteAction: vi.fn(async () => true),
 }));
 
 describe("BuyerQuotes", () => {
@@ -142,7 +142,7 @@ describe("BuyerQuotes", () => {
     expect(screen.getByRole("group", { name: "2 parts in Multi-part quote" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "CAD render snapshot for Front plate" })).toBeInTheDocument();
     expect(screen.getByText("+1")).toBeInTheDocument();
-    expect(screen.getByText("Qty 3 - Due Jun 20, 2026")).toBeInTheDocument();
+    expect(screen.getByText("Qty 3")).toBeInTheDocument();
     expect(container.querySelector('img[src*="/api/cad-previews/thumbnail"]')).toBeNull();
   });
 
@@ -205,16 +205,17 @@ describe("BuyerQuotes", () => {
         files: [{ name: "delete-ready.step", sizeBytes: 1024, type: "model/step" }],
       }),
     );
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     render(<BuyerQuotes requests={[request]} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete quote for Delete-ready quote" }));
 
-    await waitFor(() => expect(screen.queryByText("Delete-ready quote")).not.toBeInTheDocument());
-    expect(confirmSpy).toHaveBeenCalledWith('Delete "Delete-ready quote" from quotes?');
+    expect(screen.getByRole("alertdialog", { name: "Delete quote?" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Delete quote" }));
 
-    confirmSpy.mockRestore();
+    await waitFor(() => expect(screen.queryByText("Delete-ready quote")).not.toBeInTheDocument());
+    expect(deleteBuyerQuoteAction).toHaveBeenCalledWith(request.id);
+
   });
 
   it("discards browser-only drafts without calling the server delete action", () => {
@@ -242,8 +243,10 @@ describe("BuyerQuotes", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Discard draft for Local draft quote" }));
 
+    fireEvent.click(screen.getByRole("button", { name: "Discard draft" }));
+
     expect(screen.queryByText("Local draft quote")).not.toBeInTheDocument();
-    expect(confirmSpy).toHaveBeenCalledWith('Discard draft "Local draft quote"?');
+
     expect(deleteAction).not.toHaveBeenCalled();
 
     confirmSpy.mockRestore();

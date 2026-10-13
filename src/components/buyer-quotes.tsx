@@ -3,7 +3,10 @@ import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-w
 
 import Link from "next/link";
 import { ChevronRight, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
+
+import { createPortal } from "react-dom";
+import { useDialogFocus } from "./use-dialog-focus";
 
 import { deleteBuyerQuoteAction } from "@/app/(workspace)/quotes/actions";
 import { CadRenderThumbnail } from "@/components/cad-file-preview";
@@ -27,19 +30,6 @@ const buyerQuoteStatusTone: Record<BuyerLifecycleTag, string> = {
   Delivered: "border-[#bfdcc7] bg-[#f0faf2] text-[#2f6a3d]",
   Archived: "border-[#d7d7d7] bg-[#f4f4f4] text-[#4f5660]",
 };
-
-function formatDueDate(value: string) {
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  const date = dateOnlyMatch
-    ? new Date(Number(dateOnlyMatch[1]), Number(dateOnlyMatch[2]) - 1, Number(dateOnlyMatch[3]))
-    : new Date(value);
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
-}
 
 function formatLastEdited(value: string) {
   const date = new Date(value);
@@ -242,7 +232,7 @@ function QuoteTable({
               <Link className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]" href={quoteRowHref(request)} tabIndex={-1}>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98] xl:hidden">Process &amp; Qty</p>
                 <p className="mt-1 text-[14px] font-medium text-[#30343a] xl:mt-0">{request.process}</p>
-                <p className="mt-1 text-[12px] text-[#8a8f98]">Qty {totalQuantity ?? "Pending"} - Due {formatDueDate(request.dueDate)}</p>
+                <p className="mt-1 text-[12px] text-[#8a8f98]">Qty {totalQuantity ?? "Pending"}</p>
               </Link>
 
               <Link className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]" href={quoteRowHref(request)} tabIndex={-1}>
@@ -322,12 +312,54 @@ function QuoteTable({
   );
 }
 
+function DeleteQuoteDialog({ request, pending, error, onCancel, onConfirm }: {
+  request: LatticeRequest;
+  pending: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const dialogRef = useDialogFocus<HTMLDivElement>();
+  const titleId = useId();
+  const descriptionId = useId();
+  const isDraft = request.status === "DRAFT";
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      onClick={event => { if (event.target === event.currentTarget && !pending) onCancel(); }}>
+      <div ref={dialogRef} role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId}
+        aria-busy={pending} tabIndex={-1}
+        onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); if (!pending) onCancel(); } }}
+        className="max-h-[calc(100dvh-32px)] w-full max-w-sm overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 text-center shadow-2xl">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600"><Trash2 aria-hidden="true" className="h-5 w-5" /></div>
+        <h2 id={titleId} className="mt-4 text-xl font-semibold tracking-tight text-[#202020]">{isDraft ? "Discard draft?" : "Delete quote?"}</h2>
+        <div id={descriptionId} className="mt-2 text-sm leading-6 text-slate-600">
+          <p>{isDraft ? "This draft will be permanently deleted." : "This quote will be permanently deleted."}</p>
+          <p className="mt-2 break-words">{request.title} · {quoteReference(request)}</p>
+        </div>
+        {error ? <p role="alert" className="mt-4 rounded-md bg-red-50 p-3 text-left text-sm text-red-700">{error}</p> : null}
+        <footer className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-5">
+          <button type="button" disabled={pending} onClick={onCancel} className="min-h-11 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-[#202020] hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+          <button type="button" disabled={pending} onClick={onConfirm} className="min-h-11 rounded-md bg-[#171717] px-3 text-sm font-semibold text-white hover:bg-[#2b2b2b] disabled:opacity-50">{pending ? "Deleting…" : isDraft ? "Discard draft" : "Delete quote"}</button>
+        </footer>
+      </div>
+    </div>, document.body,
+  );
+}
+
 export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
   const scope = useCustomerWorkspaceScope();
   const incompleteRfqStorageKey = customerDraftStorageKey(scope);
   const deletedQuoteStorageKey = scope ? `lattice.deletedBuyerQuotes.v2.${encodeURIComponent(scope)}` : null;
   const [localIncompleteRequests, setLocalIncompleteRequests] = useState<LatticeRequest[]>([]);
   const [deletedQuoteIds, setDeletedQuoteIds] = useState<string[]>([]);
+  const [quoteToDelete, setQuoteToDelete] = useState<LatticeRequest | null>(null);
+  const deletingRef = useRef(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -355,26 +387,26 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
   function deleteQuote(request: LatticeRequest) {
     const isBrowserDraft = localIncompleteRequests.some((draft) => draft.id === request.id);
-    const confirmed = window.confirm(
-      isBrowserDraft ? `Discard draft "${request.title}"?` : `Delete "${request.title}" from quotes?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
+    if (deletingRef.current) return;
+    deletingRef.current = true;
 
     setDeleteError(null);
 
     if (isBrowserDraft) {
-      removeLocalIncompleteRequest(incompleteRfqStorageKey, request.id);
-      setLocalIncompleteRequests((currentRequests) =>
-        currentRequests.filter((currentRequest) => currentRequest.id !== request.id),
-      );
-      setDeletedQuoteIds((currentIds) => {
-        const nextIds = Array.from(new Set([...currentIds, request.id]));
-        writeDeletedQuoteIds(deletedQuoteStorageKey, nextIds);
-        return nextIds;
-      });
+      try {
+        removeLocalIncompleteRequest(incompleteRfqStorageKey, request.id);
+        setLocalIncompleteRequests((currentRequests) =>
+          currentRequests.filter((currentRequest) => currentRequest.id !== request.id),
+        );
+        setDeletedQuoteIds((currentIds) => {
+          const nextIds = Array.from(new Set([...currentIds, request.id]));
+          writeDeletedQuoteIds(deletedQuoteStorageKey, nextIds);
+          return nextIds;
+        });
+        setQuoteToDelete(null);
+      } catch {
+        setDeleteError("We couldn’t discard this draft. Please try again.");
+      } finally { deletingRef.current = false; }
       return;
     }
 
@@ -382,16 +414,19 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
     startTransition(async () => {
       try {
-        await deleteBuyerQuoteAction(request.id);
+        const deleted = await deleteBuyerQuoteAction(request.id);
+        if (!deleted) throw new Error("Quote was not deleted");
         setDeletedQuoteIds((currentIds) => {
           const nextIds = Array.from(new Set([...currentIds, request.id]));
           writeDeletedQuoteIds(deletedQuoteStorageKey, nextIds);
           return nextIds;
         });
+        setQuoteToDelete(null);
       } catch {
         setDeleteError("We couldn't delete this quote. It may already be removed or you may no longer have access.");
       } finally {
         setPendingDeleteId(null);
+        deletingRef.current = false;
       }
     });
   }
@@ -412,20 +447,23 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
 
   return (
     <div className="space-y-5">
-      {deleteError ? (
+      {quoteToDelete ? <DeleteQuoteDialog request={quoteToDelete} pending={isPending} error={deleteError}
+        onCancel={() => { if (!deletingRef.current) { setQuoteToDelete(null); setDeleteError(null); } }}
+        onConfirm={() => deleteQuote(quoteToDelete)} /> : null}
+      {deleteError && !quoteToDelete ? (
         <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">
           {deleteError}
         </p>
       ) : null}
       <QuoteTable
-        deleteQuote={deleteQuote}
+        deleteQuote={request => { if (!deletingRef.current) { setDeleteError(null); setQuoteToDelete(request); } }}
         emptyMessage="No in-progress quote requests match this view."
         pendingDeleteId={activePendingDeleteId}
         requests={inProgressRequests}
         title="Quotes in progress"
       />
       <QuoteTable
-        deleteQuote={deleteQuote}
+        deleteQuote={request => { if (!deletingRef.current) { setDeleteError(null); setQuoteToDelete(request); } }}
         emptyMessage="No quoted requests match this view."
         pendingDeleteId={activePendingDeleteId}
         requests={quotedRequests}

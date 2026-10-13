@@ -1,5 +1,4 @@
 import { RequestForm } from "@/components/request-form";
-import { getAccountSettings } from "@/lib/account-settings";
 import { filterCustomerVisibleRequests, getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerQuotes } from "@/lib/request-repository";
 import {
@@ -22,7 +21,6 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
   const params = searchParams ? await searchParams : {};
   const reorderId = firstParam(params.reorder);
   const draftId = firstParam(params.draft);
-  const accountSettings = await getAccountSettings();
   const [reorderSource, draftSource, buyerQuotes, session] = await Promise.all([
     reorderId ? getCustomerRequestByIdForCurrentSession(reorderId) : Promise.resolve(null),
     draftId ? getCustomerRequestByIdForCurrentSession(draftId) : Promise.resolve(null),
@@ -35,7 +33,7 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
 
   return (
     <RequestForm
-      defaultBuyerCompany={accountSettings.companyName}
+      key={draftId ?? reorderId ?? "new-request"}
       initialState={initialState}
       localDraftId={draftId}
       prefillNotice={

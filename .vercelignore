@@ -6,3 +6,6 @@
 node_modules
 tmp
 design-exports
+
+# Local verification captures can contain customer CAD and account details.
+output/qa

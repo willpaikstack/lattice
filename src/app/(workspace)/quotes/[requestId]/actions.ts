@@ -18,6 +18,13 @@ function formText(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function customerPoNumberFromForm(formData: FormData) {
+  const value = formText(formData, "customerPoNumber");
+  if (value.length > 100) throw new Error("PO reference must be 100 characters or fewer.");
+  if (/[\u0000-\u001f\u007f]/.test(value)) throw new Error("PO reference contains unsupported characters.");
+  return value;
+}
+
 function purchaseDeliveryInputFromForm(formData: FormData) {
   if (formData.get("termsAccepted") !== "on" || formData.get("complianceCertification") !== "on") throw new Error("Accept the purchasing terms and compliance certification before payment.");
   if (formText(formData, "shippingMethod") !== "lattice-managed") throw new Error("Company shipping accounts are not available yet.");
@@ -27,6 +34,7 @@ function purchaseDeliveryInputFromForm(formData: FormData) {
     checkoutDetails: {
       shippingMethod: formText(formData, "shippingMethod"), requiredDeliveryDate: formText(formData, "requiredDeliveryDate"), shippingInstructions: formText(formData, "shippingInstructions"), endUse: formText(formData, "endUse"), exportControlStatus: formText(formData, "exportControlStatus"), buyerNotes: formText(formData, "buyerNotes"), termsAcceptedAt: new Date().toISOString(), complianceCertifiedAt: new Date().toISOString(), taxStatus: "taxable",
     },
+    customerPoNumber: customerPoNumberFromForm(formData),
     shipToAddress1: formText(formData, "shipToAddress1"),
     shipToAddress2: formText(formData, "shipToAddress2"),
     shipToCity: formText(formData, "shipToCity"),
@@ -88,11 +96,15 @@ export async function updateStripeElementsCheckoutSessionAction(requestId: strin
 
   if (request.purchasePayment.stripe.checkoutSessionId !== checkoutSessionId) throw new Error("Checkout session does not belong to this quote.");
 
+  const delivery = purchaseDeliveryInputFromForm(formData);
   await recordStripeCheckoutSession(requestId, {
-    ...purchaseDeliveryInputFromForm(formData),
+    ...delivery,
     amountCents: quoteCheckoutAmountCents(request),
     checkoutSessionId,
     currency: "usd",
+  });
+  await getStripeClient().paymentIntents.update(checkoutSessionId, {
+    metadata: { customerPoNumber: delivery.customerPoNumber || "" },
   });
 }
 
@@ -195,6 +207,7 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
         tax_code: "txcd_92010001",
       } }],
       metadata: {
+        customerPoNumber: delivery.customerPoNumber || "",
         requestId,
         quoteNumber,
       },

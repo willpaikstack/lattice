@@ -39,12 +39,13 @@ export async function POST(request: Request) {
     redirect(appendQueryParam(destination, "supplierQuoteError", "missing-remove"));
   }
 
-  await removeSupplierQuoteFile(requestId, fileId);
+  await removeSupplierQuoteFile(requestId, fileId, { requireDatabase: true });
 
   revalidatePath("/admin");
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${requestId}`);
   revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${requestId}`);
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${requestId}`);
   revalidatePath("/orders");

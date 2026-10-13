@@ -1,9 +1,14 @@
+import { restrictionPolicyVersion, type ManufacturingDetails } from "./rfq-manufacturing";
 import { describe, expect, it } from "vitest";
 
 import type { DraftRequestInput } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest } from "./request-persistence";
 
+const engineeringDetails: ManufacturingDetails = { process: "cnc_milling", customerPartNumber: "BR-10", cadRevision: "B", drawingRevision: "C", materialKey: "al_6061_t6", finishKey: "as_machined_ra_3_2", fileHistory: [{ kind: "cad", name: "old.step", sizeBytes: 10, type: "model/step", revision: "A", replacedAt: "2026-10-12T12:00:00Z", storageKey: "rfq/test/old.step" }], cadMetadata: { dimensionsMm: [25.4, 50.8, 12.7], sourceUnit: "in" } };
+const declaration = { restrictionStatus: "unrestricted" as const, policyVersion: restrictionPolicyVersion, endUse: "prototype" as const, endUseNotes: "" };
+
 const draftInput: DraftRequestInput = {
+  intakeDeclaration: declaration,
   buyerCompany: "Amogy Manufacturing",
   contact: {
     requesterEmail: "william.paik@amogy.co",
@@ -22,6 +27,7 @@ const draftInput: DraftRequestInput = {
   dueDate: "2026-06-15",
   lineItems: [
     {
+      manufacturingDetails: engineeringDetails,
       partName: "Bracket A",
       quantity: 12,
       material: "6061-T6 Aluminum",
@@ -51,6 +57,8 @@ const draftInput: DraftRequestInput = {
 describe("request persistence", () => {
   it("builds a submitted Prisma create payload from buyer intake input", () => {
     const createInput = buildSubmittedRequestCreateInput(draftInput);
+    expect(createInput.intakeDeclaration).toEqual(declaration);
+    expect(createInput.lineItems.create[0].manufacturingDetails).toEqual(engineeringDetails);
 
     expect(createInput).toMatchObject({
       title: "CNC bracket package",
@@ -126,6 +134,7 @@ describe("request persistence", () => {
 
   it("maps a stored Prisma request record into the app request model", () => {
     const stored = {
+      intakeDeclaration: declaration,
       id: "req_1",
       title: "CNC bracket package",
       process: "CNC machining",
@@ -177,6 +186,7 @@ describe("request persistence", () => {
       lineItems: [
         {
           id: "line_1",
+          manufacturingDetails: engineeringDetails,
           partName: "Bracket A",
           quantity: 12,
           material: "6061-T6 Aluminum",
@@ -306,6 +316,8 @@ describe("request persistence", () => {
       updatedAt: new Date("2026-06-01T10:01:00.000Z"),
     };
 
+    expect(mapStoredRequest(stored).intakeDeclaration).toEqual(declaration);
+    expect(mapStoredRequest(stored).lineItems[0].manufacturingDetails).toEqual({ ...engineeringDetails, targetShipDate: "" });
     expect(mapStoredRequest(stored)).toMatchObject({
       id: "req_1",
       buyerCompany: "Amogy Manufacturing",

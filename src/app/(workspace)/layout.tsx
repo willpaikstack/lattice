@@ -24,5 +24,5 @@ export default async function WorkspaceLayout({ children }: Readonly<{ children:
   const onboarding = await getCustomerOnboarding();
 
   const draftScope = session?.user.role === "customer" ? session.user.companyId : session?.user.id ? `admin:${session.user.id}` : null;
-  return <CustomerWorkspaceProvider key={draftScope} scope={draftScope}><AppShell onboarding={onboarding} sessionRole={session?.user.role} sessionUser={shellUser} supportAdmin={session?.user.supportAdmin ?? undefined}>{children}</AppShell></CustomerWorkspaceProvider>;
+  return <AppShell onboarding={onboarding} sessionRole={session?.user.role} sessionUser={shellUser} supportAdmin={session?.user.supportAdmin ?? undefined}><CustomerWorkspaceProvider key={draftScope} scope={draftScope}>{children}</CustomerWorkspaceProvider></AppShell>;
 }

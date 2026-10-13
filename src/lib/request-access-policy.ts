@@ -45,7 +45,7 @@ function storageKeyMatches(file: Pick<UploadedFile, "storageKey"> | null | undef
 }
 
 function requestHasCustomerVisibleStorageKey(request: LatticeRequest, storageKey: string) {
-  return request.supplierOrder?.documents?.some((file) => storageKeyMatches(file, storageKey)) || request.files.some((file) => storageKeyMatches(file, storageKey)) || storageKeyMatches(request.customerPurchaseOrderAttachment, storageKey);
+  return request.lineItems?.some(part => part.manufacturingDetails?.fileHistory?.some(file => storageKeyMatches(file, storageKey))) || request.supplierOrder?.documents?.some((file) => storageKeyMatches(file, storageKey)) || request.files.some((file) => storageKeyMatches(file, storageKey)) || storageKeyMatches(request.customerPurchaseOrderAttachment, storageKey);
 }
 
 function requestHasAdminOnlyStorageKey(request: LatticeRequest, storageKey: string) {

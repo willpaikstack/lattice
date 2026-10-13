@@ -139,6 +139,7 @@ export const qualityDocumentationOptions: RfqOption[] = [
   option("cmm_dimensional_report", "CMM Inspection Report", "fai", { requiresDrawing: true }),
   option("fair_as9102", "First Article Inspection Report (FAIR AS9102)", "fat", { requiresDrawing: true }),
   option("custom_inspection", "Custom Inspection"),
+  option("certificate_of_conformance", "Certificate of Conformance (CoC)"),
   option("material_test_report", "Material Test Report (MTR)", "material_test_report__mtr_"),
 ];
 
@@ -212,6 +213,7 @@ const cosmeticOnRequestFinish: SurfaceFinishMetadata = {
 };
 
 export const surfaceFinishOptions: RfqOption[] = [
+  finishOption("as_fabricated", "As fabricated (standard sheet metal finish)", "as_fabricated", nonCosmeticFinish),
   finishOption("as_machined_ra_3_2", "As machined (Ra 3.2 um / Ra 126 uin)", "as_machined__ra_3_2__m___ra_126__in_", nonCosmeticFinish),
   finishOption("as_machined_anodized_type_ii", "As machined + Anodized type II", "as_machined___anodized_type_ii", {
     badge: "Non cosmetic",

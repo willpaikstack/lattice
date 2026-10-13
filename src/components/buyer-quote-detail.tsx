@@ -1,10 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, CircleDot, Download, Mail, Phone, User, X } from "lucide-react";
+import { ArrowLeft, CircleDot, Download, Mail, Phone, User } from "lucide-react";
 
 import type { AccountAddress } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
+import { quoteHasExpired } from "@/lib/quote-validity";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
@@ -306,14 +307,15 @@ export function BuyerQuoteDetail({
   request: LatticeRequest;
   savedShippingAddress?: AccountAddress;
 }) {
-  const canPurchase = request.status === "QUOTED";
+  const expired = request.status === "QUOTED" && quoteHasExpired(request);
+  const canPurchase = request.status === "QUOTED" && !expired;
   const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
   const status = quoteStatusCopy[request.status];
   const latestCustomerQuote = request.customerQuotes.at(-1);
   const operatorCustomerNote = request.operatorReview.internalNotes.trim();
-  const statusLabel = request.status === "CLOSED" && operatorCustomerNote ? "No quote" : status.label;
-  const requestCalloutTitle = request.status === "CLOSED" && operatorCustomerNote ? "Unable to quote this RFQ" : status.requestTitle;
-  const requestCalloutCopy = latestCustomerQuote?.notes || (operatorCustomerNote && (request.status === "NEEDS_INFO" || request.status === "CLOSED") ? operatorCustomerNote : status.requestCopy);
+  const statusLabel = expired ? "Expired" : request.status === "CLOSED" && operatorCustomerNote ? "No quote" : status.label;
+  const requestCalloutTitle = expired ? "Request renewed pricing before purchasing" : request.status === "CLOSED" && operatorCustomerNote ? "Unable to quote this RFQ" : status.requestTitle;
+  const requestCalloutCopy = expired ? "This quote’s validity period has ended. Lattice needs to confirm current pricing and lead time before issuing an updated quote." : latestCustomerQuote?.notes || (operatorCustomerNote && (request.status === "NEEDS_INFO" || request.status === "CLOSED") ? operatorCustomerNote : status.requestCopy);
   const subtotalCents = latestCustomerQuote?.totalCents ?? request.quote.estimatedPriceCents;
   const shippingCents = request.quote.shippingCostCents;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0);
@@ -350,10 +352,12 @@ export function BuyerQuoteDetail({
                 </div>
                 <h2 className="mt-2 text-[18px] font-semibold text-[#202020]">{requestCalloutTitle}</h2>
                 <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{requestCalloutCopy}</p>
+                {expired && latestCustomerQuote?.notes ? <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{latestCustomerQuote.notes}</p> : null}
               </div>
               <div className="shrink-0 border-t border-[#eeeeee] pt-4 lg:w-[250px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">What happens next</p>
-                <p className="mt-2 text-[13px] font-medium leading-5 text-[#30343a]">{status.buyerAction}</p>
+                <p className="mt-2 text-[13px] font-medium leading-5 text-[#30343a]">{expired ? "Request renewal below, then review the updated quote when Lattice issues it." : status.buyerAction}</p>
+                {expired || request.status === "NEEDS_INFO" ? <Link className="mt-3 inline-flex text-sm font-semibold text-blue-700 underline" href={expired ? "#quote-renewal" : "#clarification"}>{expired ? "Request renewed quote" : "Reply to Lattice"}</Link> : null}
               </div>
             </div>
           </section>
@@ -417,10 +421,14 @@ export function BuyerQuoteDetail({
                               <p className="mt-2 text-[13px] font-medium leading-5 text-[#4f5660]">{item.partName}</p>
                               <p className="mt-3 text-[12px] font-medium text-[#7b8088]">{fileExtension(file?.name)} · {formatFileSize(file?.sizeBytes)} · Rev 1</p>
                               {drawingFile ? (
-                                <span className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#3d6fe8]">
-                                  <span className="truncate">{drawingFile.name}</span>
-                                  <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
-                                </span>
+                                fileDownloadHref(drawingFile) ? (
+                                  <a aria-label={`Download drawing ${drawingFile.name}`} className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#3d6fe8] hover:underline" download={drawingFile.name} href={fileDownloadHref(drawingFile)!}>
+                                    <Download aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">Download drawing · {drawingFile.name}</span>
+                                  </a>
+                                ) : (
+                                  <span className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#667085]">Drawing unavailable · {drawingFile.name}</span>
+                                )
                               ) : null}
                             </div>
                           </div>
@@ -510,10 +518,14 @@ export function BuyerQuoteDetail({
                           <p className="mt-1 text-[13px] font-medium leading-5 text-[#4f5660]">{item.partName}</p>
                           <p className="mt-2 text-[12px] font-medium text-[#7b8088]">{fileExtension(file?.name)} · {formatFileSize(file?.sizeBytes)} · Rev 1</p>
                           {drawingFile ? (
-                            <span className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#3d6fe8]">
-                              <span className="truncate">{drawingFile.name}</span>
-                              <X aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-[#8a9099]" />
-                            </span>
+                            fileDownloadHref(drawingFile) ? (
+                              <a aria-label={`Download drawing ${drawingFile.name}`} className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#3d6fe8] hover:underline" download={drawingFile.name} href={fileDownloadHref(drawingFile)!}>
+                                <Download aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+                                <span className="break-words">Download drawing · {drawingFile.name}</span>
+                              </a>
+                            ) : (
+                              <span className="mt-3 inline-flex max-w-full items-center gap-2 rounded-md border border-[#d9dde4] bg-[#fafafa] px-2 py-1 text-[12px] font-medium text-[#667085]">Drawing unavailable · {drawingFile.name}</span>
+                            )
                           ) : null}
                         </div>
                       </div>
@@ -595,6 +607,8 @@ export function BuyerQuoteDetail({
                 <Link className="flex min-h-11 w-full items-center justify-center rounded-md bg-[#171717] px-4 text-[14px] font-semibold text-white transition hover:bg-[#2b2b2b]" href="/orders">
                   View order
                 </Link>
+              ) : expired ? (
+                <Link className="flex min-h-11 w-full items-center justify-center rounded-md bg-stone-950 px-4 text-sm font-semibold text-white" href="#quote-renewal">Request renewed quote</Link>
               ) : canPurchase && checkoutHref ? (
                 <form action={checkoutHref} method="get">
                   <button className="min-h-11 w-full rounded-md bg-[#0f9d68] px-4 text-[14px] font-semibold text-white transition hover:bg-[#0b8558]" type="submit">

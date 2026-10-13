@@ -90,6 +90,7 @@ function checkoutForm(paymentMethod = "purchase-order") {
   formData.set("shipToZipCode", "15222");
   formData.set("apEmail", "ap@acme.com");
   formData.set("poNumber", "PO-1001");
+  formData.set("customerPoNumber", "QA-PO-1047");
   return formData;
 }
 
@@ -128,6 +129,18 @@ describe("checkout server action ownership", () => {
     );
 
     expect(mocks.recordStripeCheckoutSession).not.toHaveBeenCalled();
+  });
+
+  it("saves the PO reference before confirming an inline Stripe payment", async () => {
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "pi_owned" } }, id: "req_owned", status: "QUOTED" });
+    const updateIntent = vi.fn().mockResolvedValue({});
+    mocks.getStripeClient.mockReturnValue({ paymentIntents: { update: updateIntent } });
+    mocks.quoteCheckoutAmountCents.mockReturnValue(12000);
+
+    await updateStripeElementsCheckoutSessionAction("req_owned", "pi_owned", checkoutForm("card"));
+
+    expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ customerPoNumber: "QA-PO-1047", checkoutSessionId: "pi_owned" }));
+    expect(updateIntent).toHaveBeenCalledWith("pi_owned", { metadata: { customerPoNumber: "QA-PO-1047" } });
   });
 
   it("blocks direct Stripe finalization for another customer's quote", async () => {
@@ -169,7 +182,16 @@ describe("checkout server action ownership", () => {
     expect(mocks.assertStripeMerchantReady).toHaveBeenCalled();
     expect(createCustomer).toHaveBeenCalledWith(expect.objectContaining({ shipping: expect.objectContaining({ address: expect.objectContaining({ postal_code: "15222", country: "US" }) }) }), expect.objectContaining({ idempotencyKey: expect.any(String) }));
     expect(createCheckout).toHaveBeenCalledWith(expect.objectContaining({ automatic_tax: { enabled: true }, line_items: [expect.objectContaining({ price_data: expect.objectContaining({ unit_amount: 10000, tax_behavior: "exclusive", product_data: expect.objectContaining({ tax_code: "txcd_99999999" }) }) })], shipping_options: [expect.objectContaining({ shipping_rate_data: expect.objectContaining({ fixed_amount: { amount: 2000, currency: "usd" } }) })] }), expect.objectContaining({ idempotencyKey: expect.any(String) }));
-    expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ amountCents: 12000, checkoutDetails: expect.objectContaining({ checkoutQuoteVersion: "quote_v1" }) }));
+    expect(createCheckout.mock.calls[0][0].metadata).toMatchObject({ customerPoNumber: "QA-PO-1047" });
+    expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ amountCents: 12000, customerPoNumber: "QA-PO-1047", checkoutDetails: expect.objectContaining({ checkoutQuoteVersion: "quote_v1" }) }));
+  });
+
+  it("rejects overlong PO references before creating checkout", async () => {
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", quoteNumber: "LQ-1001", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", quoteValidUntil: "2099-01-01", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "" } }, id: "req_owned", status: "QUOTED", title: "Bracket", updatedAt: "2026-10-09T00:00:00.000Z" });
+    const formData = checkoutForm("card");
+    formData.set("customerPoNumber", "P".repeat(101));
+    await expect(purchaseQuoteAction("req_owned", formData)).rejects.toThrow("100 characters or fewer");
+    expect(mocks.getStripeClient).not.toHaveBeenCalled();
   });
 
   it("replaces an expired idempotency replay before redirecting or recording payment", async () => {

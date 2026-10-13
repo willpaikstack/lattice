@@ -52,6 +52,21 @@ function customerQuote(overrides: Partial<CustomerQuoteVersion> = {}): CustomerQ
 }
 
 describe("customer action center", () => {
+  it("links expired quotes directly to renewal instructions", () => {
+    const quote = makeRequest({ status: "QUOTED", customerQuotes: [customerQuote()] });
+    const [workflow] = buildCustomerActionWorkflows({ now: new Date("2026-08-10T12:00:00Z"), quotes: [quote] });
+    expect(workflow).toMatchObject({ title: "Quote needs renewal", ctaLabel: "Request renewed quote", href: "/quotes/req_action#quote-renewal" });
+    expect(workflow.detail).toContain("Lattice must issue a renewed quote");
+  });
+  it("hands a submitted renewal to Lattice and restores review when a valid quote is issued", () => {
+    const quote = makeRequest({ status: "QUOTED", customerQuotes: [customerQuote()] });
+    const now = new Date("2026-08-10T12:00:00Z");
+    const pendingRenewalIds = new Set([quote.id]);
+    expect(buildCustomerActionWorkflows({ now, quotes: [quote], pendingRenewalIds })[0]).toMatchObject({ title: "Quote renewal requested", ctaLabel: "View renewal status", owner: "Lattice" });
+    quote.customerQuotes.push(customerQuote({ id: "renewed", validUntil: "2026-09-01" }));
+    expect(buildCustomerActionWorkflows({ now, quotes: [quote], pendingRenewalIds })[0]).toMatchObject({ title: "Quote ready for review", owner: "Customer" });
+  });
+
   it("turns a clarification request into a multi-step customer workflow", () => {
     const request = makeRequest({
       id: "req_needs_info",
@@ -72,7 +87,7 @@ describe("customer action center", () => {
     expect(workflows).toHaveLength(1);
     expect(workflows[0]).toMatchObject({
       completedSteps: 1,
-      ctaLabel: "Review request",
+      ctaLabel: "Reply to Lattice",
       detail: "Confirm whether the thread callout applies to every hole.",
       owner: "Customer",
       priority: "high",
@@ -158,7 +173,7 @@ describe("customer action center", () => {
       title: "Order milestone overdue",
     });
     expect(workflows[1]).toMatchObject({
-      detail: "2 customer-facing documents are ready to review and retain with the order record.",
+      detail: "Review 2 documents. Your company’s Customer Admin must approve the current package to clear the shipment hold.",
       title: "Order documents need review",
     });
   });

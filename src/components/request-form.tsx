@@ -1,5 +1,22 @@
 "use client";
+import { purgeLegacyRfqValues } from "@/lib/purge-legacy-rfq-values";
 import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-workspace-scope";
+import { RequestFormHeading } from "./request-form-loading";
+import { WorkspaceContentReveal } from "./workspace-content-reveal";
+import { cadAccept, cadFileTypes, cadUploadError, drawingAccept, isCadFileName, manufacturingUploadError } from "@/lib/cad-upload-policy";
+import { canonicalMaterialValue, selectableRfqMaterials, searchRfqMaterials } from "@/lib/rfq-material-search";
+import { draftInitialState } from "@/lib/request-form-prefill";
+import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, offeredProcessOptions, processLabel, readIntakeDeclaration, restrictionPolicyVersion, type CadMetadata, type ManufacturingDetails, type PartFileHistory } from "@/lib/rfq-manufacturing";
+import { useDialogFocus } from "./use-dialog-focus";
+import { PreparedCadModelHost, PreparedCadViewerContext } from "./prepared-cad-viewer";
+import { createPortal } from "react-dom";
+import { SearchFirstMaterialSelect } from "./search-first-material-select";
+import { CadMetadataSummary } from "./cad-metadata-summary";
+import { TargetDatePicker } from "./target-date-picker";
+import { ExportRestrictionsDialog } from "./export-restrictions-dialog";
+import { type UploadDeclaration, uploadRequestDraftFile } from "@/lib/request-draft-upload";
+import { refreshCadPreviewState } from "@/lib/cad-preview-status";
+import { preloadAutodeskViewerAssets } from "./autodesk-model-viewer";
 
 import {
   DragEvent,
@@ -22,6 +39,8 @@ import {
   Download,
   Eye,
   FileUp,
+  FlaskConical,
+  Factory,
   Info,
   Paperclip,
   PencilLine,
@@ -40,7 +59,6 @@ import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
   generalToleranceOptions,
   optionLabel,
-  processOptions,
   qualityDocumentationOptions,
   rfqMaterialOptions,
   surfaceFinishColorOption,
@@ -53,18 +71,23 @@ import {
 } from "../lib/rfq-options";
 
 type ProjectFormState = {
-  buyerCompany: string;
-  requesterName: string;
-  customerPo: string;
+  restrictionStatus: string;
+  restrictionPolicyVersion: string;
+  endUse: string;
+  endUseNotes: string;
   projectName: string;
-  process: string;
-  dueDate: string;
   requiresQualityApproval: boolean;
 };
 
 type LineItemState = {
+  process: string;
+  customerPartNumber: string;
+  cadRevision: string;
+  drawingRevision: string;
+  targetShipDate: string;
+  fileHistory: PartFileHistory[];
+  cadMetadata?: CadMetadata;
   id: string;
-  partName: string;
   quantity: string;
   material: string;
   generalTolerance: string;
@@ -101,6 +124,14 @@ type InitialLineItemState = Partial<
   cadPreview?: CadUploadPreviewState;
 };
 
+function cleanIntakeState(state: RequestFormInitialState | undefined): RequestFormInitialState | undefined {
+  if (!state) return state;
+  const clean = { ...state } as Record<string, unknown>;
+  for (const key of ["requesterName", "customerPo", "dueDate", "partName", "process", "buyerCompany"]) delete clean[key];
+  if (Array.isArray(clean.lineItems)) clean.lineItems = clean.lineItems.map(item => { const part = { ...item }; delete part.partName; return part; });
+  return clean as RequestFormInitialState;
+}
+
 type LegacyInitialState = Partial<ProjectFormState & InitialLineItemState> & {
   lineItems?: InitialLineItemState[];
 };
@@ -108,17 +139,12 @@ type LegacyInitialState = Partial<ProjectFormState & InitialLineItemState> & {
 export type RequestFormInitialState = LegacyInitialState;
 
 type RequestFormProps = {
-  defaultBuyerCompany?: string;
   initialState?: RequestFormInitialState;
   localDraftId?: string;
   prefillNotice?: string;
   resumeRequests?: LatticeRequest[];
 };
 
-const cadFileTypes = "STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT";
-const cadAccept = ".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt";
-const cadFileExtensions = cadAccept.split(",").map((extension) => extension.trim().toLowerCase());
-const drawingAccept = ".pdf,.dxf,.dwg,.png,.jpg,.jpeg";
 
 const resumeDraftPageSize = 3;
 
@@ -149,23 +175,25 @@ type MaterialSelectGroup = {
   optionCount: number;
 };
 
-const makeProjectInitialState = (defaultBuyerCompany = "Amogy Manufacturing"): ProjectFormState => ({
-  buyerCompany: defaultBuyerCompany,
-  requesterName: "William Paik",
-  customerPo: "",
+const makeProjectInitialState = (): ProjectFormState => ({
+  restrictionStatus: "unconfirmed",
+  restrictionPolicyVersion: "",
+  endUse: "",
+  endUseNotes: "",
   requiresQualityApproval: false,
   projectName: "",
-  process: "cnc_milling",
-  dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10),
 });
 
 const makeLineItemInitialState = (id: string): LineItemState => ({
+  process: "cnc_milling",
+  customerPartNumber: "",
+  cadRevision: "",
+  drawingRevision: "",
+  targetShipDate: "",
+  fileHistory: [],
   id,
-  partName: "",
   quantity: "1",
-  material: "ss_304",
+  material: "",
   generalTolerance: "iso_2768_medium_m",
   surfaceFinish: "as_machined_ra_3_2",
   surfaceFinishColor: defaultSurfaceFinishColor("as_machined_ra_3_2"),
@@ -200,7 +228,6 @@ function makeCadLineItem(id: string, file: File): LineItemState {
     fileName,
     fileSizeBytes: file.size,
     fileType: file.type,
-    partName: suggestedNameFromFile(fileName),
     cadPreview: { status: "uploading", fileName },
   };
 }
@@ -215,7 +242,7 @@ function Field({
   hint?: string;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-slate-700">
+    <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
       <span>{label}</span>
       {children}
       {hint ? (
@@ -226,6 +253,10 @@ function Field({
     </label>
   );
 }
+
+// Visual layout trial: set false to restore parts inside the quote-details card.
+const separatePartContainers = true;
+const requestCardClass = "rounded-md border border-[#e1e3e6] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5";
 
 const inputClass =
   "rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-950 outline-none ring-blue-100 placeholder:text-slate-400 transition focus:border-blue-500 focus:ring-4";
@@ -452,19 +483,82 @@ function formatResumeLastEdited(value: string) {
   }).format(date);
 }
 
-function draftCompletionPercent(request: LatticeRequest) {
-  const completedIntakeSignals = [
-    Boolean(request.title.trim()),
-    request.files.length > 0,
-    request.lineItems.length > 0,
-  ].filter(Boolean).length;
+type ConfigurationField = "cad" | "material" | "quantity" | "finish" | "tolerance" | "drawing" | "process";
 
-  return completedIntakeSignals * 20;
+function configurationFieldId(lineId: string, field: ConfigurationField) {
+  return `configure-${lineId}-${field}`;
+}
+
+function missingLineItemFields(item: LineItemState): Array<{ field: ConfigurationField; label: string }> {
+  const missing: Array<{ field: ConfigurationField; label: string }> = [];
+  if (!item.fileName.trim() || !lineItemHasCadBytes(item)) missing.push({ field: "cad", label: "Upload the CAD file" });
+  if (!offeredProcessOptions.some(option => option.value === item.process)) missing.push({ field: "process", label: "Select a supported process" });
+  if (item.material && finishCompatibilityError(item.material, item.surfaceFinish, item.process)) missing.push({ field: "finish", label: "Choose a compatible surface finish" });
+  if (!item.material.trim()) missing.push({ field: "material", label: "Select a material" });
+  if (!(Number(item.quantity) > 0)) missing.push({ field: "quantity", label: "Enter a quantity greater than zero" });
+  if (!item.generalTolerance.trim()) missing.push({ field: "tolerance", label: "Select general tolerances" });
+  if (!item.surfaceFinish.trim() || !lineItemHasSurfaceFinishDetails(item)) missing.push({ field: "finish", label: "Complete the surface finish details" });
+  if (!lineItemHasDrawingBytes(item) || !lineItemHasRequiredDrawing(item)) missing.push({ field: "drawing", label: lineItemRequiresDrawing(item) ? "Upload the required technical drawing" : "Upload the selected drawing again" });
+  return missing;
+}
+
+function manufacturingDetailsFor(item: LineItemState): ManufacturingDetails {
+  return { process: item.process, customerPartNumber: item.customerPartNumber, cadRevision: item.cadRevision,
+    drawingRevision: item.drawingRevision, targetShipDate: item.targetShipDate, materialKey: item.material, finishKey: item.surfaceFinish,
+    fileHistory: [], ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
+}
+
+function intakeDeclarationFor(project: ProjectFormState) {
+  return readIntakeDeclaration({ restrictionStatus: project.restrictionStatus, policyVersion: project.restrictionPolicyVersion,
+    endUse: project.endUse, endUseNotes: project.endUseNotes });
+}
+
+function formCompletionPercent(project: ProjectFormState, items: LineItemState[]) {
+  if (!items.length || !items.some((item) => item.fileName.trim())) return 0;
+  const checks = [Boolean(project.projectName.trim())];
+  for (const item of items) {
+    checks.push(
+      Boolean(item.fileName.trim()) && lineItemHasCadBytes(item),
+      Boolean(item.material.trim()),
+      offeredProcessOptions.some(option => option.value === item.process),
+      !finishCompatibilityError(item.material, item.surfaceFinish, item.process),
+      Boolean(item.generalTolerance.trim()),
+      Boolean(item.surfaceFinish.trim()) && lineItemHasSurfaceFinishDetails(item),
+      Number(item.quantity) > 0,
+    );
+    if (lineItemRequiresDrawing(item) || item.technicalDrawingName.trim()) {
+      checks.push(lineItemHasDrawingBytes(item) && lineItemHasRequiredDrawing(item));
+    }
+  }
+  const complete = checks.filter(Boolean).length;
+  // Only a genuinely ready package should display 100%, even for many parts.
+  return complete === checks.length ? 100 : Math.min(99, Math.round(complete / checks.length * 100));
+}
+
+export function draftCompletionPercent(request: LatticeRequest, savedState?: RequestFormInitialState) {
+  const cadFiles = request.files.filter((file) => isCadFileName(file.name));
+  const state = savedState ?? {
+    ...draftInitialState(request),
+    projectName: request.title,
+    lineItems: request.lineItems.map((line, index) => {
+      const restored = draftInitialState({ ...request, lineItems: [line], files: cadFiles[index] ? [cadFiles[index], ...request.files.filter((file) => !isCadFileName(file.name))] : [] });
+      return {
+        ...restored,
+        material: line.material?.trim() ? restored.material : "",
+        generalTolerance: line.generalTolerance?.trim() ? restored.generalTolerance : "",
+        surfaceFinish: line.surfaceFinish?.trim() ? restored.surfaceFinish : "",
+        quantity: String(line.quantity),
+      };
+    }),
+  };
+  const items = state.lineItems?.length
+    ? state.lineItems.map((item, index) => lineItemFromInitialLineItem(item, `line-${index}`))
+    : [lineItemFromInitialState(state)];
+  return formCompletionPercent({ ...makeProjectInitialState(), ...state }, items);
 }
 
 function requiredDrawingErrorMessage(lineItem: LineItemState) {
   const partLabel =
-    lineItem.partName.trim() ||
     displayNameFromFile(lineItem.fileName) ||
     "This line item";
 
@@ -482,9 +576,7 @@ function localFileHref(storageKey: string, name: string, type: string) {
 }
 
 function isCadUploadFile(file: File) {
-  const fileName = file.name.toLowerCase();
-
-  return cadFileExtensions.some((extension) => fileName.endsWith(extension));
+  return isCadFileName(file.name);
 }
 
 function makeLineItemId() {
@@ -598,7 +690,7 @@ function buildMaterialSelectGroups(): MaterialSelectGroup[] {
   const usedOptionValues = new Set<string>();
   const groups = hubsStyleMaterialFamilies
     .map((family) => {
-      const options = rfqMaterialOptions
+      const options = selectableRfqMaterials
         .filter((option) => !usedOptionValues.has(option.value))
         .filter(family.matches)
         .map((option) => {
@@ -624,7 +716,7 @@ function buildMaterialSelectGroups(): MaterialSelectGroup[] {
     })
     .filter((group) => group.optionCount > 0);
 
-  const remainingOptions = rfqMaterialOptions
+  const remainingOptions = selectableRfqMaterials
     .filter((option) => !usedOptionValues.has(option.value))
     .map((option) => ({
       ...option,
@@ -711,9 +803,15 @@ function lineItemFromInitialLineItem(
 
   return {
     ...makeLineItemInitialState(id),
-    partName: initialState?.partName ?? "",
+    process: initialState?.process ?? "cnc_milling",
+    customerPartNumber: initialState?.customerPartNumber ?? "",
+    cadRevision: initialState?.cadRevision ?? "",
+    drawingRevision: initialState?.drawingRevision ?? "",
+    targetShipDate: initialState?.targetShipDate ?? "",
+    fileHistory: [],
+    cadMetadata: initialState?.cadMetadata,
     quantity: initialState?.quantity ?? "1",
-    material: initialState?.material ?? "ss_304",
+    material: initialState?.material ?? "",
     generalTolerance: initialState?.generalTolerance ?? "iso_2768_medium_m",
     surfaceFinish,
     surfaceFinishColor: normalizedSurfaceFinishColor(
@@ -795,7 +893,7 @@ function writeIncompleteRfqs(incompleteRfqStorageKey: string | null, drafts: Sto
     return;
   }
 
-  window.localStorage.setItem(incompleteRfqStorageKey, JSON.stringify(drafts));
+  window.localStorage.setItem(incompleteRfqStorageKey, JSON.stringify(purgeLegacyRfqValues(drafts)));
   window.dispatchEvent(new Event("lattice-drafts-changed"));
 }
 
@@ -829,27 +927,9 @@ function TechnicalDrawingReviewModal({
   ) => void;
   updateLineItemFlag: (id: string, field: LineItemFlag, value: boolean) => void;
 }) {
-  const [showMissingDrawingNotice, setShowMissingDrawingNotice] = useState(false);
+  const dialogRef = useDialogFocus<HTMLDivElement>();
   const drawingType = lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType;
   const hasDrawing = Boolean(lineItem.technicalDrawingName.trim());
-  const drawingRequiredModalSelections = [
-    lineItem.tightLinearTolerance
-      ? "Linear tolerances tighter than the general tolerance"
-      : null,
-    lineItem.engineeringFits ? "Engineering Fits" : null,
-    lineItem.threads ? "Threads" : null,
-    ...requiredQualityDocumentationLabels(lineItem),
-  ].filter((selection): selection is string => Boolean(selection));
-  const hasDrawingRequiredModalSelection =
-    drawingRequiredModalSelections.length > 0;
-  const mustAttachDrawingBeforeClosing =
-    hasDrawingRequiredModalSelection && !hasDrawing;
-  const drawingRequiredNotice =
-    drawingRequiredModalSelections.length === 1
-      ? drawingRequiredModalSelections[0]
-      : drawingRequiredModalSelections.length === 2
-        ? drawingRequiredModalSelections.join(" and ")
-        : `${drawingRequiredModalSelections.slice(0, -1).join(", ")}, and ${drawingRequiredModalSelections.at(-1)}`;
   const canRenderPreview =
     Boolean(drawingPreviewUrl) &&
     (drawingType === "application/pdf" || drawingType.startsWith("image/"));
@@ -860,11 +940,6 @@ function TechnicalDrawingReviewModal({
   }
 
   function handleDone() {
-    if (mustAttachDrawingBeforeClosing) {
-      setShowMissingDrawingNotice(true);
-      return;
-    }
-
     onClose();
   }
 
@@ -872,6 +947,8 @@ function TechnicalDrawingReviewModal({
     <div
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/35 px-4 py-6"
+      ref={dialogRef}
+      tabIndex={-1}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           handleDone();
@@ -1035,12 +1112,6 @@ function TechnicalDrawingReviewModal({
           </div>
 
           <div className="flex flex-col items-end gap-3 border-t border-slate-200 p-5">
-            {showMissingDrawingNotice && mustAttachDrawingBeforeClosing ? (
-              <p className="max-w-[300px] rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-right text-xs font-medium leading-5 text-amber-900">
-                Add a technical drawing, or uncheck {drawingRequiredNotice}, to
-                finish these specifications.
-              </p>
-            ) : null}
             <div className="flex justify-end gap-3">
               {hasDrawing ? (
                 <button
@@ -1156,9 +1227,10 @@ function UploadCadDropZone({
           type="file"
           accept={cadAccept}
           multiple
-          onChange={(event) =>
-            onFilesSelected(Array.from(event.target.files ?? []).filter(isCadUploadFile))
-          }
+          onChange={(event) => {
+            onFilesSelected(Array.from(event.target.files ?? []).filter(isCadUploadFile));
+            event.target.value = "";
+          }}
         />
       </label>
     </section>
@@ -1249,10 +1321,12 @@ function ResumeQuotePanel({
   onArchived,
   onArchiveDraft,
   requests,
+  savedStates,
 }: {
   onArchived: (requestId: string) => void;
   onArchiveDraft: (request: LatticeRequest, reason: string) => Promise<void>;
   requests: LatticeRequest[];
+  savedStates: Record<string, RequestFormInitialState>;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
   const [archiveRequest, setArchiveRequest] = useState<LatticeRequest | null>(null);
@@ -1336,14 +1410,14 @@ function ResumeQuotePanel({
         {visibleRequests.map((request) => {
           const primaryLineItem = request.lineItems[0];
           const href = resumeRequestHref(request);
-          const completionPercent = draftCompletionPercent(request);
+          const completionPercent = draftCompletionPercent(request, savedStates[request.id]);
 
           return (
             <div
               className="grid gap-5 px-5 py-4 transition hover:bg-[#fbfbfb] lg:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.75fr)_minmax(190px,0.8fr)_88px] lg:items-center"
               key={request.id}
             >
-              <a
+              <Link
                 aria-label={`Resume draft for ${request.title}`}
                 className="flex min-w-0 gap-4 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
                 href={href}
@@ -1357,6 +1431,9 @@ function ResumeQuotePanel({
                   <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7c818a]">
                     Draft
                   </span>
+                  <p className="mt-1 break-all text-[11px] text-[#8a8f98]">
+                    {request.customerQuotes.at(-1)?.quoteNumber ?? request.id}
+                  </p>
                   <h3 className="mt-2 truncate text-[15px] font-semibold text-[#202020]">
                     {request.title}
                   </h3>
@@ -1365,9 +1442,9 @@ function ResumeQuotePanel({
                     {primaryLineItem?.partName ? ` - ${primaryLineItem.partName}` : ""}
                   </p>
                 </div>
-              </a>
+              </Link>
 
-              <a
+              <Link
                 className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
                 href={href}
                 tabIndex={-1}
@@ -1378,9 +1455,9 @@ function ResumeQuotePanel({
                 <p className="mt-1 text-[14px] font-medium text-[#30343a] lg:mt-0">
                   {formatResumeLastEdited(request.updatedAt || request.createdAt)}
                 </p>
-              </a>
+              </Link>
 
-              <a
+              <Link
                 className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
                 href={href}
                 tabIndex={-1}
@@ -1391,13 +1468,13 @@ function ResumeQuotePanel({
                 <p className="mt-1 text-[13px] font-medium text-[#4f5660] lg:mt-0">
                   {completionPercent}% complete
                 </p>
-                <span className="mt-2 block h-1.5 max-w-[190px] overflow-hidden rounded-full bg-[#e6e8eb]">
+                <span aria-label={`Draft completion for ${request.title}`} aria-valuemax={100} aria-valuemin={0} aria-valuenow={completionPercent} role="progressbar" className="mt-2 block h-1.5 max-w-[190px] overflow-hidden rounded-full bg-[#e6e8eb]">
                   <span
                     className="block h-full rounded-full bg-[#171717]"
                     style={{ width: `${completionPercent}%` }}
                   />
                 </span>
-              </a>
+              </Link>
 
               <div className="flex flex-wrap items-center justify-between gap-2 lg:justify-end">
                 <button
@@ -1409,14 +1486,14 @@ function ResumeQuotePanel({
                 >
                   <Archive aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
                 </button>
-                <a
+                <Link
                   aria-label={`Continue draft for ${request.title}`}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[#e2e2e2] bg-white text-[#30343a] transition hover:bg-[#f7f8fa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#171717]"
                   href={href}
                   title="Continue draft"
                 >
                   <PencilLine aria-hidden="true" className="h-4 w-4" strokeWidth={1.8} />
-                </a>
+                </Link>
               </div>
             </div>
           );
@@ -1471,12 +1548,12 @@ function ResumeQuotePanel({
   );
 }
 
-function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 }) {
-  const steps = ["Upload", "Configure", "Review", "Submit"];
+function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const steps = ["Upload", "Configure", "Submit"];
 
   return (
     <nav aria-label="Request quote progress" className="mt-7 overflow-x-auto pb-1">
-      <ol className="grid min-w-[620px] grid-cols-4">
+      <ol className="grid grid-cols-3 gap-2">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isCurrent = stepNumber === currentStep;
@@ -1486,11 +1563,11 @@ function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 }) {
             <li className="flex min-w-0 items-center" key={step}>
               <div
                 aria-current={isCurrent ? "step" : undefined}
-                className="flex shrink-0 items-center gap-3"
+                className="flex shrink-0 items-center gap-1.5 sm:gap-3"
               >
                 <span
                   className={[
-                    "flex h-9 w-9 items-center justify-center rounded-full border text-[14px] font-semibold",
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[12px] font-semibold sm:h-9 sm:w-9 sm:text-[14px]",
                     isCurrent
                       ? "border-[#171717] bg-[#171717] text-white"
                       : isComplete
@@ -1502,7 +1579,7 @@ function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 }) {
                 </span>
                 <span
                   className={[
-                    "whitespace-nowrap text-[14px]",
+                    "whitespace-nowrap text-[12px] sm:text-[14px]",
                     isCurrent || isComplete
                       ? "font-semibold text-[#202020]"
                       : "font-medium text-[#70757d]",
@@ -1512,7 +1589,7 @@ function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 }) {
                 </span>
               </div>
               {stepNumber < steps.length ? (
-                <span aria-hidden="true" className="mx-5 h-px min-w-8 flex-1 bg-[#dfe1e4]" />
+                <span aria-hidden="true" className="mx-3 hidden h-px flex-1 bg-[#dfe1e4] sm:block" />
               ) : null}
             </li>
           );
@@ -1673,24 +1750,33 @@ function TechnicalDrawingBucket({
   );
 }
 
-function MaterialSelect({
+// Reversible concept-A trial: false restores the original grouped material picker.
+const useSearchFirstMaterialPicker = false;
+function MaterialSelect(props: { value: string; onChange: (value: string) => void }) {
+  return useSearchFirstMaterialPicker
+    ? <SearchFirstMaterialSelect {...props} options={materialSelectOptions} />
+    : <LegacyMaterialSelect {...props} />;
+}
+
+function LegacyMaterialSelect({
   value,
   onChange,
 }: {
   value: string;
   onChange: (value: string) => void;
 }) {
+  const resolvedValue = canonicalMaterialValue(value);
   const labelId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeOptionValue, setActiveOptionValue] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    const selected = materialSelectOptions.find((option) => option.value === value);
+    const selected = materialSelectOptions.find((option) => option.value === resolvedValue);
     return new Set(selected ? [selected.category] : [materialSelectGroups[0]?.name ?? ""]);
   });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const selectedOption = materialSelectOptions.find((option) => option.value === value);
+  const selectedOption = materialSelectOptions.find((option) => option.value === resolvedValue);
   const normalizedQuery = searchQuery.trim().toLowerCase();
   function materialOptionsFor(query: string, groups: Set<string>) {
     const normalizedMaterialQuery = query.trim().toLowerCase();
@@ -1703,21 +1789,9 @@ function MaterialSelect({
       );
     }
 
-    return materialSelectOptions.filter((option) =>
-      [
-        option.label,
-        option.category,
-        option.subgroup,
-        String(option.metadata?.family ?? ""),
-        String(option.metadata?.unsNumber ?? ""),
-        String(option.metadata?.composition ?? ""),
-        String(option.metadata?.compositionFormula ?? ""),
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedMaterialQuery),
-    );
+    return searchRfqMaterials(materialSelectOptions, query);
   }
+
   const searchResults = useMemo(
     () => (normalizedQuery ? materialOptionsFor(searchQuery, openGroups) : []),
     [normalizedQuery, openGroups, searchQuery],
@@ -1781,7 +1855,7 @@ function MaterialSelect({
     setIsOpen(true);
     setOpenGroups(nextOpenGroups);
     setActiveOptionValue(
-      nextVisibleOptions.find((option) => option.value === value)?.value ??
+      nextVisibleOptions.find((option) => option.value === resolvedValue)?.value ??
         nextVisibleOptions[0]?.value ??
         null,
     );
@@ -1811,7 +1885,7 @@ function MaterialSelect({
       currentValue &&
       nextVisibleOptions.some((option) => option.value === currentValue)
         ? currentValue
-        : nextVisibleOptions.find((option) => option.value === value)?.value ??
+        : nextVisibleOptions.find((option) => option.value === resolvedValue)?.value ??
           nextVisibleOptions[0]?.value ??
           null,
     );
@@ -1827,7 +1901,7 @@ function MaterialSelect({
 
     setSearchQuery(nextSearchQuery);
     setActiveOptionValue(
-      nextVisibleOptions.find((option) => option.value === value)?.value ??
+      nextVisibleOptions.find((option) => option.value === resolvedValue)?.value ??
         nextVisibleOptions[0]?.value ??
         null,
     );
@@ -1904,7 +1978,7 @@ function MaterialSelect({
   }
 
   return (
-    <div className="grid w-full gap-2 text-sm font-medium text-slate-700" ref={containerRef}>
+    <div className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700" ref={containerRef}>
       <span id={labelId}>
         Material<span className="ml-1 text-[#d4183d]">*</span>
       </span>
@@ -1912,9 +1986,10 @@ function MaterialSelect({
         aria-label="Material"
         className="sr-only"
         tabIndex={-1}
-        value={value}
+        value={resolvedValue}
         onChange={(event) => onChange(event.target.value)}
       >
+        <option disabled value="">Select a material</option>
         {materialSelectOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -2004,7 +2079,7 @@ function MaterialSelect({
                       <MaterialOptionButton
                         id={materialOptionId(labelId, option.value)}
                         isActive={option.value === activeOptionValue}
-                        isSelected={option.value === value}
+                        isSelected={option.value === resolvedValue}
                         key={option.value}
                         option={option}
                         onHighlight={setActiveOptionValue}
@@ -2014,7 +2089,7 @@ function MaterialSelect({
                   </div>
                 ) : (
                   <div className="px-5 py-4 text-sm font-medium text-[#64748b]">
-                    No materials found
+                    No materials found - email <a href="mailto:support@latticeos.co" className="underline underline-offset-2">support@latticeos.co</a> for procurement support
                   </div>
                 )
               ) : (
@@ -2065,7 +2140,7 @@ function MaterialSelect({
                                     <MaterialOptionButton
                                       id={materialOptionId(labelId, option.value)}
                                       isActive={option.value === activeOptionValue}
-                                      isSelected={option.value === value}
+                                      isSelected={option.value === resolvedValue}
                                       key={option.value}
                                       option={option}
                                       onHighlight={setActiveOptionValue}
@@ -2095,6 +2170,7 @@ function materialOptionId(labelId: string, optionValue: string) {
 }
 
 function Iso2768ToleranceModal({ onClose }: { onClose: () => void }) {
+  const dialogRef = useDialogFocus<HTMLElement>();
   useEffect(() => {
     function handleKeyDown(event: globalThis.KeyboardEvent) {
       if (event.key === "Escape") {
@@ -2111,6 +2187,8 @@ function Iso2768ToleranceModal({ onClose }: { onClose: () => void }) {
       <section
         aria-modal="true"
         aria-labelledby="iso-2768-tolerance-title"
+        ref={dialogRef}
+        tabIndex={-1}
         className="max-h-[calc(100vh-3rem)] w-full max-w-[640px] overflow-y-auto rounded bg-white px-5 py-4 shadow-2xl md:px-6 md:py-5"
         role="dialog"
       >
@@ -2179,64 +2257,38 @@ function RemoveLineItemConfirmationModal({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const dialogRef = useDialogFocus<HTMLElement>();
+  const titleId = useId();
+  const descriptionId = useId();
   useEffect(() => {
-    function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape") {
-        onCancel();
-      }
-    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, []);
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onCancel]);
-
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/35 px-4 py-6">
-      <section
-        aria-modal="true"
-        aria-labelledby="remove-line-item-title"
-        className="w-full max-w-[520px] rounded bg-white px-8 py-7 shadow-2xl"
-        role="dialog"
-      >
-        <div className="flex items-start justify-between gap-6">
-          <h2
-            className="text-2xl font-semibold tracking-tight text-[#242424]"
-            id="remove-line-item-title"
-          >
-            Remove from quote
-          </h2>
-          <button
-            aria-label="Close remove line item confirmation"
-            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded text-[#242424] transition hover:bg-slate-100"
-            onClick={onCancel}
-            type="button"
-          >
-            <X aria-hidden="true" className="h-5 w-5" strokeWidth={2.4} />
-          </button>
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+      onClick={event => { if (event.target === event.currentTarget) onCancel(); }}>
+      <section ref={dialogRef} role="alertdialog" aria-modal="true" aria-labelledby={titleId}
+        aria-describedby={descriptionId} tabIndex={-1}
+        onKeyDown={event => { if (event.key === "Escape") { event.stopPropagation(); onCancel(); } }}
+        className="max-h-[calc(100dvh-32px)] w-full max-w-sm overflow-y-auto rounded-xl border border-slate-200 bg-white p-6 text-center shadow-2xl">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <Trash2 aria-hidden="true" className="h-5 w-5" />
         </div>
-
-        <p className="mt-8 text-lg font-medium text-[#242424]">
-          {index + 1}.&nbsp;&nbsp;{lineItemName}
-        </p>
-
-        <div className="mt-16 flex justify-end gap-3">
-          <button
-            className="inline-flex min-h-11 items-center justify-center rounded bg-[#f2f2f2] px-6 text-base font-semibold text-[#4f4f4f] transition hover:bg-[#e8e8e8]"
-            onClick={onCancel}
-            type="button"
-          >
-            Cancel
-          </button>
-          <button
-            className="inline-flex min-h-11 items-center justify-center rounded bg-[#ffe8ec] px-6 text-base font-semibold text-[#c41230] transition hover:bg-[#ffdce3]"
-            onClick={onConfirm}
-            type="button"
-          >
-            Remove
-          </button>
+        <h2 id={titleId} className="mt-4 text-xl font-semibold tracking-tight text-[#202020]">Remove this part?</h2>
+        <div id={descriptionId} className="mt-2 text-sm leading-6 text-slate-600">
+          <p>This part and its configuration will be removed from the quote.</p>
+          <p className="mt-2 break-words">{lineItemName} · Line item {index + 1}</p>
         </div>
+        <footer className="mt-5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-5">
+          <button type="button" onClick={onCancel}
+            className="min-h-11 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-[#202020] hover:bg-slate-50">Cancel</button>
+          <button type="button" onClick={onConfirm}
+            className="min-h-11 rounded-md bg-[#171717] px-3 text-sm font-semibold text-white hover:bg-[#2b2b2b]">Remove part</button>
+        </footer>
       </section>
-    </div>
+    </div>, document.body,
   );
 }
 
@@ -2296,6 +2348,16 @@ function QualityDocumentationSelect({
 }) {
   const labelId = useId();
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLButtonElement>(null);
+  const filteredOptions = useMemo(() => qualityDocumentationOptions.filter(option => `${option.label} ${option.value}`.toLowerCase().includes(searchQuery.trim().toLowerCase())), [searchQuery]);
+  function closeMenu() {
+    setIsOpen(false);
+    setSearchQuery("");
+    setHighlightedIndex(0);
+  }
   const containerRef = useRef<HTMLDivElement | null>(null);
   const selectedValues = value;
   const selectedLabels = selectedValues.map((optionValue) =>
@@ -2307,18 +2369,31 @@ function QualityDocumentationSelect({
       return;
     }
 
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: Event) {
       if (
         containerRef.current &&
         !containerRef.current.contains(event.target as Node)
       ) {
-        setIsOpen(false);
+        closeMenu();
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    // Capture dismissal before other controls can stop event propagation.
+    document.addEventListener("pointerdown", handleClickOutside, true);
+    document.addEventListener("click", handleClickOutside, true);
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside, true);
+      document.removeEventListener("click", handleClickOutside, true);
+    };
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const option = filteredOptions[highlightedIndex];
+    if (option) document.getElementById(`${labelId}-option-${option.value}`)?.scrollIntoView({ block: "nearest" });
+  }, [isOpen, highlightedIndex, filteredOptions, labelId]);
+
+  useEffect(() => { if (isOpen) searchRef.current?.focus(); }, [isOpen]);
 
   function toggleOption(optionValue: string) {
     if (optionValue === "standard_inspection") {
@@ -2335,7 +2410,7 @@ function QualityDocumentationSelect({
   }
 
   return (
-    <div className="grid w-full gap-2 text-sm font-medium text-slate-700" ref={containerRef}>
+    <div className="grid min-w-0 w-full grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700" ref={containerRef}>
       <span id={labelId}>
         Quality documentation<span className="ml-1 text-[#d4183d]">*</span>
       </span>
@@ -2354,7 +2429,7 @@ function QualityDocumentationSelect({
               ? "border-[#1d73ff] shadow-[0_0_0_5px_rgba(191,219,254,0.78),0_2px_8px_rgba(15,23,42,0.08)]"
               : "border-[#dce4ee] hover:border-[#b4c5d8] focus:border-[#1d73ff] focus:shadow-[0_0_0_5px_rgba(191,219,254,0.65)]",
           ].join(" ")}
-          onClick={() => setIsOpen((current) => !current)}
+          onClick={() => { setIsOpen(true); searchRef.current?.focus(); }}
         >
           <span className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
             {selectedValues.length > 0 ? (
@@ -2390,8 +2465,34 @@ function QualityDocumentationSelect({
                 Select quality documents
               </span>
             )}
+            <input
+              ref={searchRef}
+              role="combobox"
+              aria-label="Search quality documentation"
+              aria-autocomplete="list"
+              aria-expanded={isOpen}
+              aria-controls={isOpen ? `${labelId}-menu` : undefined}
+              aria-activedescendant={isOpen && filteredOptions[highlightedIndex] ? `${labelId}-option-${filteredOptions[highlightedIndex].value}` : undefined}
+              className={isOpen ? "min-w-24 flex-1 bg-transparent py-1.5 text-sm font-normal text-slate-950 outline-none" : "sr-only"}
+              tabIndex={isOpen ? 0 : -1}
+              aria-hidden={!isOpen}
+              value={searchQuery}
+              onClick={event => { event.stopPropagation(); setIsOpen(true); }}
+              onFocus={() => setIsOpen(true)}
+              onChange={event => { setSearchQuery(event.target.value); setHighlightedIndex(0); setIsOpen(true); }}
+              onKeyDown={event => {
+                if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeMenu(); dropdownRef.current?.focus(); }
+                if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                  event.preventDefault(); setIsOpen(true);
+                  setHighlightedIndex(current => filteredOptions.length ? (current + (event.key === "ArrowDown" ? 1 : -1) + filteredOptions.length) % filteredOptions.length : 0);
+                }
+                if (event.key === "Enter") { event.preventDefault(); if (isOpen && filteredOptions[highlightedIndex]) toggleOption(filteredOptions[highlightedIndex].value); else setIsOpen(true); }
+                if (event.key === "Tab") closeMenu();
+              }}
+            />
           </span>
           <button
+            ref={dropdownRef}
             aria-controls={isOpen ? `${labelId}-menu` : undefined}
             aria-expanded={isOpen}
             aria-haspopup="listbox"
@@ -2399,7 +2500,7 @@ function QualityDocumentationSelect({
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#a1a1aa] transition hover:bg-slate-100 hover:text-[#020617]"
             onClick={(event) => {
               event.stopPropagation();
-              setIsOpen((current) => !current);
+              if (isOpen) closeMenu(); else { setIsOpen(true); searchRef.current?.focus(); }
             }}
             type="button"
           >
@@ -2421,22 +2522,24 @@ function QualityDocumentationSelect({
             aria-multiselectable="true"
           >
             <div className="max-h-[360px] overflow-y-auto">
-              {qualityDocumentationOptions.map((option) => {
+              {filteredOptions.map((option, index) => {
                 const isSelected = selectedValues.includes(option.value);
                 const isRequired = option.value === "standard_inspection";
 
                 return (
                   <button
+                    id={`${labelId}-option-${option.value}`}
                     aria-selected={isSelected}
                     aria-disabled={isRequired ? "true" : undefined}
                     className={[
                       "flex w-full items-center gap-3 border-none px-5 py-3 text-left transition-colors duration-100",
                       isSelected
                         ? "bg-[#e8f2ff] text-[#020617]"
-                        : "bg-white text-[#020617] hover:bg-[#f5f8fb]",
+                        : highlightedIndex === index ? "bg-[#f5f8fb] text-[#020617]" : "bg-white text-[#020617] hover:bg-[#f5f8fb]",
                     ].join(" ")}
                     key={option.value}
-                    onClick={() => toggleOption(option.value)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    onClick={() => { toggleOption(option.value); searchRef.current?.focus(); }}
                     role="option"
                     type="button"
                   >
@@ -2457,6 +2560,10 @@ function QualityDocumentationSelect({
                         <span className="ml-2 whitespace-nowrap text-[12px] font-medium text-slate-500">
                           (included)
                         </span>
+                      ) : option.value === "custom_inspection" ? (
+                        <span className="ml-2 text-[12px] font-medium text-slate-500">
+                          (add details to manufacturing notes section)
+                        </span>
                       ) : qualityDocumentationRequiresDrawing(option.value) ? (
                         <span className="ml-2 whitespace-nowrap text-[12px] font-medium text-slate-500">
                           (drawing required)
@@ -2466,6 +2573,7 @@ function QualityDocumentationSelect({
                   </button>
                 );
               })}
+              {!filteredOptions.length ? <p role="status" className="px-5 py-4 text-sm text-slate-500">No matching documents.</p> : null}
             </div>
           </div>
         ) : null}
@@ -2484,11 +2592,14 @@ function LineItemConfigurationCard({
   onToggleCollapsed,
   onRemove,
   onCadStatus,
+  onCadMetadata,
   onCadFileSelected,
   onDrawingSelected,
   onRemoveDrawing,
   onReviewDrawing,
+  qualityApprovalControl,
 }: {
+  qualityApprovalControl?: React.ReactNode;
   index: number;
   lineItem: LineItemState;
   isCollapsed: boolean;
@@ -2502,6 +2613,7 @@ function LineItemConfigurationCard({
   onToggleCollapsed: (id: string) => void;
   onRemove: (id: string) => void;
   onCadStatus: (id: string, state: CadUploadPreviewState) => void;
+  onCadMetadata: (id: string, metadata: CadMetadata) => void;
   onCadFileSelected: (id: string, file: File | null) => void;
   onDrawingSelected: (id: string, file: File | null) => void;
   onRemoveDrawing: (id: string) => void;
@@ -2509,7 +2621,7 @@ function LineItemConfigurationCard({
 }) {
   const needsCadUpload = !lineItemHasCadBytes(lineItem);
   const needsDrawingUpload = !lineItemHasDrawingBytes(lineItem);
-  const lineItemDisplayName = displayNameFromFile(lineItem.fileName) || lineItem.partName || "New part";
+  const lineItemDisplayName = displayNameFromFile(lineItem.fileName) || "New part";
   const lineItemHeader = `Line item ${index + 1}: ${lineItemDisplayName}`;
   const selectedSurfaceFinishMetadata = surfaceFinishMetadataFor(
     lineItem.surfaceFinish,
@@ -2525,7 +2637,7 @@ function LineItemConfigurationCard({
   const [isRemoveConfirmationOpen, setIsRemoveConfirmationOpen] = useState(false);
 
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <section id={`configure-${lineItem.id}-part`} className="scroll-mt-40 overflow-hidden rounded-lg border border-slate-200 bg-white">
       <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-5 py-3">
         <button
           aria-expanded={!isCollapsed}
@@ -2564,23 +2676,27 @@ function LineItemConfigurationCard({
           />
         ) : null}
       </div>
-      <div className={isCollapsed ? "hidden" : "grid lg:grid-cols-[0.95fr_1fr]"}>
-        <div className="border-b border-slate-200 p-8 lg:border-b-0 lg:border-r">
-          <div className="mx-auto max-w-[520px]">
+      <div className={isCollapsed ? "hidden" : "grid min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1fr)]"}>
+        <div className="min-w-0 border-b border-slate-200 p-4 sm:p-8 lg:border-b-0 lg:border-r">
+          <div className="mx-auto min-w-0 max-w-[520px]">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                CAD file preview
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  CAD file preview
+                </p>
+                <CadMetadataSummary metadata={lineItem.cadMetadata} />
+              </div>
               <CadUploadPreview
                 onReplacementFileSelected={(file) =>
                   onCadFileSelected(lineItem.id, file)
                 }
                 onStatus={(state) => onCadStatus(lineItem.id, state)}
+                onMetadata={(metadata) => onCadMetadata(lineItem.id, metadata)}
                 state={lineItem.cadPreview}
               />
             </div>
 
-            <div className="mt-5">
+            <div className="mt-5" id={configurationFieldId(lineItem.id, "drawing")}>
               <TechnicalDrawingBucket
                 index={index}
                 lineItem={lineItem}
@@ -2588,6 +2704,9 @@ function LineItemConfigurationCard({
                 onRemoveDrawing={onRemoveDrawing}
                 onReviewDrawing={onReviewDrawing}
               />
+              {!lineItemHasRequiredDrawing(lineItem) ? <p role="status" className="mt-2 text-xs leading-5 text-amber-800">
+                A drawing is required for the selected specifications. Upload one here or remove the drawing-required selections before submitting.
+              </p> : null}
               {needsDrawingUpload ? (
                 <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-left text-sm font-medium leading-6 text-amber-900">
                   This is only a saved drawing filename. Upload the drawing
@@ -2598,12 +2717,12 @@ function LineItemConfigurationCard({
 
             <div className="mt-8">
               <div className="flex items-center gap-2">
-                <h3 className="text-2xl font-semibold tracking-tight text-slate-950">
+                <h3 className="min-w-0 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
                   Inspections & Certificates
                 </h3>
                 <Link
                   aria-label="Learn about quality documentation"
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                   href="/quality-documentation"
                   title="Learn what each quality document entails"
                 >
@@ -2617,6 +2736,10 @@ function LineItemConfigurationCard({
                     updateLineItem(lineItem.id, "qualityDocumentation", value)
                   }
                 />
+                {qualityApprovalControl ? <div className="mt-4">{qualityApprovalControl}</div> : null}
+                {requiredQualityDocumentationLabels(lineItem).length > 0 && !lineItemHasRequiredDrawing(lineItem) ? <p role="status" className="mt-2 text-xs leading-5 text-amber-800">
+                  Selected inspection documents require a drawing. <button type="button" className="underline underline-offset-2" onClick={() => { const area = document.getElementById(configurationFieldId(lineItem.id, "drawing")); area?.scrollIntoView({ behavior: "smooth", block: "center" }); area?.querySelector<HTMLInputElement>('input[type="file"]')?.click(); }}>Upload a drawing</button> or remove those selections before submitting.
+                </p> : null}
                 {lineItem.qualityDocumentation.includes("custom_inspection") ? (
                   <p className="mt-2 text-xs leading-5 text-slate-500">
                     Describe the custom inspection in the Manufacturing notes section below.
@@ -2627,8 +2750,8 @@ function LineItemConfigurationCard({
           </div>
         </div>
 
-        <div className="p-8">
-          <div className="mb-8 flex justify-end gap-4">
+        <div className="min-w-0 p-4 sm:p-8">
+          <div className="mb-8 flex justify-end gap-4" id={configurationFieldId(lineItem.id, "cad")}>
             <label className="cursor-pointer text-sm font-medium text-slate-500 transition hover:text-slate-950">
               <span>Replace Part</span>
               <input
@@ -2647,13 +2770,19 @@ function LineItemConfigurationCard({
 
           <div className="space-y-8">
             <section>
-              <div className="grid gap-5">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+                <div id={configurationFieldId(lineItem.id, "process")}>
+                  <CustomSelect label="Manufacturing process" value={lineItem.process} options={offeredProcessOptions} onChange={value => updateLineItem(lineItem.id, "process", value)} required />
+                </div>
+                <div id={configurationFieldId(lineItem.id, "material")}>
                 <MaterialSelect
                   value={lineItem.material}
                   onChange={(value) =>
                     updateLineItem(lineItem.id, "material", value)
                   }
                 />
+                </div>
+                <div id={configurationFieldId(lineItem.id, "quantity")}>
                 <Field label="Quantity">
                   <input
                     className={inputClass}
@@ -2669,21 +2798,23 @@ function LineItemConfigurationCard({
                     }
                   />
                 </Field>
+                </div>
               </div>
             </section>
 
-            <section className="border-t border-slate-200 pt-8">
+            <section className="border-t border-slate-200 pt-8" id={configurationFieldId(lineItem.id, "finish")}>
               <h3 className="text-3xl font-semibold tracking-tight text-slate-950">
                 Finish
               </h3>
-              <div className="mt-6 grid gap-5">
+              <div className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
                 <CustomSelect
                   label="Surface Finish"
                   value={lineItem.surfaceFinish}
                   onChange={(value) =>
                     updateLineItem(lineItem.id, "surfaceFinish", value)
                   }
-                  options={surfaceFinishOptions}
+                  options={compatibleFinishOptions(lineItem.material, lineItem.process, lineItem.surfaceFinish)}
+                  disabled={!lineItem.material}
                   required
                   showSearch
                 />
@@ -2763,7 +2894,7 @@ function LineItemConfigurationCard({
                       })}
                     </div>
                     {selectedSurfaceFinishColor?.mode === "custom" ? (
-                      <label className="grid gap-2 text-sm font-medium text-slate-700">
+                      <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
                         <span>{selectedSurfaceFinishColor.label} color code</span>
                         <input
                           className={inputClass}
@@ -2781,7 +2912,8 @@ function LineItemConfigurationCard({
                     ) : null}
                   </fieldset>
                 ) : null}
-                <label className="grid gap-2 text-sm font-medium text-slate-700">
+                {lineItem.material && finishCompatibilityError(lineItem.material, lineItem.surfaceFinish, lineItem.process) ? <p role="alert" className="text-sm text-red-700">{finishCompatibilityError(lineItem.material, lineItem.surfaceFinish, lineItem.process)}</p> : null}
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
                   <span>Part Markings</span>
                   <span className="flex items-center gap-2">
                     <input
@@ -2803,7 +2935,7 @@ function LineItemConfigurationCard({
               </div>
             </section>
 
-            <section className="border-t border-slate-200 pt-8">
+            <section className="border-t border-slate-200 pt-8" id={configurationFieldId(lineItem.id, "tolerance")}>
               <h3 className="text-3xl font-semibold tracking-tight text-slate-950">
                 Tolerances
               </h3>
@@ -2817,7 +2949,7 @@ function LineItemConfigurationCard({
                   ISO 2768-1 standards
                 </button>
               </p>
-              <div className="mt-6 grid gap-5">
+              <div className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
                 <CustomSelect
                   label="General Tolerances"
                   value={lineItem.generalTolerance}
@@ -2846,7 +2978,7 @@ function LineItemConfigurationCard({
                   ],
                 ].map(([field, label, checked]) => (
                   <label
-                    className="grid gap-2 text-sm font-medium text-slate-700"
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700"
                     key={String(field)}
                   >
                     <span>{label}</span>
@@ -2874,14 +3006,14 @@ function LineItemConfigurationCard({
               ) : null}
             </section>
 
-            <section className="border-t border-slate-200 pt-8">
+            <section className="border-t border-slate-200 pt-3">
               {needsCadUpload ? (
                 <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium leading-6 text-amber-900">
                   This is only a saved filename. Upload the CAD file again so
                   Lattice can store the actual STEP/part bytes for quoting.
                 </p>
               ) : null}
-              <label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">
+              <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
                 <span>Manufacturing notes</span>
                 <textarea
                   className={`${inputClass} min-h-32`}
@@ -2892,6 +3024,9 @@ function LineItemConfigurationCard({
                   }
                 />
               </label>
+              <div className="mt-5">
+                <TargetDatePicker value={lineItem.targetShipDate} onChange={value => updateLineItem(lineItem.id, "targetShipDate", value)} />
+              </div>
             </section>
           </div>
         </div>
@@ -2900,105 +3035,8 @@ function LineItemConfigurationCard({
   );
 }
 
-export function RequestForm({
-  defaultBuyerCompany,
-  initialState,
-  localDraftId,
-  prefillNotice,
-  resumeRequests = [],
-}: RequestFormProps = {}) {
-  const router = useRouter();
-  const [localResumeRequests, setLocalResumeRequests] = useState<LatticeRequest[]>([]);
-  const [archivedResumeRequestIds, setArchivedResumeRequestIds] = useState<Set<string>>(() => new Set());
-  const incompleteRfqStorageKey = customerDraftStorageKey(useCustomerWorkspaceScope());
-  const [projectForm, setProjectForm] = useState<ProjectFormState>(() => ({
-    ...makeProjectInitialState(defaultBuyerCompany),
-    ...initialState,
-  }));
-  const [lineItems, setLineItems] = useState<LineItemState[]>(() =>
-    initialState?.lineItems?.length
-      ? initialState.lineItems.map((lineItem, index) => lineItemFromInitialLineItem(lineItem, `line-${index + 1}`))
-      : [lineItemFromInitialState(initialState)],
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [activeLocalDraftId, setActiveLocalDraftId] = useState<string | null>(
-    localDraftId ?? null,
-  );
-  const [isQuoteNameEditing, setIsQuoteNameEditing] = useState(false);
-  const [draftQuoteName, setDraftQuoteName] = useState(projectForm.projectName);
-  const [isQuoteNameCustomized, setIsQuoteNameCustomized] = useState(
-    Boolean(initialState?.projectName?.trim()),
-  );
-  const quoteNameInputRef = useRef<HTMLInputElement | null>(null);
-  const [collapsedLineItemIds, setCollapsedLineItemIds] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [drawingReviewLineItemId, setDrawingReviewLineItemId] = useState<
-    string | null
-  >(null);
-  const activeDrawingLineItem =
-    lineItems.find((lineItem) => lineItem.id === drawingReviewLineItemId) ??
-    null;
-  const activeDrawingFile = activeDrawingLineItem?.selectedDrawingFile ?? null;
-  const activeDrawingStorageKey =
-    activeDrawingLineItem?.technicalDrawingStorageKey;
-  const activeDrawingName = activeDrawingLineItem?.technicalDrawingName ?? "";
-  const activeDrawingType =
-    activeDrawingFile?.type ||
-    activeDrawingLineItem?.technicalDrawingType ||
-    "";
-
-  useEffect(() => {
-    // Browser storage is intentionally read after hydration so server and client
-    // produce the same initial markup.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLocalResumeRequests(readLocalIncompleteResumeRequests(incompleteRfqStorageKey));
-
-    if (initialState || !localDraftId) {
-      return;
-    }
-
-    const localDraft = readIncompleteRfqs(incompleteRfqStorageKey).find((draft) => draft.id === localDraftId);
-    if (!localDraft) {
-      return;
-    }
-
-    const restoredInitialState = localDraft.initialState;
-    setProjectForm({
-      ...makeProjectInitialState(defaultBuyerCompany),
-      ...restoredInitialState,
-    });
-    setLineItems(
-      restoredInitialState.lineItems?.length
-        ? restoredInitialState.lineItems.map((lineItem, index) =>
-            lineItemFromInitialLineItem(lineItem, `line-${index + 1}`),
-          )
-        : [lineItemFromInitialState(restoredInitialState)],
-    );
-    setDraftQuoteName(restoredInitialState.projectName ?? "");
-    setIsQuoteNameCustomized(Boolean(restoredInitialState.projectName?.trim()));
-  }, [defaultBuyerCompany, initialState, localDraftId, incompleteRfqStorageKey]);
-
-  const resumeChoices = useMemo(() => {
-    const localIds = new Set(localResumeRequests.map((request) => request.id));
-
-    return [
-      ...localResumeRequests,
-      ...resumeRequests.filter((request) => !localIds.has(request.id)),
-    ]
-      .filter((request) => request.status === "DRAFT" && !request.isArchived && !archivedResumeRequestIds.has(request.id))
-      .sort((a, b) => {
-        const aTime = new Date(a.updatedAt || a.createdAt).getTime();
-        const bTime = new Date(b.updatedAt || b.createdAt).getTime();
-
-        return (
-          (Number.isNaN(bTime) ? 0 : bTime) -
-          (Number.isNaN(aTime) ? 0 : aTime)
-        );
-      })
-      .slice(0, 5);
-  }, [archivedResumeRequestIds, localResumeRequests, resumeRequests]);
-  const drawingPreviewUrl = useMemo(() => {
+function useDrawingPreviewUrl(activeDrawingFile: File | null | undefined, activeDrawingName: string, activeDrawingStorageKey: string | undefined, activeDrawingType: string) {
+  return useMemo(() => {
     if (activeDrawingFile) {
       if (
         !drawingCanPreview(activeDrawingFile) ||
@@ -3030,6 +3068,164 @@ export function RequestForm({
     activeDrawingStorageKey,
     activeDrawingType,
   ]);
+}
+
+export function RequestForm({
+  initialState,
+  localDraftId,
+  prefillNotice,
+  resumeRequests = [],
+}: RequestFormProps = {}) {
+  const router = useRouter();
+  const [localResumeRequests, setLocalResumeRequests] = useState<LatticeRequest[]>([]);
+  const [localResumeStates, setLocalResumeStates] = useState<Record<string, RequestFormInitialState>>({});
+  const [archivedResumeRequestIds, setArchivedResumeRequestIds] = useState<Set<string>>(() => new Set());
+  const incompleteRfqStorageKey = customerDraftStorageKey(useCustomerWorkspaceScope());
+  const [projectForm, setProjectForm] = useState<ProjectFormState>(() => ({
+    ...makeProjectInitialState(),
+    ...cleanIntakeState(initialState),
+  }));
+  const [lineItems, setLineItems] = useState<LineItemState[]>(() =>
+    initialState?.lineItems?.length
+      ? initialState.lineItems.map((lineItem, index) => lineItemFromInitialLineItem(lineItem, `line-${index + 1}`))
+      : [lineItemFromInitialState(initialState)],
+  );
+  const [stagedCad, setStagedCad] = useState<{ files: File[]; targetId?: string } | null>(null);
+  const pendingPartRevealRef = useRef<string | null>(null);
+  const [preparedModels, setPreparedModels] = useState<Array<{ file: File; urn: string; approved: boolean; metadata?: CadMetadata }>>([]);
+  const [preparedTargets, setPreparedTargets] = useState<Record<string, HTMLDivElement | null>>({});
+  const attachPreparedTarget = useCallback((urn: string, target: HTMLDivElement | null) => {
+    setPreparedTargets(current => {
+      if (current[urn] === target || !target && !current[urn]) return current;
+      const next = { ...current };
+      if (target) next[urn] = target;
+      else delete next[urn];
+      return next;
+    });
+  }, []);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const pendingFileUploadsRef = useRef(new WeakMap<File, Promise<PersistedDraftFile | null>>());
+  const pendingCadPreviewsRef = useRef(new WeakMap<File, Promise<CadUploadPreviewState>>());
+  useEffect(() => {
+    if (!stagedCad) return;
+    const files = stagedCad.files;
+    let cancelled = false;
+    let checking = false;
+    async function checkStagedPreviews() {
+      if (checking) return;
+      checking = true;
+      try {
+        await Promise.all(files.map(async file => {
+          const pending = pendingCadPreviewsRef.current.get(file);
+          if (!pending) return;
+          const state = await refreshCadPreviewState(await pending);
+          if (!cancelled) {
+            pendingCadPreviewsRef.current.set(file, Promise.resolve(state));
+            if (file === files[0] && state.status === "ready") setPreparedModels(current => current.some(model => model.file === file) ? current : [...current, { file, urn: state.urn, approved: false }]);
+          }
+        }));
+      } finally { checking = false; }
+    }
+    void checkStagedPreviews();
+    const interval = window.setInterval(() => { void checkStagedPreviews(); }, 2000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [stagedCad]);
+
+  const activePreparedModels = useMemo(() => preparedModels.filter(model => stagedCad?.files[0] === model.file || model.approved && lineItems.some(item => item.selectedFile === model.file)), [preparedModels, stagedCad, lineItems]);
+  const preparedViewerContext = useMemo(() => ({ models: activePreparedModels, attachTarget: attachPreparedTarget }), [activePreparedModels, attachPreparedTarget]);
+
+  const submissionKeyRef = useRef<string | null>(null);
+  const [activeLocalDraftId, setActiveLocalDraftId] = useState<string | null>(
+    localDraftId ?? null,
+  );
+  const [isQuoteNameEditing, setIsQuoteNameEditing] = useState(false);
+  const [draftQuoteName, setDraftQuoteName] = useState(projectForm.projectName);
+  const [isQuoteNameCustomized, setIsQuoteNameCustomized] = useState(
+    Boolean(initialState?.projectName?.trim()),
+  );
+  const quoteNameInputRef = useRef<HTMLInputElement | null>(null);
+  const [collapsedLineItemIds, setCollapsedLineItemIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  useEffect(() => {
+    const id = pendingPartRevealRef.current;
+    if (!id || stagedCad) return;
+    const card = document.getElementById(`configure-${id}-part`);
+    if (!card) return;
+    pendingPartRevealRef.current = null;
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+    card.querySelector<HTMLButtonElement>('button[aria-expanded]')?.focus({ preventScroll: true });
+  }, [lineItems, stagedCad]);
+
+  const [drawingReviewLineItemId, setDrawingReviewLineItemId] = useState<
+    string | null
+  >(null);
+  const activeDrawingLineItem =
+    lineItems.find((lineItem) => lineItem.id === drawingReviewLineItemId) ??
+    null;
+  const activeDrawingFile = activeDrawingLineItem?.selectedDrawingFile ?? null;
+  const activeDrawingStorageKey =
+    activeDrawingLineItem?.technicalDrawingStorageKey;
+  const activeDrawingName = activeDrawingLineItem?.technicalDrawingName ?? "";
+  const activeDrawingType =
+    activeDrawingFile?.type ||
+    activeDrawingLineItem?.technicalDrawingType ||
+    "";
+
+  useEffect(() => {
+    // Browser storage is intentionally read after hydration so server and client
+    // produce the same initial markup.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLocalResumeRequests(readLocalIncompleteResumeRequests(incompleteRfqStorageKey));
+    setLocalResumeStates(Object.fromEntries(readIncompleteRfqs(incompleteRfqStorageKey).map((draft) => [draft.id, draft.initialState])));
+
+    if (initialState || !localDraftId) {
+      return;
+    }
+
+    const localDraft = readIncompleteRfqs(incompleteRfqStorageKey).find((draft) => draft.id === localDraftId);
+    if (!localDraft) {
+      return;
+    }
+
+    const restoredInitialState = cleanIntakeState(localDraft.initialState)!;
+    setProjectForm({
+      ...makeProjectInitialState(),
+      ...restoredInitialState,
+    });
+    setLineItems(
+      restoredInitialState.lineItems?.length
+        ? restoredInitialState.lineItems.map((lineItem, index) =>
+            lineItemFromInitialLineItem(lineItem, `line-${index + 1}`),
+          )
+        : [lineItemFromInitialState(restoredInitialState)],
+    );
+    setDraftQuoteName(restoredInitialState.projectName ?? "");
+    setIsQuoteNameCustomized(Boolean(restoredInitialState.projectName?.trim()));
+  }, [initialState, localDraftId, incompleteRfqStorageKey]);
+
+  const resumeChoices = useMemo(() => {
+    const localIds = new Set(localResumeRequests.map((request) => request.id));
+
+    return [
+      ...localResumeRequests,
+      ...resumeRequests.filter((request) => !localIds.has(request.id)),
+    ]
+      .filter((request) => request.status === "DRAFT" && !request.isArchived && !archivedResumeRequestIds.has(request.id))
+      .sort((a, b) => {
+        const aTime = new Date(a.updatedAt || a.createdAt).getTime();
+        const bTime = new Date(b.updatedAt || b.createdAt).getTime();
+
+        return (
+          (Number.isNaN(bTime) ? 0 : bTime) -
+          (Number.isNaN(aTime) ? 0 : aTime)
+        );
+      })
+      .slice(0, 5);
+  }, [archivedResumeRequestIds, localResumeRequests, resumeRequests]);
+  const drawingPreviewUrl = useDrawingPreviewUrl(activeDrawingFile, activeDrawingName, activeDrawingStorageKey, activeDrawingType);
   const configuredLineItems = lineItems.filter((lineItem) =>
     lineItem.fileName.trim(),
   );
@@ -3041,26 +3237,12 @@ export function RequestForm({
     !prefillNotice &&
     resumeChoices.length > 0;
 
+  const restrictionError = intakeUploadError(projectForm.restrictionStatus, projectForm.restrictionPolicyVersion);
+  const uploadsAllowed = !restrictionError;
+
   const isReady = useMemo(
-    () =>
-      projectForm.dueDate &&
-      projectForm.projectName.trim() &&
-      projectForm.process.trim() &&
-      configuredLineItems.length > 0 &&
-      configuredLineItems.every(
-        (lineItem) =>
-          lineItem.partName.trim() &&
-          lineItem.material.trim() &&
-          lineItem.generalTolerance.trim() &&
-          lineItem.surfaceFinish.trim() &&
-          lineItemHasSurfaceFinishDetails(lineItem) &&
-          Number(lineItem.quantity) > 0 &&
-          lineItem.fileName.trim() &&
-          lineItemHasCadBytes(lineItem) &&
-          lineItemHasDrawingBytes(lineItem) &&
-          lineItemHasRequiredDrawing(lineItem),
-      ),
-    [configuredLineItems, projectForm],
+    () => !restrictionError && ["prototype", "commercial"].includes(projectForm.endUse) && formCompletionPercent(projectForm, configuredLineItems) === 100,
+    [configuredLineItems, projectForm, restrictionError],
   );
 
   function updateProject(field: keyof ProjectFormState, value: string) {
@@ -3070,6 +3252,19 @@ export function RequestForm({
   function startQuoteNameEdit() {
     setDraftQuoteName(projectForm.projectName);
     setIsQuoteNameEditing(true);
+  }
+
+  function focusConfigurationField(lineId: string, field: ConfigurationField) {
+    setCollapsedLineItemIds(current => {
+      const next = new Set(current);
+      next.delete(lineId);
+      return next;
+    });
+    requestAnimationFrame(() => {
+      const target = document.getElementById(configurationFieldId(lineId, field));
+      target?.scrollIntoView?.({ block: "center" });
+      target?.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled), textarea, select:not([tabindex="-1"])')?.focus({ preventScroll: true });
+    });
   }
 
   function saveQuoteNameEdit() {
@@ -3088,7 +3283,6 @@ export function RequestForm({
     field: LineItemField,
     value: string | string[],
   ) {
-    const currentLineItem = lineItems.find((lineItem) => lineItem.id === id);
     const nextLineItems = lineItems.map((lineItem) =>
       lineItem.id === id && field === "surfaceFinish" && typeof value === "string"
         ? {
@@ -3103,21 +3297,6 @@ export function RequestForm({
           ? { ...lineItem, [field]: value }
           : lineItem,
     );
-    const nextLineItem = nextLineItems.find((lineItem) => lineItem.id === id);
-
-    if (
-      field === "qualityDocumentation" &&
-      currentLineItem &&
-      nextLineItem &&
-      requiredQualityDocumentationLabels(nextLineItem).some(
-        (label) => !requiredQualityDocumentationLabels(currentLineItem).includes(label),
-      ) &&
-      !currentLineItem.technicalDrawingName.trim()
-    ) {
-      setError(requiredDrawingErrorMessage(nextLineItem));
-      setDrawingReviewLineItemId(id);
-    }
-
     if (!lineItemsHaveMissingRequiredDrawing(nextLineItems)) {
       setError((currentError) =>
         isRequiredDrawingError(currentError) ? null : currentError,
@@ -3128,19 +3307,9 @@ export function RequestForm({
   }
 
   function updateLineItemFlag(id: string, field: LineItemFlag, value: boolean) {
-    const currentLineItem = lineItems.find((lineItem) => lineItem.id === id);
     const nextLineItems = lineItems.map((lineItem) =>
       lineItem.id === id ? { ...lineItem, [field]: value } : lineItem,
     );
-
-    if (
-      value &&
-      currentLineItem &&
-      !currentLineItem.technicalDrawingName.trim()
-    ) {
-      setError(requiredDrawingErrorMessage({ ...currentLineItem, [field]: true }));
-      setDrawingReviewLineItemId(id);
-    }
 
     if (!lineItemsHaveMissingRequiredDrawing(nextLineItems)) {
       setError((currentError) =>
@@ -3192,6 +3361,13 @@ export function RequestForm({
 
     const timestamp = new Date().toISOString();
     const lineItemsForResume = configuredLineItems.map((lineItem) => ({
+      process: lineItem.process,
+      customerPartNumber: lineItem.customerPartNumber,
+      cadRevision: lineItem.cadRevision,
+      drawingRevision: lineItem.drawingRevision,
+      targetShipDate: lineItem.targetShipDate,
+      fileHistory: [],
+      cadMetadata: lineItem.cadMetadata,
       fileName: lineItem.fileName,
       fileSizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
       fileStorageKey: lineItem.fileStorageKey,
@@ -3200,7 +3376,6 @@ export function RequestForm({
       material: lineItem.material,
       notes: lineItem.notes,
       engineeringFits: lineItem.engineeringFits,
-      partName: lineItem.partName,
       partMarkings: lineItem.partMarkings,
       qualityDocumentation: lineItem.qualityDocumentation,
       quantity: lineItem.quantity,
@@ -3218,20 +3393,18 @@ export function RequestForm({
       cadPreview: persistedCadPreview(lineItem.cadPreview),
     }));
     const initialStateForResume: RequestFormInitialState = {
-      buyerCompany: projectForm.buyerCompany,
-      customerPo: projectForm.customerPo,
-      dueDate: projectForm.dueDate,
+      restrictionStatus: projectForm.restrictionStatus,
+      restrictionPolicyVersion: projectForm.restrictionPolicyVersion,
+      endUse: projectForm.endUse,
+      endUseNotes: projectForm.endUseNotes,
       requiresQualityApproval: projectForm.requiresQualityApproval,
       fileName: primaryLineItem.fileName,
       generalTolerance: primaryLineItem.generalTolerance,
       material: primaryLineItem.material,
       notes: primaryLineItem.notes,
-      partName: primaryLineItem.partName,
-      process: projectForm.process,
       projectName: projectForm.projectName,
       qualityDocumentation: primaryLineItem.qualityDocumentation,
       quantity: primaryLineItem.quantity,
-      requesterName: projectForm.requesterName,
       surfaceFinish: primaryLineItem.surfaceFinish,
       surfaceFinishColor: primaryLineItem.surfaceFinishColor,
       surfaceFinishCosmeticRequirement:
@@ -3243,32 +3416,33 @@ export function RequestForm({
     };
     const requestTitle =
       projectForm.projectName.trim() ||
-      primaryLineItem.partName.trim() ||
       primaryLineItem.fileName.trim() ||
       "Incomplete RFQ";
     const request: LatticeRequest = {
       id: draftId,
-      buyerCompany: projectForm.buyerCompany,
+      buyerCompany: "",
       requesterEmail: "",
-      requesterName: projectForm.requesterName,
+      requesterName: "",
       requesterPhone: "",
       shipToAddress1: "",
       shipToAddress2: "",
       shipToCity: "",
-      shipToCompany: projectForm.buyerCompany,
-      shipToName: projectForm.requesterName,
+      shipToCompany: "",
+      shipToName: "",
       shipToPhone: "",
       shipToState: "",
       shipToZipCode: "",
       title: requestTitle,
-      process: optionLabel(processOptions, projectForm.process),
-      dueDate: projectForm.dueDate,
+      intakeDeclaration: intakeDeclarationFor(projectForm),
+      process: [...new Set(configuredLineItems.map(item => processLabel(item.process)))].join(" / "),
+      dueDate: "",
       requiresQualityApproval: projectForm.requiresQualityApproval,
       status: "DRAFT",
       lineItems: configuredLineItems.map((lineItem) => ({
         id: lineItem.id,
-        partName: lineItem.partName || lineItem.fileName,
+        partName: displayNameFromFile(lineItem.fileName) || "Part",
         quantity: Number(lineItem.quantity) || 1,
+        manufacturingDetails: manufacturingDetailsFor(lineItem),
         material: optionLabel(rfqMaterialOptions, lineItem.material),
         generalTolerance: optionLabel(generalToleranceOptions, lineItem.generalTolerance),
         surfaceFinish: surfaceFinishDisplayValue(lineItem),
@@ -3404,34 +3578,26 @@ export function RequestForm({
     return () => URL.revokeObjectURL(drawingPreviewUrl);
   }, [drawingPreviewUrl]);
 
-  async function persistDraftUpload(file: File): Promise<PersistedDraftFile | null> {
-    const formData = new FormData();
-    formData.append("file", file);
+  function persistDraftUpload(file: File, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }): Promise<PersistedDraftFile | null> {
+    const pending = pendingFileUploadsRef.current.get(file);
+    if (pending) return pending;
+    const operation = uploadDraftFile(file, declaration);
+    pendingFileUploadsRef.current.set(file, operation);
+    void operation.then(stored => { if (!stored) pendingFileUploadsRef.current.delete(file); });
+    return operation;
+  }
 
+  async function uploadDraftFile(file: File, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }): Promise<PersistedDraftFile | null> {
     try {
-      const response = await fetch("/api/request-draft-files", {
-        method: "POST",
-        body: formData,
-      });
-      const payload = await response.json();
-
-      if (!response.ok || !payload.file?.storageKey) {
-        return null;
-      }
-
-      return {
-        name: payload.file.name || file.name,
-        sizeBytes: payload.file.sizeBytes || file.size,
-        storageKey: payload.file.storageKey,
-        type: payload.file.type || file.type || "application/octet-stream",
-      };
-    } catch {
+      return await uploadRequestDraftFile(file, declaration);
+    } catch (caught) {
+      setError(`${file.name}: ${caught instanceof Error ? caught.message : "Unable to save this file. Please try again."}`);
       return null;
     }
   }
 
-  async function persistCadDraftUpload(id: string, file: File) {
-    const stored = await persistDraftUpload(file);
+  async function persistCadDraftUpload(id: string, file: File, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
+    const stored = await persistDraftUpload(file, declaration);
 
     if (!stored) {
       return;
@@ -3439,7 +3605,7 @@ export function RequestForm({
 
     setLineItems((current) =>
       current.map((lineItem) =>
-        lineItem.id === id && lineItem.fileName === file.name
+        lineItem.id === id && lineItem.selectedFile === file
           ? {
               ...lineItem,
               fileName: stored.name,
@@ -3450,6 +3616,7 @@ export function RequestForm({
           : lineItem,
       ),
     );
+    return stored;
   }
 
   async function persistDrawingDraftUpload(id: string, file: File) {
@@ -3461,7 +3628,7 @@ export function RequestForm({
 
     setLineItems((current) =>
       current.map((lineItem) =>
-        lineItem.id === id && lineItem.technicalDrawingName === file.name
+        lineItem.id === id && lineItem.selectedDrawingFile === file
           ? {
               ...lineItem,
               technicalDrawingName: stored.name,
@@ -3479,6 +3646,8 @@ export function RequestForm({
     file: File | null,
     updateQuoteName = true,
   ) {
+    const previousFile = lineItems.find(item => item.id === id)?.selectedFile;
+    if (previousFile && previousFile !== file) setPreparedModels(current => current.filter(model => model.file !== previousFile));
     if (file) {
       ensureLocalDraftId();
     }
@@ -3490,16 +3659,17 @@ export function RequestForm({
         }
 
         const fileName = file?.name ?? "";
-        const suggestedName = fileName ? suggestedNameFromFile(fileName) : "";
 
         return {
           ...lineItem,
+          fileHistory: [],
+          cadMetadata: undefined,
+          cadRevision: lineItem.fileName ? "" : lineItem.cadRevision,
           selectedFile: file,
           fileName,
           fileSizeBytes: file?.size ?? 0,
           fileStorageKey: undefined,
           fileType: file?.type ?? "",
-          partName: lineItem.partName.trim() || suggestedName,
           cadPreview: file
             ? { status: "uploading", fileName: file.name }
             : { status: "empty" },
@@ -3522,68 +3692,73 @@ export function RequestForm({
     }
   }
 
-  async function startCadPreview(id: string, file: File) {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/cad-previews", {
-        method: "POST",
-        body: formData,
-      });
-      const payload = await response.json();
-
-      if (payload.preview?.status === "configuration_required") {
-        updateCadPreview(id, {
-          status: "configuration_required",
-          fileName: file.name,
-          message: payload.preview.message,
+  function requestCadPreview(file: File, stored: PersistedDraftFile, declaration: UploadDeclaration): Promise<CadUploadPreviewState> {
+    const pending = pendingCadPreviewsRef.current.get(file);
+    if (pending) return pending;
+    const operation = (async (): Promise<CadUploadPreviewState> => {
+      try {
+        const response = await fetch("/api/cad-previews", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ storageKey: stored.storageKey, ...declaration }),
         });
-        return;
+        const payload = await response.json();
+        if (payload.preview?.status === "configuration_required") return { status: "configuration_required", fileName: file.name, message: payload.preview.message };
+        if (!response.ok) throw new Error(payload.error ?? "Unable to start CAD preview");
+        return { status: "processing", fileName: file.name, urn: payload.preview.urn, progress: "queued" };
+      } catch (caught) {
+        return { status: "failed", fileName: file.name, message: caught instanceof Error ? caught.message : "Unable to start CAD preview" };
       }
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to start CAD preview");
-      }
-
-      updateCadPreview(id, {
-        status: "processing",
-        fileName: file.name,
-        urn: payload.preview.urn,
-        progress: "queued",
-      });
-    } catch (caught) {
-      updateCadPreview(id, {
-        status: "failed",
-        fileName: file.name,
-        message:
-          caught instanceof Error
-            ? caught.message
-            : "Unable to start CAD preview",
-      });
-    }
+    })();
+    pendingCadPreviewsRef.current.set(file, operation);
+    void operation.then(state => { if (state.status === "failed") pendingCadPreviewsRef.current.delete(file); });
+    return operation;
   }
 
-  function persistCadFileAndPreview(id: string, file: File) {
-    void persistCadDraftUpload(id, file);
-    void startCadPreview(id, file);
+  async function startCadPreview(id: string, file: File, stored: PersistedDraftFile, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
+    const state = await refreshCadPreviewState(await requestCadPreview(file, stored, declaration));
+    pendingCadPreviewsRef.current.set(file, Promise.resolve(state));
+    setLineItems(current => current.map(item => item.id === id && item.selectedFile === file ? { ...item, cadPreview: state } : item));
   }
 
-  function handleCadFileSelected(
+  function persistCadFileAndPreview(id: string, file: File, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
+    void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
+    void persistCadDraftUpload(id, file, declaration).then((stored) => {
+      if (stored) return startCadPreview(id, file, stored, declaration);
+      setLineItems(current => current.map(item => item.id === id && item.selectedFile === file
+        ? { ...item, cadPreview: { status: "failed", fileName: file.name, message: "Save the CAD file before starting its preview. Try submitting again to retry the upload." } }
+        : item));
+    });
+  }
+
+  async function handleCadFileSelected(
     id: string,
     file: File | null,
     updateQuoteName = true,
+    declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion },
   ) {
+    if (submittingRef.current) return;
+    const eligibilityError = intakeUploadError(declaration.restrictionStatus, declaration.restrictionPolicyVersion);
+    if (eligibilityError) { setError(eligibilityError); return; }
+    if (file) {
+      const uploadError = cadUploadError(file);
+      if (uploadError) { setError(uploadError); return; }
+    }
     applyCadFileToLineItem(id, file, updateQuoteName);
 
     if (!file) {
       return;
     }
 
-    persistCadFileAndPreview(id, file);
+    persistCadFileAndPreview(id, file, declaration);
   }
 
-  function appendCadLineItem(file: File, updateQuoteName = true) {
+  function appendCadLineItem(file: File, updateQuoteName = true, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
+    if (submittingRef.current) return;
+    const eligibilityError = intakeUploadError(declaration.restrictionStatus, declaration.restrictionPolicyVersion);
+    if (eligibilityError) { setError(eligibilityError); return; }
+    const uploadError = cadUploadError(file);
+    if (uploadError) { setError(uploadError); return; }
     ensureLocalDraftId();
     const id = makeLineItemId();
     const nextFileNames = [
@@ -3594,16 +3769,20 @@ export function RequestForm({
     ];
 
     setLineItems((current) => [...current, makeCadLineItem(id, file)]);
+    setCollapsedLineItemIds(current => { const next = new Set(current); next.delete(id); return next; });
     if (updateQuoteName && !isQuoteNameCustomized) {
       setProjectForm((current) => ({
         ...current,
         projectName: quoteNameFromFileNames(nextFileNames),
       }));
     }
-    persistCadFileAndPreview(id, file);
+    persistCadFileAndPreview(id, file, declaration);
+    return id;
   }
 
-  function handleCadFilesSelected(id: string, files: File[]) {
+  function handleCadFilesSelected(id: string, files: File[], declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
+    const uploadError = files.map(cadUploadError).find(Boolean);
+    if (uploadError) { setError(uploadError); return; }
     const [firstFile, ...additionalFiles] = files;
 
     if (!firstFile) {
@@ -3613,18 +3792,64 @@ export function RequestForm({
     if (!isQuoteNameCustomized) {
       setProjectForm((current) => ({
         ...current,
-        projectName: quoteNameFromFileNames(files.map((file) => file.name)),
+        projectName: quoteNameFromFileNames([...lineItems.map(item => item.id === id ? firstFile.name : item.fileName).filter(Boolean), ...additionalFiles.map(file => file.name)]),
       }));
     }
-    handleCadFileSelected(id, firstFile, files.length === 1);
-    additionalFiles.forEach((file) => appendCadLineItem(file, false));
+    handleCadFileSelected(id, firstFile, files.length === 1, declaration);
+    additionalFiles.forEach((file) => appendCadLineItem(file, false, declaration));
   }
 
-  function handleNewCadFilesSelected(files: File[]) {
-    files.forEach((file) => appendCadLineItem(file));
+  function stageCadFiles(files: File[], targetId?: string) {
+    if (submittingRef.current || !files.length) return;
+    const uploadError = files.map(cadUploadError).find(Boolean);
+    if (uploadError) { setError(uploadError); return; }
+    setError(null);
+    setPreparedModels(current => current.filter(model => model.approved && lineItems.some(item => item.selectedFile === model.file)));
+    setStagedCad({ files, targetId });
+    void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
+    // Keep advance processing separate from the customer's unanswered declaration.
+    const declaration: UploadDeclaration = { restrictionStatus: "unconfirmed", restrictionPolicyVersion, processingIntent: "advance_cad_preview" };
+    files.forEach(file => {
+      if (pendingFileUploadsRef.current.has(file)) return;
+      const upload = uploadRequestDraftFile(file, declaration).catch(() => null);
+      pendingFileUploadsRef.current.set(file, upload);
+      void upload.then(stored => {
+        if (stored) return requestCadPreview(file, stored, declaration);
+        pendingFileUploadsRef.current.delete(file);
+      });
+    });
   }
 
-  function handleTechnicalDrawingSelected(id: string, file: File | null) {
+  function confirmExportRestrictions(status: string, intendedUse?: { endUse: string; endUseNotes: string }) {
+    if (submittingRef.current) return;
+    // Additional/replacement parts must not overwrite the quote’s intended use.
+    if (stagedCad && lineItems.some(item => item.fileName.trim()) &&
+        ["prototype", "commercial"].includes(projectForm.endUse) &&
+        intendedUse && intendedUse.endUse !== projectForm.endUse) return;
+    const declaration = { ...projectForm, restrictionStatus: status, restrictionPolicyVersion };
+    setProjectForm(current => ({ ...current, restrictionStatus: status, restrictionPolicyVersion, ...(intendedUse ?? {}) }));
+    const pending = stagedCad;
+    if (status === "unrestricted" && pending) setPreparedModels(current => current.map(model => pending.files.includes(model.file) ? { ...model, approved: true } : model));
+    setStagedCad(null);
+    if (intakeUploadError(status, restrictionPolicyVersion) || !pending) return;
+    if (pending.targetId) {
+      handleCadFilesSelected(pending.targetId, pending.files, declaration);
+      setCollapsedLineItemIds(current => { const next = new Set(current); next.delete(pending.targetId!); return next; });
+      pendingPartRevealRef.current = pending.targetId;
+    } else {
+      if (!isQuoteNameCustomized) setProjectForm(current => ({ ...current, projectName: quoteNameFromFileNames([...lineItems.map(item => item.fileName).filter(Boolean), ...pending.files.map(file => file.name)]) }));
+      const addedIds = pending.files.map(file => appendCadLineItem(file, false, declaration));
+      pendingPartRevealRef.current = addedIds.find((id): id is string => Boolean(id)) ?? null;
+    }
+  }
+
+  async function handleTechnicalDrawingSelected(id: string, file: File | null) {
+    if (submittingRef.current) return;
+    if (file) {
+      const uploadError = manufacturingUploadError(file);
+      if (uploadError) { setError(uploadError); return; }
+    }
+    if (!uploadsAllowed) { setError(restrictionError); return; }
     if (file) {
       ensureLocalDraftId();
       setError(null);
@@ -3635,6 +3860,8 @@ export function RequestForm({
         lineItem.id === id
           ? {
               ...lineItem,
+              fileHistory: [],
+              drawingRevision: lineItem.technicalDrawingName ? "" : lineItem.drawingRevision,
               selectedDrawingFile: file,
               technicalDrawingName: file?.name ?? "",
               technicalDrawingSizeBytes: file?.size ?? 0,
@@ -3655,6 +3882,8 @@ export function RequestForm({
   }
 
   function removeLineItem(id: string) {
+    const removedFile = lineItems.find(item => item.id === id)?.selectedFile;
+    setPreparedModels(current => current.filter(model => model.file !== removedFile));
     const remainingConfiguredLineItems = lineItems.filter(
       (lineItem) => lineItem.id !== id && lineItem.fileName.trim(),
     );
@@ -3707,6 +3936,7 @@ export function RequestForm({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current || !isReady) return;
     setError(null);
 
     const missingCadBytes = configuredLineItems.find(
@@ -3742,78 +3972,83 @@ export function RequestForm({
       return;
     }
 
-    const input: DraftRequestInput = {
-      buyerCompany: projectForm.buyerCompany,
-      requesterName: projectForm.requesterName,
-      title: projectForm.projectName,
-      process: optionLabel(processOptions, projectForm.process),
-      dueDate: projectForm.dueDate,
-      requiresQualityApproval: projectForm.requiresQualityApproval,
-      lineItems: configuredLineItems.map((lineItem, index) => {
-        const noteLines = [
-          index === 0 && projectForm.customerPo.trim()
-            ? `Customer PO#: ${projectForm.customerPo.trim()}`
-            : null,
-          lineItem.notes.trim() ? lineItem.notes.trim() : null,
-          ...drawingRequiredNotes(lineItem),
-        ].filter(Boolean);
-
-        return {
-          partName: lineItem.partName,
-          quantity: Number(lineItem.quantity),
-          material: optionLabel(rfqMaterialOptions, lineItem.material),
-          generalTolerance: optionLabel(
-            generalToleranceOptions,
-            lineItem.generalTolerance,
-          ),
-          surfaceFinish: surfaceFinishDisplayValue(lineItem),
-          qualityDocumentation: lineItem.qualityDocumentation.map((value) =>
-            optionLabel(qualityDocumentationOptions, value),
-          ),
-          notes: noteLines.join("\n"),
-        };
-      }),
-      files: configuredLineItems.flatMap((lineItem, lineItemIndex) => [
-        {
-          lineItemIndex,
-          name: lineItem.fileName,
-          sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
-          storageKey: lineItem.fileStorageKey,
-          type: lineItem.selectedFile?.type || lineItem.fileType || "reference/name-only",
-          cadPreviewUrn: cadPreviewUrnForLineItem(lineItem),
-        },
-        ...(lineItem.technicalDrawingName
-          ? [
-              {
-                lineItemIndex,
-                name: lineItem.technicalDrawingName,
-                sizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
-                storageKey: lineItem.technicalDrawingStorageKey,
-                type:
-                  lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType || "reference/name-only",
-              },
-            ]
-          : []),
-      ]),
-    };
-    const uploadedFiles = configuredLineItems.flatMap((lineItem) => [
-      lineItem.fileStorageKey ? null : lineItem.selectedFile,
-      ...(lineItem.technicalDrawingName
-        ? [lineItem.technicalDrawingStorageKey ? null : lineItem.selectedDrawingFile]
-        : []),
-    ]);
-    const formData = new FormData();
-
-    formData.append("request", JSON.stringify(input));
-    uploadedFiles.forEach((file, index) => {
-      if (file) {
-        formData.append(`file-${index}`, file);
-      }
-    });
-
+    submittingRef.current = true;
+    setIsSubmitting(true);
     try {
+      // Wait for any in-flight uploads and retry failed uploads through the same
+      // direct path. Submission contains references only, even if clicked early.
+      const submissionLineItems = await Promise.all(configuredLineItems.map(async (lineItem) => {
+        const cad = !lineItem.fileStorageKey && lineItem.selectedFile
+          ? await persistDraftUpload(lineItem.selectedFile) : null;
+        const drawing = !lineItem.technicalDrawingStorageKey && lineItem.selectedDrawingFile
+          ? await persistDraftUpload(lineItem.selectedDrawingFile) : null;
+        const fileStorageKey = lineItem.fileStorageKey || cad?.storageKey;
+        const technicalDrawingStorageKey = lineItem.technicalDrawingStorageKey || drawing?.storageKey;
+        if (!fileStorageKey) throw new Error(`${lineItem.fileName} could not be saved. Please try submitting again.`);
+        if (lineItem.technicalDrawingName && !technicalDrawingStorageKey) throw new Error(`${lineItem.technicalDrawingName} could not be saved. Please try submitting again.`);
+        return { ...lineItem, fileStorageKey, technicalDrawingStorageKey };
+      }));
+      setLineItems(current => current.map(item => {
+        const saved = submissionLineItems.find(lineItem => lineItem.id === item.id);
+        return saved ? { ...item, fileStorageKey: saved.fileStorageKey, technicalDrawingStorageKey: saved.technicalDrawingStorageKey } : item;
+      }));
+
+      const input: DraftRequestInput = {
+        title: projectForm.projectName,
+        intakeDeclaration: intakeDeclarationFor(projectForm),
+        process: [...new Set(submissionLineItems.map(item => processLabel(item.process)))].join(" / "),
+        requiresQualityApproval: projectForm.requiresQualityApproval,
+        lineItems: submissionLineItems.map((lineItem) => {
+          const noteLines = [
+            lineItem.notes.trim() ? lineItem.notes.trim() : null,
+            ...drawingRequiredNotes(lineItem),
+          ].filter(Boolean);
+
+          return {
+                  quantity: Number(lineItem.quantity),
+            manufacturingDetails: manufacturingDetailsFor(lineItem),
+            material: optionLabel(rfqMaterialOptions, lineItem.material),
+            generalTolerance: optionLabel(
+              generalToleranceOptions,
+              lineItem.generalTolerance,
+            ),
+            surfaceFinish: surfaceFinishDisplayValue(lineItem),
+            qualityDocumentation: lineItem.qualityDocumentation.map((value) =>
+              optionLabel(qualityDocumentationOptions, value),
+            ),
+            notes: noteLines.join("\n"),
+          };
+        }),
+        files: submissionLineItems.flatMap((lineItem, lineItemIndex) => [
+          {
+            lineItemIndex,
+            name: lineItem.fileName,
+            sizeBytes: lineItem.selectedFile?.size ?? lineItem.fileSizeBytes,
+            storageKey: lineItem.fileStorageKey,
+            type: lineItem.selectedFile?.type || lineItem.fileType || "reference/name-only",
+            cadPreviewUrn: cadPreviewUrnForLineItem(lineItem),
+          },
+          ...(lineItem.technicalDrawingName
+            ? [
+                {
+                  lineItemIndex,
+                  name: lineItem.technicalDrawingName,
+                  sizeBytes: lineItem.selectedDrawingFile?.size ?? lineItem.technicalDrawingSizeBytes,
+                  storageKey: lineItem.technicalDrawingStorageKey,
+                  type:
+                    lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType || "reference/name-only",
+                },
+              ]
+            : []),
+        ]),
+      };
+      const formData = new FormData();
+      formData.append("request", JSON.stringify(input));
+
+      submissionKeyRef.current ??= activeLocalDraftId ?? crypto.randomUUID();
       const response = await fetch("/api/requests", {
         method: "POST",
+        headers: { "Idempotency-Key": submissionKeyRef.current },
         body: formData,
       });
       const payload = await response.json();
@@ -3827,6 +4062,8 @@ export function RequestForm({
       }
       router.replace(`/quotes/${payload.request.id}`);
     } catch (caught) {
+      submittingRef.current = false;
+      setIsSubmitting(false);
       setError(
         caught instanceof Error ? caught.message : "Unable to submit request",
       );
@@ -3861,19 +4098,12 @@ export function RequestForm({
   }
 
   return (
+    <PreparedCadViewerContext.Provider value={preparedViewerContext}>
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         <header className="px-1 pt-1">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h1 className="text-[34px] font-semibold leading-tight tracking-tight text-[#171717] sm:text-[40px]">
-                Request a quote
-              </h1>
-              <p className="mt-2 max-w-3xl text-[15px] leading-6 text-[#656b74]">
-                Upload your CAD files to start a saved RFQ draft. Configure the
-                details, review the package, and submit when it is ready.
-              </p>
-            </div>
+            <RequestFormHeading />
             <div className="flex shrink-0 items-center gap-2 text-[13px] font-medium text-[#656b74] lg:pt-2">
               <CheckCircle2 aria-hidden="true" className="h-[18px] w-[18px]" strokeWidth={1.8} />
               <span>Drafts autosave as you work</span>
@@ -3884,167 +4114,247 @@ export function RequestForm({
               {prefillNotice}
             </p>
           ) : null}
-          <RequestQuoteProgress currentStep={hasCadFile ? 2 : 1} />
+          <RequestQuoteProgress currentStep={isSubmitting ? 3 : hasCadFile ? 2 : 1} />
         </header>
 
-        <section className="space-y-6 rounded-md border border-[#e1e3e6] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-5">
-          {activeDrawingLineItem ? (
-            <TechnicalDrawingReviewModal
-              lineItem={activeDrawingLineItem}
-              drawingPreviewUrl={drawingPreviewUrl}
-              onClose={() => setDrawingReviewLineItemId(null)}
-              onDrawingSelected={handleTechnicalDrawingSelected}
-              onRemove={() => removeTechnicalDrawing(activeDrawingLineItem.id)}
-              updateLineItem={updateLineItem}
-              updateLineItemFlag={updateLineItemFlag}
-            />
-          ) : null}
+        <WorkspaceContentReveal className="space-y-6">
+          <section className={`space-y-6 ${separatePartContainers && hasCadFile ? "" : requestCardClass}`}>
+            {uploadsAllowed && activeDrawingLineItem ? (
+              <TechnicalDrawingReviewModal
+                lineItem={activeDrawingLineItem}
+                drawingPreviewUrl={drawingPreviewUrl}
+                onClose={() => setDrawingReviewLineItemId(null)}
+                onDrawingSelected={handleTechnicalDrawingSelected}
+                onRemove={() => removeTechnicalDrawing(activeDrawingLineItem.id)}
+                updateLineItem={updateLineItem}
+                updateLineItemFlag={updateLineItemFlag}
+              />
+            ) : null}
 
-          {hasCadFile ? (
-            <div className="border-b border-slate-100 pb-4">
-              <div className="max-w-2xl">
-                <div className="text-sm font-medium text-slate-700">
-                  {isQuoteNameEditing ? (
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                      <span className="shrink-0 text-slate-600">
-                        Quote name:
-                      </span>
-                      <input
-                        aria-label="Quote name"
-                        className={`${inputClass} min-w-0 flex-1`}
-                        placeholder="Aluminum plate reorder"
-                        ref={quoteNameInputRef}
-                        value={draftQuoteName}
-                        onChange={(event) =>
-                          setDraftQuoteName(event.target.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            saveQuoteNameEdit();
+            <div className={`space-y-6 ${separatePartContainers && hasCadFile ? requestCardClass : ""}`}>
+            {hasCadFile ? (
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-slate-700">
+                    {isQuoteNameEditing ? (
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                        <span className="shrink-0 text-slate-600">
+                          Quote name:
+                        </span>
+                        <input
+                          aria-label="Quote name"
+                          className={`${inputClass} min-w-0 flex-1`}
+                          placeholder="Aluminum plate reorder"
+                          ref={quoteNameInputRef}
+                          value={draftQuoteName}
+                          onChange={(event) =>
+                            setDraftQuoteName(event.target.value)
                           }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              saveQuoteNameEdit();
+                            }
 
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            cancelQuoteNameEdit();
-                          }
-                        }}
-                      />
-                      <div className="flex shrink-0 items-center gap-2">
-                        <button
-                          className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white transition hover:bg-blue-800"
-                          onClick={saveQuoteNameEdit}
-                          type="button"
-                        >
-                          <Check className="h-4 w-4" />
-                          <span>Save</span>
-                        </button>
-                        <button
-                          className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                          onClick={cancelQuoteNameEdit}
-                          type="button"
-                        >
-                          <X className="h-4 w-4" />
-                          <span>Cancel</span>
-                        </button>
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              cancelQuoteNameEdit();
+                            }
+                          }}
+                        />
+                        <div className="flex shrink-0 items-center gap-2">
+                          <button
+                            className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-700 px-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+                            onClick={saveQuoteNameEdit}
+                            type="button"
+                          >
+                            <Check className="h-4 w-4" />
+                            <span>Save</span>
+                          </button>
+                          <button
+                            className="inline-flex h-10 items-center gap-2 rounded-md border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                            onClick={cancelQuoteNameEdit}
+                            type="button"
+                          >
+                            <X className="h-4 w-4" />
+                            <span>Cancel</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-2xl leading-8 text-slate-600">
-                      <span>Quote name: </span>
-                      <button
-                        aria-label="Quote name"
-                        className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                        onDoubleClick={startQuoteNameEdit}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            startQuoteNameEdit();
-                          }
-                        }}
-                        title="Double-click to edit"
-                        type="button"
-                      >
-                        {projectForm.projectName.trim()}
-                      </button>
-                    </p>
-                  )}
+                    ) : (
+                      <p className="break-words text-xl leading-7 text-slate-600">
+                        <span>Quote name: </span>
+                        <button
+                          aria-label="Quote name"
+                          className="rounded-sm font-semibold text-slate-950 transition hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          onDoubleClick={startQuoteNameEdit}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              startQuoteNameEdit();
+                            }
+                          }}
+                          title="Double-click to edit"
+                          type="button"
+                        >
+                          {projectForm.projectName.trim()}
+                        </button>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex min-w-0 max-w-[66.666%] shrink-0 items-center gap-3">
+                  <div className="w-60 min-w-0 shrink">
+                  <CustomSelect
+                    label="Export restrictions"
+                    compact
+                    value={projectForm.restrictionPolicyVersion === restrictionPolicyVersion ? projectForm.restrictionStatus : "unconfirmed"}
+                    placeholder="Confirm export restrictions"
+                    required
+                    disabled={isSubmitting}
+                    onChange={confirmExportRestrictions}
+                    options={[
+                      { value: "unrestricted", label: "No restrictions declared", description: "This quote does not include export-controlled parts, CUI, U.S.-only or other restricted handling requirements." },
+                      { value: "restricted", label: "Subject to export restrictions", description: "Includes ITAR, EAR, dual-use, military/defense, firearms, CUI, U.S.-only or other restricted handling requirements." },
+                    ]}
+                  />
+                  </div>
+                  <div className="w-48 min-w-0 shrink">
+              <CustomSelect
+                label="Intended use"
+                compact
+                accessory={projectForm.endUse === "commercial" ? <Factory className="h-5 w-5 text-slate-700" /> : <FlaskConical className="h-5 w-5 text-slate-700" />}
+                value={["prototype", "commercial"].includes(projectForm.endUse) ? projectForm.endUse : ""}
+                placeholder="Select intended use"
+                required
+                disabled={isSubmitting}
+                onChange={value => setProjectForm(current => ({ ...current, endUse: value, endUseNotes: "" }))}
+                options={[
+                  { value: "prototype", label: "Prototype", description: "I will use exclusively for development, testing, product evaluation or quality control." },
+                  { value: "commercial", label: "Commercial", description: "I intend to incorporate these components into products that are sold for commercial use." },
+                ]}
+              />
+                  </div>
                 </div>
               </div>
+            ) : null}
+            {hasCadFile && restrictionError ? <p role="status" className="text-sm text-amber-900">{restrictionError}</p> : null}
+
+            {!hasCadFile ? (
+              <UploadCadDropZone
+                label="Choose CAD file"
+                onFilesSelected={(files) =>
+                  stageCadFiles(files, lineItems[0].id)
+                }
+              />
+            ) : null}
+
             </div>
-          ) : null}
 
-          {!hasCadFile ? (
-            <UploadCadDropZone
-              label="Choose CAD file"
-              onFilesSelected={(files) =>
-                handleCadFilesSelected(lineItems[0].id, files)
-              }
-            />
-          ) : null}
+            {uploadsAllowed && configuredLineItems.map((lineItem, index) => (
+              <LineItemConfigurationCard
+                key={lineItem.id}
+                index={index}
+                lineItem={lineItem}
+                isCollapsed={collapsedLineItemIds.has(lineItem.id)}
+                canRemove
+                updateLineItem={updateLineItem}
+                updateLineItemFlag={updateLineItemFlag}
+                onToggleCollapsed={toggleLineItemCollapsed}
+                onRemove={removeLineItem}
+                onCadStatus={updateCadPreview}
+                onCadMetadata={(id, metadata) => setLineItems(current => current.map(item => item.id === id ? { ...item, cadMetadata: metadata } : item))}
+                onCadFileSelected={(id, file) =>
+                  file ? stageCadFiles([file], id) : handleCadFileSelected(id, null)
+                }
+                onDrawingSelected={handleTechnicalDrawingSelected}
+                onRemoveDrawing={removeTechnicalDrawing}
+                onReviewDrawing={setDrawingReviewLineItemId}
+                qualityApprovalControl={index === 0 ? <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm text-slate-700">
+                  <input type="checkbox" disabled={isSubmitting} checked={projectForm.requiresQualityApproval} onChange={event => setProjectForm(current => ({ ...current, requiresQualityApproval: event.target.checked }))} className="mt-1" />
+                  <span><strong>Require quality approval before shipment</strong><br />Request Customer Admin approval of inspection documents before Lattice releases this order for shipment. Applies to the entire order; Lattice will confirm this requirement in your quote.</span>
+                </label> : undefined}
+              />
+            ))}
 
-          {configuredLineItems.map((lineItem, index) => (
-            <LineItemConfigurationCard
-              key={lineItem.id}
-              index={index}
-              lineItem={lineItem}
-              isCollapsed={collapsedLineItemIds.has(lineItem.id)}
-              canRemove
-              updateLineItem={updateLineItem}
-              updateLineItemFlag={updateLineItemFlag}
-              onToggleCollapsed={toggleLineItemCollapsed}
-              onRemove={removeLineItem}
-              onCadStatus={updateCadPreview}
-              onCadFileSelected={(id, file) =>
-                handleCadFileSelected(id, file)
-              }
-              onDrawingSelected={handleTechnicalDrawingSelected}
-              onRemoveDrawing={removeTechnicalDrawing}
-              onReviewDrawing={setDrawingReviewLineItemId}
-            />
-          ))}
+            <div className={`space-y-6 ${separatePartContainers && hasCadFile ? requestCardClass : ""}`}>
+            {hasCadFile && uploadsAllowed ? (
+              <UploadCadDropZone
+                compact
+                label="Upload another CAD file"
+                onFilesSelected={(files) => stageCadFiles(files)}
+              />
+            ) : null}
 
-          {hasCadFile ? (
-            <UploadCadDropZone
-              compact
-              label="Upload another CAD file"
-              onFilesSelected={handleNewCadFilesSelected}
-            />
-          ) : null}
 
-          <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
-            <input type="checkbox" checked={projectForm.requiresQualityApproval} onChange={(event) => setProjectForm((current) => ({ ...current, requiresQualityApproval: event.target.checked }))} className="mt-1" />
-            <span><strong>Require quality approval before shipment</strong><br />Request Customer Admin approval of inspection documents before Lattice releases this order for shipment. Lattice will confirm this requirement in your quote.</span>
-          </label>
+            {error ? (
+              <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {error}
+              </p>
+            ) : null}
 
-          {error ? (
-            <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-              {error}
-            </p>
-          ) : null}
-
-          {hasCadFile ? (
-            <div className="border-t border-slate-100 pt-6">
-              <button
-                className="cursor-pointer rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
-                disabled={!isReady}
-                type="submit"
-              >
-                Request Quote
-              </button>
+            {hasCadFile ? (
+              <div className="border-t border-slate-100 pt-6">
+                <section aria-label="Configuration checklist" className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="font-semibold text-slate-950">{isReady ? "Ready to submit" : "Complete your configuration"}</h3>
+                  {!["prototype", "commercial"].includes(projectForm.endUse) ? <p className="mt-2 text-sm text-amber-800">Select the intended use above.</p> : null}
+                  {restrictionError ? <p className="mt-2 text-sm text-amber-800">Confirm export restrictions above before continuing.</p> : null}
+                  {!projectForm.projectName.trim() ? <button type="button" onClick={startQuoteNameEdit} className="mt-2 text-sm text-blue-700 underline">Enter a quote name</button> : null}
+                  <ul className="mt-3 space-y-3">
+                    {configuredLineItems.map((item, index) => {
+                      const missing = missingLineItemFields(item);
+                      return <li key={item.id} className="text-sm">
+                        <p className="font-medium text-slate-800">Part {index + 1}: {displayNameFromFile(item.fileName)}</p>
+                        {missing.length ? <ul className="mt-1 space-y-1">{missing.map(issue => <li key={issue.field}>
+                          <button type="button" className="min-h-9 text-left text-blue-700 underline underline-offset-2" onClick={() => focusConfigurationField(item.id, issue.field)}>{issue.label}</button>
+                        </li>)}</ul> : <p className="mt-1 flex items-center gap-1.5 text-slate-600"><Check aria-hidden="true" className="h-4 w-4" />Configuration complete</p>}
+                      </li>;
+                    })}
+                  </ul>
+                </section>
+                <button
+                  className="cursor-pointer rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
+                  disabled={!isReady || isSubmitting}
+                  aria-busy={isSubmitting}
+                  type="submit"
+                >
+                  {isSubmitting ? "Submitting…" : "Request Quote"}
+                </button>
+              </div>
+            ) : null}
             </div>
-          ) : null}
-        </section>
+          </section>
 
-        {shouldShowResumePanel ? (
-          <ResumeQuotePanel
-            onArchived={removeArchivedResumeRequest}
-            onArchiveDraft={archiveResumeRequest}
-            requests={resumeChoices}
-          />
-        ) : null}
+          {shouldShowResumePanel ? (
+            <ResumeQuotePanel
+              onArchived={removeArchivedResumeRequest}
+              onArchiveDraft={archiveResumeRequest}
+              requests={resumeChoices}
+              savedStates={localResumeStates}
+            />
+          ) : null}
+        </WorkspaceContentReveal>
       </form>
 
+      {stagedCad ? <ExportRestrictionsDialog
+        files={stagedCad ? stagedCad.files.map(file => file.name) : configuredLineItems.map(item => item.fileName)}
+        initialEndUse={projectForm.endUse}
+        quoteEndUse={configuredLineItems.length && ["prototype", "commercial"].includes(projectForm.endUse) ? projectForm.endUse : undefined}
+        isNewSelection={Boolean(stagedCad)}
+        initialStatus={stagedCad ? "unconfirmed" : projectForm.restrictionStatus}
+        onRemoveFile={stagedCad ? (index) => {
+          const removedFile = stagedCad.files[index];
+          setPreparedModels(current => current.filter(model => model.file !== removedFile));
+          setStagedCad(current => current ? { ...current, files: current.files.filter((_, i) => i !== index) } : null);
+        } : undefined}
+        onClose={() => { setPreparedModels(current => current.filter(model => model.approved)); setStagedCad(null); }}
+        onConfirm={confirmExportRestrictions}
+      /> : null}
+
+      {activePreparedModels.map(model => <PreparedCadModelHost key={model.urn} urn={model.urn} target={preparedTargets[model.urn] ?? null}
+        onMetadata={metadata => setPreparedModels(current => current.map(item => item.urn === model.urn ? { ...item, metadata } : item))} />)}
+
     </div>
+    </PreparedCadViewerContext.Provider>
   );
 }

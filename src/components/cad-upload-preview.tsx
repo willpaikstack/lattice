@@ -1,8 +1,12 @@
 "use client";
+import type { CadMetadata } from "@/lib/rfq-manufacturing";
+import { ReusableCadViewer } from "./prepared-cad-viewer";
+import { cadAccept } from "@/lib/cad-upload-policy";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { refreshCadPreviewState } from "@/lib/cad-preview-status";
 
-import { AutodeskModelViewer } from "@/components/autodesk-model-viewer";
+import { preloadAutodeskViewerAssets } from "@/components/autodesk-model-viewer";
 
 export type CadUploadPreviewState =
   | { status: "empty" }
@@ -14,42 +18,43 @@ export type CadUploadPreviewState =
   | { status: "failed"; fileName: string; message: string };
 
 export function CadUploadPreview({
+  onMetadata,
   onReplacementFileSelected,
   state,
   onStatus,
 }: {
+  onMetadata?: (metadata: CadMetadata) => void;
   onReplacementFileSelected?: (file: File | null) => void;
   state: CadUploadPreviewState;
   onStatus: (state: CadUploadPreviewState) => void;
 }) {
+  const previewStatus = state.status;
   useEffect(() => {
-    if (state.status !== "processing") {
-      return;
+    if (previewStatus === "uploading" || previewStatus === "processing") {
+      void preloadAutodeskViewerAssets().catch(() => { /* The viewer retries when the model is ready. */ });
     }
+  }, [previewStatus]);
 
-    const interval = window.setInterval(async () => {
+  const onStatusRef = useRef(onStatus);
+  useEffect(() => { onStatusRef.current = onStatus; }, [onStatus]);
+  const processingUrn = state.status === "processing" ? state.urn : "";
+  const processingFileName = state.status === "processing" ? state.fileName : "";
+  useEffect(() => {
+    if (!processingUrn) return;
+    let cancelled = false;
+    let checking = false;
+    async function checkStatus() {
+      if (checking) return;
+      checking = true;
       try {
-        const response = await fetch(`/api/cad-previews/status?urn=${encodeURIComponent(state.urn)}`);
-        const payload = await response.json();
-
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Unable to inspect CAD preview");
-        }
-
-        if (payload.preview.status === "ready") {
-          onStatus({ status: "ready", fileName: state.fileName, urn: state.urn });
-        } else if (payload.preview.status === "failed") {
-          onStatus({ status: "failed", fileName: state.fileName, message: "Autodesk could not translate this CAD file." });
-        } else {
-          onStatus({ status: "processing", fileName: state.fileName, urn: state.urn, progress: payload.preview.progress ?? "processing" });
-        }
-      } catch (caught) {
-        onStatus({ status: "failed", fileName: state.fileName, message: caught instanceof Error ? caught.message : "Unable to inspect CAD preview" });
-      }
-    }, 5000);
-
-    return () => window.clearInterval(interval);
-  }, [onStatus, state]);
+        const next = await refreshCadPreviewState({ status: "processing", fileName: processingFileName, urn: processingUrn, progress: "pending" });
+        if (!cancelled) onStatusRef.current(next);
+      } finally { checking = false; }
+    }
+    void checkStatus();
+    const interval = window.setInterval(() => { void checkStatus(); }, 2000);
+    return () => { cancelled = true; window.clearInterval(interval); };
+  }, [processingUrn, processingFileName]);
 
   if (state.status === "empty") {
     return null;
@@ -58,7 +63,7 @@ export function CadUploadPreview({
   if (state.status === "ready") {
     return (
       <div className="mt-4 text-left">
-        <AutodeskModelViewer urn={state.urn} />
+        <ReusableCadViewer urn={state.urn} onMetadata={onMetadata} />
       </div>
     );
   }
@@ -102,7 +107,7 @@ export function CadUploadPreview({
             <label className="mt-4 inline-flex cursor-pointer rounded-md border border-blue-200 bg-white px-3 py-2 text-sm font-semibold text-blue-900 transition hover:bg-blue-50">
               <span>Upload replacement CAD</span>
               <input
-                accept=".step,.stp,.iges,.igs,.sldprt,.sat,.x_t,.x_b,.ipt"
+                accept={cadAccept}
                 aria-label={`Upload replacement CAD for ${state.fileName}`}
                 className="sr-only"
                 type="file"

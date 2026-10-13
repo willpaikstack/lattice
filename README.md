@@ -87,6 +87,8 @@ Live CAD translation previews require Autodesk Platform Services credentials in 
 
 See `docs/autodesk-aps-cad-preview.md` for setup, bucket naming, and secret-rotation guidance.
 
+RFQ files upload directly to the private R2/S3 bucket in remote-storage mode; the CAD preview then streams the saved file to Autodesk. Before deploying this path, configure the bucket's browser CORS rule as described in that guide. Local development retains filesystem uploads.
+
 After setting the variables and restarting the server, visit `/api/cad-previews/configuration` to verify that the server can authenticate with Autodesk without exposing any secrets.
 
 ## Google Workspace SSO setup

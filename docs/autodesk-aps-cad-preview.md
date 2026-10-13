@@ -2,7 +2,13 @@
 
 Lattice uses Autodesk Platform Services (APS) to translate native CAD files into browser-viewable models for the RFQ upload preview.
 
+## Account Ownership
+
+The `Lattice CAD Preview` APS application in the `Lattice OS Dev` developer hub is owned by `will@latticeos.co`. Autodesk confirmed the ownership transfer on 2026-10-08. The existing application was transferred, preserving its Client ID and app configuration; do not create a replacement app or rotate credentials solely because of the ownership change. The personal email `paik.e.william@gmail.com` was removed from the `Lattice OS Dev` hub on 2026-10-08. The work account remains a Hub Admin and app Owner. The corresponding `APS_CLIENT_ID`, `APS_CLIENT_SECRET`, and `APS_BUCKET_KEY` are already configured in Vercel Development, Preview, and Production (2026-08-18). Secret values must remain in the secret manager and must not be copied into this document.
+
 ## Local Setup
+
+Capacity audit (2026-10-12): [Autodesk upload limits](audits/autodesk-upload-limits-2026-10-12.md) records the live hub usage and current rate sheet. Free Model Derivative allowances are 60 simple jobs, 20 complex jobs and 300,000 basic calls per month; paid rates shown are $1/simple job, $4.50/complex job and $3/300,000 basic calls. The work login owns the APS application but has the User role on the Autodesk billing team, so its actual offering and remaining balance require confirmation by the team's billing administrator. Do not infer Free/Paid status from an empty product list.
 
 1. Create or open an Autodesk Platform Services app in the APS developer hub.
 2. Copy the app's Client ID and Client Secret.
@@ -53,6 +59,36 @@ When APS preview is enabled, uploaded CAD files are sent to Autodesk for transla
 
 ## Product Behavior
 
+### Preview speed stage 1 — 2026-10-12
+
+- Viewer JavaScript and CSS start loading as soon as a valid CAD selection opens the export-restrictions popup, overlapping the buyer’s decision time. Valid CAD selection now also starts upload and APS translation during the unanswered popup, using a distinct advance_cad_preview intent and an unconfirmed declaration. No → Continue reuses the cached upload and translation promises for each File object, avoiding a second upload or translation. The processing note beneath the file list was removed at the user’s request. Selecting Yes or discarding the popup blocks proceeding with the batch but does not retract uploaded bytes or cancel APS translation. Ordinary drawing intake and RFQ submission still require an unrestricted declaration. Multiple parts share one asset-loading promise. A failed preload can retry when a model becomes ready.
+- Fitted geometry is shown before Measure, Explode, and Section finish loading. Tool loading no longer holds the preview behind the loading overlay.
+- The RFQ browser uploads a file once to the private R2/S3 bucket using an authenticated, company-scoped, 15-minute signed PUT. The signature fixes its content type, byte length, original-name metadata, and unique object key. Upload completion verifies the object with HEAD before returning a usable file reference.
+- `/api/cad-previews` accepts a saved storage reference, verifies current-session ownership and actual stored CAD size/extension, and streams that object to Autodesk. No second CAD upload from the browser is needed. Existing multipart callers remain supported.
+- Submission awaits pending uploads and retries failed saves through the same upload path, then sends references only. Translation completion remains optional for submission. CAD and drawing uploads are limited to 200 MiB per file, shown as 200 MB in the UI.
+- Private downloads authorize the request first, then redirect to a five-minute signed GET in remote-storage mode. This avoids Vercel's response-size limit for large CAD and PDF files. Development retains local file uploads/downloads.
+- Translation reuse and completion webhooks are future stages. The existing five-second status checks and SVF2 output remain.
+
+### Required bucket CORS setup for direct uploads
+
+Before deploying stage 1, allow PUT/GET/HEAD requests from the exact customer app origin on the private R2/S3 bucket. CORS does not make objects public or replace upload signatures. Include any Preview origin explicitly when testing a preview deployment; do not broadly allow every Vercel project.
+
+Use an environment file containing the intended bucket's `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, and `S3_SECRET_ACCESS_KEY`. It must remain gitignored. The helper reads the existing configuration, merges a dedicated rule, and preserves other rules:
+
+```bash
+# Review without changing the bucket.
+node scripts/configure-rfq-storage-cors.mjs --env-file /absolute/path/to/storage.env --origin https://latticeos.co
+
+# Apply the reviewed rule using credentials allowed to manage bucket CORS.
+node scripts/configure-rfq-storage-cors.mjs --env-file /absolute/path/to/storage.env --origin https://latticeos.co --apply
+```
+
+For remote-storage development, also set `LOCAL_FILE_STORAGE_ENABLED=false` and allow the local app origin. The helper permits Content-Type/Content-Length/Range headers and exposes ETag/Content-Length/Content-Range. The SDK signs byte length; browsers supply Content-Length from the selected File automatically. No storage secret reaches the browser, and signed URLs are not persisted in drafts.
+
+Official references: [R2 presigned URLs](https://developers.cloudflare.com/r2/api/s3/presigned-urls/), [R2 CORS](https://developers.cloudflare.com/r2/buckets/cors/).
+
+Deployment checks: upload a synthetic CAD file larger than 4.5 MB, confirm it saves and translates, submit during translation, reopen the draft, download the stored CAD/drawing, and confirm another company cannot complete, translate, or download those keys. Test the browser CORS preflight and signed PUT against the actual bucket. Verify rendering and Measure/Explode/Section on a representative solid model. The implementation computer has local storage enabled and no remote S3/R2 credentials; the live bucket rule, browser upload, and measured latency improvement have not been verified here. No deployment was performed in this session.
+
 CAD translation is asynchronous. Do not block RFQ configuration or submission on APS preview readiness. The upload form should show a clear background-processing state while persisting the CAD file and any returned preview URN for later reuse.
 
 The embedded Autodesk Viewer should expose a focused native Autodesk toolbar. Avoid adding a separate Lattice toolbar overlay for controls Autodesk already provides.
@@ -64,3 +100,21 @@ Viewer extensions loaded for native Autodesk controls:
 - `Section` - loads `Autodesk.Section` for sectional inspection through Autodesk's native section analysis tool.
 
 The RFQ upload preview intentionally hides the default navigation, camera, model tree, properties, settings, and full-screen toolbar buttons for now so the customer only sees the manufacturing-relevant actions: measure, explode model, and section analysis.
+
+## Upload policy verification — 2026-10-10
+
+An authenticated read of APS `GET /modelderivative/v2/designdata/formats` returned HTTP 200 and confirmed that STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, and IPT all support SVF2. Lattice intentionally accepts this manufacturing-part subset, rather than every Autodesk input type. The shared policy is `src/lib/cad-upload-policy.ts`; it powers picker hints, labels, client guards, and server preview validation. CAD files must be nonempty and at most 200 MiB. PDF/DXF/DWG/PNG/JPG/JPEG remain separate drawing attachments; PDF is not accepted as a part model. Format support does not certify a particular file’s integrity, native version, or external dependencies. No test geometry was uploaded to Autodesk during this verification.
+
+
+### Early processing status correction — 2026-10-12
+
+Step 1 already starts APS translation after file persistence finishes. Previously the cached start result always read queued, and polling began only when Configure mounted, after an additional five-second wait. The popup now polls each pending translation every two seconds; Configure refreshes the cached result immediately before displaying it and its own polling starts immediately. Both the local status endpoint and the Autodesk manifest request avoid cached responses. Temporary status/network failures preserve the running job and retry on the next poll, without submitting another translation. APS may still genuinely be queued or processing after a minute; completed translation also still requires browser model download/render.
+
+
+### Prepared model handoff — 2026-10-12
+
+After the first CAD file in a staged batch translates successfully, its actual model loads into a sized, invisible/inert parking region behind the restrictions popup. A stable React portal container is reparented into the configured part’s viewer slot on Continue. The Autodesk viewer component and WebGL canvases are preserved; no second Document.load/loadDocumentNode is required for that handoff. A ResizeObserver resizes/refits the preserved model to the configured card. Geometry metadata captured during preparation flows into the existing part metadata callback. Other parts in the batch load normally; only one unconfirmed model per batch is prepared. Previously accepted prepared viewers remain associated with their own parts until removal/replacement/unmount.
+
+Back/Close removes unaccepted prepared viewers; removing a staged file or an accepted part, replacing its CAD, or leaving the form disposes unused viewer instances and detaches portal containers. This does not cancel APS cloud jobs or erase already uploaded files. Prepared models are scoped to the current form session, not a persistent cross-user or content-hash cache. Fresh translation time is unchanged; continuing before translation/preparation completes still shows normal loading.
+
+Live A10201.SLDPRT verification found a ready 600 × 320 viewer with two canvases while the popup remained open. After Continue, the same instance ID and canvas count appeared in the card at approximately 351 × 320, with visibility observed about 0.295 seconds after the click. This is one local warm-model observation including automation overhead, not a latency guarantee. Evidence: `output/qa/cad-model-preload-2026-10-12/viewer-handoff.json`.

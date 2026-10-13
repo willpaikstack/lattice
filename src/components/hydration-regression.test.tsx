@@ -11,6 +11,8 @@ import { RequestForm } from "./request-form";
 
 const routerPushMock = vi.hoisted(() => vi.fn());
 
+vi.mock("./workspace-content-reveal", () => ({ WorkspaceContentReveal: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: routerPushMock,

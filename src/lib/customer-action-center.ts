@@ -87,10 +87,10 @@ function buildSupplierQuestionWorkflow(request: LatticeRequest): CustomerActionW
 
   return {
     completedSteps: 1,
-    ctaLabel: "Review request",
+    ctaLabel: "Reply to Lattice",
     detail: request.operatorReview.internalNotes || "Lattice needs additional information before supplier pricing can continue.",
     dueLabel: "Customer response needed",
-    href: `/quotes/${request.id}`,
+    href: `/quotes/${request.id}#clarification`,
     id: `supplier-question:${request.id}`,
     occurredAt: request.updatedAt,
     owner: "Customer",
@@ -106,40 +106,42 @@ function buildSupplierQuestionWorkflow(request: LatticeRequest): CustomerActionW
   };
 }
 
-function buildQuoteWorkflow(request: LatticeRequest, now: Date): CustomerActionWorkflow | null {
+function buildQuoteWorkflow(request: LatticeRequest, now: Date, renewalRequested: boolean): CustomerActionWorkflow | null {
   if (request.status !== "QUOTED") {
     return null;
   }
 
   const quote = request.customerQuotes.at(-1);
-  const daysRemaining = quote?.validUntil ? calendarDaysBetween(quote.validUntil, now) : null;
+  const validUntil = quote?.validUntil || request.quote.quoteValidUntil;
+  const daysRemaining = validUntil ? calendarDaysBetween(validUntil, now) : null;
   const isExpiring = daysRemaining !== null && daysRemaining <= 7;
-  const isExpired = daysRemaining !== null && daysRemaining < 0;
+  const isExpired = !validUntil || (daysRemaining !== null && daysRemaining < 0);
   const isUrgent = daysRemaining !== null && daysRemaining <= 2;
+  const awaitingRenewal = isExpired && renewalRequested;
 
   return {
     completedSteps: 1,
-    ctaLabel: isExpired ? "Review expired quote" : "Review quote",
-    detail: isExpired
-      ? "The quoted validity period has passed. Review the terms and contact Lattice before placing the order."
+    ctaLabel: awaitingRenewal ? "View renewal status" : isExpired ? "Request renewed quote" : "Review and accept quote",
+    detail: awaitingRenewal ? "Your request is saved. Lattice is reviewing current pricing and lead time; review the new quote once it is issued." : isExpired
+      ? "Request updated pricing and lead time. Lattice must issue a renewed quote before you can purchase."
       : "Review pricing, lead time, assumptions, and checkout options before making a purchasing decision.",
-    dueLabel: quote?.validUntil ? relativeDateLabel(quote.validUntil, now, "Expires") : "No expiration date",
-    href: `/quotes/${request.id}`,
+    dueLabel: awaitingRenewal ? "Waiting for Lattice" : validUntil ? relativeDateLabel(validUntil, now, "Expires") : "Validity needs confirmation",
+    href: `/quotes/${request.id}${isExpired ? "#quote-renewal" : ""}`,
     id: `${isExpiring ? "quote-expiring" : "quote-review"}:${request.id}`,
     occurredAt: quote?.issuedAt ?? request.updatedAt,
-    owner: "Customer",
-    priority: isExpired ? "critical" : isUrgent ? "high" : "normal",
+    owner: awaitingRenewal ? "Lattice" : "Customer",
+    priority: awaitingRenewal ? "normal" : isExpired ? "critical" : isUrgent ? "high" : "normal",
     reference: quoteReference(request),
     steps: [
       { id: "received", label: "Supplier pricing received", state: "complete" },
-      { id: "review", label: "Review price, timing, and assumptions", state: "current" },
+      { id: "review", label: isExpired ? "Request renewed pricing and lead time" : "Review price, timing, and assumptions", state: "current" },
       {
         id: "decision",
-        label: isExpired ? "Contact Lattice for renewed pricing" : "Accept the quote or request support",
+        label: isExpired ? "Lattice reissues the quote; review and accept it" : "Accept the quote or request support",
         state: "upcoming",
       },
     ],
-    title: isExpired ? "Quote needs renewal" : isExpiring ? "Quote expires soon" : "Quote ready for review",
+    title: awaitingRenewal ? "Quote renewal requested" : isExpired ? "Quote needs renewal" : isExpiring ? "Quote expires soon" : "Quote ready for review",
     type: isExpiring ? "quote_expiring" : "quote_review",
   };
 }
@@ -155,9 +157,9 @@ function buildOrderDelayWorkflow(order: LatticeRequest, now: Date): CustomerActi
   return {
     completedSteps: 0,
     ctaLabel: "Review delay",
-    detail: `${orderNextStep(order)} is past its expected date. Review the latest Lattice update and revised plan.`,
+    detail: `${orderNextStep(order)} is past its expected date. Lattice owns the schedule update; review order activity or use Order help to request an update.`,
     dueLabel: milestoneDate ? relativeDateLabel(milestoneDate, now, "Due") : "Milestone overdue",
-    href: `/orders/${order.id}`,
+    href: `/orders/${order.id}#order-activity`,
     id: `order-delay:${order.id}:${milestoneDate}`,
     occurredAt: order.updatedAt,
     owner: order.supplierOrder.responsibleParty || "Lattice",
@@ -216,9 +218,9 @@ function buildCustomerRequirementWorkflow(order: LatticeRequest): CustomerAction
   return {
     completedSteps: 1,
     ctaLabel: "Review documents",
-    detail: `${documents.length} customer-facing ${documents.length === 1 ? "document is" : "documents are"} ready to review and retain with the order record.`,
+    detail: `Review ${documents.length} ${documents.length === 1 ? "document" : "documents"}. Your company’s Customer Admin must approve the current package to clear the shipment hold.`,
     dueLabel: "Review requested",
-    href: `/orders/${order.id}`,
+    href: `/orders/${order.id}#quality-documents`,
     id: `customer-requirement:${order.id}:documents`,
     occurredAt: latestDocument?.uploadedAt ?? order.updatedAt,
     owner: "Customer",
@@ -227,7 +229,7 @@ function buildCustomerRequirementWorkflow(order: LatticeRequest): CustomerAction
     steps: [
       { id: "uploaded", label: "Production documents uploaded", state: "complete" },
       { id: "review", label: "Review the available files", state: "current" },
-      { id: "retain", label: "Save or share required records", state: "upcoming" },
+      { id: "retain", label: "Customer Admin approves the current document package", state: "upcoming" },
     ],
     title: "Order documents need review",
     type: "customer_requirement",
@@ -238,13 +240,15 @@ export function buildCustomerActionWorkflows({
   now = new Date(),
   orders = [],
   quotes = [],
+  pendingRenewalIds = new Set<string>(),
 }: {
   now?: Date;
   orders?: LatticeRequest[];
   quotes?: LatticeRequest[];
+  pendingRenewalIds?: ReadonlySet<string>;
 }): CustomerActionWorkflow[] {
   const quoteWorkflows = quotes.flatMap((request) => {
-    const workflows = [buildSupplierQuestionWorkflow(request), buildQuoteWorkflow(request, now)];
+    const workflows = [buildSupplierQuestionWorkflow(request), buildQuoteWorkflow(request, now, pendingRenewalIds.has(request.id))];
     return workflows.filter((workflow): workflow is CustomerActionWorkflow => workflow !== null);
   });
   const orderWorkflows = orders.flatMap((order) => {

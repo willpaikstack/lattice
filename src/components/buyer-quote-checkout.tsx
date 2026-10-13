@@ -74,15 +74,17 @@ function formatFileSize(sizeBytes: number) {
   return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function FieldLabel({ children }: { children: ReactNode }) {
-  return <label className="text-[12px] font-semibold text-[#4b525c]">{children}</label>;
+function FieldLabel({ children, htmlFor }: { children: ReactNode; htmlFor?: string }) {
+  return <label className="text-[12px] font-semibold text-[#4b525c]" htmlFor={htmlFor}>{children}</label>;
 }
 
-function TextInput({ defaultValue, name, placeholder, type = "text" }: { defaultValue?: string; name: string; placeholder?: string; type?: string }) {
+function TextInput({ defaultValue, id, maxLength, name, placeholder, type = "text" }: { defaultValue?: string; id?: string; maxLength?: number; name: string; placeholder?: string; type?: string }) {
   return (
     <input
       className="mt-2 h-10 w-full rounded-md border border-[#dedede] bg-white px-3 text-[13px] text-[#202020] outline-none transition placeholder:text-[#a0a6af] focus:border-[#9b9b9b]"
       defaultValue={defaultValue}
+      id={id}
+      maxLength={maxLength}
       name={name}
       placeholder={placeholder}
       type={type}
@@ -393,6 +395,11 @@ export function BuyerQuoteCheckout({
                         </span>
                       ))}
                     </div>
+                  </div>
+                  <div className="mt-4 max-w-md">
+                    <FieldLabel htmlFor="customerPoNumber">Customer PO reference (optional)</FieldLabel>
+                    <TextInput defaultValue={request.purchasePayment.customerPoNumber} id="customerPoNumber" maxLength={100} name="customerPoNumber" placeholder="PO-1047" />
+                    <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">For your records and invoice matching. Payment is still due by card.</p>
                   </div>
                   <div className="mt-4 grid gap-3">
                     {hostedCheckout ? <p className="text-[13px] leading-5 text-[#5f6670]">{checkoutAvailable ? "Continue to Stripe to review sales tax and the final payable total before entering your card." : "Card purchasing is being configured. Contact support@latticeos.co for help with this quote."}</p> : <StripeElementsPayment

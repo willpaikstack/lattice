@@ -1,3 +1,4 @@
+import { purgeLegacyRfqValues } from "@/lib/purge-legacy-rfq-values";
 import { NextResponse } from "next/server";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { getPrismaClient } from "@/lib/prisma";
@@ -29,8 +30,8 @@ export async function POST(request: Request) {
     const existing = await ctx.client.customerRequestDraft.findUnique({ where: { id } });
     const editedAt = new Date(draft.updatedAt);
     if (existing?.contents && typeof existing.contents === "object" && !Array.isArray(existing.contents) && existing.contents.deleted === true) continue;
-    await ctx.client.customerRequestDraft.createMany({ data: [{ id, ownerScope: ctx.ownerScope, contents: draft as Prisma.InputJsonValue, editedAt }], skipDuplicates: true });
-    await ctx.client.customerRequestDraft.updateMany({ where: { id, ownerScope: ctx.ownerScope, editedAt: { lte: editedAt }, contents: { path: ["request", "status"], equals: "DRAFT" } }, data: { contents: draft as Prisma.InputJsonValue, editedAt } });
+    await ctx.client.customerRequestDraft.createMany({ data: [{ id, ownerScope: ctx.ownerScope, contents: purgeLegacyRfqValues(draft) as Prisma.InputJsonValue, editedAt }], skipDuplicates: true });
+    await ctx.client.customerRequestDraft.updateMany({ where: { id, ownerScope: ctx.ownerScope, editedAt: { lte: editedAt }, contents: { path: ["request", "status"], equals: "DRAFT" } }, data: { contents: purgeLegacyRfqValues(draft) as Prisma.InputJsonValue, editedAt } });
   }
   return NextResponse.json({ saved: true });
 }

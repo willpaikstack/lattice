@@ -266,6 +266,7 @@ model AccountDefaults {
 }
 
 model Request {
+  intakeDeclaration               Json?
   id                              String                           @id @default(cuid())
   title                           String
   process                         String
@@ -468,6 +469,7 @@ model SupplierQuoteAttachment {
 }
 
 model RequestLineItem {
+  manufacturingDetails Json?
   id                   String   @id @default(cuid())
   requestId            String
   request              Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)

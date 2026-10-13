@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { cadMetadataFromModel, type CadModelGeometry } from "@/lib/cad-model-metadata";
+import type { CadMetadata } from "@/lib/rfq-manufacturing";
 
 type AutodeskViewerExtension = {
   activate?: () => boolean | void;
@@ -72,6 +74,7 @@ const viewerAssetBaseUrl = `https://developer.api.autodesk.com/modelderivative/v
 const defaultViewerExtensions = ["Autodesk.Measure", "Autodesk.Explode", "Autodesk.Section"];
 const allowedToolbarControlIds = new Set(["toolbar-measurementSubmenuTool", "toolbar-explodeTool", "toolbar-sectionTool"]);
 const allowedToolbarControlIdPrefixes = ["toolbar-sectionTool-"];
+let viewerAssetsPromise: Promise<void> | null = null;
 
 function ensureViewerStylesheet() {
   if (document.querySelector(`link[data-autodesk-viewer-version="${viewerVersion}"]`)) {
@@ -123,13 +126,46 @@ function loadViewerScript() {
   });
 }
 
-async function loadViewerAssets() {
-  if (window.Autodesk) {
-    return;
-  }
-
+export function preloadAutodeskViewerAssets(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
   ensureViewerStylesheet();
-  await loadViewerScript();
+  if (window.Autodesk) return Promise.resolve();
+  viewerAssetsPromise ??= loadViewerScript().catch((error) => {
+    viewerAssetsPromise = null;
+    document.querySelector(`script[data-autodesk-viewer-version="${viewerVersion}"]`)?.remove();
+    throw error;
+  });
+  return viewerAssetsPromise;
+}
+
+// APS initialization and token refresh are global to the SDK, not per viewer.
+// Concurrent Initializer calls can leave one authentication callback unresolved.
+let viewerRuntimePromise: Promise<void> | null = null;
+
+function ensureViewerRuntime(): Promise<void> {
+  viewerRuntimePromise ??= (async () => {
+    await preloadAutodeskViewerAssets();
+    await new Promise<void>((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("Autodesk Viewer initialization timed out. Please reopen the preview.")), 30000);
+      const fail = (error: unknown) => { window.clearTimeout(timeout); reject(error); };
+      try {
+        if (!window.Autodesk) throw new Error("Autodesk Viewer is unavailable.");
+        window.Autodesk.Viewing.Initializer({
+          env: "AutodeskProduction2",
+          api: "streamingV2",
+          getAccessToken: (callback) => {
+            void (async () => {
+              const response = await fetch("/api/cad-previews/token");
+              const payload = await response.json();
+              if (!response.ok) throw new Error(payload.error ?? "Unable to get an Autodesk Viewer token.");
+              callback(payload.access_token, payload.expires_in);
+            })().catch(fail);
+          },
+        }, () => { window.clearTimeout(timeout); resolve(); });
+      } catch (error) { fail(error); }
+    });
+  })().catch(error => { viewerRuntimePromise = null; throw error; });
+  return viewerRuntimePromise;
 }
 
 function waitForNextFrame() {
@@ -298,7 +334,10 @@ function scheduleAutodeskToolbarFilter(container: HTMLElement) {
   return () => window.clearInterval(interval);
 }
 
-export function AutodeskModelViewer({ urn }: { urn: string }) {
+export function AutodeskModelViewer({ urn, onMetadata }: { urn: string; onMetadata?: (metadata: CadMetadata) => void }) {
+  const viewerInstanceId = useId();
+  const metadataCallback = useRef(onMetadata);
+  useEffect(() => { metadataCallback.current = onMetadata; }, [onMetadata]);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<AutodeskViewerInstance | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -312,7 +351,7 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
       try {
         setError(null);
         setIsLoading(true);
-        await loadViewerAssets();
+        await ensureViewerRuntime();
 
         if (!window.Autodesk || !containerRef.current || !isMounted) {
           return;
@@ -325,69 +364,58 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
           return;
         }
 
-        window.Autodesk.Viewing.Initializer(
-          {
-            env: "AutodeskProduction2",
-            api: "streamingV2",
-            getAccessToken: async (callback) => {
-              const response = await fetch("/api/cad-previews/token");
-              const payload = await response.json();
-              if (!response.ok) {
-                throw new Error(payload.error ?? "Unable to get an Autodesk Viewer token.");
+        const viewer = new window.Autodesk.Viewing.GuiViewer3D(container);
+        stopToolbarFilter = scheduleAutodeskToolbarFilter(container);
+        viewerRef.current = viewer;
+        const startCode = viewer.start();
+
+        if (startCode > 0) {
+          setError(`Autodesk Viewer failed to start (${startCode}).`);
+          setIsLoading(false);
+          return;
+        }
+
+        viewer.setTheme?.("light-theme");
+        viewer.setLightPreset?.(0);
+
+        window.Autodesk.Viewing.Document.load(
+          `urn:${urn}`,
+          (document) => {
+            void viewer.loadDocumentNode(document, document.getRoot().getDefaultGeometry()).then(async (model) => {
+              if (!isMounted) {
+                return;
               }
-              callback(payload.access_token, payload.expires_in);
-            },
-          },
-          () => {
-            if (!window.Autodesk || containerRef.current !== container || !isMounted) {
-              return;
-            }
-
-            const viewer = new window.Autodesk.Viewing.GuiViewer3D(container);
-            stopToolbarFilter = scheduleAutodeskToolbarFilter(container);
-            viewerRef.current = viewer;
-            const startCode = viewer.start();
-
-            if (startCode > 0) {
-              setError(`Autodesk Viewer failed to start (${startCode}).`);
+              const extensionsLoaded = Promise.all(defaultViewerExtensions.map((extensionId) => loadViewerExtension(viewer, extensionId)));
+              await fitInitialView(viewer, model);
+              if (!isMounted) return;
+              // Geometry is usable now; optional toolbar tools can finish
+              // loading after the customer starts inspecting the part.
               setIsLoading(false);
-              return;
-            }
-
-            viewer.setTheme?.("light-theme");
-            viewer.setLightPreset?.(0);
-
-            window.Autodesk.Viewing.Document.load(
-              `urn:${urn}`,
-              (document) => {
-                void viewer.loadDocumentNode(document, document.getRoot().getDefaultGeometry()).then(async (model) => {
-                  if (!isMounted) {
-                    return;
-                  }
-                  await fitInitialView(viewer, model);
-                  await Promise.all(defaultViewerExtensions.map((extensionId) => loadViewerExtension(viewer, extensionId)));
-                  if (containerRef.current) {
-                    stopToolbarFilter?.();
-                    stopToolbarFilter = scheduleAutodeskToolbarFilter(containerRef.current);
-                  }
-                  if (!isMounted) {
-                    return;
-                  }
-                  setIsLoading(false);
-                }).catch((caught) => {
-                  setError(caught instanceof Error ? caught.message : "The translated CAD model could not be loaded.");
-                  setIsLoading(false);
-                });
-              },
-              (errorCode, errorMessage) => {
-                setError(errorMessage || `The translated CAD model could not be loaded (${errorCode ?? "unknown error"}).`);
-                setIsLoading(false);
-              },
-            );
+              const metadata = cadMetadataFromModel(model as CadModelGeometry);
+              if (metadata) metadataCallback.current?.(metadata);
+              await extensionsLoaded;
+              if (isMounted && containerRef.current) {
+                stopToolbarFilter?.();
+                stopToolbarFilter = scheduleAutodeskToolbarFilter(containerRef.current);
+              }
+            }).catch((caught) => {
+              if (!isMounted) return;
+              setError(caught instanceof Error ? caught.message : "The translated CAD model could not be loaded.");
+              setIsLoading(false);
+            });
+          },
+          (errorCode, errorMessage) => {
+            if (!isMounted) return;
+            setError(errorMessage || `The translated CAD model could not be loaded (${errorCode ?? "unknown error"}).`);
+            setIsLoading(false);
           },
         );
+
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Unable to load the Autodesk Viewer.");
+        if (isMounted) {
+          setError(caught instanceof Error ? caught.message : "Unable to load the Autodesk Viewer.");
+          setIsLoading(false);
+        }
       }
     }
 
@@ -400,12 +428,22 @@ export function AutodeskModelViewer({ urn }: { urn: string }) {
     };
   }, [urn]);
 
+  useEffect(() => {
+    if (isLoading || !containerRef.current || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => {
+      viewerRef.current?.resize();
+      viewerRef.current?.fitToView();
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [isLoading]);
+
   if (error) {
     return <p className="rounded-lg bg-red-50 p-4 text-sm font-medium text-red-700">{error}</p>;
   }
 
   return (
-    <div className="lattice-cad-viewer relative h-80 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" ref={containerRef}>
+    <div data-cad-viewer-instance={viewerInstanceId} data-cad-viewer-state={isLoading ? "loading" : "ready"} className="lattice-cad-viewer relative h-80 overflow-hidden rounded-xl border border-slate-200 bg-slate-50" ref={containerRef}>
       {isLoading ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-50 text-sm font-semibold text-slate-600">
           Loading interactive CAD preview...

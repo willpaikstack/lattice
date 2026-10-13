@@ -1,3 +1,4 @@
+import { processLabel } from "./rfq-manufacturing";
 import type { CustomerQuoteVersion, LatticeRequest } from "./request-model";
 
 export type CustomerQuoteLineItem = {
@@ -102,7 +103,7 @@ export function buildCustomerQuoteInputFromRequest(request: LatticeRequest): Cus
       finish: item.surfaceFinish ?? "",
       id: item.id,
       material: item.material,
-      process: request.process,
+      process: processLabel(item.manufacturingDetails?.process || request.process),
       quantity: item.quantity,
       unitPrice: 0,
     })),

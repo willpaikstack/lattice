@@ -10,6 +10,7 @@ export default async function AccountSettingsPage() {
 
   return (
     <AccountSettingsWorkspace
+      cardCheckoutAvailable={process.env.STRIPE_CHECKOUT_ENABLED === "true" && Boolean(process.env.STRIPE_SECRET_KEY)}
       initialSettings={settings}
       deferInitialAddressOnboardingAction={deferInitialAddressOnboardingAction}
       saveSettingsAction={saveAccountSettingsAction}

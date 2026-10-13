@@ -42,6 +42,12 @@ const qualityDocuments = [
     description: "This inspection is defined by the customer. Use it for a particular sampling plan, test, feature list, or acceptance method that is not fully covered by the standard options. Describe the requested scope and acceptance criteria in Manufacturing notes so Lattice can confirm it before supplier outreach.",
   },
   {
+    id: "certificate-of-conformance",
+    title: "Certificate of Conformance (CoC)",
+    summary: "A declaration that the supplied parts conform to the agreed order requirements.",
+    description: "A CoC identifies the supplied parts and declares conformity to the agreed drawing, specifications and purchase-order requirements, including any approved deviations. It is distinct from an MTR, which documents raw-material properties. Request heat/lot linkage in Manufacturing notes when the finished parts must be traceable to the material report. Lattice confirms the certificate scope and issuer during quote review; selecting CoC does not establish supplier certification or automatically include material traceability.",
+  },
+  {
     id: "material-test-report",
     title: "Material Test Report (MTR)",
     summary: "Material documentation supplied for the raw stock used to make the part.",
@@ -51,8 +57,8 @@ const qualityDocuments = [
 
 export default function QualityDocumentationPage() {
   return (
-    <div className="mx-auto w-full max-w-[1180px] px-2 pb-16 pt-4 sm:px-6 sm:pt-8 lg:px-10">
-      <div className="mx-auto max-w-[740px]">
+    <div className="mx-auto w-full max-w-[1320px] px-6 pb-16 pt-4 sm:px-10 sm:pt-8 lg:px-10">
+      <div className="grid gap-12 xl:grid-cols-[minmax(0,1fr)_190px] xl:gap-12">
         <article className="min-w-0">
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-400">
             <Link className="transition hover:text-slate-700" href="/requests/new">Request Quote</Link>

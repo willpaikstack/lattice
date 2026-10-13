@@ -129,8 +129,8 @@ function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[], now = new Date()): CustomerDashboardSummary {
-  const actionWorkflows = buildCustomerActionWorkflows({ now, orders, quotes });
+export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[], now = new Date(), pendingRenewalIds?: ReadonlySet<string>): CustomerDashboardSummary {
+  const actionWorkflows = buildCustomerActionWorkflows({ now, orders, quotes, pendingRenewalIds });
   const customerActionCount = actionWorkflows.filter((workflow) => workflow.owner === "Customer").length;
   const priorityItemCount = actionWorkflows.filter((workflow) => workflow.priority !== "normal").length;
   const activeRfqs = quotes.filter((request) => activeRfqStatuses.has(request.status));

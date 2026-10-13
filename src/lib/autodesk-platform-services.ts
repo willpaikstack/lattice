@@ -2,6 +2,8 @@ const APS_BASE_URL = "https://developer.api.autodesk.com";
 const APS_TOKEN_URL = `${APS_BASE_URL}/authentication/v2/token`;
 const APS_BUCKET_POLICY = "transient";
 
+type CadTranslationSource = { name: string; size: number; openBody: () => Promise<BodyInit> };
+
 export type CadPreviewStartResult =
   | {
       status: "configuration_required";
@@ -149,7 +151,7 @@ async function ensureBucket(bucketKey: string, token: string) {
   }
 }
 
-async function uploadObject(bucketKey: string, file: File, token: string) {
+async function uploadObject(bucketKey: string, file: CadTranslationSource, token: string) {
   const objectKey = safeObjectKey(file.name);
   const signedUrlResponse = await fetch(`${APS_BASE_URL}/oss/v2/buckets/${bucketKey}/objects/${encodeURIComponent(objectKey)}/signeds3upload`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -168,8 +170,10 @@ async function uploadObject(bucketKey: string, file: File, token: string) {
 
   const uploaded = await fetch(uploadUrl, {
     method: "PUT",
-    body: file,
-  });
+    headers: { "Content-Length": String(file.size) },
+    body: await file.openBody(),
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
 
   if (!uploaded.ok) {
     throw new Error(`Unable to upload CAD file to Autodesk (${uploaded.status})`);
@@ -217,6 +221,10 @@ async function startTranslation(urn: string, token: string) {
 }
 
 export async function startCadPreviewTranslation(file: File): Promise<CadPreviewStartResult> {
+  return startCadPreviewFromSource({ name: file.name, size: file.size, openBody: async () => file });
+}
+
+export async function startCadPreviewFromSource(file: CadTranslationSource): Promise<CadPreviewStartResult> {
   const credentials = apsCredentials();
 
   if (!credentials) {
@@ -277,6 +285,7 @@ export async function getCadPreviewStatus(urn: string): Promise<CadPreviewStatus
   }
 
   const response = await fetch(`${APS_BASE_URL}/modelderivative/v2/designdata/${encodeURIComponent(urn)}/manifest`, {
+    cache: "no-store",
     headers: { Authorization: `Bearer ${token.access_token}` },
   });
 

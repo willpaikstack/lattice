@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   canCurrentSessionAccessStorageKey: vi.fn(),
   readLocalUpload: vi.fn(),
+  storedUploadDownloadUrl: vi.fn(),
 }));
 
 vi.mock("@/lib/request-access-policy", () => ({
@@ -11,6 +12,7 @@ vi.mock("@/lib/request-access-policy", () => ({
 
 vi.mock("@/lib/local-file-storage", () => ({
   readLocalUpload: mocks.readLocalUpload,
+  storedUploadDownloadUrl: mocks.storedUploadDownloadUrl,
 }));
 
 import { GET } from "./route";
@@ -29,6 +31,7 @@ describe("local file route authorization", () => {
   beforeEach(() => {
     mocks.canCurrentSessionAccessStorageKey.mockReset();
     mocks.readLocalUpload.mockReset();
+    mocks.storedUploadDownloadUrl.mockReset().mockResolvedValue(null);
   });
 
   it("returns 401 when there is no authenticated session", async () => {
@@ -58,12 +61,33 @@ describe("local file route authorization", () => {
     const response = await GET(requestFor(), paramsFor("rfq/2026-06-18/part.step"));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get("content-disposition")).toBe('attachment; filename="part.step"');
+    expect(response.headers.get("content-disposition")).toContain('attachment; filename="part.step"');
     expect(response.headers.get("content-length")).toBe("10");
     expect(response.headers.get("content-type")).toBe("application/octet-stream");
     expect(response.headers.get("content-security-policy")).toBe("sandbox");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     await expect(response.text()).resolves.toBe("step-bytes");
     expect(mocks.readLocalUpload).toHaveBeenCalledWith("rfq/2026-06-18/part.step");
+  });
+
+  it("serves authorized PDF drawing bytes with private caching and sandbox protection", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: true });
+    mocks.readLocalUpload.mockResolvedValue({ contents: Buffer.from("%PDF-test"), sizeBytes: 9 });
+    const response = await GET(new Request("http://localhost/api/local-files/rfq/test/drawing.pdf?name=drawing.pdf&preview=1"), paramsFor("rfq/test/drawing.pdf"));
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    expect(response.headers.get("content-disposition")).toContain("inline;");
+    expect(response.headers.get("content-security-policy")).toBe("sandbox");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+  });
+
+  it("redirects authorized large-file downloads to private storage without reading bytes", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: true });
+    mocks.storedUploadDownloadUrl.mockResolvedValue("https://storage.example/short-lived-download");
+    const response = await GET(requestFor(), paramsFor("rfq/2026-06-18/part.step"));
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://storage.example/short-lived-download");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(mocks.readLocalUpload).not.toHaveBeenCalled();
   });
 });

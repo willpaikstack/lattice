@@ -57,12 +57,13 @@ export async function POST(request: Request) {
   }
 
   const storedFile = await saveLocalUpload(fileValue, "supplier-quotes");
-  await addSupplierQuoteFile(requestId, storedFile);
+  await addSupplierQuoteFile(requestId, storedFile, { requireDatabase: true });
 
   revalidatePath("/admin");
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${requestId}`);
   revalidatePath("/admin/quotes");
+  revalidatePath(`/admin/quotes/${requestId}`);
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${requestId}`);
   revalidatePath("/orders");

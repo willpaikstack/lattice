@@ -25,7 +25,8 @@ export async function queueCustomerLifecycleEmail(request: LatticeRequest, kind:
     const client = await getPrismaClient() as PrismaClient;
     const href = kind === "SHIPPED" || kind === "QUALITY_APPROVAL_REQUESTED" ? `/orders/${request.id}` : `/quotes/${request.id}`;
     const subject = `${subjects[kind]} · ${request.title}`;
-    const body = `${subjects[kind]}.\n\n${request.title}\nhttps://latticeos.co${href}\n\nFor help, contact support@latticeos.co.`;
+    const appBaseUrl = (process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || "https://latticeos.co").replace(/\/$/, "");
+    const body = `${subjects[kind]}.\n\n${request.title}\n${appBaseUrl}${href}\n\nFor help, contact support@latticeos.co.`;
     const admins = kind === "QUALITY_APPROVAL_REQUESTED" ? await client.user.findMany({ where: { companyId: request.buyerCompanyId, role: "CUSTOMER_ADMIN" }, select: { email: true } }) : [];
     const recipients = [...new Set(admins.length ? admins.map((admin) => admin.email) : [request.requesterEmail])];
     for (const recipient of recipients) {

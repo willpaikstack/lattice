@@ -1,10 +1,11 @@
+import { readIntakeDeclaration, readManufacturingDetails } from "./rfq-manufacturing";
 import type { DraftRequestInput, LatticeRequest } from "./request-model";
 import { buildDraftRequest, submitDraftRequest } from "./request-model";
 
 export const storedRequestInclude = {
   buyerCompany: true,
-  lineItems: true,
-  files: true,
+  lineItems: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
+  files: { orderBy: [{ createdAt: "asc" }, { id: "asc" }] },
   supplierQuoteFiles: {
     orderBy: {
       createdAt: "asc",
@@ -39,6 +40,7 @@ export const storedRequestInclude = {
 } as const;
 
 export type StoredRequest = {
+  intakeDeclaration?: unknown;
   id: string;
   title: string;
   process: string;
@@ -107,6 +109,7 @@ export type StoredRequest = {
   revisionNumber?: number;
   revisionChangeLog?: string[];
   lineItems: Array<{
+    manufacturingDetails?: unknown;
     id: string;
     partName: string;
     quantity: number;
@@ -205,7 +208,7 @@ export type StoredRequest = {
 };
 
 function toDueDate(dueDate: string) {
-  return new Date(`${dueDate}T00:00:00.000Z`);
+  return dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : null;
 }
 
 function toOptionalDate(date: string) {
@@ -277,6 +280,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput, optio
 
   return {
     title: submitted.title,
+    ...(submitted.intakeDeclaration ? { intakeDeclaration: submitted.intakeDeclaration } : {}),
     process: submitted.process,
     dueDate: toDueDate(submitted.dueDate),
     requiresQualityApproval: submitted.requiresQualityApproval === true,
@@ -337,13 +341,12 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput, optio
     revisionChangeLog: submitted.revisionChangeLog,
     buyerCompany: options?.buyerCompanyId
       ? { connect: { id: options.buyerCompanyId } }
-      : {
-          create: {
-            name: submitted.buyerCompany,
-          },
-        },
+      : submitted.buyerCompany
+        ? { create: { name: submitted.buyerCompany } }
+        : undefined,
     lineItems: {
       create: submitted.lineItems.map((item) => ({
+        ...(item.manufacturingDetails ? { manufacturingDetails: item.manufacturingDetails } : {}),
         partName: item.partName,
         quantity: item.quantity,
         material: item.material,
@@ -393,6 +396,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
     shipToZipCode: stored.shipToZipCode ?? "",
     shipToPhone: stored.shipToPhone ?? stored.requesterPhone ?? "",
     title: stored.title,
+    intakeDeclaration: readIntakeDeclaration(stored.intakeDeclaration),
     process: stored.process,
     dueDate: formatDueDate(stored.dueDate),
     requiresQualityApproval: stored.requiresQualityApproval === true,
@@ -403,6 +407,7 @@ export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
     checkoutDetails: stored.checkoutDetails ?? null,
     status: stored.status,
     lineItems: stored.lineItems.map((item) => ({
+      manufacturingDetails: readManufacturingDetails(item.manufacturingDetails),
       id: item.id,
       partName: item.partName,
       quantity: item.quantity,

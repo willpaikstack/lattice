@@ -30,7 +30,7 @@ export const authorizedUser = {
 };
 
 const adminPrefixes = ["/admin", "/analytics", "/operator", "/projects"];
-const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/shipped"];
+const customerPrefixes = ["/capabilities", "/dashboard", "/equipment", "/equipment-explorer", "/materials", "/notifications", "/orders", "/quotes", "/requests", "/shipped"];
 const sharedPrefixes = ["/account"];
 const supplierPrefixes = ["/supplier"];
 

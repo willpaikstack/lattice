@@ -25,7 +25,7 @@ export default async function BuyerQuoteCheckoutPage({ params, searchParams }: B
     notFound();
   }
 
-  if (quoteHasExpired(request)) return <section className="rounded-xl bg-white p-8"><h1 className="text-xl font-semibold">This quote has expired</h1><p className="my-4">Contact support@latticeos.co to request a renewed quote before purchasing.</p><Link href={`/quotes/${request.id}`}>Back to quote</Link></section>;
+  if (quoteHasExpired(request)) return <section className="rounded-xl bg-white p-8"><h1 className="text-xl font-semibold">This quote has expired</h1><p className="my-4">Lattice needs to confirm current pricing and lead time before you can purchase.</p><Link className="inline-flex min-h-11 items-center rounded-md bg-stone-950 px-4 font-semibold text-white" href={`/quotes/${request.id}#quote-renewal`}>Request renewed quote</Link></section>;
 
   const accountSettings = await getAccountSettings();
   return (

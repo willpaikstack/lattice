@@ -55,9 +55,16 @@ describe("AccountSettingsWorkspace", () => {
   it("does not expose user-scoped saved-card, tax, or purchase-order controls", () => {
     render(<AccountSettingsWorkspace initialSettings={companySettings()} />);
     expect(screen.queryByRole("button", { name: "Add credit card" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Payment cards are company-wide/i)).toBeInTheDocument();
+    expect(screen.getByText(/saved-card management is not enabled/i)).toBeInTheDocument();
+    expect(screen.getByText("Card checkout is currently unavailable")).toBeInTheDocument();
     expect(screen.queryByText("Tax-exempt reseller")).not.toBeInTheDocument();
     expect(screen.queryByText(/Purchase Orders/)).not.toBeInTheDocument();
+  });
+
+  it("only describes card purchasing as available when checkout is enabled", () => {
+    render(<AccountSettingsWorkspace cardCheckoutAvailable initialSettings={companySettings()} />);
+    expect(screen.getByText("Card payments available for eligible quotes")).toBeInTheDocument();
+    expect(screen.queryByText("Card checkout is currently unavailable")).not.toBeInTheDocument();
   });
 
   it("supports the first-company address onboarding path", () => {

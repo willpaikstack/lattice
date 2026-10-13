@@ -12,11 +12,11 @@ vi.mock("@clerk/nextjs/server", () => ({
 import proxy from "./proxy";
 
 describe("proxy", () => {
-  it("sends unauthenticated protected requests through the Lattice login route", async () => {
+  it.each(["/quotes?filter=open", "/equipment-explorer"])("sends unauthenticated %s through the Lattice login route", async (path) => {
     mocks.auth.mockResolvedValue({ isAuthenticated: false });
-    const request = new NextRequest("https://latticeos.co/quotes?filter=open");
+    const request = new NextRequest(`https://latticeos.co${path}`);
     const response = await proxy(request, {} as Parameters<typeof proxy>[1]);
 
-    expect(response?.headers.get("location")).toBe("https://latticeos.co/login?redirect_url=%2Fquotes%3Ffilter%3Dopen");
+    expect(response?.headers.get("location")).toBe(`https://latticeos.co/login?redirect_url=${encodeURIComponent(path)}`);
   });
 });

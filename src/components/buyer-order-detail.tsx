@@ -482,7 +482,7 @@ export function BuyerOrderDetail({
               </div>
             </Section>
 
-            <Section title="Quality documents and photos">
+            <div id="quality-documents" className="scroll-mt-6"><Section title="Quality documents and photos">
               <div className="space-y-3 p-5">
                 {order.supplierOrder.documents.length ? (
                   order.supplierOrder.documents.map((document) => (
@@ -498,7 +498,8 @@ export function BuyerOrderDetail({
                   <p className="rounded-md border border-[#eeeeee] bg-[#fafafa] p-4 text-[13px] leading-6 text-[#6f737a]">Quality documents will appear here after supplier upload.</p>
                 )}
               </div>
-            </Section>
+              {isCustomerView && order.requiresQualityApproval && !order.qualityApprovedAt ? <div className="border-t border-stone-200 px-5 py-4"><p className="text-sm text-stone-600">After reviewing the current files, your Customer Admin can approve the package to clear the shipment hold.</p><Link className="mt-2 inline-flex text-sm font-semibold text-blue-700 underline" href="#quality-approval">Continue to quality approval</Link></div> : null}
+            </Section></div>
           </div>
 
           {routes.showSupplierQuoteFiles ? (
@@ -509,7 +510,7 @@ export function BuyerOrderDetail({
             />
           ) : null}
 
-          <Section title="Order activity">
+          <div id="order-activity" className="scroll-mt-6"><Section title="Order activity">
             <ol className="space-y-3 p-5">
               {order.supplierOrder.updates.length ? (
                 order.supplierOrder.updates.map((update) => (
@@ -525,7 +526,8 @@ export function BuyerOrderDetail({
                 </li>
               )}
             </ol>
-          </Section>
+            {isCustomerView ? <div className="border-t border-stone-200 px-5 py-4"><Link className="text-sm font-semibold text-blue-700 underline" href={`/orders/${order.id}/help`}>Ask Lattice for an update</Link></div> : null}
+          </Section></div>
         </main>
 
         <aside className="space-y-5">

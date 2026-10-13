@@ -233,7 +233,7 @@ export async function issueInvoiceForRequest(
     return tx.invoice.create({
       data: {
         ...snapshot,
-        customerPo: input.customerPo?.trim() ?? "",
+        customerPo: input.customerPo?.trim() ?? request.purchasePayment.customerPoNumber,
         dueDate,
         invoiceNumber: formatInvoiceNumber(sequenceYear, sequenceValue),
         issuedAt,

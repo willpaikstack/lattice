@@ -4,6 +4,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { DraftRequestInput } from "@/lib/request-model";
+import { restrictionPolicyVersion } from "@/lib/rfq-manufacturing";
+import { optionLabel, rfqMaterialOptions } from "@/lib/rfq-options";
 
 const createSubmittedRequestMock = vi.fn();
 
@@ -61,6 +63,7 @@ describe("requests API file persistence", () => {
     }));
 
     const input: DraftRequestInput = {
+      intakeDeclaration: { restrictionStatus: "unrestricted", policyVersion: restrictionPolicyVersion, endUse: "commercial", endUseNotes: "" },
       buyerCompany: "Amogy Manufacturing",
       requesterName: "William Paik",
       title: "Plate",
@@ -70,7 +73,9 @@ describe("requests API file persistence", () => {
         {
           partName: "Plate",
           quantity: 1,
-          material: "SS 304",
+          material: optionLabel(rfqMaterialOptions, "ss_304"),
+          surfaceFinish: "As machined (Ra 3.2 um / Ra 126 uin)",
+          manufacturingDetails: { process: "cnc_milling", customerPartNumber: "", cadRevision: "", drawingRevision: "", materialKey: "ss_304", finishKey: "as_machined_ra_3_2", fileHistory: [{ kind: "cad", name: "deleted.step", sizeBytes: 10, type: "model/step", storageKey: "rfq-drafts/other-company/deleted.step", revision: "A", replacedAt: "2026-10-12T10:00:00Z" }] },
           qualityDocumentation: ["Standard Inspection"],
         },
       ],
@@ -120,6 +125,7 @@ describe("requests API file persistence", () => {
         type: "application/pdf",
       }),
     ]);
+    expect(submitted.lineItems[0].manufacturingDetails?.fileHistory).toEqual([]);
     expect(submitted.files[0].storageKey).not.toContain("rfq-drafts");
     expect(submitted.files[1].storageKey).not.toContain("rfq-drafts");
 

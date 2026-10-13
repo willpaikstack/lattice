@@ -1,3 +1,4 @@
+import type { IntakeDeclaration, ManufacturingDetails } from "./rfq-manufacturing";
 export type RequestStatus = "DRAFT" | "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED" | "PURCHASED" | "CLOSED";
 
 export type RequestOrigin = "ACCOUNT" | "GUEST_SIMPLE_QUOTE";
@@ -38,7 +39,8 @@ export type SupplierDocumentCategory =
   | "OTHER";
 
 export type RequestLineItemInput = {
-  partName: string;
+  manufacturingDetails?: ManufacturingDetails;
+  partName?: string;
   quantity: number;
   material: string;
   generalTolerance?: string;
@@ -70,15 +72,16 @@ export type RequestContactSnapshot = {
 };
 
 export type DraftRequestInput = {
-  buyerCompany: string;
+  intakeDeclaration?: IntakeDeclaration;
+  buyerCompany?: string;
   contact?: Partial<RequestContactSnapshot>;
   guestAccessTokenExpiresAt?: string | null;
   guestAccessTokenHash?: string;
   requestOrigin?: RequestOrigin;
-  requesterName: string;
+  requesterName?: string;
   title: string;
-  process: string;
-  dueDate: string;
+  process?: string;
+  dueDate?: string;
   requiresQualityApproval?: boolean;
   qualityApprovedAt?: string | null;
   qualityApprovedBy?: string | null;
@@ -96,6 +99,7 @@ export type DraftRequestInput = {
 };
 
 export type RequestLineItem = RequestLineItemInput & {
+  partName: string;
   id: string;
 };
 
@@ -278,6 +282,7 @@ export type LatticeRequest = {
   shipToState: string;
   shipToZipCode: string;
   title: string;
+  intakeDeclaration?: IntakeDeclaration;
   process: string;
   dueDate: string;
   requiresQualityApproval?: boolean;
@@ -348,8 +353,8 @@ function contactSnapshotForDraft(input: DraftRequestInput): RequestContactSnapsh
     shipToAddress1: text(contact.shipToAddress1),
     shipToAddress2: text(contact.shipToAddress2),
     shipToCity: text(contact.shipToCity),
-    shipToCompany: text(contact.shipToCompany) || input.buyerCompany.trim(),
-    shipToName: text(contact.shipToName) || input.requesterName.trim(),
+    shipToCompany: text(contact.shipToCompany) || text(input.buyerCompany),
+    shipToName: text(contact.shipToName) || text(input.requesterName),
     shipToPhone: text(contact.shipToPhone) || requesterPhone,
     shipToState: text(contact.shipToState),
     shipToZipCode: text(contact.shipToZipCode),
@@ -357,18 +362,13 @@ function contactSnapshotForDraft(input: DraftRequestInput): RequestContactSnapsh
 }
 
 function assertValidDraft(input: DraftRequestInput) {
-  assertText(input.buyerCompany, "Buyer company");
-  assertText(input.requesterName, "Requester name");
   assertText(input.title, "Request title");
-  assertText(input.process, "Manufacturing process");
-  assertText(input.dueDate, "Due date");
 
   if (input.lineItems.length === 0) {
     throw new Error("At least one line item is required");
   }
 
   input.lineItems.forEach((item, index) => {
-    assertText(item.partName, `Line item ${index + 1} part name`);
     assertText(item.material, `Line item ${index + 1} material`);
     if (!Number.isFinite(item.quantity) || item.quantity <= 0) {
       throw new Error(`Line item ${index + 1} quantity must be greater than zero`);
@@ -383,13 +383,13 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
   const contact = contactSnapshotForDraft(input);
   const request: LatticeRequest = {
     id: makeId("req"),
-    buyerCompany: input.buyerCompany.trim(),
+    buyerCompany: text(input.buyerCompany),
     buyerCompanyId: null,
     guestAccessTokenExpiresAt: input.guestAccessTokenExpiresAt ?? null,
     guestAccessTokenHash: input.guestAccessTokenHash?.trim() ?? "",
     requestOrigin: input.requestOrigin ?? "ACCOUNT",
     requesterEmail: contact.requesterEmail,
-    requesterName: input.requesterName.trim(),
+    requesterName: text(input.requesterName),
     requesterPhone: contact.requesterPhone,
     shipToAddress1: contact.shipToAddress1,
     shipToAddress2: contact.shipToAddress2,
@@ -400,13 +400,15 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
     shipToState: contact.shipToState,
     shipToZipCode: contact.shipToZipCode,
     title: input.title.trim(),
-    process: input.process.trim(),
-    dueDate: input.dueDate,
+    intakeDeclaration: input.intakeDeclaration,
+    process: text(input.process),
+    dueDate: text(input.dueDate),
     requiresQualityApproval: input.requiresQualityApproval === true,
     status: "DRAFT",
-    lineItems: input.lineItems.map((item) => ({
+    lineItems: input.lineItems.map((item, index) => ({
       id: makeId("line"),
-      partName: item.partName.trim(),
+      manufacturingDetails: item.manufacturingDetails,
+      partName: text(item.partName) || input.files.find(file => file.lineItemIndex === index)?.name.replace(/\.[^.]+$/, "") || `Part ${index + 1}`,
       quantity: item.quantity,
       material: item.material.trim(),
       generalTolerance: item.generalTolerance?.trim() || "",

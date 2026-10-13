@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DashboardActionCenterFocus } from "@/components/dashboard-action-center-focus";
 import { ArrowUpRight, Box, CheckCircle2, FileText, ListChecks, ReceiptText, type LucideIcon } from "lucide-react";
 import type { CustomerActionWorkflow } from "@/lib/customer-action-center";
 import type { CustomerDashboardSummary, CustomerDashboardActivityRow, CustomerDashboardMetric } from "@/lib/customer-dashboard";
@@ -22,6 +23,7 @@ function MetricCard({ detail, href, label, metricKey, tone, value }: Omit<Custom
         isAlert ? "border-amber-200 bg-amber-50/80" : "border-stone-200 bg-white"
       }`}
       href={href}
+      data-action-center-trigger={metricKey === "actions" ? "true" : undefined}
     >
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm font-medium text-stone-700">{label}</p>
@@ -67,6 +69,8 @@ function WorkflowRow({ workflow }: { workflow: CustomerActionWorkflow }) {
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.1em] text-stone-500">{workflow.reference}</p>
           <h3 className="mt-0.5 truncate text-sm font-medium text-stone-950">{rowLabel}</h3>
+          <p className="mt-1 text-xs leading-5 text-stone-500">{workflow.detail}</p>
+          <p className="mt-1 text-xs font-semibold text-blue-700">{workflow.ctaLabel}</p>
         </div>
       </div>
       <ArrowUpRight aria-hidden="true" className={`hidden h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:block ${isMonitoring ? "text-stone-400" : "text-stone-700"}`} strokeWidth={1.8} />
@@ -175,11 +179,11 @@ function QuoteOrderActivityTable({ items }: { items: CustomerDashboardActivityRo
 export function CustomerDashboardView({ dashboard, userName, scenario = null }: { dashboard: CustomerDashboardSummary; userName: string; scenario?: CustomerDashboardScenario | null }) {
   const actionWorkflows = dashboard.actionWorkflows;
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6">
+    <DashboardActionCenterFocus>
       <header className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Home</p>
-          <h1 className="mt-2 text-3xl font-semibold leading-tight tracking-tight text-stone-950">Hi {userName}</h1>
+          <h1 className="mt-2 text-3xl font-semibold leading-tight tracking-tight text-stone-950">Hi {userName.trim().split(/\s+/)[0] || "there"}</h1>
         </div>
         <Link
           className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-stone-950 px-4 text-sm font-semibold text-white transition hover:bg-stone-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-950"
@@ -199,7 +203,7 @@ export function CustomerDashboardView({ dashboard, userName, scenario = null }: 
           ))}
         </section>
 
-        <article className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-200/30 sm:p-6" id="action-center">
+        <article aria-label="Action Center" className="scroll-mt-6 rounded-xl border border-stone-200 bg-white p-5 shadow-sm shadow-stone-200/30 focus:outline-none sm:p-6" id="action-center" tabIndex={-1}>
           <SectionHeader
             detail={actionWorkflows.length ? actionCenterSummary(actionWorkflows) : undefined}
             meta={actionWorkflows.length ? undefined : "0 open"}
@@ -226,6 +230,6 @@ export function CustomerDashboardView({ dashboard, userName, scenario = null }: 
           <QuoteOrderActivityTable items={dashboard.quoteOrderActivity} />
         </article>
       </section>
-    </div>
+    </DashboardActionCenterFocus>
   );
 }
