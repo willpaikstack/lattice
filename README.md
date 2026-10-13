@@ -1,5 +1,7 @@
 # Lattice OS
 
+Production release (2026-10-13): application commit `71b21df` is deployed as `dpl_31kujdnkXEq4S3nwWfkmQ4CaX8ZT` to `https://latticeos.co`. Both manufacturing JSONB columns are verified in Production. The private R2 bucket allows PUT/GET/HEAD from the three exact Production app origins; unrelated-origin preflight is denied. All 529 tests, typecheck, lint and local/remote builds pass. Large-file browser/APS and authenticated customer transaction checks remain follow-up work.
+
 Owned-code manufacturing RFQ, procurement, and supplier-network workflow platform.
 
 Lattice OS is being built as a machine-shop-focused network platform, similar in spirit to Xometry, Fictiv, Hubs, or Protolabs. Domestic shops can use it to route overflow or out-of-capability work to vetted overseas manufacturing partners, especially when they would otherwise no-quote because of capacity, machine, material, or labor constraints.

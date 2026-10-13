@@ -1,5 +1,7 @@
 # Project Context
 
+Production release (2026-10-13): application commit `71b21df` is deployed as `dpl_31kujdnkXEq4S3nwWfkmQ4CaX8ZT` to `https://latticeos.co`. Both manufacturing JSONB columns are verified in Production. The private R2 bucket allows PUT/GET/HEAD from the three exact Production app origins; unrelated-origin preflight is denied. All 529 tests, typecheck, lint and local/remote builds pass. Large-file browser/APS and authenticated customer transaction checks remain follow-up work.
+
 This file is durable project memory for AI agents working on Lattice OS from multiple computers. Keep it concise and current.
 
 ## Product
