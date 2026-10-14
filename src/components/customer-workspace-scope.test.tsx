@@ -7,6 +7,18 @@ import { CustomerWorkspaceProvider, customerDraftStorageKey } from "./customer-w
 
 describe("workspace draft synchronization", () => {
   afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
+  it("retains malformed browser records before replacing the active cache", async () => {
+    mocks.pathname = "/quotes";
+    const key = customerDraftStorageKey("company_a")!;
+    const raw = JSON.stringify([{ id: "local_draft_broken", request: { status: "DRAFT" } }]);
+    localStorage.setItem(key, raw);
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => ({ drafts: [], deletedIds: [] }) })));
+    render(<CustomerWorkspaceProvider scope="company_a"><h1>Quotes</h1></CustomerWorkspaceProvider>);
+    await screen.findByRole("heading", { name: "Quotes" });
+    expect(screen.getByText(/Some older drafts need recovery/)).toBeInTheDocument();
+    expect(JSON.parse(localStorage.getItem(`${key}.recovery`)!)).toEqual([raw]);
+    expect(JSON.parse(localStorage.getItem(key)!)).toEqual([]);
+  });
   it("saves genuine drafts while excluding demo records and ignores demo deletion", async () => {
     mocks.pathname = "/requests/new";
     const draft = { id: "local_draft_real", updatedAt: "2026-10-10T12:00:00Z", request:{...buildDraftRequest({title:"QA",lineItems:[{material:"Aluminum",quantity:1}],files:[]}),id:"local_draft_real"},initialState:{} };

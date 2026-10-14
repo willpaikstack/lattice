@@ -33,7 +33,31 @@ export function CustomerWorkspaceProvider({ scope, children }: { scope: string |
   useEffect(() => {
     const key = customerDraftStorageKey(scope); if (!key) return;
     let disposed = false; let timer: ReturnType<typeof setTimeout>;
-    const read = () => { try { const value = purgeLegacyRfqValues(JSON.parse(localStorage.getItem(key) ?? "[]")); if (!Array.isArray(value)) return []; const normalized=value.map(normalizePersistedDraft); if (normalized.some(d=>!d)) setInvalidDrafts(true); return normalized.filter((draft): draft is NonNullable<typeof draft> => draft !== null);; } catch { return []; } };
+    const read = () => {
+      const raw = localStorage.getItem(key) ?? "[]";
+      const retain = () => {
+        // Preserve the original bytes before synchronization replaces the active
+        // cache. Recovery is scoped to this company and never sent to the API.
+        const recoveryKey = `${key}.recovery`;
+        const previous = localStorage.getItem(recoveryKey);
+        let archives: string[] = [];
+        if (previous) {
+          try {
+            const parsed: unknown = JSON.parse(previous);
+            archives = Array.isArray(parsed) && parsed.every((item) => typeof item === "string") ? parsed : [previous];
+          } catch { archives = [previous]; }
+        }
+        if (!archives.includes(raw)) localStorage.setItem(recoveryKey, JSON.stringify([...archives, raw]));
+        setInvalidDrafts(true);
+      };
+      try {
+        const value = purgeLegacyRfqValues(JSON.parse(raw));
+        if (!Array.isArray(value)) { retain(); return []; }
+        const normalized = value.map(normalizePersistedDraft);
+        if (normalized.some((draft) => !draft)) retain();
+        return normalized.filter((draft): draft is NonNullable<typeof draft> => draft !== null);
+      } catch { retain(); return []; }
+    };
     fetch("/api/request-drafts", { signal: AbortSignal.timeout(10000) }).then(async (response) => {
       if (!response.ok) throw new Error("Drafts unavailable");
       const { drafts, deletedIds = [], invalidIds = [] } = await response.json(); if (disposed) return; if (invalidIds.length) setInvalidDrafts(true);
