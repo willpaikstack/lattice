@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 const APS_BASE_URL = "https://developer.api.autodesk.com";
 const APS_TOKEN_URL = `${APS_BASE_URL}/authentication/v2/token`;
 const APS_BUCKET_POLICY = "transient";
@@ -92,7 +94,7 @@ function urnify(value: string) {
 
 function safeObjectKey(fileName: string) {
   const normalized = fileName.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-");
-  return `${Date.now()}-${normalized || "cad-file"}`;
+  return `${randomUUID()}-${normalized || "cad-file"}`;
 }
 
 async function getApsToken(scopes: string[]) {
@@ -304,8 +306,17 @@ export async function getCadPreviewStatus(urn: string): Promise<CadPreviewStatus
   };
 }
 
-export async function getViewerToken() {
-  const token = await getApsToken(["viewables:read"]);
+export async function getViewerToken(urns: readonly string[]) {
+  if (!urns.length || urns.length > 64) throw new Error("Choose the CAD models to preview.");
+  const scopes = [...new Set(urns)].map(urn => {
+    if (!/^[A-Za-z0-9+/]+$/.test(urn) || urn.length > 4096) throw new Error("Invalid CAD model reference.");
+    const raw = Buffer.from(urn, "base64").toString("utf8");
+    if (Buffer.from(raw).toString("base64").replace(/=+$/, "") !== urn ||
+        !raw.startsWith("urn:adsk.objects:os.object:") || /[\s*"\\]/.test(raw)) throw new Error("Invalid CAD model reference.");
+    // APS dynamic scopes restrict even direct requests made with this token.
+    return `data:read:${raw}`;
+  });
+  const token = await getApsToken(scopes);
 
   if (!token) {
     return null;

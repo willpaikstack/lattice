@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import Link from "next/link";
 
 import { listMaterialInquiries, type MaterialInquiryStatus } from "@/lib/material-inquiries";
@@ -20,6 +21,7 @@ const statusStyles: Record<MaterialInquiryStatus, string> = {
 const dateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" });
 
 export default async function AdminMaterialInquiriesPage() {
+  await requirePageRole(["admin"]);
   const inquiries = await listMaterialInquiries();
   const openCount = inquiries.filter((inquiry) => inquiry.status !== "RESOLVED").length;
 

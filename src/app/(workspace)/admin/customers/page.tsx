@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import { AdminCustomerManagement } from "@/components/admin-customer-management";
 import { listCustomerProfiles } from "@/lib/customer-profiles";
 import { listWaitingListEntries } from "@/lib/waiting-list";
@@ -5,6 +6,7 @@ import { listWaitingListEntries } from "@/lib/waiting-list";
 export const dynamic = "force-dynamic";
 
 export default async function AdminCustomersPage() {
+  await requirePageRole(["admin"]);
   const [customers, waitingListEntries] = await Promise.all([
     listCustomerProfiles(),
     listWaitingListEntries(),

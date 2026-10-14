@@ -771,7 +771,7 @@ function initialCadPreview(
 
   if (persistedPreview?.status === "ready") {
     return persistedPreview.fileName === initialState.fileName
-      ? persistedPreview
+      ? { ...persistedPreview, status: "processing", progress: "Checking saved model" }
       : {
           status: "reference_only",
           fileName: initialState.fileName,
@@ -2598,8 +2598,10 @@ function LineItemConfigurationCard({
   onRemoveDrawing,
   onReviewDrawing,
   qualityApprovalControl,
+  previewDeclaration,
 }: {
   qualityApprovalControl?: React.ReactNode;
+  previewDeclaration: { restrictionStatus: string; restrictionPolicyVersion: string };
   index: number;
   lineItem: LineItemState;
   isCollapsed: boolean;
@@ -2693,6 +2695,7 @@ function LineItemConfigurationCard({
                 onStatus={(state) => onCadStatus(lineItem.id, state)}
                 onMetadata={(metadata) => onCadMetadata(lineItem.id, metadata)}
                 state={lineItem.cadPreview}
+                recovery={{ storageKey: lineItem.fileStorageKey ?? "", ...previewDeclaration }}
               />
             </div>
 
@@ -4254,6 +4257,7 @@ export function RequestForm({
             {uploadsAllowed && configuredLineItems.map((lineItem, index) => (
               <LineItemConfigurationCard
                 key={lineItem.id}
+                previewDeclaration={{ restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }}
                 index={index}
                 lineItem={lineItem}
                 isCollapsed={collapsedLineItemIds.has(lineItem.id)}

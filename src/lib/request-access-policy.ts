@@ -89,3 +89,9 @@ export async function canCurrentSessionAccessStorageKey(storageKey: string) {
     authorized: owningRequest ? canSessionAccessRequestStorageKey(session, owningRequest, storageKey) : false,
   };
 }
+
+/** Used after file authorization to retain the source company's model ownership. */
+export async function customerCompanyForStorageKey(storageKey: string) {
+  const requests = await listAdminRequests();
+  return requests.find(request => requestHasCustomerVisibleStorageKey(request, storageKey))?.buyerCompanyId ?? null;
+}

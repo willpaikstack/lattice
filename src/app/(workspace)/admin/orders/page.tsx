@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import Link from "next/link";
 
 import { archiveOrderAction } from "@/app/(workspace)/admin/orders/actions";
@@ -7,6 +8,7 @@ import { listAdminOrders } from "@/lib/request-repository";
 export const dynamic = "force-dynamic";
 
 export default async function AdminOrdersPage() {
+  await requirePageRole(["admin"]);
   const orders = await listAdminOrders();
 
   return (

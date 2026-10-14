@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCadPreviewStatus } from "@/lib/autodesk-platform-services";
 import { requireRouteRole } from "@/lib/route-authorization";
+import { canCurrentSessionAccessCadPreview } from "@/lib/cad-preview-access";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "A translated model URN is required" }, { status: 400 });
     }
 
+    if (!await canCurrentSessionAccessCadPreview(urn)) return NextResponse.json({ error: "CAD preview not found." }, { status: 404 });
     const preview = await getCadPreviewStatus(urn);
     return NextResponse.json({ preview }, { headers: { "Cache-Control": "no-store" } });
   } catch (caught) {

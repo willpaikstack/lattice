@@ -4,6 +4,7 @@ import { restrictionPolicyVersion } from "@/lib/rfq-manufacturing";
 const mocks = vi.hoisted(() => ({ save: vi.fn(), translate: vi.fn() }));
 vi.mock("@/lib/local-file-storage", () => ({ saveLocalUpload: mocks.save }));
 vi.mock("@/lib/autodesk-platform-services", () => ({ startCadPreviewTranslation: mocks.translate }));
+vi.mock("@/lib/cad-preview-access", () => ({ registerCadPreview: vi.fn(), registeredCadPreviewForSource: vi.fn(async () => null) }));
 vi.mock("@/lib/route-authorization", () => ({ requireRouteRole: async () => null }));
 vi.mock("@/lib/session", () => ({ getCurrentSession: async () => ({ user: { id: "test", role: "admin" } }) }));
 

@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 
@@ -74,7 +75,8 @@ function ResourcePreview({ mode = "inline", resource }: { mode?: "inline" | "pop
   return <PdfPreview href={resource.preview.href} label={resource.label} mode={mode} />;
 }
 
-export default function AdminResourcesPage() {
+export default async function AdminResourcesPage() {
+  await requirePageRole(["admin"]);
   return (
     <div className="space-y-5">
       <section className="rounded-md border border-[#ffd1d4] bg-[#fff7f7] p-5">

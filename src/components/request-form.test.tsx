@@ -978,7 +978,8 @@ describe("RequestForm", () => {
     expect(submittedForm.get("file-1")).toBeNull();
   });
 
-  it("restores an Autodesk CAD preview from a saved draft", () => {
+  it("rechecks saved draft model access before restoring the Autodesk CAD preview", async () => {
+    const fetchMock = mockRequestFormFetch({ preview: { status: "ready" } });
     render(
       <RequestForm
         initialState={{
@@ -995,6 +996,8 @@ describe("RequestForm", () => {
       />,
     );
 
+    await waitFor(() => expect(screen.getByText("Loading interactive CAD preview...")).toBeInTheDocument());
+    expect(fetchMock).toHaveBeenCalledWith("/api/cad-previews/status?urn=saved-viewer-urn", { cache: "no-store" });
     expect(screen.queryByText("3D preview ready")).not.toBeInTheDocument();
     expect(screen.queryByText("mounting-bracket.step")).not.toBeInTheDocument();
     expect(screen.getByText("Loading interactive CAD preview...")).toBeInTheDocument();

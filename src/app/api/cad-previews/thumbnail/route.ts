@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getCadPreviewThumbnail } from "@/lib/autodesk-platform-services";
 import { requireRouteRole } from "@/lib/route-authorization";
+import { canCurrentSessionAccessCadPreview } from "@/lib/cad-preview-access";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "A translated model URN is required" }, { status: 400 });
     }
 
+    if (!await canCurrentSessionAccessCadPreview(urn)) return NextResponse.json({ error: "CAD preview not found." }, { status: 404 });
     const thumbnail = await getCadPreviewThumbnail(urn, size);
 
     if (!thumbnail) {
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
 
     return new Response(thumbnail.bytes, {
       headers: {
-        "Cache-Control": "private, max-age=3600",
+        "Cache-Control": "private, no-store",
         "Content-Type": thumbnail.contentType,
       },
       status: 200,

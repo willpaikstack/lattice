@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import { notFound } from "next/navigation";
 
 import { AdminVendorDetail } from "@/components/admin-vendor-detail";
@@ -14,6 +15,7 @@ type VendorDetailPageProps = {
 };
 
 export default async function VendorDetailPage({ params }: VendorDetailPageProps) {
+  await requirePageRole(["admin"]);
   const { vendorId } = await params;
   const requests = await listAdminRequests();
   const vendors = await applyOverseasVendorOverrides(buildOverseasVendors(requests));

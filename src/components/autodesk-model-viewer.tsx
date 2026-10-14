@@ -141,9 +141,20 @@ export function preloadAutodeskViewerAssets(): Promise<void> {
 // APS initialization and token refresh are global to the SDK, not per viewer.
 // Concurrent Initializer calls can leave one authentication callback unresolved.
 let viewerRuntimePromise: Promise<void> | null = null;
+let viewerRuntimeModels = "";
+const activeModels = new Map<string, number>();
 
 function ensureViewerRuntime(): Promise<void> {
-  viewerRuntimePromise ??= (async () => {
+  const urns = [...activeModels.keys()].sort();
+  const modelKey = JSON.stringify(urns);
+  if (viewerRuntimePromise && viewerRuntimeModels === modelKey) return viewerRuntimePromise;
+  const previous = viewerRuntimePromise;
+  viewerRuntimeModels = modelKey;
+  // Serialize SDK initialization. The new token covers only the mounted models,
+  // so adding a second part does not replace the first part's access with a
+  // global token or leave it using a token scoped to a different model.
+  viewerRuntimePromise = (async () => {
+    await previous?.catch(() => {});
     await preloadAutodeskViewerAssets();
     await new Promise<void>((resolve, reject) => {
       const timeout = window.setTimeout(() => reject(new Error("Autodesk Viewer initialization timed out. Please reopen the preview.")), 30000);
@@ -155,7 +166,9 @@ function ensureViewerRuntime(): Promise<void> {
           api: "streamingV2",
           getAccessToken: (callback) => {
             void (async () => {
-              const response = await fetch("/api/cad-previews/token");
+              const query = new URLSearchParams();
+              urns.forEach(urn => query.append("urn", urn));
+              const response = await fetch(`/api/cad-previews/token?${query}`, { cache: "no-store" });
               const payload = await response.json();
               if (!response.ok) throw new Error(payload.error ?? "Unable to get an Autodesk Viewer token.");
               callback(payload.access_token, payload.expires_in);
@@ -164,7 +177,7 @@ function ensureViewerRuntime(): Promise<void> {
         }, () => { window.clearTimeout(timeout); resolve(); });
       } catch (error) { fail(error); }
     });
-  })().catch(error => { viewerRuntimePromise = null; throw error; });
+  })().catch(error => { if (viewerRuntimeModels === modelKey) { viewerRuntimePromise = null; viewerRuntimeModels = ""; } throw error; });
   return viewerRuntimePromise;
 }
 
@@ -345,6 +358,7 @@ export function AutodeskModelViewer({ urn, onMetadata }: { urn: string; onMetada
 
   useEffect(() => {
     let isMounted = true;
+    activeModels.set(urn, (activeModels.get(urn) ?? 0) + 1);
     let stopToolbarFilter: (() => void) | null = null;
 
     async function initializeViewer() {
@@ -423,6 +437,8 @@ export function AutodeskModelViewer({ urn, onMetadata }: { urn: string; onMetada
 
     return () => {
       isMounted = false;
+      const remaining = (activeModels.get(urn) ?? 1) - 1;
+      if (remaining > 0) activeModels.set(urn, remaining); else activeModels.delete(urn);
       stopToolbarFilter?.();
       viewerRef.current?.finish();
     };

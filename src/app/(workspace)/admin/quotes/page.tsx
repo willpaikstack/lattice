@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import { redirect } from "next/navigation";
 import { AdminQuoteManagement } from "@/components/admin-quote-management";
 import { listCustomerProfiles } from "@/lib/customer-profiles";
@@ -10,6 +11,7 @@ import { updateAdminQuoteStatusAction, updateAdminRfqDecisionAction } from "./ac
 export const dynamic = "force-dynamic";
 
 export default async function AdminQuotesPage({ searchParams }: { searchParams: Promise<{ requestId?: string; view?: string; decision?: string }> }) {
+  await requirePageRole(["admin"]);
   const query = await searchParams;
   if (query.requestId && query.view !== "quote" && !query.decision) redirect(`/admin/quotes/${encodeURIComponent(query.requestId)}`);
   const [requests, customerProfiles] = await Promise.all([listAdminRequests(), listCustomerProfiles()]);

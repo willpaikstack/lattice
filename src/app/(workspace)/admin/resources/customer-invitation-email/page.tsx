@@ -1,8 +1,10 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import { buildCustomerInvitationEmail } from "@/lib/customer-invitation-email";
 
 export const dynamic = "force-dynamic";
 
-export default function CustomerInvitationEmailPreviewPage() {
+export default async function CustomerInvitationEmailPreviewPage() {
+  await requirePageRole(["admin"]);
   const email = buildCustomerInvitationEmail({
     companyName: "Acme Machining",
     loginUrl: `${(process.env.APP_BASE_URL || "http://localhost:3000").replace(/\/$/, "")}/login`,

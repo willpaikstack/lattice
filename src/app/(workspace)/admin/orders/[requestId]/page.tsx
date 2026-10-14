@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import { notFound } from "next/navigation";
 
 import { BuyerOrderDetail } from "@/components/buyer-order-detail";
@@ -9,6 +10,7 @@ import { confirmOrderComplianceReview, uploadOrderQualityDocument, updateOrderPr
 export const dynamic = "force-dynamic";
 
 export default async function AdminOrderDetailPage({ params }: { params: Promise<{ requestId: string }> }) {
+  await requirePageRole(["admin"]);
   const { requestId } = await params;
   const order = await getRequestById(requestId);
 

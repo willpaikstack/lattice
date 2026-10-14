@@ -30,11 +30,13 @@ function FileLink({ file }: { file: UploadedFile }) {
   const href = rfqFileHref(file);
   return href ? <a href={href} download={file.name}><Download size={14} aria-hidden="true" />{file.name}</a> : <span>{file.name} · File unavailable</span>;
 }
-function SavedCadPreview({ file }: { file: UploadedFile }) {
+function SavedCadPreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
   const [state, setState] = useState<CadUploadPreviewState>(() => file.cadPreviewUrn
     ? { status: "processing", urn: file.cadPreviewUrn, fileName: file.name, progress: "Checking saved model" }
     : { status: "reference_only", fileName: file.name, message: "No translated preview was saved with this CAD file. Download the original for review." });
   const urn = state.status === "processing" ? state.urn : null;
+  const restrictionStatus = request.intakeDeclaration?.restrictionStatus;
+  const restrictionPolicyVersion = request.intakeDeclaration?.policyVersion;
   useEffect(() => {
     if (!urn) return;
     let active = true;
@@ -43,20 +45,20 @@ function SavedCadPreview({ file }: { file: UploadedFile }) {
       if (checking) return;
       checking = true;
       try {
-        const next = await refreshCadPreviewState({ status: "processing", urn: urn!, fileName: file.name, progress: "Checking saved model" });
+        const next = await refreshCadPreviewState({ status: "processing", urn: urn!, fileName: file.name, progress: "Checking saved model" }, { storageKey: file.storageKey ?? "", restrictionStatus, restrictionPolicyVersion });
         if (active) setState(next);
       } finally { checking = false; }
     }
     void check();
     const interval = window.setInterval(() => { void check(); }, 5000);
     return () => { active = false; window.clearInterval(interval); };
-  }, [urn, file.name]);
+  }, [urn, file.name, file.storageKey, restrictionStatus, restrictionPolicyVersion]);
   if (state.status === "ready") return <ModelViewer urn={state.urn} />;
   return <div className={styles.noPreview} role="status"><FileText size={28} aria-hidden="true" /><p>{state.status === "processing" ? "Checking the saved CAD preview… The original file is available to download below." : "message" in state ? state.message : "Loading CAD preview…"}</p></div>;
 }
-function SavedFilePreview({ file }: { file: UploadedFile }) {
+function SavedFilePreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
   const href = rfqFileHref(file, true);
-  if (rfqFileKind(file) === "cad") return <SavedCadPreview file={file} />;
+  if (rfqFileKind(file) === "cad") return <SavedCadPreview file={file} request={request} />;
   if (href && /\.pdf$/i.test(file.name)) return <PdfViewer url={href} name={file.name} />;
   if (href && /\.(png|jpg|jpeg|webp)$/i.test(file.name)) {
     // The authorized local-file endpoint supplies the stored drawing bytes.
@@ -111,7 +113,7 @@ export function AdminRfqDetail({ request }: { request: LatticeRequest }) {
         <div className={styles.partBody}>
           <div className={styles.filePanel}><h3>CAD & drawings</h3>
             <div className={styles.fileTabs} aria-label="Part files">{part.files.map(item => <button type="button" aria-pressed={file?.id === item.id} key={item.id} onClick={() => setSelectedFileId(item.id)}>{rfqFileKind(item) === "cad" ? "CAD" : rfqFileKind(item) === "drawing" ? "Drawing" : "File"} · {item.name}</button>)}</div>
-            {file ? <><SavedFilePreview key={file.id} file={file} /><div className={styles.download}><FileLink file={file} /><span>{new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(file.sizeBytes / 1024)} KB</span></div></> : <p className={styles.empty}>No files have a saved association with this part. Check the shared files below.</p>}
+            {file ? <><SavedFilePreview key={file.id} file={file} request={request} /><div className={styles.download}><FileLink file={file} /><span>{new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(file.sizeBytes / 1024)} KB</span></div></> : <p className={styles.empty}>No files have a saved association with this part. Check the shared files below.</p>}
             <p className={styles.caption}>Original uploaded files and saved customer requirements.</p>
           </div>
           <div className={styles.specs}><h3>Manufacturing requirements</h3><dl>

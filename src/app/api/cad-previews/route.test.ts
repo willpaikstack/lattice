@@ -6,6 +6,7 @@ vi.mock("@/lib/route-authorization", () => ({ requireRouteRole: mocks.role }));
 vi.mock("@/lib/request-access-policy", () => ({ canCurrentSessionAccessStorageKey: mocks.access }));
 vi.mock("@/lib/local-file-storage", () => ({ inspectStoredUpload: mocks.inspect, openStoredUploadStream: mocks.open }));
 vi.mock("@/lib/autodesk-platform-services", () => ({ startCadPreviewFromSource: mocks.start, startCadPreviewTranslation: vi.fn() }));
+vi.mock("@/lib/cad-preview-access", () => ({ registerCadPreview: vi.fn(), registeredCadPreviewForSource: vi.fn(async () => null) }));
 import { POST } from "./route";
 
 const request = (extra: object = {}) => new Request("http://localhost/api/cad-previews", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storageKey: "rfq-drafts/company/part.step", restrictionStatus: "unrestricted", restrictionPolicyVersion, ...extra }) });

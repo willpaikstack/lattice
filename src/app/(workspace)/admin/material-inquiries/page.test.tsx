@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+vi.mock("@/lib/session", () => ({ getCurrentSession: async () => ({ user: { role: "admin" } }) }));
 
 vi.mock("@/lib/material-inquiries", () => ({
   listMaterialInquiries: vi.fn(async () => [

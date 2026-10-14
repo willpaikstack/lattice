@@ -4,7 +4,7 @@ import { ReusableCadViewer } from "./prepared-cad-viewer";
 import { cadAccept } from "@/lib/cad-upload-policy";
 
 import { useEffect, useRef } from "react";
-import { refreshCadPreviewState } from "@/lib/cad-preview-status";
+import { refreshCadPreviewState, type CadPreviewRecovery } from "@/lib/cad-preview-status";
 
 import { preloadAutodeskViewerAssets } from "@/components/autodesk-model-viewer";
 
@@ -22,11 +22,13 @@ export function CadUploadPreview({
   onReplacementFileSelected,
   state,
   onStatus,
+  recovery,
 }: {
   onMetadata?: (metadata: CadMetadata) => void;
   onReplacementFileSelected?: (file: File | null) => void;
   state: CadUploadPreviewState;
   onStatus: (state: CadUploadPreviewState) => void;
+  recovery?: CadPreviewRecovery;
 }) {
   const previewStatus = state.status;
   useEffect(() => {
@@ -39,6 +41,8 @@ export function CadUploadPreview({
   useEffect(() => { onStatusRef.current = onStatus; }, [onStatus]);
   const processingUrn = state.status === "processing" ? state.urn : "";
   const processingFileName = state.status === "processing" ? state.fileName : "";
+  const recoveryRef = useRef(recovery);
+  useEffect(() => { recoveryRef.current = recovery; }, [recovery]);
   useEffect(() => {
     if (!processingUrn) return;
     let cancelled = false;
@@ -47,7 +51,7 @@ export function CadUploadPreview({
       if (checking) return;
       checking = true;
       try {
-        const next = await refreshCadPreviewState({ status: "processing", fileName: processingFileName, urn: processingUrn, progress: "pending" });
+        const next = await refreshCadPreviewState({ status: "processing", fileName: processingFileName, urn: processingUrn, progress: "pending" }, recoveryRef.current);
         if (!cancelled) onStatusRef.current(next);
       } finally { checking = false; }
     }

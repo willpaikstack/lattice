@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { completeDirectUpload, openStoredUploadStream, prepareDirectUpload } from "./local-file-storage";
 
@@ -10,26 +10,50 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
+function storage(length = 9) {
+  const records = new Map<string, string>();
+  const send = vi.spyOn(S3Client.prototype, "send").mockImplementation(async (command: unknown) => {
+    if (command instanceof PutObjectCommand) { records.set(command.input.Key!, String(command.input.Body)); return {} as never; }
+    if (command instanceof GetObjectCommand) {
+      const record = records.get(command.input.Key!);
+      if (!record) throw Object.assign(new Error("missing"), { name: "NoSuchKey" });
+      return { ContentLength: record.length, Body: { transformToString: async () => record } } as never;
+    }
+    if (command instanceof HeadObjectCommand) return { ContentLength: length, ContentType: "model/step", Metadata: {} } as never;
+    throw new Error("Unexpected storage operation");
+  });
+  return { records, send };
+}
+
 describe("private direct storage", () => {
-  it("signs the exact length, content type and original metadata for one new object", async () => {
-    const send = vi.spyOn(S3Client.prototype, "send");
-    const upload = await prepareDirectUpload({ name: "part.step", sizeBytes: 8 * 1024 * 1024, type: "model/step" }, "rfq-drafts/company");
-    expect(upload.mode).toBe("direct");
+  it("signs exact length/type while keeping expected metadata out of the browser-editable object", async () => {
+    const { records } = storage();
+    const upload = await prepareDirectUpload({ name: "part.step", sizeBytes: 9, type: "model/step" }, "rfq-drafts/company");
     if (upload.mode !== "direct") throw new Error("Expected direct upload");
     const signed = new URL(upload.uploadUrl);
-    expect(upload.storageKey).toMatch(/^rfq-drafts\/company\/\d{4}-\d{2}-\d{2}\/.+-part\.step$/);
     expect(signed.searchParams.get("X-Amz-SignedHeaders")).toContain("content-length");
     expect(signed.searchParams.get("X-Amz-SignedHeaders")).toContain("content-type");
     expect(signed.searchParams.get("X-Amz-Expires")).toBe("900");
-    expect(signed.searchParams.get("x-amz-meta-lattice-size")).toBe(String(8 * 1024 * 1024));
-    expect(send).not.toHaveBeenCalled();
+    expect(signed.searchParams.has("x-amz-meta-lattice-size")).toBe(false);
+    expect([...records.keys()][0]).toMatch(/^internal\/upload-intents\/[a-f0-9]{64}\.json$/);
+    await expect(completeDirectUpload(upload.storageKey)).resolves.toMatchObject({ name: "part.step", sizeBytes: 9 });
   });
 
-  it("checks stored length against signed metadata before completing an upload", async () => {
-    const send = vi.spyOn(S3Client.prototype, "send").mockResolvedValue({ ContentLength: 8, ContentType: "model/step", Metadata: { "lattice-name": "part.step", "lattice-size": "9" } } as never);
-    await expect(completeDirectUpload("rfq-drafts/company/part.step")).rejects.toThrow("incomplete");
-    send.mockResolvedValue({ ContentLength: 9, ContentType: "model/step", Metadata: { "lattice-name": "part.step", "lattice-size": "9" } } as never);
-    await expect(completeDirectUpload("rfq-drafts/company/part.step")).resolves.toMatchObject({ name: "part.step", sizeBytes: 9 });
+  it("rejects incomplete bytes even when the client claims a different size", async () => {
+    storage(8);
+    const upload = await prepareDirectUpload({ name: "part.step", sizeBytes: 9, type: "model/step" }, "rfq-drafts/company");
+    if (upload.mode !== "direct") throw new Error("Expected direct upload");
+    await expect(completeDirectUpload(upload.storageKey)).rejects.toThrow("incomplete");
+  });
+
+  it("does not complete an object without a server-written intent", async () => {
+    storage(9);
+    await expect(completeDirectUpload("rfq-drafts/company/unknown.step")).rejects.toThrow("incomplete");
+  });
+
+  it("fails closed when the private intent store is unavailable", async () => {
+    vi.spyOn(S3Client.prototype, "send").mockRejectedValue(new Error("Storage unavailable"));
+    await expect(completeDirectUpload("rfq-drafts/company/part.step")).rejects.toThrow("Storage unavailable");
   });
 
   it("returns the object stream without reading the full file into memory", async () => {

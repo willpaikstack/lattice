@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -122,12 +122,14 @@ export async function prepareDirectUpload(metadata: Omit<StoredLocalUpload, "sto
 
   const storageKey = path.posix.join(folder, new Date().toISOString().slice(0, 10), `${randomUUID()}-${safeFileName(metadata.name)}`);
   const type = metadata.type || "application/octet-stream";
+  // R2 does not persist S3 metadata hoisted into a presigned URL. Keep the
+  // expected upload in a server-written record that the signed PUT cannot edit.
+  await writePrivateStorageRecord(uploadRecordKey(storageKey), { ...metadata, type, storageKey });
   const uploadUrl = await getSignedUrl(remote.client, new PutObjectCommand({
     Bucket: remote.config.bucket,
     Key: storageKey,
     ContentLength: metadata.sizeBytes,
     ContentType: type,
-    Metadata: { "lattice-name": encodeURIComponent(metadata.name), "lattice-size": String(metadata.sizeBytes) },
   }), { expiresIn: 900, signableHeaders: new Set(["content-type", "content-length"]) });
 
   return { mode: "direct" as const, storageKey, uploadUrl, headers: { "Content-Type": type } };
@@ -141,8 +143,9 @@ export async function inspectStoredUpload(storageKey: string) {
     return { name: path.posix.basename(safeKey), sizeBytes: (await stat(localUploadPath(safeKey))).size, type: "application/octet-stream" };
   }
   const response = await remote.client.send(new HeadObjectCommand({ Bucket: remote.config.bucket, Key: safeKey }));
+  const expected = isDraftUploadStorageKey(safeKey) ? await readExpectedUpload(safeKey) : null;
   return {
-    name: response.Metadata?.["lattice-name"] ? decodeURIComponent(response.Metadata["lattice-name"]) : path.posix.basename(safeKey),
+    name: expected?.name ?? (response.Metadata?.["lattice-name"] ? decodeURIComponent(response.Metadata["lattice-name"]) : path.posix.basename(safeKey)),
     sizeBytes: response.ContentLength ?? 0,
     type: response.ContentType || "application/octet-stream",
     expectedSizeBytes: response.Metadata?.["lattice-size"] ? Number(response.Metadata["lattice-size"]) : undefined,
@@ -150,11 +153,59 @@ export async function inspectStoredUpload(storageKey: string) {
 }
 
 export async function completeDirectUpload(storageKey: string): Promise<StoredLocalUpload> {
+  const expected = await readExpectedUpload(storageKey);
   const stored = await inspectStoredUpload(storageKey);
-  if (!("expectedSizeBytes" in stored) || !Number.isSafeInteger(stored.expectedSizeBytes) || stored.expectedSizeBytes !== stored.sizeBytes || stored.sizeBytes <= 0) {
+  if (!expected || expected.sizeBytes !== stored.sizeBytes || expected.type !== stored.type || stored.sizeBytes <= 0) {
     throw new Error("The file upload is incomplete. Upload the file again before continuing.");
   }
-  return { name: stored.name, sizeBytes: stored.sizeBytes, type: stored.type, storageKey };
+  return { name: expected.name, sizeBytes: stored.sizeBytes, type: stored.type, storageKey };
+}
+
+function uploadRecordKey(storageKey: string) {
+  return `internal/upload-intents/${createHash("sha256").update(storageKey).digest("hex")}.json`;
+}
+
+async function readExpectedUpload(storageKey: string) {
+  const value = await readPrivateStorageRecord(uploadRecordKey(storageKey));
+  if (!value || value.storageKey !== storageKey || typeof value.name !== "string" ||
+      typeof value.type !== "string" || !Number.isSafeInteger(value.sizeBytes) || Number(value.sizeBytes) <= 0) return null;
+  return value as { storageKey: string; name: string; type: string; sizeBytes: number };
+}
+
+/** Private server records are never returned through file-download authorization. */
+export async function writePrivateStorageRecord(key: string, value: Record<string, unknown>) {
+  if (!/^internal\/[a-z-]+\/[a-f0-9]{64}\.json$/.test(key)) throw new Error("Invalid private record key");
+  const contents = Buffer.from(JSON.stringify(value));
+  if (contents.length > 16384) throw new Error("Private record is too large");
+  const remote = remoteStorage();
+  if (remote) {
+    await remote.client.send(new PutObjectCommand({ Bucket: remote.config.bucket, Key: key, Body: contents, ContentType: "application/json", ContentLength: contents.length }));
+  } else {
+    const destination = localUploadPath(key);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, contents);
+  }
+}
+
+export async function readPrivateStorageRecord(key: string): Promise<Record<string, unknown> | null> {
+  if (!/^internal\/[a-z-]+\/[a-f0-9]{64}\.json$/.test(key)) throw new Error("Invalid private record key");
+  try {
+    const remote = remoteStorage();
+    let contents: string;
+    if (remote) {
+      const result = await remote.client.send(new GetObjectCommand({ Bucket: remote.config.bucket, Key: key }));
+      if (!result.Body || Number(result.ContentLength) > 16384) throw new Error("Invalid private record");
+      contents = await result.Body.transformToString();
+    } else { contents = await readFile(localUploadPath(key), "utf8"); }
+    if (contents.length > 16384) throw new Error("Invalid private record");
+    const value: unknown = JSON.parse(contents);
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid private record");
+    return value as Record<string, unknown>;
+  } catch (error) {
+    if (error && typeof error === "object" && (("code" in error && error.code === "ENOENT") ||
+        ("name" in error && ["NoSuchKey", "NotFound"].includes(String(error.name))))) return null;
+    throw error; // Storage outages must not turn into successful/unrestricted access.
+  }
 }
 
 // Stream the saved CAD file to Autodesk without buffering the whole file in a

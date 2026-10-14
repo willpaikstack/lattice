@@ -6,6 +6,7 @@ import { inspectStoredUpload, openStoredUploadStream } from "@/lib/local-file-st
 import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
 import { requireRouteRole } from "@/lib/route-authorization";
 import { cadUploadError } from "@/lib/cad-upload-policy";
+import { registerCadPreview, registeredCadPreviewForSource } from "@/lib/cad-preview-access";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -27,11 +28,16 @@ export async function POST(request: Request) {
       const stored = await inspectStoredUpload(input.storageKey);
       const uploadError = cadUploadError({ name: stored.name, size: stored.sizeBytes });
       if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
+      if (input.reuseExisting === true) {
+        const urn = await registeredCadPreviewForSource(input.storageKey);
+        if (urn) return NextResponse.json({ preview: { status: "processing", urn, provider: "autodesk-platform-services" } }, { status: 202, headers: { "Cache-Control": "no-store" } });
+      }
       const preview = await startCadPreviewFromSource({
         name: stored.name,
         size: stored.sizeBytes,
         openBody: () => openStoredUploadStream(input.storageKey),
       });
+      if (preview.status === "processing") await registerCadPreview(preview.urn, input.storageKey);
       return NextResponse.json({ preview }, { status: preview.status === "configuration_required" ? 501 : 202 });
     }
 
@@ -47,6 +53,7 @@ export async function POST(request: Request) {
     const uploadError = cadUploadError(file);
     if (uploadError) return NextResponse.json({ error: uploadError }, { status: 400 });
     const preview = await startCadPreviewTranslation(file);
+    if (preview.status === "processing") await registerCadPreview(preview.urn);
     const status = preview.status === "configuration_required" ? 501 : 202;
 
     return NextResponse.json({ preview }, { status });

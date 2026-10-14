@@ -1,3 +1,4 @@
+import { requirePageRole } from "@/lib/route-authorization";
 import { notFound } from "next/navigation";
 
 import { AdminCustomerProfileDetail } from "@/components/admin-customer-profile-detail";
@@ -12,6 +13,7 @@ type AdminCustomerProfilePageProps = {
 };
 
 export default async function AdminCustomerProfilePage({ params }: AdminCustomerProfilePageProps) {
+  await requirePageRole(["admin"]);
   const { companyId } = await params;
   const profile = await getCustomerProfile(companyId);
 
