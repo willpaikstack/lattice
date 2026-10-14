@@ -4,8 +4,8 @@
 
 The [hosted readiness report](docs/audits/hosted-readiness-2026-10-13.md) supersedes older pending hosted-check notes where it provides fresh proof. Do not enable Live checkout or call the app completed yet.
 
-- P0: enforce authorization before admin page data queries/serialization (quotes, customers, orders and order detail leak in redirected bodies); bind APS derivatives/token access to company ownership.
-- P0: repair R2 signed-upload metadata/completion; verify small/large CAD and drawings through the normal browser journey without prepared fixture metadata.
+- Completed P0: admin page authorization now runs before private queries; CAD ownership is server-written and APS tokens are resource-scoped. Hosted cross-company/raw-response/provider checks pass; Production patch db347a6 is released. See docs/audits/p0-remediation-2026-10-13.md.
+- Completed P0: private upload intents repair R2 completion; hosted small/large CAD and >5 MB PDF prepare/PUT/completion/submission/download pass without metadata fixtures. Native file-picker/interactive-viewer checks remain pending because the Mac was locked.
 - P1: enforce real stored bytes, part associations and required drawings on submission; validate/version/recover malformed shared drafts.
 - P1: patch applicable dependency advisories and move vendor overrides off the application filesystem.
 - P1: provide narrowly supported Test webhook ingress and prove genuine Stripe provider delivery; hosted signed replay/payment/refunds passed, direct delivery did not.

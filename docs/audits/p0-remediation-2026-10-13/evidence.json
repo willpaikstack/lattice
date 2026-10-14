@@ -1,0 +1,642 @@
+{
+  "scope": "P0 hosted HTTP/provider retests. Native browser verification blocked by locked Mac. Synthetic development data only; Production checks anonymous/read-only.",
+  "observations": [
+    {
+      "time": "2026-10-14T01:18:36.765Z",
+      "test": "P0 prepare hosted-qa-cube-large.step",
+      "status": 200,
+      "mode": "direct"
+    },
+    {
+      "time": "2026-10-14T01:18:36.983Z",
+      "test": "P0 direct CORS hosted-qa-cube-large.step",
+      "status": 204,
+      "exactOrigin": true
+    },
+    {
+      "time": "2026-10-14T01:18:38.225Z",
+      "test": "P0 direct PUT hosted-qa-cube-large.step",
+      "status": 200,
+      "bytes": 6482251
+    },
+    {
+      "time": "2026-10-14T01:18:39.196Z",
+      "test": "P0 normal completion hosted-qa-cube-large.step",
+      "status": 201,
+      "correctName": true,
+      "correctBytes": true
+    },
+    {
+      "time": "2026-10-14T01:18:39.694Z",
+      "test": "P0 foreign completion hosted-qa-cube-large.step",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T01:18:40.370Z",
+      "test": "P0 prepare hosted-qa-cube-small.step",
+      "status": 200,
+      "mode": "direct"
+    },
+    {
+      "time": "2026-10-14T01:18:40.416Z",
+      "test": "P0 direct CORS hosted-qa-cube-small.step",
+      "status": 204,
+      "exactOrigin": true
+    },
+    {
+      "time": "2026-10-14T01:18:40.693Z",
+      "test": "P0 direct PUT hosted-qa-cube-small.step",
+      "status": 200,
+      "bytes": 2246
+    },
+    {
+      "time": "2026-10-14T01:18:41.492Z",
+      "test": "P0 normal completion hosted-qa-cube-small.step",
+      "status": 201,
+      "correctName": true,
+      "correctBytes": true
+    },
+    {
+      "time": "2026-10-14T01:18:42.144Z",
+      "test": "P0 foreign completion hosted-qa-cube-small.step",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T01:18:42.787Z",
+      "test": "P0 prepare hosted-qa-drawing-large.pdf",
+      "status": 200,
+      "mode": "direct"
+    },
+    {
+      "time": "2026-10-14T01:18:42.839Z",
+      "test": "P0 direct CORS hosted-qa-drawing-large.pdf",
+      "status": 204,
+      "exactOrigin": true
+    },
+    {
+      "time": "2026-10-14T01:18:43.690Z",
+      "test": "P0 direct PUT hosted-qa-drawing-large.pdf",
+      "status": 200,
+      "bytes": 5245427
+    },
+    {
+      "time": "2026-10-14T01:18:44.578Z",
+      "test": "P0 normal completion hosted-qa-drawing-large.pdf",
+      "status": 201,
+      "correctName": true,
+      "correctBytes": true
+    },
+    {
+      "time": "2026-10-14T01:18:44.990Z",
+      "test": "P0 foreign completion hosted-qa-drawing-large.pdf",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T01:18:49.178Z",
+      "test": "P0 model ownership registration",
+      "status": 202,
+      "state": "processing"
+    },
+    {
+      "time": "2026-10-14T01:18:52.213Z",
+      "test": "P0 RFQ submitted without fixture metadata",
+      "status": 201,
+      "fileCount": 3
+    },
+    {
+      "time": "2026-10-14T01:18:53.790Z",
+      "test": "P0 saved original hosted-qa-cube-large.step",
+      "status": 307,
+      "downloadStatus": 200,
+      "bytesMatch": true
+    },
+    {
+      "time": "2026-10-14T01:18:54.555Z",
+      "test": "P0 saved original hosted-qa-cube-small.step",
+      "status": 307,
+      "downloadStatus": 200,
+      "bytesMatch": true
+    },
+    {
+      "time": "2026-10-14T01:18:55.766Z",
+      "test": "P0 saved original hosted-qa-drawing-large.pdf",
+      "status": 307,
+      "downloadStatus": 200,
+      "bytesMatch": true
+    },
+    {
+      "time": "2026-10-14T01:20:17.459Z",
+      "test": "P0 scoped admin response buyer /admin/quotes",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:18.188Z",
+      "test": "P0 scoped admin response buyer /admin/customers",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:18.984Z",
+      "test": "P0 scoped admin response buyer /admin/customers/hostedqa_company_a_20261013",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:19.813Z",
+      "test": "P0 scoped admin response buyer /admin/orders",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:20.526Z",
+      "test": "P0 scoped admin response buyer /admin/orders/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:21.685Z",
+      "test": "P0 scoped admin response buyer /admin/vendors",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:22.540Z",
+      "test": "P0 scoped admin response buyer /admin/vendors/any",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:23.294Z",
+      "test": "P0 scoped admin response buyer /admin/material-inquiries",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:24.184Z",
+      "test": "P0 scoped admin response buyer /admin/resources",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:25.070Z",
+      "test": "P0 scoped admin response buyer /admin/resources/customer-invitation-email",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:25.963Z",
+      "test": "P0 scoped admin response buyer /admin/resources/customer-onboarding",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:26.844Z",
+      "test": "P0 scoped admin response buyer /admin/quotes/rfq_d0207111e48fd3b54f1c6408e252f15faec49d26",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:27.514Z",
+      "test": "P0 scoped admin response other /admin/quotes",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:20:28.164Z",
+      "test": "P0 scoped admin response other /admin/customers",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:47.943Z",
+      "test": "P0 scoped admin response other /admin/customers/hostedqa_company_a_20261013",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:48.726Z",
+      "test": "P0 scoped admin response other /admin/orders",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:49.426Z",
+      "test": "P0 scoped admin response other /admin/orders/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:50.116Z",
+      "test": "P0 scoped admin response other /admin/vendors",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:50.912Z",
+      "test": "P0 scoped admin response other /admin/vendors/any",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:51.628Z",
+      "test": "P0 scoped admin response other /admin/material-inquiries",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:52.347Z",
+      "test": "P0 scoped admin response other /admin/resources",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:53.113Z",
+      "test": "P0 scoped admin response other /admin/resources/customer-invitation-email",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:53.798Z",
+      "test": "P0 scoped admin response other /admin/resources/customer-onboarding",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:54.872Z",
+      "test": "P0 scoped admin response other /admin/quotes/rfq_d0207111e48fd3b54f1c6408e252f15faec49d26",
+      "status": 307,
+      "redirect": "/dashboard",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.028Z",
+      "test": "P0 scoped admin response anonymous /admin/quotes",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fquotes",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.092Z",
+      "test": "P0 scoped admin response anonymous /admin/customers",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fcustomers",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.145Z",
+      "test": "P0 scoped admin response anonymous /admin/customers/hostedqa_company_a_20261013",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fcustomers%2Fhostedqa_company_a_20261013",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.199Z",
+      "test": "P0 scoped admin response anonymous /admin/orders",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Forders",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.253Z",
+      "test": "P0 scoped admin response anonymous /admin/orders/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Forders%2Frfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.306Z",
+      "test": "P0 scoped admin response anonymous /admin/vendors",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fvendors",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.367Z",
+      "test": "P0 scoped admin response anonymous /admin/vendors/any",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fvendors%2Fany",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.482Z",
+      "test": "P0 scoped admin response anonymous /admin/material-inquiries",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fmaterial-inquiries",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.536Z",
+      "test": "P0 scoped admin response anonymous /admin/resources",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fresources",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.627Z",
+      "test": "P0 scoped admin response anonymous /admin/resources/customer-invitation-email",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fresources%2Fcustomer-invitation-email",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.768Z",
+      "test": "P0 scoped admin response anonymous /admin/resources/customer-onboarding",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fresources%2Fcustomer-onboarding",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:55.830Z",
+      "test": "P0 scoped admin response anonymous /admin/quotes/rfq_d0207111e48fd3b54f1c6408e252f15faec49d26",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fquotes%2Frfq_d0207111e48fd3b54f1c6408e252f15faec49d26",
+      "foreignPrivateMarkersAbsent": true
+    },
+    {
+      "time": "2026-10-14T01:21:57.332Z",
+      "test": "P0 model access member status",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T01:21:58.529Z",
+      "test": "P0 model access member thumbnail",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T01:21:59.448Z",
+      "test": "P0 model access member token",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T01:22:00.339Z",
+      "test": "P0 model access other status",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T01:22:01.228Z",
+      "test": "P0 model access other thumbnail",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T01:22:02.021Z",
+      "test": "P0 model access other token",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T01:22:02.101Z",
+      "test": "P0 model access anonymous status",
+      "status": 401
+    },
+    {
+      "time": "2026-10-14T01:22:02.223Z",
+      "test": "P0 model access anonymous thumbnail",
+      "status": 401
+    },
+    {
+      "time": "2026-10-14T01:22:02.300Z",
+      "test": "P0 model access anonymous token",
+      "status": 401
+    },
+    {
+      "time": "2026-10-14T01:22:02.755Z",
+      "test": "P0 unscoped viewer token refused",
+      "status": 400
+    },
+    {
+      "time": "2026-10-14T01:22:03.940Z",
+      "test": "P0 own model readiness",
+      "status": 200,
+      "state": "ready"
+    },
+    {
+      "time": "2026-10-14T01:22:04.758Z",
+      "test": "P0 single model token",
+      "status": 200,
+      "cacheControl": "no-store"
+    },
+    {
+      "time": "2026-10-14T01:22:05.136Z",
+      "test": "P0 direct APS manifest own",
+      "status": 200,
+      "state": "success"
+    },
+    {
+      "time": "2026-10-14T01:52:45.773Z",
+      "test": "P0 direct APS manifest own",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T01:52:46.029Z",
+      "test": "P0 direct APS thumbnail own",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T01:52:46.162Z",
+      "test": "P0 direct APS manifest different",
+      "status": 401
+    },
+    {
+      "time": "2026-10-14T01:52:46.249Z",
+      "test": "P0 direct APS thumbnail different",
+      "status": 401
+    },
+    {
+      "time": "2026-10-14T02:00:03.565Z",
+      "test": "P0 legitimate operator /admin/quotes",
+      "status": 200,
+      "containsExpectedTitle": true
+    },
+    {
+      "time": "2026-10-14T02:00:04.531Z",
+      "test": "P0 legitimate operator /admin/quotes/rfq_d0207111e48fd3b54f1c6408e252f15faec49d26",
+      "status": 200,
+      "containsExpectedTitle": true
+    },
+    {
+      "time": "2026-10-14T02:00:05.423Z",
+      "test": "P0 legitimate operator /admin/orders/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 200,
+      "containsExpectedTitle": true
+    },
+    {
+      "time": "2026-10-14T02:00:08.094Z",
+      "test": "P0 tampered direct upload length",
+      "status": 403
+    },
+    {
+      "time": "2026-10-14T02:00:09.033Z",
+      "test": "P0 private intent record cannot download buyer",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T02:00:09.972Z",
+      "test": "P0 private intent record cannot download admin",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T02:00:10.722Z",
+      "test": "P0 private intent record cannot download other",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T02:00:16.520Z",
+      "test": "P0 two authorized models grouped token",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T02:00:17.347Z",
+      "test": "P0 foreign grouped token refused",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T02:00:17.748Z",
+      "test": "P0 grouped token direct manifest owned one",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T02:00:18.114Z",
+      "test": "P0 grouped token direct manifest owned two",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T02:00:18.213Z",
+      "test": "P0 grouped token direct manifest unrelated",
+      "status": 401
+    },
+    {
+      "time": "2026-10-14T02:23:55.500Z",
+      "test": "P0 CAD access after extended checks",
+      "status": 404,
+      "durationMs": 4047
+    },
+    {
+      "time": "2026-10-14T02:26:08.965Z",
+      "test": "P0 model boundary retained after extended tests",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T02:26:14.915Z",
+      "test": "P0 operator secure recovery from authorized original",
+      "status": 202,
+      "state": "processing"
+    },
+    {
+      "time": "2026-10-14T02:26:15.967Z",
+      "test": "P0 recovered original retains customer ownership",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T02:26:16.808Z",
+      "test": "P0 recovered original denies foreign company",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T02:26:17.886Z",
+      "test": "P0 model ownership records remain private",
+      "status": 404
+    },
+    {
+      "test": "Production staged anonymous /api/requests",
+      "status": 401,
+      "appAuthRequired": true,
+      "vercelProtection": false
+    },
+    {
+      "test": "Production staged anonymous /api/cad-previews/token?urn=unknown",
+      "status": 401,
+      "appAuthRequired": true,
+      "vercelProtection": false
+    },
+    {
+      "test": "Production staged anonymous /admin/quotes",
+      "status": 307,
+      "appAuthRequired": false,
+      "vercelProtection": false
+    },
+    {
+      "test": "Production staged anonymous /admin/customers",
+      "status": 307,
+      "appAuthRequired": false,
+      "vercelProtection": false
+    },
+    {
+      "test": "Production staged anonymous /admin/orders",
+      "status": 307,
+      "appAuthRequired": false,
+      "vercelProtection": false
+    },
+    {
+      "test": "Production public anonymous /login",
+      "status": 200,
+      "redirect": null,
+      "protectionPage": false,
+      "signIn": true
+    },
+    {
+      "test": "Production public anonymous /admin/quotes",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fquotes",
+      "protectionPage": false,
+      "signIn": false
+    },
+    {
+      "test": "Production public anonymous /admin/customers",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Fcustomers",
+      "protectionPage": false,
+      "signIn": false
+    },
+    {
+      "test": "Production public anonymous /admin/orders",
+      "status": 307,
+      "redirect": "/login?redirect_url=%2Fadmin%2Forders",
+      "protectionPage": false,
+      "signIn": false
+    },
+    {
+      "test": "Production public anonymous /api/requests",
+      "status": 401,
+      "redirect": null,
+      "protectionPage": false,
+      "signIn": false
+    },
+    {
+      "test": "Production public anonymous /api/cad-previews/token?urn=unknown",
+      "status": 401,
+      "redirect": null,
+      "protectionPage": false,
+      "signIn": false
+    },
+    {
+      "test": "Production public anonymous /api/cad-previews/status?urn=unknown",
+      "status": 401,
+      "redirect": null,
+      "protectionPage": false,
+      "signIn": false
+    }
+  ]
+}
