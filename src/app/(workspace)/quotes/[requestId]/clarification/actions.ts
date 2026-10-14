@@ -14,7 +14,7 @@ export async function replyToClarification(requestId: string, data: FormData) {
   const file = data.get("drawing");
   const index = Number(data.get("lineItemIndex"));
   if (!Number.isInteger(index) || index < 0 || index >= request.lineItems.length) throw new Error("Choose the part this clarification concerns.");
-  if (file instanceof File && file.size > 25 * 1024 * 1024) throw new Error("Revised drawings must be no larger than 25 MB.");
+  if (file instanceof File && file.size > 3 * 1024 * 1024) throw new Error("Revised drawings must be no larger than 3 MB.");
   const stored = file instanceof File && file.size > 0 ? await saveLocalUpload(file) : null;
   if (stored && !stored.storageKey) throw new Error("Drawing storage is unavailable.");
   const client = await getPrismaClient() as PrismaClient;

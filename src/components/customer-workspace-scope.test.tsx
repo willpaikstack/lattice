@@ -1,3 +1,4 @@
+import {buildDraftRequest} from "@/lib/request-model";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ pathname: "/dashboard" }));
@@ -8,8 +9,8 @@ describe("workspace draft synchronization", () => {
   afterEach(() => { vi.unstubAllGlobals(); localStorage.clear(); });
   it("saves genuine drafts while excluding demo records and ignores demo deletion", async () => {
     mocks.pathname = "/requests/new";
-    const draft = { id: "local_draft_real", updatedAt: "2026-10-10T12:00:00Z" };
-    const preview = { id: "demo_draft_pump_cover", updatedAt: draft.updatedAt };
+    const draft = { id: "local_draft_real", updatedAt: "2026-10-10T12:00:00Z", request:{...buildDraftRequest({title:"QA",lineItems:[{material:"Aluminum",quantity:1}],files:[]}),id:"local_draft_real"},initialState:{} };
+    const preview = { ...draft,id: "demo_draft_pump_cover",request:{...draft.request,id:"demo_draft_pump_cover"} };
     const key = customerDraftStorageKey("company_a")!;
     localStorage.setItem(key, JSON.stringify([preview, draft]));
     const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ drafts: [], deletedIds: [] }) }));
@@ -17,7 +18,9 @@ describe("workspace draft synchronization", () => {
     render(<CustomerWorkspaceProvider scope="company_a"><h1>RFQ form</h1></CustomerWorkspaceProvider>);
     await screen.findByRole("heading", { name: "RFQ form" });
     act(() => window.dispatchEvent(new Event("lattice-drafts-changed")));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/request-drafts", expect.objectContaining({ method: "POST", body: JSON.stringify([draft]) })));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/request-drafts", expect.objectContaining({ method: "POST" })));
+    const saved = JSON.parse((fetchMock.mock.calls as unknown as [string, RequestInit][]).find(([,init])=>init?.method === "POST")?.[1]?.body as string);
+    expect(saved).toHaveLength(1); expect(saved[0]).toMatchObject({id:draft.id,schemaVersion:1});
     expect(JSON.parse(localStorage.getItem(key)!)).toHaveLength(2);
     act(() => window.dispatchEvent(new CustomEvent("lattice-draft-removed", { detail: preview.id })));
     expect(fetchMock).toHaveBeenCalledTimes(2);

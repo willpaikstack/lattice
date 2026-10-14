@@ -1,4 +1,5 @@
 "use client";
+import { normalizePersistedDraft } from "@/lib/persisted-draft-validation";
 import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-workspace-scope";
 
 import Link from "next/link";
@@ -71,7 +72,7 @@ function readLocalIncompleteRequests(incompleteRfqStorageKey: string | null) {
     }
 
     return parsed
-      .map((draft) => draft?.request)
+      .map((draft) => normalizePersistedDraft(draft)?.request)
       .filter((request): request is LatticeRequest => Boolean(request?.id && request?.status === "DRAFT"));
   } catch {
     return [];

@@ -1553,3 +1553,11 @@ The dedicated `/admin/quotes/[requestId]` page is the technical review surface; 
 ## 2026-10-13 — Store authoritative upload and CAD ownership records privately
 
 Use the existing private R2/local file store for small server-written upload intents and CAD model/source ownership records under hashed internal keys. Signed browser PUTs cannot choose or edit these keys, and attachment-download authorization does not expose them. Completion verifies expected bytes/type against the server record, not presigned query metadata. Only server translation results establish model ownership; client-supplied saved URNs never grant access. Status/thumbnail/token calls enforce that ownership, and APS viewer tokens use dynamic scopes for the explicitly authorized mounted models. Operators regenerating a submitted customer's file retain that customer's ownership. Unknown historical models fail closed and can be regenerated from an authorized eligible original, then reused. No schema migration, new production secret or CORS expansion. Keep the three-step customer upload/configure/submit flow and existing viewer controls. Native browser follow-through is pending; this is not a completed-app rollout certification.
+
+## 2026-10-14 — P1 durability and validation
+
+- Authoritative RFQ submission requires uploaded, authorized stored bytes and complete per-part CAD/drawing associations; customer browser validation is supplementary.
+- Persisted drafts use schema version 1. Repair usable legacy defaults/form caches; retain and quarantine unrecoverable records rather than crash the workspace or erase records.
+- Editable vendor fields and detail rows belong in Postgres, with an additive table and explicit archive importer; application filesystem writes are not a Production persistence mechanism.
+- Quality documents use order/admin-scoped direct private storage, capped at 25 MB, followed by transactional attachment and approval invalidation. Legacy supplier/clarification form attachments have an explicit 3 MB supported limit.
+- npm is the repository package-manager contract (Node 24); keep one npm lockfile. Unpatched development-only lint glob advisories are tracked separately from runtime dependency exposure.

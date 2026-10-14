@@ -1,3 +1,5 @@
+import {buildDraftRequest} from "@/lib/request-model";
+import {normalizePersistedDraft} from "@/lib/persisted-draft-validation";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -8,7 +10,7 @@ vi.mock("@/lib/session", () => ({ getCurrentSession: mocks.session }));
 vi.mock("@/lib/prisma", () => ({ getPrismaClient: async () => ({ customerRequestDraft: mocks.drafts }) }));
 import { DELETE, GET, POST } from "./route";
 
-const draft = { id: "local_draft_example", request: { status: "DRAFT" }, updatedAt: "2026-10-08T12:00:00Z" };
+const draft = { id: "local_draft_example", request: {...buildDraftRequest({title:"QA",lineItems:[{material:"Aluminum",quantity:1}],files:[]}),id:"local_draft_example"}, initialState:{}, updatedAt: "2026-10-08T12:00:00Z" };
 const post = (body: unknown) => new Request("https://latticeos.co/api/request-drafts", { method: "POST", body: JSON.stringify(body) });
 describe("company draft persistence and deletion", () => {
   beforeEach(() => {
@@ -26,7 +28,7 @@ describe("company draft persistence and deletion", () => {
   });
   it("returns only this company's drafts and deletion markers", async () => {
     mocks.drafts.findMany.mockResolvedValue([{ id: "company_a:local_draft_example", contents: draft }, { id: "company_a:local_draft_removed", contents: { deleted: true } }]);
-    expect(await (await GET()).json()).toEqual({ drafts: [draft], deletedIds: ["local_draft_removed"] });
+    expect(await (await GET()).json()).toEqual({ drafts: [normalizePersistedDraft(draft)], invalidIds: [], deletedIds: ["local_draft_removed"] });
     expect(mocks.drafts.findMany.mock.calls[0][0].where).toEqual({ ownerScope: "company_a" });
   });
   it("namespaces an identical browser id separately for each company", async () => {
@@ -53,4 +55,12 @@ describe("company draft persistence and deletion", () => {
     expect((await POST(post([invalid]))).status).toBe(400);
     expect(mocks.drafts.createMany).not.toHaveBeenCalled();
   });
+});
+
+it('rejects malformed drafts before writing and quarantines stored malformed records on read', async()=>{
+ mocks.session.mockResolvedValue({user:{role:'customer',companyId:'company_a'}});
+ const invalid={id:'local_draft_broken',updatedAt:'2026-10-14T12:00:00Z',request:{status:'DRAFT'}};
+ mocks.drafts.createMany.mockClear();expect((await POST(post([invalid]))).status).toBe(400);expect(mocks.drafts.createMany).not.toHaveBeenCalled();
+ mocks.drafts.findMany.mockResolvedValue([{id:'company_a:local_draft_broken',contents:invalid}]);
+ expect(await(await GET()).json()).toMatchObject({drafts:[],invalidIds:['local_draft_broken']});
 });

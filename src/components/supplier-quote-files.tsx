@@ -243,6 +243,11 @@ export function SupplierQuoteFiles({
         {uploadHref && !readOnly ? (
           <form
             action={uploadHref}
+          onSubmit={(event) => {
+            const file=new FormData(event.currentTarget).get("supplierQuoteFile");
+            const input=event.currentTarget.elements.namedItem("supplierQuoteFile") as HTMLInputElement;
+            if(file instanceof File && file.size>3*1024*1024){event.preventDefault();input.setCustomValidity("Supplier quote files must be no larger than 3 MB.");input.reportValidity();}
+          }}
             className="mt-4"
             encType="multipart/form-data"
             method="post"
@@ -255,7 +260,7 @@ export function SupplierQuoteFiles({
               </span>
               <span className="min-w-0">
                 <span className="block text-[22px] font-semibold leading-7 text-[#0f172a]">Upload supplier quote</span>
-                <span className="mt-1 block text-[15px] font-semibold leading-5 text-[#8a9bb6]">PDF, spreadsheet, image, or document from the shop</span>
+                <span className="mt-1 block text-[15px] font-semibold leading-5 text-[#8a9bb6]">PDF, spreadsheet, image, or document from the shop · up to 3 MB</span>
               </span>
               <input
                 accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.doc,.docx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/png,image/jpeg"
@@ -264,6 +269,7 @@ export function SupplierQuoteFiles({
                 className="sr-only"
                 name="supplierQuoteFile"
                 onChange={(event) => {
+                  event.currentTarget.setCustomValidity("");
                   if (event.currentTarget.files?.length) {
                     event.currentTarget.form?.requestSubmit();
                   }
@@ -272,6 +278,7 @@ export function SupplierQuoteFiles({
                 type="file"
               />
             </label>
+            {uploadError === "too-large" ? <p role="alert" className="text-sm text-red-800">Supplier quote files must be no larger than 3 MB.</p> : null}
             {uploadError === "missing" ? (
               <p className="mt-2 text-[12px] font-medium text-[#b42318]" id={`supplier-quote-error-${request.id}`}>
                 Choose a supplier quote file before uploading.
@@ -329,6 +336,11 @@ export function SupplierQuoteFiles({
       {uploadHref ? (
         <form
           action={uploadHref}
+          onSubmit={(event) => {
+            const file=new FormData(event.currentTarget).get("supplierQuoteFile");
+            const input=event.currentTarget.elements.namedItem("supplierQuoteFile") as HTMLInputElement;
+            if(file instanceof File && file.size>3*1024*1024){event.preventDefault();input.setCustomValidity("Supplier quote files must be no larger than 3 MB.");input.reportValidity();}
+          }}
           className="mt-4 grid gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3 sm:grid-cols-[1fr_auto] sm:items-center"
           encType={uploadHref ? "multipart/form-data" : undefined}
           method={uploadHref ? "post" : undefined}
@@ -336,15 +348,17 @@ export function SupplierQuoteFiles({
           <input name="requestId" type="hidden" value={request.id} />
           <input name="returnTo" type="hidden" value={returnTo} />
           <label className="grid gap-1 text-[12px] font-semibold text-[#30343a]">
-            Upload supplier quote file
+            Upload supplier quote file (up to 3 MB)
             <input
               accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.doc,.docx,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/png,image/jpeg"
               aria-describedby={uploadError === "missing" ? `supplier-quote-error-${request.id}` : undefined}
               className="min-h-10 w-full rounded-md border border-[#d9d9d9] bg-white px-3 py-2 text-[13px] text-[#202020] file:mr-3 file:rounded-md file:border-0 file:bg-[#f1f5f9] file:px-3 file:py-1.5 file:text-[12px] file:font-semibold file:text-[#30343a]"
+              onChange={(event)=>event.currentTarget.setCustomValidity("")}
               name="supplierQuoteFile"
               required
               type="file"
             />
+            {uploadError === "too-large" ? <p role="alert" className="text-sm text-red-800">Supplier quote files must be no larger than 3 MB.</p> : null}
             {uploadError === "missing" ? (
               <span className="text-[12px] font-medium text-[#b42318]" id={`supplier-quote-error-${request.id}`}>
                 Choose a supplier quote file before uploading.

@@ -33,6 +33,12 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock("@/lib/local-file-storage",()=>({
+  isDraftUploadStorageKey:()=>false,
+  inspectStoredUpload:async()=>({name:"bracket.step",sizeBytes:2048,type:"model/step"}),
+  saveLocalUpload:async(file:File)=>({name:file.name,sizeBytes:file.size,type:file.type,storageKey:"rfq/test/bracket.step"}),
+}));
+vi.mock("@/lib/request-access-policy",()=>({canCurrentSessionAccessStorageKey:async()=>({authorized:true})}));
 vi.mock("@/lib/request-repository", () => ({
   createSubmittedRequest: mocks.createSubmittedRequest,
   getRequestById: mocks.getRequestById,
@@ -66,7 +72,7 @@ function validInput(overrides: Partial<DraftRequestInput> = {}): DraftRequestInp
     intakeDeclaration: { restrictionStatus: "unrestricted", policyVersion: restrictionPolicyVersion, endUse: "commercial", endUseNotes: "" },
     buyerCompany: "Amogy Manufacturing",
     dueDate: "2026-07-01",
-    files: [{ name: "bracket.step", sizeBytes: 2048, type: "model/step" }],
+    files: [{ name: "bracket.step", sizeBytes: 2048, type: "model/step",storageKey:"rfq/test/bracket.step" }],
     lineItems: [{ material: "6061-T6 Aluminum", partName: "Bracket", quantity: 4, surfaceFinish: "As machined (Ra 3.2 um / Ra 126 uin)", manufacturingDetails: { process: "cnc_milling", customerPartNumber: "", cadRevision: "", drawingRevision: "", materialKey: "al_6061_t6", finishKey: "as_machined_ra_3_2", fileHistory: [] } }],
     process: "CNC machining",
     requesterName: "Buyer Ops",

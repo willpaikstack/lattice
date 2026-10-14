@@ -1,5 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { getPrismaClient } from "./prisma";
+import type { PrismaClient, Prisma } from "@prisma/client";
 
 import type { OverseasVendor } from "./admin-vendors";
 
@@ -54,17 +54,6 @@ export type OverseasVendorSaveInput = {
   fields: OverseasVendorEditableFields;
 };
 
-type StoredVendorOverride = {
-  detail?: OverseasVendorDetailOverrides;
-  fields: Partial<OverseasVendorEditableFields>;
-  updatedAt: string;
-};
-
-type StoredVendorOverrides = {
-  vendors: Record<string, StoredVendorOverride>;
-};
-
-const storePath = path.join(process.cwd(), ".data", "admin-vendor-overrides.json");
 const onboardingStatuses: OverseasVendor["onboardingStatus"][] = ["Onboarded", "Pilot active", "Docs pending", "Needs intake"];
 
 function clean(value: unknown) {
@@ -141,63 +130,24 @@ export function normalizeVendorSaveInput(input: unknown): OverseasVendorSaveInpu
   };
 }
 
-async function readOverridesFromDisk(): Promise<StoredVendorOverrides> {
-  try {
-    const raw = await readFile(storePath, "utf8");
-    const parsed = JSON.parse(raw) as Partial<StoredVendorOverrides>;
-    return {
-      vendors: parsed.vendors && typeof parsed.vendors === "object" ? parsed.vendors : {},
-    };
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      return { vendors: {} };
-    }
-
-    if (error instanceof SyntaxError && process.env.NODE_ENV === "development") {
-      console.warn("Local vendor override data is not valid JSON; ignoring it.", error);
-      return { vendors: {} };
-    }
-
-    throw error;
-  }
-}
-
-async function writeOverridesToDisk(overrides: StoredVendorOverrides) {
-  await mkdir(path.dirname(storePath), { recursive: true });
-  await writeFile(storePath, `${JSON.stringify(overrides, null, 2)}\n`, "utf8");
-}
+async function database() { return await getPrismaClient() as PrismaClient; }
 
 export async function applyOverseasVendorOverrides(vendors: OverseasVendor[]) {
-  const overrides = await readOverridesFromDisk();
-
-  return vendors.map((vendor) => ({
-    ...vendor,
-    ...(overrides.vendors[vendor.id]?.fields ?? {}),
-  }));
+  const rows = await (await database()).adminVendorOverride.findMany({where:{id:{in:vendors.map(v=>v.id)}}});
+  const overrides = new Map(rows.map(row => [row.id, row.fields as Partial<OverseasVendorEditableFields>]));
+  return vendors.map(vendor => ({...vendor, ...(overrides.get(vendor.id) ?? {})}));
 }
 
 export async function getOverseasVendorDetailOverrides(vendorId: string) {
-  const overrides = await readOverridesFromDisk();
-  return overrides.vendors[vendorId]?.detail ?? {};
+  const row = await (await database()).adminVendorOverride.findUnique({where:{id:vendorId}});
+  return (row?.detail ?? {}) as OverseasVendorDetailOverrides;
 }
 
 export async function saveOverseasVendorOverride(vendorId: string, input: OverseasVendorSaveInput) {
-  if (!input.fields.name) {
-    throw new Error("Vendor name is required.");
-  }
-
-  const overrides = await readOverridesFromDisk();
-  const previous = overrides.vendors[vendorId];
-
-  overrides.vendors[vendorId] = {
-    detail: {
-      ...(previous?.detail ?? {}),
-      ...(input.detail ?? {}),
-    },
-    fields: input.fields,
-    updatedAt: new Date().toISOString(),
-  };
-
-  await writeOverridesToDisk(overrides);
-  return overrides.vendors[vendorId];
+  if (!input.fields.name) throw new Error("Vendor name is required.");
+  const client = await database();
+  const previous = await client.adminVendorOverride.findUnique({where:{id:vendorId}});
+  const detail = {...(previous?.detail as OverseasVendorDetailOverrides ?? {}), ...Object.fromEntries(Object.entries(input.detail ?? {}).filter(([,value])=>value!==undefined))};
+  const data = {fields:input.fields as Prisma.InputJsonValue, detail:detail as Prisma.InputJsonValue};
+  return client.adminVendorOverride.upsert({where:{id:vendorId},create:{id:vendorId,...data},update:data});
 }

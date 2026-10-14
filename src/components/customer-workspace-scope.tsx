@@ -1,4 +1,5 @@
 "use client";
+import { normalizePersistedDraft } from "@/lib/persisted-draft-validation";
 import { purgeBrowserLegacyRfqValues, purgeLegacyRfqValues } from "@/lib/purge-legacy-rfq-values";
 import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -12,6 +13,7 @@ export function CustomerWorkspaceProvider({ scope, children }: { scope: string |
   const pathname = usePathname();
   const needsSharedDrafts = pathname === "/quotes" || pathname === "/requests/new";
   const [ready, setReady] = useState(!scope); const [failed, setFailed] = useState(false);
+  const [invalidDrafts, setInvalidDrafts] = useState(false);
   const [restoreCount, setRestoreCount] = useState(0);
   useEffect(() => {
     const restore = (event: PageTransitionEvent) => {
@@ -31,12 +33,12 @@ export function CustomerWorkspaceProvider({ scope, children }: { scope: string |
   useEffect(() => {
     const key = customerDraftStorageKey(scope); if (!key) return;
     let disposed = false; let timer: ReturnType<typeof setTimeout>;
-    const read = () => { try { const value = purgeLegacyRfqValues(JSON.parse(localStorage.getItem(key) ?? "[]")); return Array.isArray(value) ? value : []; } catch { return []; } };
+    const read = () => { try { const value = purgeLegacyRfqValues(JSON.parse(localStorage.getItem(key) ?? "[]")); if (!Array.isArray(value)) return []; const normalized=value.map(normalizePersistedDraft); if (normalized.some(d=>!d)) setInvalidDrafts(true); return normalized.filter((draft): draft is NonNullable<typeof draft> => draft !== null);; } catch { return []; } };
     fetch("/api/request-drafts", { signal: AbortSignal.timeout(10000) }).then(async (response) => {
       if (!response.ok) throw new Error("Drafts unavailable");
-      const { drafts, deletedIds = [] } = await response.json(); if (disposed) return;
+      const { drafts, deletedIds = [], invalidIds = [] } = await response.json(); if (disposed) return; if (invalidIds.length) setInvalidDrafts(true);
       const merged = new Map<string, { id: string; updatedAt: string }>();
-      for (const draft of [...read(), ...drafts]) if (draft?.id && !deletedIds.includes(draft.id) && (!merged.has(draft.id) || (merged.get(draft.id)?.updatedAt ?? "") < draft.updatedAt)) merged.set(draft.id, draft);
+      for (const draft of [...read(), ...drafts.map(normalizePersistedDraft).filter((draft: ReturnType<typeof normalizePersistedDraft>): draft is NonNullable<typeof draft> => draft !== null)]) if (draft?.id && !deletedIds.includes(draft.id) && (!merged.has(draft.id) || (merged.get(draft.id)?.updatedAt ?? "") < draft.updatedAt)) merged.set(draft.id, draft);
       localStorage.setItem(key, JSON.stringify(purgeLegacyRfqValues([...merged.values()])));
       if (!disposed) setFailed(false);
     }).catch(() => { if (!disposed) setFailed(true); }).finally(() => { if (!disposed) setReady(true); });
@@ -48,5 +50,5 @@ export function CustomerWorkspaceProvider({ scope, children }: { scope: string |
     window.addEventListener("lattice-drafts-changed", sync); window.addEventListener("lattice-draft-removed", remove);
     return () => { disposed = true; clearTimeout(timer); window.removeEventListener("lattice-drafts-changed", sync); window.removeEventListener("lattice-draft-removed", remove); };
   }, [scope, restoreCount]);
-  return <CustomerWorkspaceScope.Provider value={scope}>{failed && <p role="status" className="bg-amber-50 px-5 py-2 text-sm text-amber-900">Shared drafts are temporarily unavailable. Your draft changes are saved on this browser.</p>}{ready || !needsSharedDrafts ? children : pathname === "/quotes" ? <WorkspaceListLoading kind="quotes" /> : <RequestFormLoading />}</CustomerWorkspaceScope.Provider>;
+  return <CustomerWorkspaceScope.Provider value={scope}>{invalidDrafts && <p role="status" className="bg-amber-50 px-5 py-2 text-sm text-amber-900">Some older drafts need recovery and were hidden from this list. Contact Lattice; your saved records have been retained.</p>}{failed && <p role="status" className="bg-amber-50 px-5 py-2 text-sm text-amber-900">Shared drafts are temporarily unavailable. Your draft changes are saved on this browser.</p>}{ready || !needsSharedDrafts ? children : pathname === "/quotes" ? <WorkspaceListLoading kind="quotes" /> : <RequestFormLoading />}</CustomerWorkspaceScope.Provider>;
 }

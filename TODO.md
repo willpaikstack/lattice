@@ -225,3 +225,7 @@ npm run build
 - 2026-10-13: admin Quote Submissions reliability pass is local. Verify genuine database-backed issuance/reissue, customer visibility/PDF and supplier evidence uploads using a controlled test RFQ. Resolve existing optional-process/legacy-intake type errors and targetShipDate persistence-test expectation before a release build.
 
 - 2026-10-13: database-only admin RFQ queue/detail, indexed part files, saved CAD/PDF review and strict submission/admin persistence are local. Select Part review, All-part dossier or Tabbed workbench as the next design direction. Resolve stale request-form test fixture types before a release build; perform controlled genuine-customer/database issuance/reissue and remote-storage/CORS checks before deployment. See `docs/audits/admin-rfq-detail-2026-10-13.md`. No deployment or customer communication was performed.
+
+## P1 repair checkpoint — 2026-10-14
+
+Six confirmed P1 repairs are implemented on the isolated hosted-test branch; local 575-test/type/build checks pass. Finish hosted invalid-submission and malformed-draft recovery, 5/25 MB quality upload/duplicate/ownership checks, vendor save/reload across deployments, and genuine Stripe-origin Test fulfillment. Then stage Production with the additive vendor table, smoke-test and promote. Keep Live checkout disabled. See docs/audits/p1-remediation-2026-10-14.md.

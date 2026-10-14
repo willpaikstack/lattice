@@ -1,4 +1,5 @@
 "use client";
+import { normalizePersistedDraft } from "@/lib/persisted-draft-validation";
 import { purgeLegacyRfqValues } from "@/lib/purge-legacy-rfq-values";
 import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-workspace-scope";
 import { RequestFormHeading } from "./request-form-loading";
@@ -873,7 +874,7 @@ function readIncompleteRfqs(incompleteRfqStorageKey: string | null) {
 
   try {
     const parsed = JSON.parse(window.localStorage.getItem(incompleteRfqStorageKey) ?? "[]");
-    return Array.isArray(parsed) ? (parsed as StoredIncompleteRfq[]) : [];
+    return Array.isArray(parsed) ? parsed.map(normalizePersistedDraft).filter(Boolean) as unknown as StoredIncompleteRfq[] : [];
   } catch {
     return [];
   }

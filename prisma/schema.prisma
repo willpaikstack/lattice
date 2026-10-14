@@ -581,3 +581,10 @@ model CustomerEmailEvent {
   deliveredAt DateTime?
   @@index([status, createdAt])
 }
+
+model AdminVendorOverride {
+  id String @id
+  fields Json
+  detail Json
+  updatedAt DateTime @updatedAt
+}

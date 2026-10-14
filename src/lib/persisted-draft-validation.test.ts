@@ -1,0 +1,8 @@
+import {it,expect} from 'vitest';
+import {normalizePersistedDraft} from './persisted-draft-validation';
+import {buildDraftRequest} from './request-model';
+const valid=()=>({id:'local_draft_qa',updatedAt:'2026-10-14T12:00:00Z',request:{...buildDraftRequest({title:'Incomplete QA',lineItems:[{quantity:1,material:'Not selected'}],files:[]}),id:'local_draft_qa'},initialState:{lineItems:[{fileName:'qa.step',fileHistory:[],quantity:'1'}]}});
+it('rejects incomplete and incompatible shared records without throwing',()=>{expect(normalizePersistedDraft({id:'local_draft_qa',updatedAt:'2026-10-14T12:00:00Z',request:{status:'DRAFT'}})).toBeNull();expect(normalizePersistedDraft({...valid(),request:{...valid().request,files:'broken'}})).toBeNull();});
+it('repairs legacy missing quote arrays and preserves valid form caches',()=>{const v=valid();const r={...v.request,customerQuotes:undefined};const n=normalizePersistedDraft({...v,request:r});expect(n?.schemaVersion).toBe(1);expect(n?.request.customerQuotes).toEqual([]);expect(n?.initialState).toEqual(v.initialState);});
+it('quarantines unknown future versions and drops unusable UI caches',()=>{expect(normalizePersistedDraft({...valid(),schemaVersion:2})).toBeNull();expect(normalizePersistedDraft({...valid(),initialState:{lineItems:'broken'}})?.initialState).toMatchObject({projectName:'Incomplete QA'});});
+it('reconstructs legacy form caches from authorized saved-file references',()=>{const v=valid();v.request.files=[{id:'qa_file',name:'qa.step',sizeBytes:10,type:'model/step',storageKey:'rfq-drafts/qa/file.step',lineItemIndex:0}];expect(normalizePersistedDraft({...v,initialState:null})?.initialState).toMatchObject({lineItems:[{fileName:'qa.step',fileStorageKey:'rfq-drafts/qa/file.step'}]});});

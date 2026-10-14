@@ -1,3 +1,4 @@
+import { validateSubmissionShape } from "@/lib/rfq-submission-validation";
 import { validateManufacturingIntake } from "@/lib/rfq-manufacturing";
 import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
 import { createHash } from "node:crypto";
@@ -95,6 +96,7 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
 
   if (!contentType.includes("multipart/form-data")) {
     const input = (await request.json()) as DraftRequestInput;
+    validateSubmissionShape(input);
     validateManufacturingIntake(input);
     await assertStoredFileReferences(input);
     return input;
@@ -108,7 +110,8 @@ async function parseSubmittedRequest(request: Request): Promise<DraftRequestInpu
   }
 
   const input = JSON.parse(rawInput) as DraftRequestInput;
-  validateManufacturingIntake(input);
+  validateSubmissionShape(input);
+    validateManufacturingIntake(input);
 
   input.files = await Promise.all(
     input.files.map(async (fileMetadata, index) => {
@@ -152,6 +155,9 @@ async function normalizeStoredFileReference(fileMetadata: UploadedFileInput) {
   const access = await canCurrentSessionAccessStorageKey(fileMetadata.storageKey);
   if (!access.authorized) throw new Error("This file is not available to your company. Upload it again.");
 
+  const inspected = await inspectStoredUpload(fileMetadata.storageKey);
+  const uploadError = manufacturingUploadError({ name: fileMetadata.name, size: inspected.sizeBytes });
+  if (uploadError) throw new Error(uploadError);
   if (isDraftUploadStorageKey(fileMetadata.storageKey)) {
     const stored = await copyLocalUpload(fileMetadata.storageKey, fileMetadata);
 
@@ -176,7 +182,7 @@ async function normalizeStoredFileReference(fileMetadata: UploadedFileInput) {
 }
 
 async function assertStoredFileReferences(input: DraftRequestInput) {
-  const missingFileBytes = input.files.find((file) => !file.storageKey && file.sizeBytes <= 0);
+  const missingFileBytes = input.files.find((file) => !file.storageKey);
 
   if (missingFileBytes) {
     throw new Error(`${missingFileBytes.name} must be uploaded again before submitting.`);
@@ -184,7 +190,7 @@ async function assertStoredFileReferences(input: DraftRequestInput) {
 
   input.files = await Promise.all(
     input.files.map((file) =>
-      file.storageKey ? normalizeStoredFileReference(file) : Promise.resolve(file),
+      normalizeStoredFileReference(file),
     ),
   );
 }

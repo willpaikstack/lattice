@@ -276,3 +276,7 @@ Each part card’s delete action opens the approved compact Remove this part? di
 ### Added-part intended use — 2026-10-13
 
 When an existing quote has Prototype/Commercial configured, the upload popup prevents adding or replacing CAD with the other intended-use selection. It shows an inline separate-quote notice and Request a new quote link opening a fresh quote in a new tab, retaining the current draft. The rejected part is not appended and the existing quote use is not overwritten. Selecting the matching use restores Continue. Background translation remains active; files must be uploaded to the new quote. First uploads and legacy quotes without intended use can establish the selection.
+
+## P1 repair follow-through — 2026-10-14 (Preview verification pending)
+
+RFQ submission now enforces actual authorized stored bytes, per-part CAD/drawing association, whole quantities and required drawings. Shared draft writes validate/version records; reads repair usable older defaults and retain/quarantine invalid ones with a recovery notice. Admin quality documents upload directly to private R2 up to 25 MB and attach transactionally; new attachments invalidate previous approval, duplicate completion does not. Vendor editable overrides are Postgres-backed; no ephemeral fallback. Supplier quote/clarification form attachments explicitly support 3 MB. See `docs/audits/p1-remediation-2026-10-14.md` for release status and residual development-only dependency advisories.

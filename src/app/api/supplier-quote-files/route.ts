@@ -56,6 +56,8 @@ export async function POST(request: Request) {
     redirect(appendQueryParam(destination, "supplierQuoteError", "missing"));
   }
 
+  if (fileValue.size > 3 * 1024 * 1024) redirect(appendQueryParam(destination, "supplierQuoteError", "too-large"));
+
   const storedFile = await saveLocalUpload(fileValue, "supplier-quotes");
   await addSupplierQuoteFile(requestId, storedFile, { requireDatabase: true });
 

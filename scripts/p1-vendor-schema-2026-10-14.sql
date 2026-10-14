@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS "AdminVendorOverride" (
+  "id" TEXT PRIMARY KEY,
+  "fields" JSONB NOT NULL,
+  "detail" JSONB NOT NULL,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
