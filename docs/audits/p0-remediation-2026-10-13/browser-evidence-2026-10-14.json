@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-14",
+  "requestId": "rfq_9acfe2750c98b7d7516e4d2deb2659aef6bbfca9",
+  "observations": [
+    {
+      "check": "Native browser RFQ persisted",
+      "status": "SUBMITTED",
+      "parts": 2,
+      "files": 3
+    },
+    {
+      "check": "Browser-uploaded saved original",
+      "file": "p0-solid-large.step",
+      "status": 200,
+      "bytes": 7031846,
+      "sha256Matches": true
+    },
+    {
+      "check": "Browser-created model access",
+      "file": "p0-solid-large.step",
+      "role": "buyer",
+      "status": 200
+    },
+    {
+      "check": "Browser-created model access",
+      "file": "p0-solid-large.step",
+      "role": "other",
+      "status": 404
+    },
+    {
+      "check": "Browser-uploaded saved original",
+      "file": "hosted-qa-drawing-large.pdf",
+      "status": 200,
+      "bytes": 5245427,
+      "sha256Matches": true
+    },
+    {
+      "check": "Browser-uploaded saved original",
+      "file": "p0-solid-small.step",
+      "status": 200,
+      "bytes": 31793,
+      "sha256Matches": true
+    },
+    {
+      "check": "Browser-created model access",
+      "file": "p0-solid-small.step",
+      "role": "buyer",
+      "status": 200
+    },
+    {
+      "check": "Browser-created model access",
+      "file": "p0-solid-small.step",
+      "role": "other",
+      "status": 404
+    }
+  ]
+}

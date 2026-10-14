@@ -2348,3 +2348,10 @@ Inspected the logged-in Chrome APS hub and Autodesk Account. Lattice OS Dev cont
 - Reopened the isolated hosted Preview after the Mac was unlocked; verified customer admin-route redirect in a real browser and saved operator CAD part switching/rendering.
 - Corrected the QA geometry fixture: the hand-written STEP produced empty geometry. CAD-library exported rounded solids rendered with the existing private, resource-scoped token flow; both remain inaccessible to another company. No app patch or scope broadening required.
 - Connected Chrome upload is awaiting file-URL access in the precise browser profile. No browser upload success is claimed yet. Updated P0 report and project memory with this current limitation and a dated-content hydration follow-up.
+
+
+## 2026-10-14 — P0 native upload retests completed
+
+- Completed Chrome’s normal Mac file-picker uploads after cancelling extension interception; the remaining window accepted a 7 MB solid STEP, 32 KB solid STEP and 5.2 MB drawing PDF. Viewed both PDF pages and saved specifications.
+- Configured, reloaded and resumed a synthetic two-part draft; both private CAD models rendered with dimensions and saved drawing/material choices. Submitted the RFQ from the browser, verified SUBMITTED/two parts/three files, and compared all saved download hashes with the selected originals (identical).
+- Both browser-created models return customer token 200 and foreign-company 404. Updated the P0 report, sanitized browser evidence, feature map and project memory. No app code, security permission, Production test data, email or payment changed in this follow-through. P1/P2 rollout gaps remain open.

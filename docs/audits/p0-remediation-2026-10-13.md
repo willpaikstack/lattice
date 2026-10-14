@@ -6,7 +6,7 @@ Date: October 13, 2026 (America/New_York). Application patch: `db347a6`.
 
 All three reported P0 defects are fixed in the application code and passed hosted positive/negative API retests. The Production build `dpl_EmQHJHnZtE1ohen8tAMbuyagnTek` was staged, checked with Production configuration, then promoted to https://latticeos.co. Live checkout remains disabled; no Production customer, payment, email or storage fixture was created by these checks.
 
-**Verification update (October 14):** saved two-part CAD geometry rendering and customer admin-route redirects now pass in the browser. The original October 13 session was blocked by a locked Mac. Fresh browser file uploads remain pending on the connected Chrome profile’s extension file access; see the dated follow-through below. The actual hosted upload/submission/download and provider model-authorization paths were exercised through HTTP, with genuine development Clerk sessions, Neon, private R2 and APS. This does not close the P1/P2 rollout gaps in the original readiness report.
+**Verification update (October 14):** saved two-part CAD geometry rendering and customer admin-route redirects now pass in the browser. The original October 13 session was blocked by a locked Mac. Native browser CAD/drawing uploads, two-model draft restore, submission and saved original hashes now also pass; see the dated follow-through below. The actual hosted upload/submission/download and provider model-authorization paths were exercised through HTTP, with genuine development Clerk sessions, Neon, private R2 and APS. This does not close the P1/P2 rollout gaps in the original readiness report.
 
 ## Changes and customer experience
 
@@ -52,7 +52,7 @@ An extra adversarial P1 submission probe timed out; it is not counted as a passe
 - Private upload intents and CAD ownership/source records live in the existing private object store under fixed, hashed `internal/` keys. The browser cannot select those keys for signed writes, and file-download authorization does not expose them. Storage failures deny access rather than falling back to broad model permissions.
 - No database migration, new production secret, public-bucket setting or CORS expansion was required.
 - The viewer uses Autodesk's documented [resource-scoped tokens](https://aps.autodesk.com/blog/scoped-tokens-are-here), verified against the real provider. Previously issued broad tokens, if any, are not retroactively revoked by a code deployment and expire according to their original provider lifetime.
-- Finish browser file-chooser uploads and customer multi-part draft restore once the connected Chrome profile permits local file access. Saved operator multi-part geometry rendering has passed. The original P1/P2 issues—submission/draft validation, webhook ingress, quality upload limits, dependency advisories, vendor durability, accounting/communications and operating gates—are still outstanding.
+- The requested P0 native browser follow-through is complete: CAD/PDF uploads, customer multi-part draft restore, submission, saved original hashes and operator rendering pass. Numerical measurement accuracy and exhaustive viewer-tool behavior were not certified. The original P1/P2 issues—submission/draft validation, webhook ingress, quality upload limits, dependency advisories, vendor durability, accounting/communications and operating gates—are still outstanding.
 
 [Sanitized hosted evidence](p0-remediation-2026-10-13/evidence.json). Raw responses, fixture files, credentials and local captures remain ignored under `output/qa/` and `.vercel/`.
 
@@ -65,6 +65,18 @@ The Mac was unlocked and the isolated Preview was reopened with genuine syntheti
 
 The operator detail emitted a recoverable React hydration mismatch on its dated content. The page continued to render and accept part/tool changes; locale/time-zone consistency needs a separate follow-up under the existing P1 reliability work.
 
-Browser file-chooser uploads are still pending because the connected Chrome profile reports file-URL access disabled for its ChatGPT extension. The user enabled access in a Chrome profile, but the connected `William (William Paik)` profile still refused `setFiles`; the specific-profile setting was requested. A native picker fallback also could not confirm a selected file. These are test-harness limitations, not a successful browser upload result.
+The automated extension chooser repeatedly refused local files despite the user’s setting changes. The normal native picker worked after cancelling extension debugging/interception in the remaining Chrome window; no extension permission or Chrome security setting was changed by the agent. The earlier disabled native Open button was a test-harness interaction, not an application upload defect.
 
 Screenshots and raw browser/provider diagnostics remain ignored in `output/qa/p0-browser-2026-10-14` and `.vercel/hosted-test`. The isolated synthetic follow-through created no Production files, customers, emails or payments.
+
+
+### Completed native browser upload/submission retest
+
+- Selected the 7,031,846-byte solid STEP, 31,793-byte solid STEP and 5,245,427-byte PDF through Chrome’s normal Mac file picker on the isolated Preview.
+- Completed unrestricted/prototype test declarations, configured both parts with 6061-T651 Aluminum, and displayed both PDF pages before saving drawing specifications.
+- Saved `P0 BROWSER QA 2026-10-14 — synthetic`, reloaded, resumed the persisted draft, and rendered both authorized solid models with their 30 mm and 20 mm dimensions. Drawing and manufacturing choices remained present.
+- Submitted from the browser: `rfq_9acfe2750c98b7d7516e4d2deb2659aef6bbfca9` persisted as SUBMITTED with two parts and three files; the customer confirmation showed supplier-network review in progress.
+- Downloaded all three saved originals: HTTP 200 and SHA-256 identical to selected fixtures. Customer token access for both browser-created models was 200; another company was denied (404).
+- No application-code changes were needed during this browser follow-through. P0 customer experience remains the upload-once flow and familiar viewer, with access revalidation on restored previews. No Production test record, payment or email was created. Existing P1/P2 readiness gaps remain open.
+
+[Sanitized browser follow-through evidence](p0-remediation-2026-10-13/browser-evidence-2026-10-14.json). Screenshots of both restored models and the submitted RFQ remain in ignored local QA output.
