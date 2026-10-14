@@ -1,5 +1,7 @@
 # Lattice OS hosted readiness report
 
+Update October 14: the six confirmed P1 findings F4–F7/R1–R2 were repaired, hosted retested and released; see [P1 verification](p1-remediation-2026-10-14.md). P0 native browser retests are also complete. Findings below preserve the original assessment; P2 and operational/commercial gates remain open.
+
 Update: the three P0 defects below were subsequently fixed and released in application patch `db347a6`. See [P0 remediation and retest](p0-remediation-2026-10-13.md) for passing hosted evidence and the locked-Mac browser-verification limitation. This document retains the original findings; its P1/P2 items remain outstanding.
 
 Assessment: October 13, 2026, America/New_York. Later evidence timestamps are October 14 UTC. Scope: the deployed customer/admin workflow, development Neon, private test R2, Autodesk Platform Services (APS), and Stripe Test mode.

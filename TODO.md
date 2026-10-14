@@ -226,6 +226,6 @@ npm run build
 
 - 2026-10-13: database-only admin RFQ queue/detail, indexed part files, saved CAD/PDF review and strict submission/admin persistence are local. Select Part review, All-part dossier or Tabbed workbench as the next design direction. Resolve stale request-form test fixture types before a release build; perform controlled genuine-customer/database issuance/reissue and remote-storage/CORS checks before deployment. See `docs/audits/admin-rfq-detail-2026-10-13.md`. No deployment or customer communication was performed.
 
-## P1 repair checkpoint — 2026-10-14
+## P1 release — 2026-10-14
 
-Six confirmed P1 repairs are implemented on the isolated hosted-test branch; local 575-test/type/build checks pass. Finish hosted invalid-submission and malformed-draft recovery, 5/25 MB quality upload/duplicate/ownership checks, vendor save/reload across deployments, and genuine Stripe-origin Test fulfillment. Then stage Production with the additive vendor table, smoke-test and promote. Keep Live checkout disabled. See docs/audits/p1-remediation-2026-10-14.md.
+All six confirmed P1 repairs are released and verified. See docs/audits/p1-remediation-2026-10-14.md and its sanitized evidence. Keep Live checkout disabled. Continue the original P2 and operational/commercial gates; monitor the upstream development-only braces advisory. Extend supplier quote/revised-drawing uploads beyond their current 3 MB form limit if needed. Previously lost ephemeral vendor edits need a recoverable archive; none was present locally.

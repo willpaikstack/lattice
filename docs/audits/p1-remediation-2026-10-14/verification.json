@@ -1,0 +1,339 @@
+{
+  "date": "2026-10-14",
+  "previewDeployment": "dpl_HWckEz4t3YcTD2Tdvka3BrhhvoLr",
+  "productionDeployment": "dpl_LKRxRX56KSzo6DE1vZmomPPFqezZ",
+  "localChecks": {
+    "tests": 576,
+    "suites": 117,
+    "authTests": 48,
+    "authSuites": 7,
+    "types": true,
+    "lint": true,
+    "build": true,
+    "runtimeAuditVulnerabilities": 0
+  },
+  "hostedChecks": [
+    {
+      "check": "missing claimed bytes",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "missing required second-part drawing",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "invalid part association",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "fractional quantity",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "unsupported attachment",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "complete RFQ accepted",
+      "actual": 201,
+      "expected": 201,
+      "pass": true
+    },
+    {
+      "check": "malformed shared draft rejected",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "unusable old draft quarantined",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "check": "unusable draft not returned",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "check": "Quotes stays available",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "customer cannot prepare quality upload",
+      "actual": 403,
+      "expected": 403,
+      "pass": true
+    },
+    {
+      "check": "wrong order upload refused",
+      "actual": 404,
+      "expected": 404,
+      "pass": true
+    },
+    {
+      "check": "over 25 MB rejected",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "check": "quality prepare 5245427",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "quality direct PUT 5245427",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "quality attach 5245427",
+      "actual": 201,
+      "expected": 201,
+      "pass": true
+    },
+    {
+      "check": "previous approval cleared 5245427",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "check": "one quality document 5245427",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "check": "duplicate completion safe 5245427",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "quality original matches 5245427",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "check": "foreign quality download denied 5245427",
+      "actual": 404,
+      "expected": 404,
+      "pass": true
+    },
+    {
+      "check": "quality prepare 26214400",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "quality direct PUT 26214400",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "quality attach 26214400",
+      "actual": 201,
+      "expected": 201,
+      "pass": true
+    },
+    {
+      "check": "previous approval cleared 26214400",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "check": "one quality document 26214400",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "check": "duplicate completion safe 26214400",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "check": "quality original matches 26214400",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "check": "foreign quality download denied 26214400",
+      "actual": 404,
+      "expected": 404,
+      "pass": true
+    }
+  ],
+  "additionalChecks": [
+    {
+      "test": "usable legacy draft accepted",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "test": "same-company repaired draft available",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "test": "draft versioned",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "test": "draft form reconstructed",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "test": "draft stored originals retained",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "test": "foreign company draft absent",
+      "actual": false,
+      "expected": false,
+      "pass": true
+    },
+    {
+      "test": "browser document durable",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "test": "browser-uploaded original hash",
+      "actual": true,
+      "expected": true,
+      "pass": true
+    },
+    {
+      "test": "bad webhook signature rejected",
+      "actual": 400,
+      "expected": 400,
+      "pass": true
+    },
+    {
+      "test": "duplicate signed delivery 0",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "test": "duplicate signed delivery 1",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "test": "one purchase transition after duplicate deliveries",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "test": "invoice access buyer",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "test": "invoice access member",
+      "actual": 200,
+      "expected": 200,
+      "pass": true
+    },
+    {
+      "test": "invoice access other",
+      "actual": 404,
+      "expected": 404,
+      "pass": true
+    },
+    {
+      "test": "one persisted invoice after repeated reads",
+      "actual": 1,
+      "expected": 1,
+      "pass": true
+    },
+    {
+      "test": "synthetic Test refund",
+      "actual": "succeeded",
+      "expected": "succeeded",
+      "pass": true
+    }
+  ],
+  "payment": {
+    "testOnly": true,
+    "checkoutStatus": "complete",
+    "paymentStatus": "paid",
+    "eventId": "evt_1UQRxG5pzNAaqmdkIuPJcxxi",
+    "pendingWebhooks": 0,
+    "requestStatus": "PURCHASED",
+    "savedPaymentStatus": "PAID",
+    "amountCents": 6533,
+    "webhookOnly": true,
+    "returnPageSignedOut": true
+  },
+  "vendor": {
+    "save": 200,
+    "independentDeploymentRetained": true,
+    "foreignMutation": 403,
+    "baselineRestored": 200
+  },
+  "productionSmoke": {
+    "home": 200,
+    "login": 200,
+    "privateRequests": 401,
+    "privateQualityUpload": 401,
+    "adminOrders": 307,
+    "liveCheckoutEnabled": false
+  },
+  "providerRequests": [
+    {
+      "timestamp": "2026-10-14T13:10:51.006Z",
+      "deploymentId": "dpl_HWckEz4t3YcTD2Tdvka3BrhhvoLr",
+      "requestPath": "/api/stripe/webhook",
+      "requestMethod": "POST",
+      "httpStatus": 200,
+      "clientUserAgent": "Stripe/1.0 (+https://stripe.com/docs/webhooks)"
+    },
+    {
+      "timestamp": "2026-10-14T13:10:50.692Z",
+      "deploymentId": "dpl_HWckEz4t3YcTD2Tdvka3BrhhvoLr",
+      "requestPath": "/api/stripe/webhook",
+      "requestMethod": "POST",
+      "httpStatus": 200,
+      "clientUserAgent": "Stripe/1.0 (+https://stripe.com/docs/webhooks)"
+    }
+  ]
+}

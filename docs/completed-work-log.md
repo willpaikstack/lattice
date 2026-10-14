@@ -2359,3 +2359,13 @@ Inspected the logged-in Chrome APS hub and Autodesk Account. Lattice OS Dev cont
 ## 2026-10-14 — P1 implementation, hosted verification pending
 
 Implemented strict RFQ file/part/drawing validation; versioned shared-draft repair/quarantine and safe browser-cache reads; order/admin-scoped 25 MB direct quality uploads with atomic shipment recheck, attachment deduplication and approval invalidation; durable vendor overrides in Postgres; patched applicable dependencies and standardized npm. Configured the existing Stripe Test webhook with supported Vercel automation ingress and rotated the previously logged automation bypass value. Local 575-test/type/build checks pass; hosted retests and release remain pending. No Production customer mutations or Live payments performed.
+
+## 2026-10-14 — P1 hosted verification and Production release
+
+- Completed six confirmed P1 repairs F4–F7/R1–R2, including company-scoped malformed browser-draft recovery archives.
+- Passed 576 automated tests/117 suites, typecheck, lint, optimized build and 48 customer-access tests/7 suites; repaired two stale paths in the customer-access command.
+- Hosted tests reject incomplete submissions; repair/quarantine legacy drafts; upload 5/25 MB private quality documents with approval reset, duplicate safety and hash/ownership proof; native browser 5 MB upload also passed.
+- Genuine Stripe Test provider delivery saved PURCHASED/PAID while the buyer browser was signed out; invalid signatures and duplicate deliveries were checked, one invoice persisted, and the full synthetic Test refund reached the app. No Live charge or customer email.
+- Vendor edit persisted across independent Preview deployments; restored the synthetic baseline. The additive vendor schema was verified in the Production staged build.
+- Promoted `dpl_LKRxRX56KSzo6DE1vZmomPPFqezZ` to latticeos.co after Production smoke checks. Application commits `a96a704`/`e3d8d39`; npm/Node24 contract, runtime audit zero advisories, unpatched development-only glob advisory documented. Live checkout disabled; P2/operational rollout gates remain.
+- Updated shared memory, feature map and sanitized P1 audit/evidence.
