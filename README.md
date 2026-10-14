@@ -1,5 +1,7 @@
 # Lattice OS
 
+Hosted readiness audit (2026-10-13): **not ready for completed-app rollout**. Normal R2 upload completion fails; redirected admin quotes/customers/orders responses and APS derivatives expose cross-company data. Hosted submission accepts missing file bytes/required drawings, malformed shared drafts can crash Quotes, and large quality uploads return 413. Prepared fixtures plus authenticated Stripe Test event replay verified quotation/payment/order/invoice/refunds, but direct provider webhook delivery remains blocked by Preview protection. Live checkout stays disabled. See [the hosted readiness report](docs/audits/hosted-readiness-2026-10-13.md) for evidence, limitations and repair order.
+
 Production release (2026-10-13): application commit `71b21df` is deployed as `dpl_31kujdnkXEq4S3nwWfkmQ4CaX8ZT` to `https://latticeos.co`. Both manufacturing JSONB columns are verified in Production. The private R2 bucket allows PUT/GET/HEAD from the three exact Production app origins; unrelated-origin preflight is denied. All 529 tests, typecheck, lint and local/remote builds pass. Large-file browser/APS and authenticated customer transaction checks remain follow-up work.
 
 Owned-code manufacturing RFQ, procurement, and supplier-network workflow platform.

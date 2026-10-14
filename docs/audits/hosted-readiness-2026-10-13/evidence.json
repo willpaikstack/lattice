@@ -1,0 +1,909 @@
+{
+  "scope": "Synthetic development/Preview tests; fixture and authenticated-event boundaries are documented in the report. Not a clean end-to-end pass.",
+  "observations": [
+    {
+      "time": "2026-10-13T23:31:12.052Z",
+      "test": "baseline anonymous /api/request-drafts",
+      "status": 403,
+      "durationMs": 634
+    },
+    {
+      "time": "2026-10-13T23:31:14.355Z",
+      "test": "baseline buyer /api/request-drafts",
+      "status": 200,
+      "durationMs": 1813
+    },
+    {
+      "time": "2026-10-13T23:31:15.365Z",
+      "test": "baseline admin /api/requests",
+      "status": 200,
+      "durationMs": 894
+    },
+    {
+      "time": "2026-10-13T23:31:16.045Z",
+      "test": "baseline buyer /api/requests",
+      "status": 403,
+      "durationMs": 566
+    },
+    {
+      "time": "2026-10-13T23:31:16.829Z",
+      "test": "baseline admin /api/stripe/configuration",
+      "status": 200,
+      "durationMs": 667
+    },
+    {
+      "time": "2026-10-13T23:31:17.456Z",
+      "test": "baseline admin /api/cad-previews/configuration",
+      "status": 200,
+      "durationMs": 524
+    },
+    {
+      "time": "2026-10-13T23:32:15.680Z",
+      "test": "prepare hosted-qa-cube-large.step",
+      "status": 200,
+      "mode": "direct",
+      "sizeBytes": 6482251
+    },
+    {
+      "time": "2026-10-13T23:32:15.788Z",
+      "test": "CORS hosted-qa-cube-large.step",
+      "status": 204,
+      "allowOrigin": "https://lattice-hosted-test.vercel.app"
+    },
+    {
+      "time": "2026-10-13T23:32:16.864Z",
+      "test": "direct PUT hosted-qa-cube-large.step",
+      "status": 200,
+      "sizeBytes": 6482251,
+      "durationMs": 1075
+    },
+    {
+      "time": "2026-10-13T23:32:17.624Z",
+      "test": "complete hosted-qa-cube-large.step",
+      "status": 400
+    },
+    {
+      "time": "2026-10-13T23:32:40.853Z",
+      "test": "direct completion failure investigation",
+      "status": 400,
+      "error": "The file upload is incomplete. Upload the file again before continuing."
+    },
+    {
+      "time": "2026-10-13T23:33:14.726Z",
+      "test": "prepare hosted-qa-cube-large.step",
+      "status": 200,
+      "mode": "direct",
+      "sizeBytes": 6482251
+    },
+    {
+      "time": "2026-10-13T23:33:14.830Z",
+      "test": "CORS hosted-qa-cube-large.step",
+      "status": 204,
+      "allowOrigin": "https://lattice-hosted-test.vercel.app"
+    },
+    {
+      "time": "2026-10-13T23:33:16.044Z",
+      "test": "direct PUT hosted-qa-cube-large.step",
+      "status": 200,
+      "sizeBytes": 6482251,
+      "durationMs": 1213
+    },
+    {
+      "time": "2026-10-13T23:33:16.577Z",
+      "test": "baseline completion hosted-qa-cube-large.step",
+      "status": 400,
+      "error": "The file upload is incomplete. Upload the file again before continuing."
+    },
+    {
+      "time": "2026-10-13T23:33:16.901Z",
+      "test": "fixture-only metadata preparation hosted-qa-cube-large.step"
+    },
+    {
+      "time": "2026-10-13T23:33:17.437Z",
+      "test": "complete hosted-qa-cube-large.step",
+      "status": 201,
+      "sizeBytes": 6482251
+    },
+    {
+      "time": "2026-10-13T23:33:17.856Z",
+      "test": "other company completion hosted-qa-cube-large.step",
+      "status": 404
+    },
+    {
+      "time": "2026-10-13T23:33:18.255Z",
+      "test": "prepare hosted-qa-cube-small.step",
+      "status": 200,
+      "mode": "direct",
+      "sizeBytes": 2246
+    },
+    {
+      "time": "2026-10-13T23:33:18.291Z",
+      "test": "CORS hosted-qa-cube-small.step",
+      "status": 204,
+      "allowOrigin": "https://lattice-hosted-test.vercel.app"
+    },
+    {
+      "time": "2026-10-13T23:33:18.558Z",
+      "test": "direct PUT hosted-qa-cube-small.step",
+      "status": 200,
+      "sizeBytes": 2246,
+      "durationMs": 266
+    },
+    {
+      "time": "2026-10-13T23:33:19.104Z",
+      "test": "baseline completion hosted-qa-cube-small.step",
+      "status": 400,
+      "error": "The file upload is incomplete. Upload the file again before continuing."
+    },
+    {
+      "time": "2026-10-13T23:33:19.419Z",
+      "test": "fixture-only metadata preparation hosted-qa-cube-small.step"
+    },
+    {
+      "time": "2026-10-13T23:33:19.913Z",
+      "test": "complete hosted-qa-cube-small.step",
+      "status": 201,
+      "sizeBytes": 2246
+    },
+    {
+      "time": "2026-10-13T23:33:20.352Z",
+      "test": "other company completion hosted-qa-cube-small.step",
+      "status": 404
+    },
+    {
+      "time": "2026-10-13T23:33:20.758Z",
+      "test": "prepare hosted-qa-drawing-large.pdf",
+      "status": 200,
+      "mode": "direct",
+      "sizeBytes": 5245427
+    },
+    {
+      "time": "2026-10-13T23:33:20.803Z",
+      "test": "CORS hosted-qa-drawing-large.pdf",
+      "status": 204,
+      "allowOrigin": "https://lattice-hosted-test.vercel.app"
+    },
+    {
+      "time": "2026-10-13T23:33:21.906Z",
+      "test": "direct PUT hosted-qa-drawing-large.pdf",
+      "status": 200,
+      "sizeBytes": 5245427,
+      "durationMs": 1102
+    },
+    {
+      "time": "2026-10-13T23:33:22.432Z",
+      "test": "baseline completion hosted-qa-drawing-large.pdf",
+      "status": 400,
+      "error": "The file upload is incomplete. Upload the file again before continuing."
+    },
+    {
+      "time": "2026-10-13T23:33:22.704Z",
+      "test": "fixture-only metadata preparation hosted-qa-drawing-large.pdf"
+    },
+    {
+      "time": "2026-10-13T23:33:23.225Z",
+      "test": "complete hosted-qa-drawing-large.pdf",
+      "status": 201,
+      "sizeBytes": 5245427
+    },
+    {
+      "time": "2026-10-13T23:33:23.670Z",
+      "test": "other company completion hosted-qa-drawing-large.pdf",
+      "status": 404
+    },
+    {
+      "time": "2026-10-13T23:33:27.938Z",
+      "test": "APS translation start large CAD",
+      "status": 202,
+      "state": "processing"
+    },
+    {
+      "time": "2026-10-13T23:33:28.705Z",
+      "test": "shared draft save",
+      "status": 200,
+      "saved": true
+    },
+    {
+      "time": "2026-10-13T23:33:29.218Z",
+      "test": "shared draft reopen buyer",
+      "status": 200,
+      "containsTestDraft": true
+    },
+    {
+      "time": "2026-10-13T23:33:30.244Z",
+      "test": "shared draft reopen member",
+      "status": 200,
+      "containsTestDraft": true
+    },
+    {
+      "time": "2026-10-13T23:33:30.860Z",
+      "test": "shared draft reopen other",
+      "status": 200,
+      "containsTestDraft": false
+    },
+    {
+      "time": "2026-10-13T23:33:33.995Z",
+      "test": "RFQ submit during APS processing",
+      "status": 201,
+      "requestId": "rfq_ea571b805178ebbd2ca270e1fb23126b31432323"
+    },
+    {
+      "time": "2026-10-13T23:33:34.681Z",
+      "test": "RFQ duplicate retry",
+      "status": 200,
+      "sameId": true
+    },
+    {
+      "time": "2026-10-13T23:33:35.377Z",
+      "test": "admin database queue",
+      "status": 200,
+      "containsTestRequest": true,
+      "persistedCompany": "hostedqa_company_a_20261013",
+      "filePartIndexes": [
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "time": "2026-10-13T23:33:36.632Z",
+      "test": "private download buyer hosted-qa-cube-large.step",
+      "status": 307,
+      "downloadStatus": 200,
+      "sizeBytes": 6482251,
+      "bytesMatch": true
+    },
+    {
+      "time": "2026-10-13T23:33:37.352Z",
+      "test": "private download other hosted-qa-cube-large.step",
+      "status": 404
+    },
+    {
+      "time": "2026-10-13T23:33:37.456Z",
+      "test": "private download anonymous hosted-qa-cube-large.step",
+      "status": 401
+    },
+    {
+      "time": "2026-10-13T23:33:38.241Z",
+      "test": "private download buyer hosted-qa-cube-small.step",
+      "status": 307,
+      "downloadStatus": 200,
+      "sizeBytes": 2246,
+      "bytesMatch": true
+    },
+    {
+      "time": "2026-10-13T23:33:38.959Z",
+      "test": "private download other hosted-qa-cube-small.step",
+      "status": 404
+    },
+    {
+      "time": "2026-10-13T23:33:39.038Z",
+      "test": "private download anonymous hosted-qa-cube-small.step",
+      "status": 401
+    },
+    {
+      "time": "2026-10-13T23:33:40.085Z",
+      "test": "private download buyer hosted-qa-drawing-large.pdf",
+      "status": 307,
+      "downloadStatus": 200,
+      "sizeBytes": 5245427,
+      "bytesMatch": true
+    },
+    {
+      "time": "2026-10-13T23:33:40.786Z",
+      "test": "private download other hosted-qa-drawing-large.pdf",
+      "status": 404
+    },
+    {
+      "time": "2026-10-13T23:33:41.015Z",
+      "test": "private download anonymous hosted-qa-drawing-large.pdf",
+      "status": 401
+    },
+    {
+      "time": "2026-10-13T23:34:19.399Z",
+      "test": "page admin /admin/quotes?requestId=rfq_ea571b805178ebbd2ca270e1fb23126b31432323&view=quote",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:34:20.485Z",
+      "test": "page buyer /quotes/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:34:21.282Z",
+      "test": "page other /quotes/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:34:22.165Z",
+      "test": "page buyer /admin/quotes",
+      "status": 307
+    },
+    {
+      "time": "2026-10-13T23:34:22.987Z",
+      "test": "page admin /admin/quotes/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:35:21.057Z",
+      "test": "external webhook access baseline",
+      "status": 401
+    },
+    {
+      "time": "2026-10-13T23:36:06.946Z",
+      "test": "hosted admin quote server action",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:36:07.638Z",
+      "test": "quote database state",
+      "status": "SUBMITTED",
+      "totalCents": null,
+      "shippingCents": null,
+      "quoteVersions": 0
+    },
+    {
+      "time": "2026-10-13T23:36:52.628Z",
+      "test": "hosted admin quote server action",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:36:53.297Z",
+      "test": "quote database state",
+      "status": "SUBMITTED",
+      "totalCents": null,
+      "shippingCents": null,
+      "quoteVersions": 0
+    },
+    {
+      "time": "2026-10-13T23:38:14.945Z",
+      "test": "hosted admin quote server action",
+      "status": 200
+    },
+    {
+      "time": "2026-10-13T23:38:15.742Z",
+      "test": "quote database state",
+      "status": "QUOTED",
+      "totalCents": 7500,
+      "shippingCents": 1000,
+      "quoteVersions": 1
+    },
+    {
+      "time": "2026-10-13T23:39:16.915Z",
+      "test": "scoped Preview webhook access",
+      "status": 401,
+      "error": {
+        "message": "Protected deployment",
+        "code": "401"
+      }
+    },
+    {
+      "time": "2026-10-13T23:39:28.391Z",
+      "test": "shared-link webhook access",
+      "status": 307
+    },
+    {
+      "time": "2026-10-13T23:40:31.526Z",
+      "test": "buyer quotes server page after draft save",
+      "status": 200,
+      "containsSyntheticTitle": true
+    },
+    {
+      "time": "2026-10-13T23:41:04.605Z",
+      "test": "replace incomplete QA draft fixture with full saved request",
+      "status": 200,
+      "saved": true
+    },
+    {
+      "time": "2026-10-13T23:41:04.606Z",
+      "test": "browser malformed-draft robustness",
+      "status": "failed"
+    },
+    {
+      "time": "2026-10-13T23:42:05.146Z",
+      "test": "other-company checkout mutation",
+      "status": 500
+    },
+    {
+      "time": "2026-10-13T23:42:07.739Z",
+      "test": "hosted buyer checkout session creation",
+      "status": 303
+    },
+    {
+      "time": "2026-10-13T23:42:08.849Z",
+      "test": "Stripe Test session",
+      "livemode": false,
+      "status": "open",
+      "tax": 754
+    },
+    {
+      "time": "2026-10-13T23:42:45.679Z",
+      "test": "quotes server render recovery",
+      "status": 200
+    },
+    {
+      "time": "2026-10-14T00:36:58.180Z",
+      "test": "unauthorized admin response /admin/quotes",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": true,
+      "containsSyntheticCompany": true,
+      "containsSyntheticFile": true
+    },
+    {
+      "time": "2026-10-14T00:36:59.135Z",
+      "test": "unauthorized admin response /admin/quotes/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": false,
+      "containsSyntheticCompany": false,
+      "containsSyntheticFile": false
+    },
+    {
+      "time": "2026-10-14T00:36:59.882Z",
+      "test": "unauthorized admin response /admin/orders",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": false,
+      "containsSyntheticCompany": false,
+      "containsSyntheticFile": false
+    },
+    {
+      "time": "2026-10-14T00:37:00.640Z",
+      "test": "unauthorized admin response /admin/customers",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": true,
+      "containsSyntheticCompany": true,
+      "containsSyntheticFile": true
+    },
+    {
+      "time": "2026-10-14T00:37:01.427Z",
+      "test": "unauthorized admin response /admin/vendors",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": false,
+      "containsSyntheticCompany": false,
+      "containsSyntheticFile": false
+    },
+    {
+      "time": "2026-10-14T00:37:02.163Z",
+      "test": "unauthorized admin response /admin/support",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": false,
+      "containsSyntheticCompany": false,
+      "containsSyntheticFile": false
+    },
+    {
+      "time": "2026-10-14T00:37:05.437Z",
+      "test": "intake rejects no file bytes",
+      "status": 201,
+      "requestId": "rfq_f84f4e536ab8207070614d85889b383782b283a2",
+      "accepted": true
+    },
+    {
+      "time": "2026-10-14T00:37:07.807Z",
+      "test": "intake rejects required drawing omitted",
+      "status": 201,
+      "requestId": "rfq_7eac7f5a6c3773ecef89f37b5e702a55645de169",
+      "accepted": true
+    },
+    {
+      "time": "2026-10-14T00:37:08.364Z",
+      "test": "intake rejects restricted declaration",
+      "status": 400,
+      "error": "Lattice does not accept ITAR, export-restricted, CUI, US-only, or other restricted-handling work through its overseas manufacturing workflow. Do not upload these files.",
+      "accepted": false
+    },
+    {
+      "time": "2026-10-14T00:37:08.646Z",
+      "test": "Stripe final test session",
+      "livemode": false,
+      "status": "open",
+      "paymentStatus": "unpaid",
+      "amountTotal": 9254,
+      "tax": 754
+    },
+    {
+      "time": "2026-10-14T00:37:08.730Z",
+      "test": "hosted webhook missing signature",
+      "status": 400
+    },
+    {
+      "time": "2026-10-14T00:37:08.899Z",
+      "test": "hosted webhook invalid signature",
+      "status": 400
+    },
+    {
+      "time": "2026-10-14T00:37:08.973Z",
+      "test": "hosted webhook signed no-op",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:37:34.972Z",
+      "test": "customer quote PDF buyer",
+      "status": 200,
+      "isPdf": true,
+      "bytes": 133999
+    },
+    {
+      "time": "2026-10-14T00:37:35.794Z",
+      "test": "customer quote PDF member",
+      "status": 200,
+      "isPdf": true,
+      "bytes": 133999
+    },
+    {
+      "time": "2026-10-14T00:37:36.508Z",
+      "test": "customer quote PDF other",
+      "status": 404,
+      "isPdf": false,
+      "bytes": 0
+    },
+    {
+      "time": "2026-10-14T00:37:36.629Z",
+      "test": "customer quote PDF anonymous",
+      "status": 307,
+      "isPdf": false,
+      "bytes": 15
+    },
+    {
+      "time": "2026-10-14T00:37:37.835Z",
+      "test": "customer quote visibility buyer",
+      "status": 200,
+      "containsSyntheticTitle": true
+    },
+    {
+      "time": "2026-10-14T00:37:38.532Z",
+      "test": "customer quote visibility other",
+      "status": 200,
+      "containsSyntheticTitle": false
+    },
+    {
+      "time": "2026-10-14T00:37:57.170Z",
+      "test": "APS model status buyer",
+      "status": 200,
+      "state": "ready"
+    },
+    {
+      "time": "2026-10-14T00:37:57.974Z",
+      "test": "APS model thumbnail buyer",
+      "status": 200,
+      "type": "image/png",
+      "bytes": 477
+    },
+    {
+      "time": "2026-10-14T00:37:58.733Z",
+      "test": "APS model status other",
+      "status": 200,
+      "state": "ready"
+    },
+    {
+      "time": "2026-10-14T00:37:59.547Z",
+      "test": "APS model thumbnail other",
+      "status": 200,
+      "type": "image/png",
+      "bytes": 477
+    },
+    {
+      "time": "2026-10-14T00:38:00.049Z",
+      "test": "APS viewer token other company",
+      "status": 200,
+      "tokenIssued": true
+    },
+    {
+      "time": "2026-10-14T00:38:00.448Z",
+      "test": "APS direct manifest other-company token",
+      "status": 200,
+      "state": "success",
+      "derivativesPresent": true
+    },
+    {
+      "time": "2026-10-14T00:41:08.344Z",
+      "test": "sandbox card payment result",
+      "status": "complete",
+      "paymentStatus": "paid",
+      "livemode": false,
+      "amountTotal": 9254
+    },
+    {
+      "time": "2026-10-14T00:41:08.748Z",
+      "test": "order before authenticated webhook replay",
+      "status": "QUOTED",
+      "purchasePaymentStatus": "PAYMENT_PENDING"
+    },
+    {
+      "time": "2026-10-14T00:41:11.562Z",
+      "test": "actual Stripe Test event authenticated replay 1",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:41:12.336Z",
+      "test": "actual Stripe Test event authenticated replay 2",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:41:26.581Z",
+      "test": "sandbox card payment result",
+      "status": "complete",
+      "paymentStatus": "paid",
+      "livemode": false,
+      "amountTotal": 9254
+    },
+    {
+      "time": "2026-10-14T00:41:26.953Z",
+      "test": "order before authenticated webhook replay",
+      "status": "PURCHASED",
+      "purchasePaymentStatus": "PAID"
+    },
+    {
+      "time": "2026-10-14T00:41:27.812Z",
+      "test": "actual Stripe Test event authenticated replay 1",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:41:28.324Z",
+      "test": "actual Stripe Test event authenticated replay 2",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:41:42.056Z",
+      "test": "sandbox card payment result",
+      "status": "complete",
+      "paymentStatus": "paid",
+      "livemode": false,
+      "amountTotal": 9254
+    },
+    {
+      "time": "2026-10-14T00:41:42.456Z",
+      "test": "order before authenticated webhook replay",
+      "status": "PURCHASED",
+      "purchasePaymentStatus": "PAID"
+    },
+    {
+      "time": "2026-10-14T00:41:43.184Z",
+      "test": "actual Stripe Test event authenticated replay 1",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:41:43.690Z",
+      "test": "actual Stripe Test event authenticated replay 2",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:41:43.795Z",
+      "test": "paid order and invoice after duplicate replay",
+      "status": "PURCHASED",
+      "purchasePaymentStatus": "PAID",
+      "stripeAmountCents": 9254,
+      "customerPoNumber": "HOSTED-QA-PO-20261013",
+      "invoiceCount": 0,
+      "invoices": []
+    },
+    {
+      "time": "2026-10-14T00:41:45.245Z",
+      "test": "paid order visibility buyer",
+      "status": 200,
+      "containsSyntheticTitle": true
+    },
+    {
+      "time": "2026-10-14T00:41:46.340Z",
+      "test": "paid invoice PDF buyer",
+      "status": 200,
+      "isPdf": true,
+      "bytes": 10946
+    },
+    {
+      "time": "2026-10-14T00:41:47.071Z",
+      "test": "paid order visibility member",
+      "status": 200,
+      "containsSyntheticTitle": true
+    },
+    {
+      "time": "2026-10-14T00:41:47.993Z",
+      "test": "paid invoice PDF member",
+      "status": 200,
+      "isPdf": true,
+      "bytes": 10946
+    },
+    {
+      "time": "2026-10-14T00:41:48.733Z",
+      "test": "paid order visibility other",
+      "status": 200,
+      "containsSyntheticTitle": false
+    },
+    {
+      "time": "2026-10-14T00:41:49.538Z",
+      "test": "paid invoice PDF other",
+      "status": 404,
+      "isPdf": false,
+      "bytes": 0
+    },
+    {
+      "time": "2026-10-14T00:42:28.485Z",
+      "test": "durable invoices after PDF access",
+      "invoiceCount": 1,
+      "invoices": [
+        {
+          "id": "cmv7dx4iq000c06jswcgztyxh",
+          "subtotalCents": 7500,
+          "shippingCents": 1000,
+          "salesTaxCents": 754,
+          "amountPaidCents": 9254,
+          "amountDueCents": 0,
+          "customerPo": "HOSTED-QA-PO-20261013"
+        }
+      ]
+    },
+    {
+      "time": "2026-10-14T00:42:29.352Z",
+      "test": "Stripe sandbox refund 1000",
+      "status": "succeeded",
+      "amount": 1000
+    },
+    {
+      "time": "2026-10-14T00:42:31.093Z",
+      "test": "authenticated refund event replay 1000 0",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:42:31.810Z",
+      "test": "authenticated refund event replay 1000 1",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:42:31.889Z",
+      "test": "refund reconciliation 1000",
+      "status": "PURCHASED",
+      "purchasePaymentStatus": "PAID",
+      "refundedAmountCents": "1000",
+      "invoiceCount": 1,
+      "invoiceUnchanged": true
+    },
+    {
+      "time": "2026-10-14T00:42:32.624Z",
+      "test": "Stripe sandbox refund 8254",
+      "status": "succeeded",
+      "amount": 8254
+    },
+    {
+      "time": "2026-10-14T00:42:33.913Z",
+      "test": "authenticated refund event replay 8254 0",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:42:34.581Z",
+      "test": "authenticated refund event replay 8254 1",
+      "status": 200,
+      "received": true
+    },
+    {
+      "time": "2026-10-14T00:42:34.660Z",
+      "test": "refund reconciliation 8254",
+      "status": "PURCHASED",
+      "purchasePaymentStatus": "PAID",
+      "refundedAmountCents": "9254",
+      "invoiceCount": 1,
+      "invoiceUnchanged": true
+    },
+    {
+      "time": "2026-10-14T00:42:35.515Z",
+      "test": "paid unauthorized admin response /admin/orders",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": true,
+      "containsSyntheticCompany": true
+    },
+    {
+      "time": "2026-10-14T00:42:36.318Z",
+      "test": "paid unauthorized admin response /admin/orders/rfq_ea571b805178ebbd2ca270e1fb23126b31432323",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": true,
+      "containsSyntheticCompany": true
+    },
+    {
+      "time": "2026-10-14T00:42:37.076Z",
+      "test": "paid unauthorized admin response /admin/customers",
+      "status": 307,
+      "redirect": "/dashboard",
+      "containsSyntheticTitle": true,
+      "containsSyntheticCompany": true
+    },
+    {
+      "time": "2026-10-14T00:43:28.067Z",
+      "test": "hosted quality document upload large",
+      "status": 413,
+      "sizeBytes": 5245427,
+      "redirect": null
+    },
+    {
+      "time": "2026-10-14T00:43:30.546Z",
+      "test": "hosted quality document upload small",
+      "status": 200,
+      "sizeBytes": 1327,
+      "redirect": null
+    },
+    {
+      "time": "2026-10-14T00:43:51.480Z",
+      "test": "quality upload stored state",
+      "documentCount": 1,
+      "approvedAt": null
+    },
+    {
+      "time": "2026-10-14T00:43:52.276Z",
+      "test": "quality private download buyer",
+      "status": 307
+    },
+    {
+      "time": "2026-10-14T00:43:52.987Z",
+      "test": "quality private download member",
+      "status": 307
+    },
+    {
+      "time": "2026-10-14T00:43:53.673Z",
+      "test": "quality private download other",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T00:48:54.561Z",
+      "test": "quality upload stored state",
+      "documentCount": 1,
+      "approvedAt": "2026-10-14T00:48:40.884Z"
+    },
+    {
+      "time": "2026-10-14T00:48:55.785Z",
+      "test": "quality private download buyer",
+      "status": 307
+    },
+    {
+      "time": "2026-10-14T00:48:56.446Z",
+      "test": "quality private download member",
+      "status": 307
+    },
+    {
+      "time": "2026-10-14T00:48:57.077Z",
+      "test": "quality private download other",
+      "status": 404
+    },
+    {
+      "time": "2026-10-14T00:49:10.583Z",
+      "test": "hosted quality document upload revision",
+      "status": 200,
+      "sizeBytes": 1327,
+      "redirect": null
+    },
+    {
+      "time": "2026-10-14T00:49:37.167Z",
+      "test": "quality upload stored state",
+      "documentCount": 2,
+      "approvedAt": null
+    },
+    {
+      "time": "2026-10-14T00:49:38.206Z",
+      "test": "quality private download buyer",
+      "status": 307
+    },
+    {
+      "time": "2026-10-14T00:49:38.842Z",
+      "test": "quality private download member",
+      "status": 307
+    },
+    {
+      "time": "2026-10-14T00:49:39.557Z",
+      "test": "quality private download other",
+      "status": 404
+    }
+  ]
+}

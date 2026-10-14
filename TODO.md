@@ -1,5 +1,18 @@
 # TODO
 
+## Hosted release blockers — 2026-10-13
+
+The [hosted readiness report](docs/audits/hosted-readiness-2026-10-13.md) supersedes older pending hosted-check notes where it provides fresh proof. Do not enable Live checkout or call the app completed yet.
+
+- P0: enforce authorization before admin page data queries/serialization (quotes, customers, orders and order detail leak in redirected bodies); bind APS derivatives/token access to company ownership.
+- P0: repair R2 signed-upload metadata/completion; verify small/large CAD and drawings through the normal browser journey without prepared fixture metadata.
+- P1: enforce real stored bytes, part associations and required drawings on submission; validate/version/recover malformed shared drafts.
+- P1: patch applicable dependency advisories and move vendor overrides off the application filesystem.
+- P1: provide narrowly supported Test webhook ingress and prove genuine Stripe provider delivery; hosted signed replay/payment/refunds passed, direct delivery did not.
+- P1/P2: repair >5 MB quality document upload failures, expected-action error messages and invented order progress; define invoice issuance timing (currently first PDF read).
+- Finish quality package coverage/replacement/shipment-hold role tests (Customer Admin approval and added-document invalidation passed), commercial edge cases, communications, recovery/device checks, operator backup and business decisions listed in the report. Keep intentional first-cohort exclusions explicit.
+- Test credential for private R2 bucket expires October 20, 2026. Synthetic test resources are retained for repeatability; Production was not changed by the audit.
+
 Shared next-actions list for AI agents across computers. Keep this focused on the next useful work, not every possible idea.
 
 ## Next Priorities
