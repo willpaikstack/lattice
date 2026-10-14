@@ -6,7 +6,7 @@ Date: October 13, 2026 (America/New_York). Application patch: `db347a6`.
 
 All three reported P0 defects are fixed in the application code and passed hosted positive/negative API retests. The Production build `dpl_EmQHJHnZtE1ohen8tAMbuyagnTek` was staged, checked with Production configuration, then promoted to https://latticeos.co. Live checkout remains disabled; no Production customer, payment, email or storage fixture was created by these checks.
 
-**Verification limit:** the Mac remained locked, preventing the requested native browser follow-through. Interactive rendering and file-picker clicks have not been freshly certified for this patch. The actual hosted upload/submission/download and provider model-authorization paths were exercised through HTTP, with genuine development Clerk sessions, Neon, private R2 and APS. This does not close the P1/P2 rollout gaps in the original readiness report.
+**Verification update (October 14):** saved two-part CAD geometry rendering and customer admin-route redirects now pass in the browser. The original October 13 session was blocked by a locked Mac. Fresh browser file uploads remain pending on the connected Chrome profile’s extension file access; see the dated follow-through below. The actual hosted upload/submission/download and provider model-authorization paths were exercised through HTTP, with genuine development Clerk sessions, Neon, private R2 and APS. This does not close the P1/P2 rollout gaps in the original readiness report.
 
 ## Changes and customer experience
 
@@ -52,6 +52,19 @@ An extra adversarial P1 submission probe timed out; it is not counted as a passe
 - Private upload intents and CAD ownership/source records live in the existing private object store under fixed, hashed `internal/` keys. The browser cannot select those keys for signed writes, and file-download authorization does not expose them. Storage failures deny access rather than falling back to broad model permissions.
 - No database migration, new production secret, public-bucket setting or CORS expansion was required.
 - The viewer uses Autodesk's documented [resource-scoped tokens](https://aps.autodesk.com/blog/scoped-tokens-are-here), verified against the real provider. Previously issued broad tokens, if any, are not retroactively revoked by a code deployment and expire according to their original provider lifetime.
-- Finish native browser upload/interactive-viewer/multi-part recovery checks once the Mac is unlocked. The original P1/P2 issues—submission/draft validation, webhook ingress, quality upload limits, dependency advisories, vendor durability, accounting/communications and operating gates—are still outstanding.
+- Finish browser file-chooser uploads and customer multi-part draft restore once the connected Chrome profile permits local file access. Saved operator multi-part geometry rendering has passed. The original P1/P2 issues—submission/draft validation, webhook ingress, quality upload limits, dependency advisories, vendor durability, accounting/communications and operating gates—are still outstanding.
 
 [Sanitized hosted evidence](p0-remediation-2026-10-13/evidence.json). Raw responses, fixture files, credentials and local captures remain ignored under `output/qa/` and `.vercel/`.
+
+
+## Browser follow-through — October 14, 2026
+
+The Mac was unlocked and the isolated Preview was reopened with genuine synthetic customer/operator sign-ins. A customer visiting `/admin/customers` visibly returned to `/dashboard` and retained only its workspace. The operator reopened a saved two-part RFQ and displayed both CAD models, switching from the large part to the small part and back. Measurement mode opened; a numerical measurement has not been certified.
+
+**Fixture correction:** the original hand-written `FACETED_BREP` STEP inputs translated to an empty model (including a blank thumbnail). They remain valid upload-byte/security fixtures, but are not geometry-rendering proof. Fresh rounded solids were exported with CadQuery/Open CASCADE: 7,031,846-byte and 31,793-byte STEP files. Both passed normal hosted upload completion (201), model registration (202), translation readiness (200), RFQ submission (201), and browser geometry rendering. Other-company tokens for both new models remained denied (404). No application code or token scope was broadened to make them render.
+
+The operator detail emitted a recoverable React hydration mismatch on its dated content. The page continued to render and accept part/tool changes; locale/time-zone consistency needs a separate follow-up under the existing P1 reliability work.
+
+Browser file-chooser uploads are still pending because the connected Chrome profile reports file-URL access disabled for its ChatGPT extension. The user enabled access in a Chrome profile, but the connected `William (William Paik)` profile still refused `setFiles`; the specific-profile setting was requested. A native picker fallback also could not confirm a selected file. These are test-harness limitations, not a successful browser upload result.
+
+Screenshots and raw browser/provider diagnostics remain ignored in `output/qa/p0-browser-2026-10-14` and `.vercel/hosted-test`. The isolated synthetic follow-through created no Production files, customers, emails or payments.

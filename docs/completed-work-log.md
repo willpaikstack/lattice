@@ -2341,3 +2341,10 @@ Inspected the logged-in Chrome APS hub and Autodesk Account. Lattice OS Dev cont
 - Verification: 557 tests / 113 suites, typecheck and optimized build pass; lint has no errors (four warnings in ignored QA scripts). Ready isolated Preview dpl_DaNBCUE4PKuWEVx6u2655TdCtqJ1 passed hosted data/provider tests. Staged Production dpl_EmQHJHnZtE1ohen8tAMbuyagnTek built successfully, passed authenticated Vercel/anonymous-app checks, and was promoted to latticeos.co; public login 200, admin redirects 307 and protected APIs 401. No Production customer/storage fixture, email or Live payment was created; Live checkout stays disabled. No migration/new production secret/CORS change.
 - Native browser verification remained blocked because the Mac was locked; unlock was requested. No fresh file-picker/WebGL rendering certification is claimed. An extra P1 adversarial submission probe timed out and is not a passing validation test; subsequent model-access controls still deny foreign access. Other P1/P2 gates remain open.
 - Updated shared context, TODO, decisions, feature map, original-audit supersession note, APS guide and docs/audits/p0-remediation-2026-10-13.md with sanitized retest evidence. Sync Git main to the released application patch; documentation-only successor commits do not change tested application behavior.
+
+
+## 2026-10-14 — P0 browser retest follow-through
+
+- Reopened the isolated hosted Preview after the Mac was unlocked; verified customer admin-route redirect in a real browser and saved operator CAD part switching/rendering.
+- Corrected the QA geometry fixture: the hand-written STEP produced empty geometry. CAD-library exported rounded solids rendered with the existing private, resource-scoped token flow; both remain inaccessible to another company. No app patch or scope broadening required.
+- Connected Chrome upload is awaiting file-URL access in the precise browser profile. No browser upload success is claimed yet. Updated P0 report and project memory with this current limitation and a dated-content hydration follow-up.
