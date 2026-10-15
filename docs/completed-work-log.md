@@ -2527,3 +2527,5 @@ Release confirmation: app commit `9f22779` pushed and deployed to latticeos.co a
 ## 2026-10-15 — Include submitter email in quote preparation
 
 Added Email next to Submitted by in the admin quote preparation header and archived RFQ details, sourced from the RFQ requesterEmail. Missing legacy values display Email not recorded. Updated the feature map. User explicitly confirmed Git push and Vercel production deployment. No request data changes or emails sent.
+
+Release confirmation: app commit `cc5834b` pushed to Git and deployed as Ready Production `dpl_634MfhULZNhGfN5v9fz5bBHaM3bW` at latticeos.co. Typecheck, focused ESLint, whitespace check and hosted production build pass. Automated tests were not run. A fresh read-only browser tab verified the saved requester email beside Carmen Practice in the requested RFQ header; screenshot evidence remains untracked in output/qa. No RFQ data changed.
