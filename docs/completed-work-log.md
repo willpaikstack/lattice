@@ -2431,3 +2431,18 @@ Completed the authorized twelve submissions through genuine customer Google sess
 ## 2026-10-14 — Repair RFQ audit findings and identify Autodesk capacity blocker
 
 Repaired and released per-part customer process display, PDF preview reads through the authenticated app origin, and false drawing validation from negated/free-text notes. Added structured drawing flags and correct flag restoration, legacy exact-line support, a saved-original admin CAD retry, and a clear APS capacity refusal. Production browser verification confirms correct mixed processes, working test PDFs and the provider refusal while originals remain available. Full suite passed at 588 tests before the final narrow prefill change; final focused regressions, lint/typecheck and hosted build pass. The provider body identifies `ProductAccessRequiresCapacity`; William confirmed added credits were Codex credits. Autodesk APS/Flex capacity restoration is required from the account owner; six models and persisted URN/dimension backfill remain outstanding. Release `dpl_FboVWTNXMVUuxkBmZ1oLvk9ijLDN`. Details: `docs/audits/rfq-audit-repairs-2026-10-14.md`.
+
+## 2026-10-15 — RFQ export declaration advances on selection
+
+Updated the CAD-selection popup so choosing the unrestricted option immediately advances to the Prototype/Commercial question; the export page no longer asks for a separate Continue click. Prototype/Commercial remains an explicit choice and Continue action before Configure. Choosing the restricted option stays on the refusal message. Updated the operator-facing feature map and the existing RFQ workflow test. Release check passed: all 31 request-form tests, typecheck, changed-file lint, `git diff --check`, and the production build. Deployment was not part of this check.
+
+## 2026-10-15 — CAD demo adds common mesh and glTF previews
+
+Extended the admin-only browser CAD demo to preview STL, OBJ, glTF, and GLB alongside STEP/IGES using Three.js loaders. Files remain local to the browser; STL/OBJ show unitless model dimensions, glTF/GLB meter dimensions are converted to millimeters, and unsupported external glTF sidecar assets produce an actionable error. Updated supported-format UI, validation, feature map and focused importer tests. Twelve focused tests pass; typecheck, changed-file lint, whitespace check and production build pass. Smoke-parsed STL, OBJ, embedded glTF and GLB triangle fixtures. Deployed to Production as `dpl_GsCiXoaDVpAMdknHWQf4kS6mDqUy` with aliases `latticeos.co` and `www.latticeos.co`. Live browser QA confirmed STL, OBJ, embedded glTF and GLB files render; glTF/GLB meter dimensions convert to millimeters. External glTF companion assets remain intentionally unsupported with a clear prompt to use a self-contained GLB. Screenshot: `/tmp/lattice-cad-viewer-formats.png`.
+
+
+## 2026-10-15 — CAD demo lists accepted upload formats in the viewer
+
+Added an always-visible accepted-file-types line directly below the CAD viewer controls, listing STEP/STP, IGES/IGS, STL, OBJ, glTF and GLB, plus the 50 MB per-model limit. Updated the operator feature map.
+
+Production deployment `dpl_7WETP8jum5MzRnx376AXLpas2g43` was built with the current Vercel Production environment and promoted to `latticeos.co` on 2026-10-15. Vercel build, typecheck, all 31 request-form tests, targeted lint and diff checks passed. Browser reload confirmed the signed-in `/requests/new` route loads from the promoted deployment; no live RFQ was submitted and no customer CAD file was uploaded. The release contains the quote-request declaration flow, the admin CAD demo's additional import formats, and the materials catalog note relocation.

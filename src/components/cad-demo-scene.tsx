@@ -80,7 +80,8 @@ export default function CadDemoScene({ model }: { model: CadDemoModel }) {
     }
     group.position.sub(center);
     scene.add(group);
-    queueMicrotask(() => setDimensions(`${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} mm`));
+    const unit = model.dimensionsUnit ?? "mm";
+    queueMicrotask(() => setDimensions(`${size.x.toFixed(2)} × ${size.y.toFixed(2)} × ${size.z.toFixed(2)} ${unit}`));
     const render = () => renderer.render(scene, camera);
     const fit = (direction = camera.position.clone().normalize()) => {
       if (!direction.lengthSq()) direction.set(1, -1, 0.8).normalize();

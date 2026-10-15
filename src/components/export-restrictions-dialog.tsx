@@ -39,6 +39,10 @@ export function ExportRestrictionsDialog({ files, initialStatus, initialEndUse =
     ["commercial", "Commercial", "I intend to incorporate these components into products that are sold for commercial use."],
   ] : restrictionChoices;
   const selectedValue = isIntendedUse ? endUse : status;
+  const selectRestrictionStatus = (value: string) => {
+    setStatus(value);
+    if (value === "unrestricted" && isNewSelection) setPage("intended-use");
+  };
 
   return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-3 sm:p-6" onClick={event => { if (event.target === event.currentTarget) onClose(); }}>
     <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} tabIndex={-1}
@@ -53,7 +57,7 @@ export function ExportRestrictionsDialog({ files, initialStatus, initialEndUse =
           <legend ref={questionRef} tabIndex={-1} className="mb-3 text-base font-semibold text-slate-950 outline-none">{isIntendedUse ? "How will the parts in this quote be used?" : "Are any parts in this quote subject to ITAR or other U.S. export restrictions?"}</legend>
           {!isIntendedUse ? <p id={descriptionId} className="mb-4 text-sm leading-6 text-slate-500">Certain parts may be subject to various US regulations. <a href="https://www.pmddtc.state.gov/ddtc_public?id=ddtc_public_portal_itar_landing" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline-offset-2 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-blue-600">Learn more about export controls.</a></p> : <p id={descriptionId} className="text-sm leading-6 text-slate-500">This classification is required for us to determine accurate pricing and any import considerations.</p>}
           {choices.map(([value, label, detail]) => <label key={value} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm leading-6 transition ${selectedValue === value ? "border-blue-600 bg-blue-50" : "border-slate-200 hover:border-slate-400"}`}>
-            <input type="radio" name={isIntendedUse ? "intended-use" : "export-restrictions"} value={value} checked={selectedValue === value} onChange={() => isIntendedUse ? setEndUse(value) : setStatus(value)} className="mt-1 h-4 w-4 shrink-0 accent-blue-600" />
+            <input type="radio" name={isIntendedUse ? "intended-use" : "export-restrictions"} value={value} checked={selectedValue === value} onChange={() => isIntendedUse ? setEndUse(value) : selectRestrictionStatus(value)} className="mt-1 h-4 w-4 shrink-0 accent-blue-600" />
             <span><span className="block font-medium text-slate-950">{label}</span><span className="text-slate-600">{detail}</span></span>
           </label>)}
         </fieldset>
@@ -76,9 +80,9 @@ export function ExportRestrictionsDialog({ files, initialStatus, initialEndUse =
       </div>
       <footer className="flex shrink-0 items-center justify-between gap-3 px-5 py-5 sm:px-6">
         <button type="button" onClick={() => isIntendedUse ? setPage("restrictions") : onClose()} className="rounded-md px-2 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100">‹ Back</button>
-        <button type="button" disabled={(isNewSelection && !files.length) || status !== "unrestricted" || (isIntendedUse && (!intendedUseComplete || endUseMismatch))} onClick={() => { if (endUseMismatch) return; if (!isIntendedUse && isNewSelection) setPage("intended-use"); else onConfirm(status, isIntendedUse ? { endUse, endUseNotes: "" } : undefined); }} className="rounded-md bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">
+        {isIntendedUse ? <button type="button" disabled={(isNewSelection && !files.length) || status !== "unrestricted" || !intendedUseComplete || endUseMismatch} onClick={() => { if (endUseMismatch) return; onConfirm(status, { endUse, endUseNotes: "" }); }} className="rounded-md bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">
           Continue
-        </button>
+        </button> : null}
       </footer>
     </div>
   </div>;

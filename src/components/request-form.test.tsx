@@ -169,21 +169,25 @@ describe("RequestForm", () => {
     vi.unstubAllGlobals();
   });
 
-  it("starts advance CAD processing while an unanswered declaration still blocks quote continuation", () => {
+  it("starts advance CAD processing and advances from export restrictions directly to intended use", async () => {
     testingRender(<RequestForm />);
     expect(screen.getByLabelText("Choose CAD file")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Choose CAD file"), { target: { files: [new File(["solid"], "part.step")] } });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /No, this quote/ })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith("/api/request-draft-files", expect.objectContaining({ body: expect.stringContaining("advance_cad_preview") }));
     fireEvent.click(screen.getByRole("radio", { name: /Yes, parts in this quote/ }));
     expect(screen.getByRole("status")).toHaveTextContent("cannot accept");
     expect(screen.queryByRole("radio", { name: /I'm unsure/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole("radio", { name: /No, this quote/ })));
+    expect(screen.getByText("How will the parts in this quote be used?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "‹ Back" }));
+    await act(async () => fireEvent.click(screen.getByRole("radio", { name: /^Prototype/ })));
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Choose CAD file")).toBeInTheDocument();
   });
 
   it("submits each part's process and revisions with customer intended use", async () => {
