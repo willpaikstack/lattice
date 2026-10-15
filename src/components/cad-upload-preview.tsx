@@ -73,7 +73,7 @@ export function CadUploadPreview({
 
   if (local && (file || recovery?.storageKey)) {
     return <div className="mt-4 min-w-0 text-left"><LocalCadPreview file={file} name={state.fileName} sizeBytes={sizeBytes}
-      url={!file && recovery?.storageKey ? localCadFileUrl(recovery.storageKey, state.fileName) : undefined} onMetadata={onMetadata} /></div>;
+      storageKey={recovery?.storageKey} url={!file && recovery?.storageKey ? localCadFileUrl(recovery.storageKey, state.fileName) : undefined} onMetadata={onMetadata} /></div>;
   }
 
   if (state.status === "ready" && !local) {

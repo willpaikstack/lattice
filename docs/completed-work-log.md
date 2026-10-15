@@ -2483,3 +2483,10 @@ Changed the draft-created activity description to identify the quote by its cust
 Release verification: deployment `dpl_45oPwHLd1aiUiAxc9rMMR5xppMn5` is Ready and aliased to Production at `https://latticeos.co`. Reloaded the signed-in quote detail and confirmed the submitted RFQ says `LQ-RFQ_73E7 was created.` with no submission reminder. Checks passed as listed above; no customer data was changed.
 
 Release verification: neutral activity copy is deployed as `dpl_F77GTYgbyuckznd5ZU9dUGGyX9NM`, Ready and aliased to `https://latticeos.co`. Reloaded the signed-in Production quote page and confirmed the event descriptions contain no second-person language. Typecheck, focused lint, whitespace check, and local/hosted builds passed; automated tests were not run.
+
+
+## 2026-10-15 — Local CAD viewer screenshot thumbnails
+
+Added isometric 384px PNG capture immediately after local geometry renders. Intake waits for the saved original key before persisting the screenshot; saved customer/admin viewer openings also capture images. Quote lists, draft continuation and quote detail use the shared thumbnail component. Missing legacy images are generated serially from the authorized saved originals; duplicate queued views recheck storage before parsing, and geometry is disposed after capture. Available screenshots copy with draft-to-RFQ promotion. The new API authorizes against the original, bounds request bytes and decoded pixels, re-encodes PNGs with metadata stripped and serves private/no-store images. No schema migration or Autodesk call is required.
+
+Verification: 34 targeted tests and 52 customer-access workflow tests pass, including foreign/anonymous read/write denial, invalid/oversized/origin rejection, real PNG normalization, draft promotion byte preservation and serial/cancelled thumbnail work. Local browser verification rendered the sample STEP model and its actual screenshot. Production verification and release details follow after deployment.

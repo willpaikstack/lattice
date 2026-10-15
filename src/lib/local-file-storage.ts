@@ -5,6 +5,7 @@ import path from "node:path";
 import { Readable } from "node:stream";
 import { CopyObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { cadDemoFormat } from "./cad-demo";
 
 export type StoredLocalUpload = {
   name: string;
@@ -335,6 +336,7 @@ export async function copyLocalUpload(
       }),
     );
 
+    await copyCadThumbnail(safeKey, destinationKey);
     return {
       name: metadata.name,
       sizeBytes: sourceMetadata.ContentLength ?? 0,
@@ -345,7 +347,7 @@ export async function copyLocalUpload(
 
   const { contents, sizeBytes } = await readLocalUpload(safeKey);
 
-  return saveLocalUploadBytes(
+  const stored = await saveLocalUploadBytes(
     {
       name: metadata.name,
       sizeBytes,
@@ -354,4 +356,34 @@ export async function copyLocalUpload(
     contents,
     folder,
   );
+  if (stored.storageKey) await copyCadThumbnail(safeKey, stored.storageKey);
+  return stored;
+}
+
+/** Derived screenshots live in the same private store, keyed by original bytes' location. */
+export function cadThumbnailStorageKey(sourceStorageKey: string) {
+  return `cad-thumbnails/v1/${createHash("sha256").update(assertSafeStorageKey(sourceStorageKey)).digest("hex")}.png`;
+}
+
+export async function saveCadThumbnail(sourceStorageKey: string, contents: Buffer) {
+  const key = cadThumbnailStorageKey(sourceStorageKey);
+  const remote = remoteStorage();
+  if (remote) {
+    await remote.client.send(new PutObjectCommand({ Bucket: remote.config.bucket, Key: key, Body: contents, ContentLength: contents.length, ContentType: "image/png" }));
+  } else {
+    const destination = localUploadPath(key);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, contents);
+  }
+}
+
+async function copyCadThumbnail(sourceStorageKey: string, destinationStorageKey: string) {
+  if (!cadDemoFormat(sourceStorageKey)) return;
+  try {
+    const { contents } = await readLocalUpload(cadThumbnailStorageKey(sourceStorageKey));
+    await saveCadThumbnail(destinationStorageKey, contents);
+  } catch {
+    // A missing/failed derivative must never prevent saving the original RFQ.
+    // The list regenerates missing thumbnails from the authorized original.
+  }
 }

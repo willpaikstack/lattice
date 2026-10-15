@@ -5,13 +5,29 @@ import { useEffect, useRef, useState } from "react";
 import { CAD_DEMO_MAX_BYTES, type CadDemoModel } from "@/lib/cad-demo";
 import { loadLocalCadFile } from "@/lib/local-cad-loader";
 import type { CadMetadata } from "@/lib/rfq-manufacturing";
+import { saveLocalCadThumbnail } from "@/lib/local-cad-thumbnail";
 
 const Scene = dynamic(() => import("./cad-demo-scene"), { ssr: false, loading: () => <p role="status">Starting 3D viewer…</p> });
 
-export function LocalCadPreview({ file, url, name, sizeBytes, onMetadata }: {
+export function LocalCadPreview({ file, url, name, sizeBytes, onMetadata, storageKey, onThumbnailSaved, onError }: {
   file?: File; url?: string; name: string; sizeBytes?: number;
   onMetadata?: (metadata: CadMetadata) => void;
+  storageKey?: string;
+  onThumbnailSaved?: (saved: boolean) => void;
+  onError?: () => void;
 }) {
+  const [thumbnail, setThumbnail] = useState<{ image: Blob; source?: File | string } | null>(null);
+  const callbacks = useRef({ onThumbnailSaved, onError });
+  useEffect(() => { callbacks.current = { onThumbnailSaved, onError }; }, [onThumbnailSaved, onError]);
+  useEffect(() => {
+    if (!storageKey || !thumbnail || thumbnail.source !== (file ?? url)) return;
+    const abort = new AbortController();
+    void saveLocalCadThumbnail(storageKey, thumbnail.image, abort.signal).then(
+      () => { if (!abort.signal.aborted) callbacks.current.onThumbnailSaved?.(true); },
+      () => { if (!abort.signal.aborted) callbacks.current.onThumbnailSaved?.(false); },
+    );
+    return () => abort.abort();
+  }, [storageKey, thumbnail, file, url]);
   const [state, setState] = useState<{ model?: CadDemoModel; error?: string; cancelled?: boolean; source?: File | string }>({});
   const controller = useRef<AbortController | null>(null);
   const metadataCallback = useRef(onMetadata);
@@ -46,7 +62,10 @@ export function LocalCadPreview({ file, url, name, sizeBytes, onMetadata }: {
           if (dimensionsMm.every(value => Number.isFinite(value) && value >= 0)) metadataCallback.current?.({ dimensionsMm, sourceUnit: /\.(gltf|glb)$/i.test(name) ? "m" : "Not reported; normalized to mm" });
         }
       } catch (caught) {
-        if (active && !abort.signal.aborted) setState({ error: caught instanceof Error ? caught.message : "Unable to open the model.", source: file ?? url });
+        if (active && !abort.signal.aborted) {
+          setState({ error: caught instanceof Error ? caught.message : "Unable to open the model.", source: file ?? url });
+          callbacks.current.onError?.();
+        }
       }
     }
     void open();
@@ -54,7 +73,7 @@ export function LocalCadPreview({ file, url, name, sizeBytes, onMetadata }: {
   }, [file, url, name, sizeBytes]);
 
   const current = state.source === (file ?? url) ? state : {};
-  if (current.model) return <Scene model={current.model} />;
+  if (current.model) return <Scene model={current.model} onThumbnail={image => setThumbnail({ image, source: file ?? url })} onError={() => callbacks.current.onError?.()} />;
   if (current.error || current.cancelled) return <div className="rounded-md border border-slate-200 bg-slate-50 p-5 text-sm" role="status"><p>{current.error || "Preview cancelled. The original file remains attached."}</p>{current.error ? <p className="mt-2 text-slate-600">3D preview unavailable. The original file remains attached to the RFQ.</p> : null}</div>;
   return <div className="flex min-h-64 flex-col items-center justify-center gap-3 bg-slate-50 p-5 text-sm" role="status"><p>Opening 3D model…</p><button type="button" className="rounded border bg-white px-3 py-2" onClick={() => { controller.current?.abort(); setState({ cancelled: true, source: file ?? url }); }}>Cancel preview</button></div>;
 }

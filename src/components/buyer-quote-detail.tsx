@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, CircleDot, Download, Mail, Phone, User } from "lucide-react";
 
 import type { AccountAddress } from "@/lib/account-settings-shared";
@@ -8,6 +7,7 @@ import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 import { quoteHasExpired } from "@/lib/quote-validity";
 import { cadDemoFormat } from "@/lib/cad-demo";
 import { LocalCadPreviewButton } from "./saved-local-cad-preview";
+import { CadRenderThumbnail } from "./cad-file-preview";
 import { processLabel } from "@/lib/rfq-manufacturing";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
@@ -234,36 +234,11 @@ function lineItemLeadTime(item: RequestLineItem, request: LatticeRequest) {
   return request.customerQuotes.at(-1)?.leadTime || "Pending";
 }
 
-function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][number] | undefined; index: number }) {
-  const faceTone = index % 2 === 0 ? "bg-[#d8e5f3]" : "bg-[#dfe7dd]";
-  const sideTone = index % 2 === 0 ? "bg-[#b8cbe1]" : "bg-[#c2d1bf]";
-  const topTone = index % 2 === 0 ? "bg-[#edf3fa]" : "bg-[#eef4ec]";
+function CadRenderPreview({ file }: { file: LatticeRequest["files"][number] | undefined }) {
   const local = file && Boolean(cadDemoFormat(file.name));
-  const thumbnailHref = !local && file?.cadPreviewUrn
-    ? `/api/cad-previews/thumbnail?urn=${encodeURIComponent(file.cadPreviewUrn)}&size=320`
-    : null;
-
   return (
-    <div className="w-20 shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.75)]">
-      <div className="relative h-16 bg-[linear-gradient(90deg,rgba(17,24,39,0.06)_1px,transparent_1px),linear-gradient(0deg,rgba(17,24,39,0.06)_1px,transparent_1px)] bg-[size:10px_10px]">
-        {thumbnailHref ? (
-          <Image
-            alt={file?.name ? `CAD preview for ${file.name}` : "CAD preview"}
-            className="h-full w-full object-cover"
-            height={64}
-            src={thumbnailHref}
-            unoptimized
-            width={80}
-          />
-        ) : (
-          <>
-            <div className={`absolute left-5 top-7 h-7 w-10 -skew-y-6 rounded-sm border border-[#8f9ba8] ${faceTone}`} />
-            <div className={`absolute left-7 top-4 h-8 w-10 skew-y-[20deg] rounded-sm border border-[#9aa6b2] ${topTone}`} />
-            <div className={`absolute left-[3.35rem] top-7 h-8 w-6 skew-y-[20deg] rounded-sm border border-[#8f9ba8] ${sideTone}`} />
-            <span className="absolute bottom-1 left-1 rounded bg-white/85 px-1 py-0.5 text-[8px] font-semibold uppercase text-[#69717c]">{local ? "3D model" : "Preview pending"}</span>
-          </>
-        )}
-      </div>
+    <div className="w-20 shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-white">
+      <CadRenderThumbnail className="h-16 w-full rounded-none border-0" file={file} label={file?.name || "Part"} />
       <p className="border-t border-[#e4e6ea] px-2 py-1 text-center text-[12px] font-semibold text-[#5f6670]">Rev 1</p>
       {local && file?.storageKey ? <LocalCadPreviewButton file={file} /> : null}
     </div>
@@ -422,7 +397,7 @@ export function BuyerQuoteDetail({
                       <tr className="align-top" key={item.id}>
                         <td className="px-5 py-6">
                           <div className="flex min-w-0 items-start gap-4">
-                            <CadRenderPreview file={file} index={index} />
+                            <CadRenderPreview file={file} />
                             <div className="min-w-0 pt-1">
                               {downloadHref ? (
                                 <a className="block truncate text-[14px] font-semibold text-[#3d6fe8] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
@@ -519,7 +494,7 @@ export function BuyerQuoteDetail({
                   return (
                     <article className="px-5 py-5 sm:px-6" key={item.id}>
                       <div className="flex items-start gap-4">
-                        <CadRenderPreview file={file} index={index} />
+                        <CadRenderPreview file={file} />
                         <div className="min-w-0 flex-1">
                           {downloadHref ? (
                             <a className="block break-words text-[15px] font-semibold text-[#3d6fe8] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>

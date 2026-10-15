@@ -9,7 +9,7 @@ type SavedModel = Pick<UploadedFile, "name" | "sizeBytes" | "storageKey">;
 
 export function SavedLocalCadPreview({ file }: { file: SavedModel }) {
   if (!file.storageKey) return <p className="p-5 text-sm text-slate-600">The original file is unavailable for preview.</p>;
-  return <LocalCadPreview name={file.name} sizeBytes={file.sizeBytes} url={localCadFileUrl(file.storageKey, file.name)} />;
+  return <LocalCadPreview name={file.name} sizeBytes={file.sizeBytes} storageKey={file.storageKey} url={localCadFileUrl(file.storageKey, file.name)} />;
 }
 
 /** Load geometry only when requested, keeping RFQ lists light on browser memory. */

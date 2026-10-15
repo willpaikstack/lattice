@@ -5,7 +5,11 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { CadDemoModel } from "@/lib/cad-demo";
 
-export default function CadDemoScene({ model }: { model: CadDemoModel }) {
+export default function CadDemoScene({ model, onThumbnail, onError }: { model: CadDemoModel; onThumbnail?: (image: Blob) => void; onError?: () => void }) {
+  const errorCallback = useRef(onError);
+  useEffect(() => { errorCallback.current = onError; }, [onError]);
+  const thumbnailCallback = useRef(onThumbnail);
+  useEffect(() => { thumbnailCallback.current = onThumbnail; }, [onThumbnail]);
   const host = useRef<HTMLDivElement>(null);
   const actions = useRef<{ fit: (direction?: THREE.Vector3) => void; wire: () => void } | null>(null);
   const [error, setError] = useState("");
@@ -14,12 +18,13 @@ export default function CadDemoScene({ model }: { model: CadDemoModel }) {
 
   function reportSceneError(message: string) {
     // WebGL setup happens in an effect; defer React state updates until after it commits.
-    queueMicrotask(() => setError(message));
+    queueMicrotask(() => { setError(message); errorCallback.current?.(); });
   }
 
   useEffect(() => {
     if (!host.current) return;
     const element = host.current;
+    let disposed = false;
     let renderer: THREE.WebGLRenderer;
     try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
     catch { reportSceneError("3D viewing needs WebGL. Try a browser with hardware acceleration enabled."); return; }
@@ -110,8 +115,29 @@ export default function CadDemoScene({ model }: { model: CadDemoModel }) {
     camera.aspect = element.clientWidth / element.clientHeight;
     resize.observe(element);
     fit(new THREE.Vector3(1, -1, 0.8));
+    // Copy a square isometric frame synchronously after rendering. This avoids
+    // retaining WebGL drawing buffers or capturing the viewer controls.
+    if (thumbnailCallback.current) {
+      const width = Math.max(element.clientWidth, 1), height = Math.max(element.clientHeight, 1);
+      renderer.setPixelRatio(1);
+      renderer.setSize(384, 384, false);
+      camera.aspect = 1;
+      fit(new THREE.Vector3(1, -1, 0.8));
+      const snapshot = document.createElement("canvas");
+      snapshot.width = snapshot.height = 384;
+      const context = snapshot.getContext("2d");
+      if (context) {
+        context.drawImage(renderer.domElement, 0, 0);
+        snapshot.toBlob(blob => { if (!disposed) { if (blob) thumbnailCallback.current?.(blob); else errorCallback.current?.(); } }, "image/png");
+      }
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height);
+      camera.aspect = width / height;
+      fit(new THREE.Vector3(1, -1, 0.8));
+    }
     controls.addEventListener("change", render);
     return () => {
+      disposed = true;
       actions.current = null; resize.disconnect(); controls.dispose();
       group.traverse(object => {
         if (object instanceof THREE.Mesh || object instanceof THREE.LineSegments) {

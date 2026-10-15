@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-10-15 - Persist Local CAD Screenshots
+
+Capture an isometric screenshot from the local viewer and use it as the part thumbnail. Store normalized 384px PNG derivatives privately in the same storage system as the originals, keyed by the original storage key. Authenticate and authorize against the original file for every image read and write. Copy available derivatives when promoting draft files; regenerate missing older images in a serial browser queue. Keep geometry out of the Quotes list after capture and preserve the no-APS-fallback policy. No new database fields are required.
+
 ## 2026-10-15 - Explicit RFQ Submission and Customer Delivery Preferences
 
 Request Quote is a button with an explicit click handler; form submit events never create RFQs and Enter cannot activate submission. Preserve keyboard selection within fields and newlines in notes. Mismatched Prototype/Commercial additions require a separate quote and explain draft preservation/new-tab behavior. Rename the optional per-part date preference to `targetDeliveryDate` throughout the ManufacturingDetails JSON schema and UI; it means preferred arrival, subject to confirmation in the quote. Preserve historical date values through legacy-key read compatibility, draft normalization and an idempotent submitted-part JSON backfill. Do not change shipping transit calculations or issue delivery guarantees.
