@@ -442,6 +442,7 @@ function AdminQuoteWorkbench({
       <h2>{request.title}</h2>
       <p className={styles.muted}>This RFQ is {request.isArchived ? "archived" : status.label.toLowerCase()} and cannot receive a customer quote.</p>
       <p>{request.buyerCompany}</p>
+      <p>Submitted by {request.requesterName?.trim() || "Name not recorded"}</p>
       {request.operatorReview.internalNotes ? <p>{request.operatorReview.internalNotes}</p> : null}
       <section><h3>RFQ package</h3>{request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName} · Qty {item.quantity}</strong><PartManufacturingSummary item={item} fallbackProcess={request.process} /><p>{item.material}</p></div>)}
         <div className={styles.fileList}>{request.files.map((file) => <DownloadFileLink key={file.id} file={file} />)}</div>
@@ -465,6 +466,7 @@ function AdminQuoteWorkbench({
               <dl aria-label="RFQ summary" className="mt-3 flex flex-wrap gap-2">
                 <DrawerMetaItem label="Reference" value={quoteReference(request)} />
                 <DrawerMetaItem label="Customer" value={request.buyerCompany} />
+                <DrawerMetaItem label="Submitted by" value={request.requesterName?.trim() || "Name not recorded"} />
                 <DrawerMetaItem label="Process" value={request.process} />
               </dl>
             </div>
