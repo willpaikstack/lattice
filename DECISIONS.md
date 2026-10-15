@@ -1615,3 +1615,7 @@ Persist selected drawing-dependent feature flags in manufacturing JSON metadata 
 ## 2026-10-15 — Quote preparation controls and editable expiration
 
 Reuse the customer intake calendar and custom dropdown components in Prepare customer quote. Quote expiration defaults to the existing 15-weekday calculation, but an operator can select a different valid date on/after the issue date. The issuance action and repository preserve that selection in both the quote snapshot and version; omitted dates retain the calculated default. Explicit reissue still starts with a fresh calculated default. This supersedes the mandatory fixed 15-weekday rule for operator-prepared quotes.
+
+## 2026-10-15 — Require complete customer quotes before issuance
+
+Operators must provide a unit price and positive whole-day lead time for every part, explicit shipping cost (0 allowed when included), shipping speed, shipping terms, estimated delivery date, valid expiration and customer note before initial issuance or reissue. Disable issuance with a visible completion list and enforce the same contract server-side. Do not silently convert missing shipping into bill-at-actual or synthesize a note. Existing issued records remain readable. Supplier attachment uploads remain optional; this request does not change supplier-document requirements.

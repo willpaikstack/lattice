@@ -1,4 +1,5 @@
 "use server";
+import { quotePreparationErrors } from "@/lib/quote-preparation-validation";
 import { processLabel } from "@/lib/rfq-manufacturing";
 import { resolveQuoteValidUntil, quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
@@ -96,6 +97,14 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     }
     if (!current.lineItems.length) throw new QuoteValidationError("This RFQ has no parts to quote.");
 
+    const preparationErrors = quotePreparationErrors({
+      lineItems: current.lineItems.map((item) => ({ partName: item.partName, unitPrice: getString(formData, `unitPrice:${item.id}`), leadTimeDays: getString(formData, `leadTimeDays:${item.id}`) })),
+      shippingCost: getString(formData, "shippingCost"), shippingMethod: getString(formData, "shippingMethod"), shippingTerms: getString(formData, "shippingTerms"),
+      estimatedDeliveryDate: getString(formData, "estimatedDeliveryDate"),
+      quoteCreatedDate: getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10),
+      quoteValidUntil: getString(formData, "quoteValidUntil"), customerNote: getString(formData, "quoteSummary"),
+    });
+    if (preparationErrors.length) throw new QuoteValidationError(preparationErrors.join(" "));
     const shippingCostCents = getPriceCents(formData, "shippingCost");
     const shippingMethod = getString(formData, "shippingMethod");
     const shippingTerms = getString(formData, "shippingTerms");
@@ -171,7 +180,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
       filesReviewed: current.files.map((file) => file.name).join("\n"),
       leadTime: leadTimeDays ? `${leadTimeDays} business days` : "",
       lineItems,
-      notes: quoteSummary || "Pricing includes manufacturing coordination, production, and standard inspection for the listed line items.",
+      notes: quoteSummary,
       preparedBy: "Lattice",
       projectName: current.title,
       quoteDate: quoteCreatedDate,

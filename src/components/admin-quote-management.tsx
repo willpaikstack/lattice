@@ -1,4 +1,5 @@
 "use client";
+import { quotePreparationErrors, validQuoteAmount } from "@/lib/quote-preparation-validation";
 import { processLabel, readTargetDeliveryDate } from "@/lib/rfq-manufacturing";
 
 import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
@@ -421,6 +422,7 @@ function AdminQuoteWorkbench({
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState(request.quote.estimatedDeliveryDate || "");
   const [selectedShippingMethod, setSelectedShippingMethod] = useState(request.quote.shippingMethod || defaultShippingMethod);
   const [quoteLinePrices, setQuoteLinePrices] = useState(() => Object.fromEntries(request.lineItems.map((item) => [item.id, lineItemUnitPriceInput(request, item)])));
+  const [customerNote, setCustomerNote] = useState(latestCustomerQuote?.notes || request.quote.summary || "");
   const [shippingPrice, setShippingPrice] = useState(formatCurrencyInput(request.quote.shippingCostCents));
   const [quoteLineLeadTimeValues, setQuoteLineLeadTimeValues] = useState(() =>
     Object.fromEntries(request.lineItems.map((lineItem) => [lineItem.id, String(lineItemLeadTimeInput(request, lineItem) ?? "")])),
@@ -431,7 +433,12 @@ function AdminQuoteWorkbench({
   const activeDecisionCopy = activeDecision ? rfqDecisionCopy[activeDecision] : null;
   const decisionNoteIsReady = decisionNote.trim().length > 0;
 
-  const hasCompletePricing = request.lineItems.length > 0 && request.lineItems.every((item) => quoteLinePrices[item.id]?.trim() && Number.isFinite(Number(quoteLinePrices[item.id])) && Number(quoteLinePrices[item.id]) >= 0);
+  const hasCompletePricing = request.lineItems.length > 0 && request.lineItems.every((item) => validQuoteAmount(quoteLinePrices[item.id] ?? ""));
+  const preparationErrors = quotePreparationErrors({
+    lineItems: request.lineItems.map((item) => ({ partName: item.partName, unitPrice: quoteLinePrices[item.id] ?? "", leadTimeDays: quoteLineLeadTimeValues[item.id] ?? "" })),
+    shippingCost: shippingPrice, shippingMethod: selectedShippingMethod, shippingTerms,
+    estimatedDeliveryDate, quoteCreatedDate, quoteValidUntil, customerNote,
+  });
   const partsTotal = request.lineItems.reduce((sum, item) => sum + Math.round((Number(quoteLinePrices[item.id]) || 0) * item.quantity * 100), 0);
   const shippingCents = shippingPrice.trim() && Number.isFinite(Number(shippingPrice)) ? Math.round(Number(shippingPrice) * 100) : null;
 
@@ -510,6 +517,7 @@ function AdminQuoteWorkbench({
                       setQuoteLineLeadTimeValues(Object.fromEntries(request.lineItems.map((item) => [item.id, String(lineItemLeadTimeInput(request, item) ?? "")])));
                       setShippingPrice(formatCurrencyInput(request.quote.shippingCostCents));
                       setShippingTerms(request.quote.shippingTerms || "");
+                      setCustomerNote(latestCustomerQuote?.notes || request.quote.summary || "");
                       setEstimatedDeliveryDate(request.quote.estimatedDeliveryDate || "");
                       setSelectedShippingMethod(request.quote.shippingMethod || defaultShippingMethod);
                       setQuoteValidUntil(isEditingIssuedQuote ? defaultQuoteValidUntil(request, quoteCreatedDate) : calculateQuoteValidUntil(todayIsoDate()));
@@ -680,6 +688,7 @@ function AdminQuoteWorkbench({
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
             if (!updateStatusAction || saveInFlight.current) return;
+            if (preparationErrors.length) { setSaveError(preparationErrors.join(" ")); return; }
             saveInFlight.current = true;
             setIsSaving(true);
             setSaveError("");
@@ -774,9 +783,9 @@ function AdminQuoteWorkbench({
                               <span className="sr-only">Lead time days - {lineItem.partName}</span>
                               <input
                                 className="h-10 w-full min-w-0 rounded-md border border-[#d9d9d9] bg-white px-3 text-[14px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                                defaultValue={lineItemLeadTimeInput(request, lineItem)}
+                                value={quoteLineLeadTimeValues[lineItem.id] ?? ""}
                                 inputMode="numeric"
-                                type="number" min="1" step="1"
+                                type="number" min="1" step="1" required
                                 name={`leadTimeDays:${lineItem.id}`}
                                 onChange={(event) => {
                                   const nextLeadTime = event.currentTarget.value;
@@ -847,19 +856,20 @@ function AdminQuoteWorkbench({
                         inputMode="decimal"
                         type="number" min="0" step="0.01"
                         name="shippingCost"
-                        placeholder="Billed at actual or 125.00"
+                        required
+                        placeholder="Enter shipping cost (0 if included)"
                       />
                     </label>
                     <div>
                       <input type="hidden" name="shippingMethod" value={selectedShippingMethod} />
-                      <CustomSelect label="Shipping speed" value={selectedShippingMethod} options={[
+                      <CustomSelect required label="Shipping speed" value={selectedShippingMethod} options={[
                         { value: "International", label: "International" },
                         { value: "Domestic", label: "Domestic" },
                       ]} onChange={(value) => { setSelectedShippingMethod(value); onDirty(); }} />
                     </div>
                     <div>
                       <input type="hidden" name="shippingTerms" value={shippingTerms} />
-                      <CustomSelect label="Shipping terms" value={shippingTerms} placeholder="Select terms" options={[
+                      <CustomSelect required label="Shipping terms" value={shippingTerms} placeholder="Select terms" options={[
                         { value: "", label: "Select terms" },
                         ...["EXW", "DDP", "Determined at Checkout", "DAP", "FOB"].map((value) => ({ value, label: value })),
                       ]} onChange={(value) => { setShippingTerms(value); onDirty(); }} />
@@ -873,7 +883,9 @@ function AdminQuoteWorkbench({
                       Customer note
                       <textarea
                         className="min-h-28 rounded-md border border-[#d9d9d9] px-3 py-2 text-[14px] leading-6 text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={latestCustomerQuote?.notes || request.quote.summary}
+                        value={customerNote}
+                        onChange={(event) => setCustomerNote(event.target.value)}
+                        required
                         name="quoteSummary"
                         placeholder="Add exclusions, assumptions, shipping notes, or pricing context."
                       />
@@ -892,19 +904,23 @@ function AdminQuoteWorkbench({
             <span className={styles.pill}>{isReadOnlyIssuedQuote ? `Issued · v${latestCustomerQuote?.versionNumber}` : isIssuedQuote ? "Editing issued quote" : "Not yet issued"}</span>
             <dl className={styles.totals}>
               <div><dt>Parts ({request.lineItems.length})</dt><dd>{hasCompletePricing ? formatCurrencyPrecise(partsTotal) : "Pricing incomplete"}</dd></div>
-              <div><dt>Shipping</dt><dd>{shippingCents === null ? "Billed at actual" : formatCurrencyPrecise(shippingCents)}</dd></div>
+              <div><dt>Shipping</dt><dd>{shippingCents === null ? "Required" : formatCurrencyPrecise(shippingCents)}</dd></div>
               <div className={styles.total}><dt>{shippingCents === null ? "Quoted subtotal" : "Total (USD)"}</dt><dd>{hasCompletePricing ? formatCurrencyPrecise(partsTotal + (shippingCents ?? 0)) : "—"}</dd></div>
               <div><dt>Overall lead time</dt><dd>{overallSupplierLeadTimeDays ? `${overallSupplierLeadTimeDays} days` : "Not specified"}</dd></div>
               <div><dt>Valid until</dt><dd>{formatDate(quoteValidUntil)}</dd></div>
             </dl>
-            {shippingCents === null ? <p className={styles.muted}>Shipping will be billed at actual cost and is excluded from this subtotal.</p> : null}
+            {shippingCents === null ? <p className={styles.muted}>Enter the shipping cost before issuing this quote. Use 0 if shipping is included.</p> : null}
             <div className={styles.documentPreview}>
               <p className={styles.eyebrow}>Quote summary</p><strong>{request.buyerCompany}</strong><p>{request.title}</p>
               {request.lineItems.map((item) => <div key={item.id}><span>{item.partName}</span><span>Qty {item.quantity}</span></div>)}
             </div>
             {saveError ? <p role="alert" className="mt-4 text-sm text-red-700">{saveError}</p> : null}
             {saveMessage ? <p role="status" className="mt-4 text-sm text-emerald-700">{saveMessage}</p> : null}
-            {!isReadOnlyIssuedQuote ? <QuoteSubmit pending={isSaving} disabled={!hasCompletePricing || decisionPending} action={updateStatusAction} formId={quoteResponseFormId} label={isIssuedQuote ? "Save updated quote" : "Issue customer quote"} /> : null}
+            {!isReadOnlyIssuedQuote && preparationErrors.length > 0 ? <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+              <p className="font-semibold">Complete these fields before issuing the quote:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4">{preparationErrors.map((error, index) => <li key={`${index}:${error}`}>{error}</li>)}</ul>
+            </div> : null}
+            {!isReadOnlyIssuedQuote ? <QuoteSubmit pending={isSaving} disabled={preparationErrors.length > 0 || decisionPending} action={updateStatusAction} formId={quoteResponseFormId} label={isIssuedQuote ? "Save updated quote" : "Issue customer quote"} /> : null}
             {!isReadOnlyIssuedQuote ? <p className={styles.muted}>Issuing saves the quote and makes it available in the customer workspace. Unsent edits are not saved.</p> : null}
             <QuoteHistory request={request} />
           </aside>

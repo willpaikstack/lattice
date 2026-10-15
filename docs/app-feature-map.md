@@ -315,3 +315,5 @@ Customer quote detail shows each saved part's process (issued quote lines still 
 - 2026-10-15: Prepare customer quote header includes Submitted by from the saved RFQ requester name alongside company/reference/process. Archived RFQ details also identify the submitter; missing legacy names display Name not recorded.
 
 - 2026-10-15: Quote preparation and archived RFQ headers include the saved submitter email alongside their name. Missing legacy email values display Email not recorded.
+
+- 2026-10-15: Customer quote issuance/reissue requires every part’s explicit unit price and positive whole-day lead time, plus shipping cost (explicit 0 allowed), speed, terms, delivery date, validity and a nonblank customer note. Shared client/server validation disables issuance, lists incomplete fields and rejects bypassed/incomplete submissions. Empty shipping no longer means bill-at-actual for newly issued quotes; existing issued records are unchanged.
