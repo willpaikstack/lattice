@@ -1,5 +1,7 @@
 # TODO
 
+- Compare the admin-only OpenCascade demo against representative synthetic STEP/IGES files and confirm the formats, units, assemblies, and large-file performance needed before considering any Autodesk RFQ-preview replacement. The demo does not need Autodesk conversion capacity.
+
 ## Hosted release blockers — 2026-10-13
 
 The [hosted readiness report](docs/audits/hosted-readiness-2026-10-13.md) supersedes older pending hosted-check notes where it provides fresh proof. Do not enable Live checkout or call the app completed yet.

@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/public/cad-demo/occt-0.0.23/
 /.pnp
 .pnp.*
 .yarn/*

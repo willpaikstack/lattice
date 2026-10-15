@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-10-15 - Isolate an OpenCascade CAD Viewer Demo
+
+Decision: add a separate, admin-only `/admin/cad-viewer` demo using locally hosted `occt-import-js` WebAssembly and Three.js. Restrict its initial format support to STEP/IGES, keep file parsing and geometry in the browser, and leave the production RFQ viewer on Autodesk Platform Services while comparing coverage and reliability.
+
+Reason: explore a lower marginal-cost rendering path while the APS account is out of conversion capacity, without disrupting existing customer RFQ experiences.
+
+Implications:
+
+- User-selected CAD files are not uploaded, saved, or retained by this page; a small synthetic STEP cube is available for a safe first run.
+- The output is triangulated preview geometry and bounding-box size, not an engineering/manufacturing inspection result.
+- Keep the pinned upstream licenses/source notices available and reassess browser performance, assemblies, units, and large files before any production workflow migration.
+
 ## 2026-10-12 - Upload RFQ Files Directly and Reveal CAD Geometry Earlier
 
 Decision: stage 1 of CAD preview performance work preloads Autodesk Viewer assets during upload/translation, reveals fitted geometry before optional toolbar tools, and uploads RFQ files directly to private R2/S3 storage. Autodesk reads the saved CAD object through an ownership-checked streaming path; RFQ submission sends file references after saves complete. Private remote downloads use short-lived signed redirects after authorization.

@@ -1,5 +1,9 @@
 # Completed Work Log
 
+## 2026-10-15 — Add browser-based OpenCascade CAD viewer demo
+
+Added `/admin/cad-viewer`, linked from the admin sidebar and gated through both the admin workspace and page-role authorization. The demo provides local STEP/STP and IGES/IGS selection, a synthetic 20 mm STEP cube, an OpenCascade WebAssembly import worker, and a Three.js viewer with fit/standard views/wireframe, orbit controls, triangle count, and millimeter bounding-box output. Files stay in the browser; the page does not read or attach RFQ data and does not call Autodesk. Runtime assets are copied from pinned `occt-import-js` 0.0.23 on install/build and its LGPL and OCCT license texts are linked in the UI. Targeted typecheck and lint passed; direct STEP importer check produced 1 mesh, 140 triangles and 20 × 20 × 20 mm bounds; local admin page loaded the sample and rendered controls. This remains a demo, not an APS viewer replacement.
+
 ## 2026-10-10 — Material dropdown design and UX review
 
 Reviewed the live material dropdown in the in-app browser at `/requests/new`, including family browsing, searches for 304 and 6061, and no-results behavior; supplemented with source review. The selected material remained SS 304. Feedback: require an intentional material choice for new parts instead of silently defaulting SS 304; consolidate equivalent aliases into searchable canonical choices; retain distinct conditions such as T6/T651; reduce always-visible reference-code density; improve family access when reopening the menu auto-scrolls deep into an expanded group; add an unlisted-material recovery action; and label the search field/restore focus after Escape. The current typography, selected-value hierarchy, pinned search, and family grouping provide a strong base. Desktop review only; no application implementation or submitted RFQ changes.

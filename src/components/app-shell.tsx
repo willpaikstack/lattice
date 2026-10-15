@@ -88,6 +88,7 @@ const adminNavSections: NavSection[] = [
       { href: "/admin/support", label: "Customer Support", icon: "resources" },
       { href: "/admin/material-inquiries", label: "Material Inquiries", icon: "analytics" },
       { href: "/admin/resources", label: "Resources", icon: "resources" },
+      { href: "/admin/cad-viewer", label: "CAD viewer demo", icon: "analytics" },
     ],
   },
 ];
