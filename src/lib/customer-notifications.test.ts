@@ -18,7 +18,7 @@ function makeSubmittedRequest() {
 }
 
 describe("customer notifications", () => {
-  it("uses customer-facing RFQ status copy while preserving audit-style draft events", () => {
+  it("uses neutral activity copy for existing RFQs and hides supplier pricing transitions", () => {
     const request = {
       ...makeSubmittedRequest(),
       id: "req_status",
@@ -54,15 +54,17 @@ describe("customer notifications", () => {
     expect(feed).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          detail: "Buyer opened the RFQ workspace.",
+          detail: "LQ-STATUS was created.",
           title: "Draft created",
         }),
         expect.objectContaining({
-          detail: "Lattice received your RFQ and is reviewing the files and requirements.",
-          title: "RFQ submitted",
+          detail: "The request was submitted. Lattice is reviewing the files and requirements and collecting supplier pricing.",
+          title: "Request submitted",
         }),
       ]),
     );
+    expect(feed).toHaveLength(2);
+    expect(feed.some((item) => /\byou(?:r)?\b|\bbuyer\b/i.test(item.detail))).toBe(false);
     expect(feed.some((item) => item.title === "Supplier pricing started")).toBe(false);
   });
 
@@ -174,7 +176,7 @@ describe("customer notifications", () => {
           actionRequired: true,
           detail: "Please confirm thread callout.",
           href: "/quotes/req_needs",
-          title: "More information requested",
+          title: "More information needed",
         }),
         expect.objectContaining({
           actionRequired: true,
@@ -227,7 +229,7 @@ describe("customer notifications", () => {
           actionRequired: false,
           detail: "We are unable to quote this RFQ because the required process is outside our supplier network.",
           href: "/quotes/req_closed",
-          title: "No quote",
+          title: "Unable to quote",
           tone: "status",
         }),
       ]),

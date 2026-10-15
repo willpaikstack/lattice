@@ -144,6 +144,17 @@ describe("BuyerQuotes", () => {
 });
 
 describe("BuyerQuoteDetail", () => {
+  it.each(["willclawpaik@gmail.com", "other-customer@example.com"])("renders neutral activity for %s even with historical event copy", (requesterEmail) => {
+    const request = { ...makeSubmittedRequest(), id: "rfq_activity", requesterEmail };
+    request.statusEvents = request.statusEvents.map((event) => ({ ...event, detail: "Buyer opened the RFQ workspace.", title: "RFQ submitted for review" }));
+    render(<BuyerQuoteDetail request={request} checkoutHref={`/quotes/${request.id}/checkout`} />);
+    const activity = screen.getByText("Quote activity").closest("section")!;
+    expect(within(activity).getByText("Updates for this quote request.")).toBeInTheDocument();
+    expect(within(activity).getByText("LQ-RFQ_ACTI was created.")).toBeInTheDocument();
+    expect(within(activity).getByText("Request submitted")).toBeInTheDocument();
+    expect(within(activity).getByText("The request was submitted. Lattice is reviewing the files and requirements and collecting supplier pricing.")).toBeInTheDocument();
+    expect(activity.textContent).not.toMatch(/\bbuyer\b|\byou(?:r)?\b|remaining details|Event log|RFQ submitted for review/i);
+  });
   it("shows the saved process for each part in both layouts before a customer quote is issued", () => {
     const request = makeSubmittedRequest();
     request.process = "CNC Milling / CNC Turning";
@@ -282,7 +293,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getAllByText("Unit price").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Line total").length).toBeGreaterThan(0);
     expect(screen.getByText("$76.04/ea")).toBeInTheDocument();
-    expect(screen.getAllByText("3D model").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("img", { name: /CAD render snapshot for mounting-bracket.step/ }).length).toBeGreaterThan(0);
     const fileLinks = screen.getAllByRole("link", { name: "mounting-bracket.step" });
     expect(fileLinks[0]).toHaveAttribute(
       "href",
