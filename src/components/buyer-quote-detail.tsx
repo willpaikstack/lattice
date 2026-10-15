@@ -128,44 +128,29 @@ function fileExtension(fileName: string | undefined) {
   return extension ? extension.toUpperCase() : "CAD";
 }
 
-function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {
-  const labels: Record<LatticeRequest["statusEvents"][number]["actor"], string> = {
-    buyer: "Buyer",
-    operator: "Lattice",
-    supplier: "Supplier",
-    system: "System",
-  };
-
-  return labels[actor];
-}
-
-function activityEventTitle(event: LatticeRequest["statusEvents"][number]) {
+function activityEventTitle(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null && event.to === "DRAFT") {
     return "Draft created";
   }
 
   if (event.from === "DRAFT" && event.to === "SUBMITTED") {
-    return "RFQ submitted for review";
+    return "Request submitted";
   }
 
   if (event.to === "NEEDS_INFO") {
-    return "More information requested";
-  }
-
-  if (event.to === "READY_FOR_SUPPLIER_RFQ") {
-    return "Supplier pricing started";
+    return "More information needed";
   }
 
   if (event.to === "QUOTED") {
-    return "Quote issued";
+    return "Quote ready for review";
   }
 
   if (event.to === "PURCHASED") {
-    return "Quote accepted";
+    return "Order placed";
   }
 
   if (event.to === "CLOSED") {
-    return "No quote";
+    return request.operatorReview.internalNotes ? "Unable to quote" : "Quote closed";
   }
 
   return quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle;
@@ -173,14 +158,36 @@ function activityEventTitle(event: LatticeRequest["statusEvents"][number]) {
 
 function activityEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null) {
-    return `${actorLabel(event.actor)} opened the RFQ workspace.`;
+    const createdMessage = `${quoteReference(request)} was created.`;
+    const hasBeenSubmitted = request.status !== "DRAFT" || request.statusEvents.some((statusEvent) => statusEvent.to === "SUBMITTED");
+    return hasBeenSubmitted ? createdMessage : `${createdMessage} Add any remaining details and submit when ready.`;
   }
 
-  if ((event.to === "NEEDS_INFO" || event.to === "CLOSED") && request.operatorReview.internalNotes) {
+  if (event.to === "NEEDS_INFO") {
+    return request.operatorReview.internalNotes || "Lattice needs a little more information before pricing can continue.";
+  }
+
+  if (event.to === "CLOSED" && request.operatorReview.internalNotes) {
     return request.operatorReview.internalNotes;
   }
 
-  return `${actorLabel(event.actor)} moved the quote from ${quoteStatusCopy[event.from].label ?? quoteStatusCopy[event.from].requestTitle} to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle}.`;
+  if (event.to === "SUBMITTED") {
+    return "The request was submitted. Lattice is reviewing the files and requirements and collecting supplier pricing.";
+  }
+
+  if (event.to === "QUOTED") {
+    return "The quote is ready for review, including price, lead time, and assumptions.";
+  }
+
+  if (event.to === "PURCHASED") {
+    return "The quote was accepted, and the order is ready to track.";
+  }
+
+  if (event.to === "CLOSED") {
+    return "Lattice closed this quote request.";
+  }
+
+  return `Lattice moved the request to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle.toLowerCase()}.`;
 }
 
 function quoteReference(request: LatticeRequest) {
@@ -327,6 +334,7 @@ export function BuyerQuoteDetail({
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
   const shippingAddressLines = quoteShippingAddressLines(request, savedShippingAddress);
   const lineItemFiles = bundledFilesByLineItem(request);
+  const visibleStatusEvents = request.statusEvents.filter((event) => event.to !== "READY_FOR_SUPPLIER_RFQ");
   return (
     <div className="mx-auto w-full max-w-[1600px] px-2 pb-10">
       <div className="mb-7">
@@ -683,13 +691,13 @@ export function BuyerQuoteDetail({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Quote activity</p>
-                <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Event log for this RFQ.</p>
+                <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Updates for this quote request.</p>
               </div>
-              <span className="rounded-full bg-[#f4f6f8] px-2 py-1 text-[11px] font-semibold text-[#6f737a]">{request.statusEvents.length}</span>
+              <span className="rounded-full bg-[#f4f6f8] px-2 py-1 text-[11px] font-semibold text-[#6f737a]">{visibleStatusEvents.length}</span>
             </div>
             <div className="mt-5">
-              {request.statusEvents.map((event, index) => {
-                const isLast = index === request.statusEvents.length - 1;
+              {visibleStatusEvents.map((event, index) => {
+                const isLast = index === visibleStatusEvents.length - 1;
 
                 return (
                   <div className="relative grid grid-cols-[18px_minmax(0,1fr)] gap-3 pb-5 last:pb-0" key={event.id}>
@@ -699,11 +707,10 @@ export function BuyerQuoteDetail({
                     </span>
                     <div>
                       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                        <p className="text-[13px] font-semibold text-[#202020]">{activityEventTitle(event)}</p>
+                        <p className="text-[13px] font-semibold text-[#202020]">{activityEventTitle(request, event)}</p>
                         <time className="text-[11px] font-medium text-[#8a8f98]" dateTime={event.at}>{formatDateTime(event.at)}</time>
                       </div>
                       <p className="mt-1 text-[12px] leading-5 text-[#5f6670]">{activityEventDetail(request, event)}</p>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9aa0a9]">{actorLabel(event.actor)}</p>
                     </div>
                   </div>
                 );
