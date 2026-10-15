@@ -506,7 +506,9 @@ function missingLineItemFields(item: LineItemState): Array<{ field: Configuratio
 function manufacturingDetailsFor(item: LineItemState): ManufacturingDetails {
   return { process: item.process, customerPartNumber: item.customerPartNumber, cadRevision: item.cadRevision,
     drawingRevision: item.drawingRevision, targetShipDate: item.targetShipDate, materialKey: item.material, finishKey: item.surfaceFinish,
-    fileHistory: [], ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
+    fileHistory: [], drawingRequirements: { partMarkings: item.partMarkings, tightLinearTolerance: item.tightLinearTolerance,
+      threads: item.threads, engineeringFits: item.engineeringFits, sharpInternalCorners: item.sharpInternalCorners },
+    ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
 }
 
 function intakeDeclarationFor(project: ProjectFormState) {

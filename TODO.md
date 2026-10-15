@@ -229,3 +229,19 @@ npm run build
 ## P1 release — 2026-10-14
 
 All six confirmed P1 repairs are released and verified. See docs/audits/p1-remediation-2026-10-14.md and its sanitized evidence. Keep Live checkout disabled. Continue the original P2 and operational/commercial gates; monitor the upstream development-only braces advisory. Extend supplier quote/revised-drawing uploads beyond their current 3 MB form limit if needed. Previously lost ephemeral vendor edits need a recoverable archive; none was present locally.
+
+## Urgent customer payload isolation — 2026-10-14
+
+Remove internal supplier quotes/costs/nested notes and quote attachment metadata from all customer browser/API payloads using an explicit approved field contract. Customer Quotes currently receives full records; customerSafeRequest used for Orders retains internal fields. Add serialization regression tests and authenticated hosted Customer Admin/Member payload checks. See `docs/audits/admin-customer-separation-2026-10-14.md`; passing role/company tests alone does not certify separation.
+
+## Operator audit reset follow-through — 2026-10-14
+
+Local and Production workflow databases are cleared; accounts/company setup preserved. Production R2 cleanup and removal of known APS previews/sources are complete and verified. Other browser profiles/devices must clear workflow draft caches before visiting Quotes/Request Quote to prevent stale draft synchronization. See `docs/audits/workflow-reset-2026-10-14.md`.
+
+## Production invitation delivery restored — 2026-10-14
+
+Resolved: updated the existing Resend secret and redeployed the same current Production source as dpl_AgLKLPVpd66MFuzmRMLux8yBJhYE. Apple Customer Member paik.e.william@gmail.com remains Clerk-linked; replacement invite is SENT and Resend confirms delivered. First sign-in/password setup remains the user’s normal onboarding action; temporary setup expires October 17. Historical provider-rejected attempt remains recorded, not duplicated.
+
+## Production RFQ account audit completed with findings — 2026-10-14
+
+Twelve genuine-customer Production RFQs across four accounts are submitted and admin-reviewed: 24 parts, 39 byte-identical original downloads, 840 matching requirement/metadata comparisons. Exact durable record: `docs/audits/rfq-account-submissions-2026-10-14.json`; findings/report: `docs/audits/rfq-account-audit-2026-10-14.md`. Customer process display, hosted PDF preview and negated-note validation are now repaired/released; see `docs/audits/rfq-audit-repairs-2026-10-14.md`. Autodesk returns `ProductAccessRequiresCapacity`; William confirmed the refill was Codex credits. William must restore Autodesk APS/Flex capacity for the app/team. Admin saved-original retry is implemented and its capacity message is verified. After capacity is restored, verify the six AH previews and add/verify persisted original-file URN plus derived-dimension backfill. Preserve all twelve QA records and the three earlier user RFQs. The audit was read-only apart from its authorized submissions; the subsequent repair release is documented separately.

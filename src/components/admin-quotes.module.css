@@ -7,7 +7,6 @@
 .filters select { max-width:180px; padding:0 10px; }
 .search { display:flex; align-items:center; gap:8px; padding:0 12px; color:#7a8390; }
 .search input { background:transparent; border:0; outline:none; width:230px; color:#202630; }
-.reviewLayout { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; }
 .queue,.inspector,.workbenchSurface { background:white; border:1px solid #e0e2e5; border-radius:10px; overflow:hidden; }
 .tableScroll { overflow-x:auto; }
 .queueTable { width:100%; border-collapse:collapse; text-align:left; font-size:12px; }
@@ -15,8 +14,11 @@
 .queueTable td { padding:18px 14px; border-top:1px solid #eceef1; vertical-align:top; min-width:110px; }
 .queueTable td:first-child { min-width:190px; }
 .queueTable td:nth-child(2) { min-width:140px; }
-.queueTable tr[data-selected="true"] { background:#f0f4ff; box-shadow:inset 3px 0 #3157d5; }
 .queueTable tbody tr:hover { background:#f6f8fc; }
+.queueTable tbody tr { position:relative; }
+.rowLink::after { content:""; position:absolute; inset:0; cursor:pointer; }
+.rowLink:focus-visible { outline:none; }
+.rowLink:focus-visible::after { outline:2px solid #3157d5; outline-offset:-2px; }
 .queueTable td>a { font-size:14px; font-weight:650; color:#202630; display:block; }
 .queueTable small { display:block; margin-top:6px; color:#78808a; font-size:11px; line-height:1.6; }
 .queueTable strong { font-size:12px; font-weight:550; }
@@ -73,9 +75,9 @@
 .documentPreview>div { display:flex; gap:10px; justify-content:space-between; border-top:1px solid #eef0f3; padding:9px 0; }
 .documentPreview span:last-child { white-space:nowrap; color:#78818e; }
 .toolbar button:focus-visible,.primaryButton:focus-visible,.textButton:focus-visible,.workbenchQueue button:focus-visible,.decisionActions button:focus-visible { outline:2px solid #3157d5; outline-offset:3px; }
-@media (max-width:1500px) { .reviewLayout { grid-template-columns:minmax(0,1fr) 300px; gap:14px; } .workbenchLayout { grid-template-columns:170px minmax(0,1fr); gap:12px; } .workbenchBody { grid-template-columns:minmax(0,1fr) 250px; gap:16px; padding:18px; } }
-@media (max-width:1200px) { .workbenchLayout { display:block; } .workbenchQueue { display:none; } .reviewLayout { grid-template-columns:minmax(0,1fr) 280px; } }
-@media (max-width:1000px) { .reviewLayout { grid-template-columns:1fr; } .workbenchBody { grid-template-columns:1fr; } .quoteSummary { position:static; } .inspector { padding:20px; } }
+@media (max-width:1500px) { .workbenchLayout { grid-template-columns:170px minmax(0,1fr); gap:12px; } .workbenchBody { grid-template-columns:minmax(0,1fr) 250px; gap:16px; padding:18px; } }
+@media (max-width:1200px) { .workbenchLayout { display:block; } .workbenchQueue { display:none; } }
+@media (max-width:1000px) { .workbenchBody { grid-template-columns:1fr; } .quoteSummary { position:static; } .inspector { padding:20px; } }
 @media (max-width:600px) { .filters { width:100%; } .search { width:100%; } .search input { width:100%; } .commercialFields { grid-template-columns:1fr; } .viewTabs button { padding:10px; } .workbenchBody { padding:14px; } }
 /* Keep the pricing table usable when the app sidebar reduces available space. */
 .editor fieldset { min-width:0; grid-template-columns:repeat(2,minmax(0,1fr)); }

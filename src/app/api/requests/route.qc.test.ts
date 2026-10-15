@@ -166,6 +166,15 @@ describe("requests API QC", () => {
     await expect(responseJson(response)).resolves.toEqual({ requests: [{ id: "req_admin_queue" }] });
   });
 
+  it("records the authenticated submitter rather than client-supplied identity", async () => {
+    mocks.state.session = session("customer");
+    const { POST } = await import("./route");
+    const input = validInput({ requesterName: "Another user", contact: { requesterEmail: "other@example.com" } });
+    const response = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) }));
+    expect(response.status).toBe(201);
+    expect(mocks.createSubmittedRequest).toHaveBeenCalledWith(expect.objectContaining({ requesterName: "customer", contact: expect.objectContaining({ requesterEmail: "customer@example.com" }) }), expect.anything());
+  });
+
   it("allows only customer and admin sessions to submit RFQs", async () => {
     const { POST } = await import("./route");
     const request = new Request("http://localhost/api/requests", {

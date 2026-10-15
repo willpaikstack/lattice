@@ -58,9 +58,11 @@ export async function POST(request: Request) {
     const companyName = session.user.role === "customer" ? session.user.companyName?.trim() || submittedInput.buyerCompany || "" : "";
     const input = {
       ...submittedInput,
+      requesterName: session.user.name,
       buyerCompany: companyName,
       contact: {
         ...(submittedInput.contact ?? {}),
+        requesterEmail: session.user.email,
         shipToCompany: submittedInput.contact?.shipToCompany || companyName,
       },
     };

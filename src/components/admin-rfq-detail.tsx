@@ -31,12 +31,26 @@ function FileLink({ file }: { file: UploadedFile }) {
   return href ? <a href={href} download={file.name}><Download size={14} aria-hidden="true" />{file.name}</a> : <span>{file.name} · File unavailable</span>;
 }
 function SavedCadPreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
+  const [retrying, setRetrying] = useState(false);
   const [state, setState] = useState<CadUploadPreviewState>(() => file.cadPreviewUrn
     ? { status: "processing", urn: file.cadPreviewUrn, fileName: file.name, progress: "Checking saved model" }
     : { status: "reference_only", fileName: file.name, message: "No translated preview was saved with this CAD file. Download the original for review." });
   const urn = state.status === "processing" ? state.urn : null;
   const restrictionStatus = request.intakeDeclaration?.restrictionStatus;
   const restrictionPolicyVersion = request.intakeDeclaration?.policyVersion;
+  async function retry() {
+    if (retrying || !file.storageKey) return;
+    setRetrying(true);
+    try {
+      const response = await fetch("/api/cad-previews", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storageKey: file.storageKey, restrictionStatus, restrictionPolicyVersion, reuseExisting: state.status === "reference_only" }) });
+      const payload = await response.json();
+      if (!response.ok || !payload.preview?.urn) throw new Error(payload.error || payload.preview?.message || "Unable to prepare the CAD preview. Try again later.");
+      setState({ status: "processing", fileName: file.name, urn: payload.preview.urn, progress: "Preparing CAD preview" });
+    } catch (caught) {
+      setState({ status: "failed", fileName: file.name, message: caught instanceof Error ? caught.message : "Unable to prepare CAD preview." });
+    } finally { setRetrying(false); }
+  }
   useEffect(() => {
     if (!urn) return;
     let active = true;
@@ -54,7 +68,9 @@ function SavedCadPreview({ file, request }: { file: UploadedFile; request: Latti
     return () => { active = false; window.clearInterval(interval); };
   }, [urn, file.name, file.storageKey, restrictionStatus, restrictionPolicyVersion]);
   if (state.status === "ready") return <ModelViewer urn={state.urn} />;
-  return <div className={styles.noPreview} role="status"><FileText size={28} aria-hidden="true" /><p>{state.status === "processing" ? "Checking the saved CAD preview… The original file is available to download below." : "message" in state ? state.message : "Loading CAD preview…"}</p></div>;
+  return <div className={styles.noPreview} role="status"><FileText size={28} aria-hidden="true" /><p>{state.status === "processing" ? "Checking the saved CAD preview… The original file is available to download below." : "message" in state ? state.message : "Loading CAD preview…"}</p>
+    {state.status !== "processing" && file.storageKey ? <button type="button" disabled={retrying || restrictionStatus !== "unrestricted"} onClick={() => void retry()}>{retrying ? "Preparing preview…" : "Retry CAD preview"}</button> : null}
+  </div>;
 }
 function SavedFilePreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
   const href = rfqFileHref(file, true);

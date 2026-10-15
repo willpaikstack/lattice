@@ -6,6 +6,7 @@ import type { AccountAddress } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 import { quoteHasExpired } from "@/lib/quote-validity";
+import { processLabel } from "@/lib/rfq-manufacturing";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
@@ -398,7 +399,7 @@ export function BuyerQuoteDetail({
                     const fileName = customerFacingFileName(file?.name, item.partName);
                     const downloadHref = fileDownloadHref(file);
                     const customerLine = quotedLineForItem(item, request);
-                    const process = customerLine?.process || request.process || "CNC";
+                    const process = processLabel(customerLine?.process || item.manufacturingDetails?.process || request.process || "CNC");
                     const material = customerLine?.material || item.material;
                     const finish = customerLine?.finish || item.surfaceFinish || "As machined";
                     const tolerance = item.generalTolerance || "ISO 2768-m";
@@ -496,7 +497,7 @@ export function BuyerQuoteDetail({
                   const fileName = customerFacingFileName(file?.name, item.partName);
                   const downloadHref = fileDownloadHref(file);
                   const customerLine = quotedLineForItem(item, request);
-                  const process = customerLine?.process || request.process || "CNC";
+                  const process = processLabel(customerLine?.process || item.manufacturingDetails?.process || request.process || "CNC");
                   const material = customerLine?.material || item.material;
                   const finish = customerLine?.finish || item.surfaceFinish || "As machined";
                   const tolerance = item.generalTolerance || "ISO 2768-m";

@@ -1,0 +1,1325 @@
+{
+  "scope": "Twelve user-authorized synthetic Production RFQs, genuine customer Google sessions and Lattice admin review",
+  "summary": {
+    "rfqs": 12,
+    "parts": 24,
+    "originalFiles": 39,
+    "allOriginalHashesMatch": true,
+    "accounts": [
+      {
+        "code": "PW",
+        "rfqs": 3,
+        "parts": 6
+      },
+      {
+        "code": "WC",
+        "rfqs": 3,
+        "parts": 6
+      },
+      {
+        "code": "W99",
+        "rfqs": 3,
+        "parts": 6
+      },
+      {
+        "code": "AH",
+        "rfqs": 3,
+        "parts": 6
+      }
+    ],
+    "matchedComparisons": 840,
+    "derivedCadFieldFailures": 24,
+    "affectedCadModels": 6,
+    "findings": [
+      "Customer quote part process uses aggregate RFQ process",
+      "Admin PDF preview fails for valid unchanged drawing originals",
+      "Negated free-text no drawing required falsely requires drawing",
+      "Autodesk conversion returns 403; six AH previews/derived dimensions unavailable after retries"
+    ],
+    "status": "Audit complete with findings; no repair or deployment performed"
+  },
+  "submissions": [
+    {
+      "requestId": "rfq_ccd9ef4b2a8bedc3390786529b5459d63c4d1a4e",
+      "title": "QA 2026-10-14 PW-1 \u2014 CAD only",
+      "status": "SUBMITTED",
+      "company": "Apple",
+      "requesterName": "William Paik",
+      "requesterEmail": "paik.e.william@gmail.com",
+      "createdAtUtc": "2026-10-15T01:11:48.019Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "prototype",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-PW-1-P1",
+          "quantity": 7,
+          "material": "6061-T6 Aluminum",
+          "surfaceFinish": "As machined (Ra 3.2 um / Ra 126 uin)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection"
+          ],
+          "notes": "QA PW-1 / P1. Synthetic audit only; do not manufacture.\nDeburr all edges. No drawing or special features requested.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "as_machined_ra_3_2",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "al_6061_t6",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-PW-1-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 2326,
+          "savedCadPreview": true,
+          "downloadSha256": "85c6251f60a9ab329fd4942c52fd784f9fecacd1065d664b78ad081e0d2676fa",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_c0f98f810b3b1b31ebda29477e4812de1c536937",
+      "title": "QA 2026-10-14 PW-2 \u2014 mixed two parts",
+      "status": "SUBMITTED",
+      "company": "Apple",
+      "requesterName": "William Paik",
+      "requesterEmail": "paik.e.william@gmail.com",
+      "createdAtUtc": "2026-10-15T01:15:07.026Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "commercial",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": true,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-PW-2-P1",
+          "quantity": 13,
+          "material": "316L Stainless Steel",
+          "surfaceFinish": "Smooth machining (Ra 1.6 um / Ra 63 uin)",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "CMM Inspection Report",
+            "Material Test Report (MTR)"
+          ],
+          "notes": "QA PW-2 / P1. Synthetic audit only; do not manufacture.\nM3 x 0.5 thread at feature 1; H7 fit at feature 2. Verify report against this part only.\nThreads requested; drawing required.\nEngineering fits requested; drawing required.\nCMM Inspection Report requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "smooth_machining_ra_1_6",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "316l_stainless_steel",
+            "targetShipDate": "2026-10-29",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-PW-2-P2",
+          "quantity": 29,
+          "material": "Acetal Copolymer (POM-C)",
+          "surfaceFinish": "As machined (Ra 3.2 um / Ra 126 uin)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection"
+          ],
+          "notes": "QA PW-2 / P2. Synthetic audit only; do not manufacture.\nPlastic insert, standard finish. No drawing or feature flags. Keep separate from stainless P1.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "as_machined_ra_3_2",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "acetal_copolymer_pom_c",
+            "targetShipDate": "2026-11-16",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-PW-2-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "0705b330b3516b28c10c8ebd8220fcbff975d71f07cde65ed1eb5b16605fda09",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-PW-2-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1123,
+          "savedCadPreview": false,
+          "downloadSha256": "e152f616b8f9906c0a611266ccb267417400932fe0431e53ae3eec45ad4929be",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-PW-2-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "8d761cfbaea51a1116667e14dd6ef51138321c5b6ab0b9ef7958dd5139875d4a",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_4843660c4a9dd98704b19c9165b952b97d84196c",
+      "title": "QA 2026-10-14 PW-3 \u2014 detailed three parts",
+      "status": "SUBMITTED",
+      "company": "Apple",
+      "requesterName": "William Paik",
+      "requesterEmail": "paik.e.william@gmail.com",
+      "createdAtUtc": "2026-10-15T01:17:59.263Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "prototype",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-PW-3-P1",
+          "quantity": 3,
+          "material": "7075-T6 Aluminum",
+          "surfaceFinish": "As machined + Anodized type II - Blue",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "First Article Inspection Report (FAIR AS9102)",
+            "Certificate of Conformance (CoC)"
+          ],
+          "notes": "QA PW-3 / P1. Synthetic audit only; do not manufacture.\nBlue anodize. Feature 1 M3 thread; feature 2 H7 fit; feature 3 +/-0.05 mm; feature 4 mark PW-3-P1; feature 5 sharp corner. Preserve this multi-line note.\nPart markings requested; drawing required.\nLinear tolerance tighter than general tolerance requested; drawing required.\nThreads requested; drawing required.\nEngineering fits requested; drawing required.\nSharp internal corners requested; drawing required.\nFirst Article Inspection Report (FAIR AS9102) requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "as_machined_anodized_type_ii",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "7075_t6_aluminum",
+            "targetShipDate": "2026-11-06",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-PW-3-P2",
+          "quantity": 47,
+          "material": "5052 Aluminum",
+          "surfaceFinish": "Powder coated - RAL: RAL 5015",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Custom Inspection"
+          ],
+          "notes": "QA PW-3 / P2. Synthetic audit only; do not manufacture.\nSheet-metal process; RAL 5015 powder coat. Custom inspection: verify color coverage and edge condition.",
+          "manufacturingDetails": {
+            "process": "sheet_metal_fabrication",
+            "finishKey": "powder_coated",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "5052_aluminum",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 2,
+          "partName": "QA-PW-3-P3",
+          "quantity": 101,
+          "material": "Brass 360",
+          "surfaceFinish": "Polishing (Ra 0.8 um / Ra 32 uin)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Dimensional Inspection Report",
+            "Formal Inspection with Dimensional Report"
+          ],
+          "notes": "QA PW-3 / P3. Synthetic audit only; do not manufacture.\nPolished brass; inspect all 101 pieces. No special feature flags. Optional drawing retained on P3 only.\nDimensional Inspection Report, Formal Inspection with Dimensional Report requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "polishing_ra_0_8",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "brass_360",
+            "targetShipDate": "2026-12-04",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-PW-3-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "bafc89184760534206b1742c69f7b70c9578720e66c8d0eb9dbadb5031c4c3c4",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-PW-3-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1123,
+          "savedCadPreview": false,
+          "downloadSha256": "3ec6434898ba52a02931aa0d37797a9843d613a2807ff37fb3b32c953631b7c3",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-PW-3-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "1659d9904c8dffa670ce99c812362cad24051ca185ffda53c984e83e7eae135c",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-PW-3-P3.step",
+          "lineItemIndex": 2,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "a0ebde23b29256545c05e363f617b13619fb569902047c3fd2b3004c2414b055",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-PW-3-P3-drawing.pdf",
+          "lineItemIndex": 2,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "f7a6d3f43eae16ff71dec090acde6be786262e2421c131e9c901f5300062bb62",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_0e48f7f801db9df391ae602e7bebcc0727be61be",
+      "title": "QA 2026-10-14 WC-1 \u2014 brass CAD only",
+      "status": "SUBMITTED",
+      "company": "Apple",
+      "requesterName": "Will ClawPaik",
+      "requesterEmail": "willclawpaik@gmail.com",
+      "createdAtUtc": "2026-10-15T01:26:37.502Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "commercial",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-WC-1-P1",
+          "quantity": 11,
+          "material": "Brass 360",
+          "surfaceFinish": "Smooth machining (Ra 1.6 um / Ra 63 uin)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Certificate of Conformance (CoC)"
+          ],
+          "notes": "QA WC-1 / P1. Synthetic audit only; do not manufacture.\nBrass turning sample, no drawing or special features.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "smooth_machining_ra_1_6",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "brass_360",
+            "targetShipDate": "2026-10-30",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-WC-1-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "b6bc0d3f78e310fd70e5bb644abe62f31eb047048142657495e1a7c6d0b92718",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_944ebe6ec4babbf6df3e0eba57f4e9d58810023d",
+      "title": "QA 2026-10-14 WC-2 \u2014 two metal parts",
+      "status": "SUBMITTED",
+      "company": "Apple",
+      "requesterName": "Will ClawPaik",
+      "requesterEmail": "willclawpaik@gmail.com",
+      "createdAtUtc": "2026-10-15T01:28:47.713Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "prototype",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": true,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-WC-2-P1",
+          "quantity": 17,
+          "material": "7075-T651 Aluminum",
+          "surfaceFinish": "As machined + Anodized type III (Hardcoat) - Natural",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "CMM Inspection Report"
+          ],
+          "notes": "QA WC-2 / P1. Synthetic audit only; do not manufacture.\nNatural hardcoat aluminum; feature 1 M3 thread. Keep drawing/report attached to P1.\nThreads requested; drawing required.\nCMM Inspection Report requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "as_machined_anodized_type_iii_hardcoat",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "7075_t651_aluminum",
+            "targetShipDate": "2026-11-20",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-WC-2-P2",
+          "quantity": 53,
+          "material": "304 Stainless Steel",
+          "surfaceFinish": "Bead blasted - Cosmetic",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Material Test Report (MTR)"
+          ],
+          "notes": "QA WC-2 / P2. Synthetic audit only; do not manufacture.\nCosmetic bead-blasted stainless; CAD-only package. Keep specifications separate from P1.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "bead_blasted",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "ss_304_full",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-WC-2-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "e74198f5ca97efff506a64a7cd9f4f36b28d93119da545429f454164c5579a14",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-WC-2-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "481a014f7ae8185dd5b8f61872c62811906a0281909197b77a95ae84e0a097da",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-WC-2-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "ea0436577f3c608595ae85b65f356fd66fac06fc344faa89cdcca845405f7e8f",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_8bf7c6a0beee28eca3c31d2629a020e4ec88f4fb",
+      "title": "QA 2026-10-14 WC-3 \u2014 three varied parts",
+      "status": "SUBMITTED",
+      "company": "Apple",
+      "requesterName": "Will ClawPaik",
+      "requesterEmail": "willclawpaik@gmail.com",
+      "createdAtUtc": "2026-10-15T01:31:15.607Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "commercial",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-WC-3-P1",
+          "quantity": 5,
+          "material": "PEEK",
+          "surfaceFinish": "Smooth machining (Ra 1.6 um / Ra 63 uin)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection"
+          ],
+          "notes": "QA WC-3 / P1. Synthetic audit only; do not manufacture.\nPEEK insert; no drawing, date, or special features.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "smooth_machining_ra_1_6",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "peek",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-WC-3-P2",
+          "quantity": 61,
+          "material": "Copper 110",
+          "surfaceFinish": "Polishing (Ra 0.8 um / Ra 32 uin)",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Dimensional Inspection Report"
+          ],
+          "notes": "QA WC-3 / P2. Synthetic audit only; do not manufacture.\nPolished copper; H7 feature 2; dimensional report tied to P2 drawing.\nEngineering fits requested; drawing required.\nDimensional Inspection Report requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "polishing_ra_0_8",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "copper_110",
+            "targetShipDate": "2026-12-11",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 2,
+          "partName": "QA-WC-3-P3",
+          "quantity": 89,
+          "material": "1018 Steel",
+          "surfaceFinish": "Powder coated - White",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Custom Inspection"
+          ],
+          "notes": "QA WC-3 / P3. Synthetic audit only; do not manufacture.\nWhite powder coat, mark WC-3-P3. Custom inspection: finish coverage and marking readability.\nPart markings requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "sheet_metal_fabrication",
+            "finishKey": "powder_coated",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "1018_steel",
+            "targetShipDate": "2027-01-15",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-WC-3-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "83a64d0530fc5cd56607cbe714fa97b5690a56b3a4c85896616b0d575000784d",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-WC-3-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "92e189188c94f9195aebf2bd5569116531412a58f777320560688eda06a4892d",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-WC-3-P2-drawing.pdf",
+          "lineItemIndex": 1,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "e084746408d5c51b6f48cd334041e639a0dc7104215c12b565077ecef0e3551e",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-WC-3-P3.step",
+          "lineItemIndex": 2,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": true,
+          "downloadSha256": "ff70fad9d526eeeb46bc157a02c2b2d621009fe319a9473f100f58b461fdf06e",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-WC-3-P3-drawing.pdf",
+          "lineItemIndex": 2,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "ba9f64583bedf6435a63ee2279ac13f4e4348dcca7a40d909f11ce22d58af110",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_73e734b9b49ae7757d3799ec33e14670a6c02dd0",
+      "title": "QA 2026-10-14 W99-1 \u2014 titanium sample",
+      "status": "SUBMITTED",
+      "company": "Greno Industries",
+      "requesterName": "Will Testpaik",
+      "requesterEmail": "willpaik99@gmail.com",
+      "createdAtUtc": "2026-10-15T01:39:55.082Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "prototype",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-W99-1-P1",
+          "quantity": 2,
+          "material": "Titanium Grade 5",
+          "surfaceFinish": "Fine machining (Ra 0.8 um / Ra 32 uin)",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Material Test Report (MTR)"
+          ],
+          "notes": "QA W99-1 / P1. Synthetic audit only; do not manufacture.\nTitanium sample with fine finish; CAD-only package and no target date.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "fine_machining_ra_0_8",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "titanium_grade_5",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-W99-1-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31814,
+          "savedCadPreview": true,
+          "downloadSha256": "536d925d4c7f311fc67a00c54f24b2bbb05aa3cc55f494555a58c12c655f39a9",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_a415b9f3c550476f9800a8633c746b2167e5d5f7",
+      "title": "QA 2026-10-14 W99-2 \u2014 fabrication and turning",
+      "status": "SUBMITTED",
+      "company": "Greno Industries",
+      "requesterName": "Will Testpaik",
+      "requesterEmail": "willpaik99@gmail.com",
+      "createdAtUtc": "2026-10-15T01:41:10.666Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "commercial",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": true,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-W99-2-P1",
+          "quantity": 31,
+          "material": "5052 Aluminum",
+          "surfaceFinish": "As fabricated (standard sheet metal finish)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Certificate of Conformance (CoC)"
+          ],
+          "notes": "QA W99-2 / P1. Synthetic audit only; do not manufacture.\nStandard sheet-metal finish. Optional drawing retained on this part; separate from steel P2.",
+          "manufacturingDetails": {
+            "process": "sheet_metal_fabrication",
+            "finishKey": "as_fabricated",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "5052_aluminum",
+            "targetShipDate": "2026-11-30",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-W99-2-P2",
+          "quantity": 73,
+          "material": "4130 Steel",
+          "surfaceFinish": "As machined (Ra 3.2 um / Ra 126 uin)",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Formal Inspection with Dimensional Report"
+          ],
+          "notes": "QA W99-2 / P2. Synthetic audit only; do not manufacture.\nFeature 1 M3 thread and feature 5 sharp corner. Formal inspection report for this steel part.\nThreads requested; drawing required.\nSharp internal corners requested; drawing required.\nFormal Inspection with Dimensional Report requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "as_machined_ra_3_2",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "4130_steel",
+            "targetShipDate": "2026-12-18",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-W99-2-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31814,
+          "savedCadPreview": true,
+          "downloadSha256": "aaebd5237a30cf20f633cb301a5e09f311e24d30c12aa2027985f233f34f629d",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-2-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1125,
+          "savedCadPreview": false,
+          "downloadSha256": "e2730beaf771d3babfbb7c78d6258ebcac9da4aeaddb3408465b97c9301bf800",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-2-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31814,
+          "savedCadPreview": true,
+          "downloadSha256": "4f9bbd66fb985ac064cd0a07e35bfbc2e11fc92938499e560516b512cefd5f82",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-2-P2-drawing.pdf",
+          "lineItemIndex": 1,
+          "type": "application/pdf",
+          "sizeBytes": 1125,
+          "savedCadPreview": false,
+          "downloadSha256": "0a681116f590b9f67f877a3401db44287f33a4daf4cbf527732a531ac1cf6233",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_a83f97b721b3ee2cbb0d69b42c112fbdb2b6fde8",
+      "title": "QA 2026-10-14 W99-3 \u2014 polymer titanium aluminum",
+      "status": "SUBMITTED",
+      "company": "Greno Industries",
+      "requesterName": "Will Testpaik",
+      "requesterEmail": "willpaik99@gmail.com",
+      "createdAtUtc": "2026-10-15T01:44:27.270Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "prototype",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-W99-3-P1",
+          "quantity": 15,
+          "material": "Delrin",
+          "surfaceFinish": "As machined (Ra 3.2 um / Ra 126 uin)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection"
+          ],
+          "notes": "QA W99-3 / P1. Synthetic audit only; do not manufacture.\nPolymer insert with optional reference drawing; no feature flags.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "as_machined_ra_3_2",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "delrin",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-W99-3-P2",
+          "quantity": 97,
+          "material": "Titanium Grade 2",
+          "surfaceFinish": "Bead blasted - Non cosmetic",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "CMM Inspection Report"
+          ],
+          "notes": "QA W99-3 / P2. Synthetic audit only; do not manufacture.\nNon cosmetic titanium; H7 fit at feature 2. CMM report against P2 drawing.\nEngineering fits requested; drawing required.\nCMM Inspection Report requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "bead_blasted",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "titanium_grade_2",
+            "targetShipDate": "2027-01-22",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 2,
+          "partName": "QA-W99-3-P3",
+          "quantity": 113,
+          "material": "6082 Aluminum",
+          "surfaceFinish": "Chromate Conversion Coating - Clear",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "First Article Inspection Report (FAIR AS9102)",
+            "Material Test Report (MTR)"
+          ],
+          "notes": "QA W99-3 / P3. Synthetic audit only; do not manufacture.\nClear conversion coat. Mark W99-3-P3; feature 3 +/-0.05 mm. FAIR and MTR for this part only.\nPart markings requested; drawing required.\nLinear tolerance tighter than general tolerance requested; drawing required.\nFirst Article Inspection Report (FAIR AS9102) requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "chromate_conversion_coating",
+            "cadMetadata": {
+              "sourceUnit": "mm",
+              "dimensionsMm": [
+                20,
+                20,
+                20
+              ]
+            },
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "6082_aluminum",
+            "targetShipDate": "2026-11-25",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-W99-3-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31814,
+          "savedCadPreview": true,
+          "downloadSha256": "c4fca11208f5c875f15ce26ad2b29ac0f9676b2f49b5511fdc8a6c1ce518c03e",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-3-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1125,
+          "savedCadPreview": false,
+          "downloadSha256": "78b1b1ca691bd02d6f26ad977b1fe9553e51e5278492952f3e1b7f912f4b5b57",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-3-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31814,
+          "savedCadPreview": true,
+          "downloadSha256": "23ec55894766e9099c5eb3be21f1a97cb605cfdd045510bb0769716ef11061b4",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-3-P2-drawing.pdf",
+          "lineItemIndex": 1,
+          "type": "application/pdf",
+          "sizeBytes": 1125,
+          "savedCadPreview": false,
+          "downloadSha256": "6e8f7d41ee0b5ffca2be2d2120bb8e71495fdecfe76e1f30972133c0238b385b",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-3-P3.step",
+          "lineItemIndex": 2,
+          "type": "application/octet-stream",
+          "sizeBytes": 31814,
+          "savedCadPreview": true,
+          "downloadSha256": "a5d11dfce81969cdffe83916bd53e7bcc236457514ffe0d7907b139108751acd",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-W99-3-P3-drawing.pdf",
+          "lineItemIndex": 2,
+          "type": "application/pdf",
+          "sizeBytes": 1125,
+          "savedCadPreview": false,
+          "downloadSha256": "6e8d6f98d6abb9454cbfae52198fe0690780877e4bdda654aa073947abdef32c",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_0fa3af818700133c0750cd3ba963e1fcedf79409",
+      "title": "QA 2026-10-14 AH-1 \u2014 member polymer",
+      "status": "SUBMITTED",
+      "company": "Greno Industries",
+      "requesterName": "Carmen Practice",
+      "requesterEmail": "ahoyyer@gmail.com",
+      "createdAtUtc": "2026-10-15T04:14:59.661Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "commercial",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-AH-1-P1",
+          "quantity": 19,
+          "material": "Polycarbonate",
+          "surfaceFinish": "Smooth machining (Ra 1.6 um / Ra 63 uin)",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection"
+          ],
+          "notes": "QA AH-1 / P1. Synthetic audit only; do not manufacture.\nMember-submitted polymer. Notes check: 0.05 mm, 1/4 inch, A&B; preserve punctuation and line breaks.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "smooth_machining_ra_1_6",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "polycarbonate",
+            "targetShipDate": "2027-02-12",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-AH-1-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": false,
+          "downloadSha256": "6ad443666a239331f2c43bedb48345e0934fdb2d1d93a0e43e36082f6a4a60ae",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_3b02ca9cdd96ee0d0c80d6011d424db72fbb86f5",
+      "title": "QA 2026-10-14 AH-2 \u2014 aluminum steel",
+      "status": "SUBMITTED",
+      "company": "Greno Industries",
+      "requesterName": "Carmen Practice",
+      "requesterEmail": "ahoyyer@gmail.com",
+      "createdAtUtc": "2026-10-15T06:45:17.879Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "prototype",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": true,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-AH-2-P1",
+          "quantity": 37,
+          "material": "6061-T651 Aluminum",
+          "surfaceFinish": "Bead blasted + Anodized type II (Matte) - Cosmetic - Orange",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "First Article Inspection Report (FAIR AS9102)",
+            "Material Test Report (MTR)"
+          ],
+          "notes": "QA AH-2 / P1. Synthetic audit only; do not manufacture.\nOrange cosmetic anodize; M3 feature 1; feature 3 +/-0.05 mm. FAIR and MTR belong to this part.\nLinear tolerance tighter than general tolerance requested; drawing required.\nThreads requested; drawing required.\nFirst Article Inspection Report (FAIR AS9102) requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "bead_blasted_anodized_type_ii_matte",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "6061_t651_aluminum",
+            "targetShipDate": "2026-12-23",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-AH-2-P2",
+          "quantity": 127,
+          "material": "A36 Steel",
+          "surfaceFinish": "As fabricated (standard sheet metal finish)",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Certificate of Conformance (CoC)"
+          ],
+          "notes": "QA AH-2 / P2. Synthetic audit only; do not manufacture.\nStandard fabrication, CAD-only package. No special flags or target date.",
+          "manufacturingDetails": {
+            "process": "sheet_metal_fabrication",
+            "finishKey": "as_fabricated",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "a36_steel",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-AH-2-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": false,
+          "downloadSha256": "7d724a6f6d71e503caf0159d7940b8ae69ed05bd2739f0eb4c9a388ac4e6bfc9",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-2-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "48c24250c8e418ec103e71b4ae84acecb334cb6b29f645a7417dd5988099a2bf",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-2-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": false,
+          "downloadSha256": "52482d44ff4c00a16f9937c1f6064549d018d16ae6a0928f7dffe37ad06558ab",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    },
+    {
+      "requestId": "rfq_d8f880dbc9c9744d428cbbadfd50e15760216a40",
+      "title": "QA 2026-10-14 AH-3 \u2014 three member parts",
+      "status": "SUBMITTED",
+      "company": "Greno Industries",
+      "requesterName": "Carmen Practice",
+      "requesterEmail": "ahoyyer@gmail.com",
+      "createdAtUtc": "2026-10-15T06:47:19.010Z",
+      "adminQueueTimeZone": "America/New_York",
+      "intakeDeclaration": {
+        "endUse": "commercial",
+        "endUseNotes": "",
+        "policyVersion": "overseas-intake-2026-10-12",
+        "restrictionStatus": "unrestricted"
+      },
+      "requiresQualityApproval": false,
+      "lineItems": [
+        {
+          "index": 0,
+          "partName": "QA-AH-3-P1",
+          "quantity": 43,
+          "material": "Bronze 932",
+          "surfaceFinish": "Polishing (Ra 0.8 um / Ra 32 uin)",
+          "generalTolerance": "ISO 2768 Fine (f)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Custom Inspection"
+          ],
+          "notes": "QA AH-3 / P1. Synthetic audit only; do not manufacture.\nPolished bronze; custom inspection of surface and edge condition. Optional drawing retained, no special flags.",
+          "manufacturingDetails": {
+            "process": "cnc_turning",
+            "finishKey": "polishing_ra_0_8",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "bronze_932",
+            "targetShipDate": "",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 1,
+          "partName": "QA-AH-3-P2",
+          "quantity": 151,
+          "material": "316 Stainless Steel",
+          "surfaceFinish": "Electroless Nickel Plating",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection",
+            "Certificate of Conformance (CoC)"
+          ],
+          "notes": "QA AH-3 / P2. Synthetic audit only; do not manufacture.\nNickel plated stainless, H7 feature 2. Certificate tied to this part.\nEngineering fits requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "cnc_milling",
+            "finishKey": "electroless_nickel_plating",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "ss_316_full",
+            "targetShipDate": "2027-01-29",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        },
+        {
+          "index": 2,
+          "partName": "QA-AH-3-P3",
+          "quantity": 251,
+          "material": "3003 Aluminum",
+          "surfaceFinish": "Powder coated - Pantone: Warm Gray 9 C",
+          "generalTolerance": "ISO 2768 Medium (m)",
+          "qualityDocumentation": [
+            "Standard Inspection"
+          ],
+          "notes": "QA AH-3 / P3. Synthetic audit only; do not manufacture.\nPantone Warm Gray 9 C; mark AH-3-P3. Keep color, date, and drawing separate from P1/P2.\nPart markings requested; drawing required.",
+          "manufacturingDetails": {
+            "process": "sheet_metal_fabrication",
+            "finishKey": "powder_coated",
+            "cadRevision": "",
+            "fileHistory": [],
+            "materialKey": "3003_aluminum",
+            "targetShipDate": "2027-03-05",
+            "drawingRevision": "",
+            "customerPartNumber": ""
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "QA-AH-3-P1.step",
+          "lineItemIndex": 0,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": false,
+          "downloadSha256": "b34b50fe5619d7eb08bacdbc2a27df981a48d094a7006223232b2dde4b6383dc",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-3-P1-drawing.pdf",
+          "lineItemIndex": 0,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "12d1b710a1488a272141cb372c463ab6c1d3e0dda9662b5f5b969c5aadf08033",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-3-P2.step",
+          "lineItemIndex": 1,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": false,
+          "downloadSha256": "2f4c168d080ede78e55be59b5c7be92e09ab005cbadee6b4eb1ee524f2a4ca6b",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-3-P2-drawing.pdf",
+          "lineItemIndex": 1,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "f8aca6692046af952940334610aad35b042ff26a4ad528df2f8081db9b3d911f",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-3-P3.step",
+          "lineItemIndex": 2,
+          "type": "application/octet-stream",
+          "sizeBytes": 31813,
+          "savedCadPreview": false,
+          "downloadSha256": "ec10ae52f4361dcc21db83a437e83291a85b23d9ab1053c8ca1e7181246f6e55",
+          "downloadMatchesOriginal": true
+        },
+        {
+          "name": "QA-AH-3-P3-drawing.pdf",
+          "lineItemIndex": 2,
+          "type": "application/pdf",
+          "sizeBytes": 1124,
+          "savedCadPreview": false,
+          "downloadSha256": "b33fa1fbd1c15a110eaa41e4bac363a868459048d960656188455d63d3c611dd",
+          "downloadMatchesOriginal": true
+        }
+      ]
+    }
+  ]
+}

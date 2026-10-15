@@ -4,6 +4,18 @@ import { getViewerToken, startCadPreviewFromSource } from "./autodesk-platform-s
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 describe("Autodesk saved-file transfer", () => {
+  it.each([
+    [JSON.stringify({ error: "Token exchange access denied", message: "Token exchange denied. Policy 'ProductAccessRequiresCapacity' has effect: deny" }), "Autodesk conversion capacity is unavailable"],
+    [JSON.stringify({ message: "private provider internals" }), "Unable to start Autodesk translation (403)"],
+  ])("reports a capacity refusal safely and keeps other provider details private", async (body, expected) => {
+    vi.stubEnv("APS_CLIENT_ID", "synthetic-client"); vi.stubEnv("APS_CLIENT_SECRET", "synthetic-secret"); vi.stubEnv("APS_BUCKET_KEY", "synthetic-bucket");
+    const json = (value: object) => new Response(JSON.stringify(value));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(json({ access_token: "synthetic-token" })).mockResolvedValueOnce(json({}))
+      .mockResolvedValueOnce(json({ urls: ["https://aps-storage.example/upload"], uploadKey: "synthetic-upload" }))
+      .mockResolvedValueOnce(new Response(null)).mockResolvedValueOnce(json({ objectId: "synthetic-object" }))
+      .mockResolvedValueOnce(new Response(body, { status: 403 })));
+    await expect(startCadPreviewFromSource({ name: "part.step", size: 8, openBody: async () => new Uint8Array(8) })).rejects.toThrow(expected);
+  });
   it("streams the stored file with its exact length and requests the existing SVF2 format", async () => {
     vi.stubEnv("APS_CLIENT_ID", "synthetic-client"); vi.stubEnv("APS_CLIENT_SECRET", "synthetic-secret"); vi.stubEnv("APS_BUCKET_KEY", "synthetic-bucket");
     const json = (body: object) => new Response(JSON.stringify(body), { status: 200 });

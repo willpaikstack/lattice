@@ -1,4 +1,4 @@
-import { processLabel } from "./rfq-manufacturing";
+import { processLabel, type ManufacturingDetails } from "./rfq-manufacturing";
 import type { RequestFormInitialState } from "@/components/request-form";
 import type { LatticeRequest } from "@/lib/request-model";
 import {
@@ -56,15 +56,15 @@ function isCadFile(file: LatticeRequest["files"][number]) {
   return !isDrawingFile(file);
 }
 
-function drawingRequiredFlags(notes: string | undefined) {
-  const normalized = notes?.toLowerCase() ?? "";
-
+function drawingRequiredFlags(notes: string | undefined, saved?: ManufacturingDetails["drawingRequirements"]) {
+  const lines = new Set((notes ?? "").split(/\r?\n/).map(line => line.trim().toLowerCase()));
+  const selected = (key: keyof NonNullable<typeof saved>, label: string) => saved ? saved[key] === true : lines.has(`${label} requested; drawing required.`);
   return {
-    engineeringFits: normalized.includes("engineering fits"),
-    sharpInternalCorners: normalized.includes("sharp internal corners"),
-    partMarkings: normalized.includes("part markings"),
-    threads: normalized.includes("threads requested") || normalized.includes("threads;"),
-    tightLinearTolerance: normalized.includes("linear tolerance tighter"),
+    engineeringFits: selected("engineeringFits", "engineering fits"),
+    sharpInternalCorners: selected("sharpInternalCorners", "sharp internal corners"),
+    partMarkings: selected("partMarkings", "part markings"),
+    threads: selected("threads", "threads"),
+    tightLinearTolerance: selected("tightLinearTolerance", "linear tolerance tighter than general tolerance"),
   };
 }
 
@@ -141,7 +141,7 @@ function copiedRequestInitialState(
       technicalDrawingSizeBytes: drawingFile?.sizeBytes ?? 0,
       technicalDrawingStorageKey: drawingFile?.storageKey,
       technicalDrawingType: drawingFile?.type ?? "",
-      ...drawingRequiredFlags(lineItem.notes),
+      ...drawingRequiredFlags(lineItem.notes, lineItem.manufacturingDetails?.drawingRequirements),
     };
   });
   const primaryInitialLineItem = lineItems[0];

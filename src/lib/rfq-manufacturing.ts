@@ -18,6 +18,7 @@ export type PartFileHistory = {
 export type ManufacturingDetails = {
   process: string; customerPartNumber: string; cadRevision: string; drawingRevision: string; targetShipDate?: string;
   materialKey: string; finishKey: string; fileHistory: PartFileHistory[]; cadMetadata?: CadMetadata;
+  drawingRequirements?: Partial<Record<"partMarkings" | "tightLinearTolerance" | "threads" | "engineeringFits" | "sharpInternalCorners", boolean>>;
 };
 
 export function processLabel(value?: string) {
@@ -60,9 +61,11 @@ export function readManufacturingDetails(value: unknown): ManufacturingDetails |
       revision: typeof value.revision === "string" ? value.revision.slice(0, 160) : "", replacedAt: value.replacedAt }];
   }) : [];
   const metadata = record.cadMetadata as CadMetadata | undefined;
+  const drawingRequirements = record.drawingRequirements && typeof record.drawingRequirements === "object" && !Array.isArray(record.drawingRequirements)
+    ? Object.fromEntries(["partMarkings", "tightLinearTolerance", "threads", "engineeringFits", "sharpInternalCorners"].map(key => [key, (record.drawingRequirements as Record<string, unknown>)[key] === true])) : undefined;
   const cadMetadata = metadata && Array.isArray(metadata.dimensionsMm) && metadata.dimensionsMm.length === 3 && metadata.dimensionsMm.every(value => Number.isFinite(value) && value >= 0) && typeof metadata.sourceUnit === "string"
     ? { dimensionsMm: metadata.dimensionsMm as [number, number, number], sourceUnit: metadata.sourceUnit.slice(0, 40) } : undefined;
-  return { process: text("process"), customerPartNumber: text("customerPartNumber"), cadRevision: text("cadRevision"), drawingRevision: text("drawingRevision"), targetShipDate: text("targetShipDate"), materialKey: text("materialKey"), finishKey: text("finishKey"), fileHistory, ...(cadMetadata ? { cadMetadata } : {}) };
+  return { process: text("process"), customerPartNumber: text("customerPartNumber"), cadRevision: text("cadRevision"), drawingRevision: text("drawingRevision"), targetShipDate: text("targetShipDate"), materialKey: text("materialKey"), finishKey: text("finishKey"), fileHistory, ...(cadMetadata ? { cadMetadata } : {}), ...(drawingRequirements ? { drawingRequirements } : {}) };
 }
 
 // Conservative service matrix, researched from Protolabs Network's service table.

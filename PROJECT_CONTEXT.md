@@ -337,3 +337,26 @@ Prepared CAD model handoff (2026-10-12, local): the first successfully translate
 Quotes retain only current CAD/drawing attachments in new intake. Previous files is removed from configuration and admin review; draft restoration/reorders and new submissions clear legacy history references. Replacements no longer wait for old uploads to save. Existing submitted records and stored objects are not bulk-purged.
 
 - 2026-10-13: Autodesk viewer runtime initialization/authentication is shared across part viewers. Per-part concurrent Initializer calls could race global SDK token-refresh state and strand later previews before canvas creation; viewer/model instances remain independent.
+
+## Operator audit reset — 2026-10-14
+
+Local and Production workflow records, local/Production original uploads and known saved APS previews have been cleared at the user’s request; accounts/company setup/vendors/catalogs/configuration remain. Current Chrome LATTICE profile shows empty Quotes/Orders; other profiles/devices must clear stale workflow drafts before use to prevent resync. See `docs/audits/workflow-reset-2026-10-14.md`. This is a data reset, not remediation of the customer payload isolation finding.
+
+## Production email configuration repair — 2026-10-14
+
+Existing Resend credential updated; exact live source redeployed from dpl_BXe3TNJrxeQuwkrdRatoBL3JbedJ to dpl_AgLKLPVpd66MFuzmRMLux8yBJhYE, Ready on latticeos.co. Apple Customer Member paik.e.william@gmail.com has a replacement invitation confirmed delivered by Resend; role/company preserved, first password setup pending. No app code changes.
+
+## Admin quote navigation — 2026-10-14
+
+Production `/admin/quotes` now uses a full-width table with no side inspector. Entire RFQ rows open dedicated detail pages; company shortcuts remain independent. Released/verified as dpl_8fsneoxWEbvWYqsYnoQ5WGT2suhC.
+
+## Admin RFQ submission provenance — 2026-10-14
+
+Queue now shows Eastern submission date/time (EST/EDT) and Submitted by instead of Due/owner and Customer quote. New submitted RFQs snapshot authenticated name/email; legacy blank names resolve from their saved email within the company for admin display. Released as dpl_53DPonoVfbvRSs1kMc6sYp4Cbcsy; 37 focused tests and live display/click checks pass.
+
+
+Production RFQ intake/review audit completed (2026-10-14): four genuine customer accounts submitted three synthetic Production RFQs each; all 24 parts were reviewed as Lattice admin, all 39 originals download unchanged, and 840 comparisons match selected requirements/metadata. Three app defects remain (customer aggregate process display, hosted PDF previews, negated free-text drawing-required validation), plus Autodesk translation 403 affecting the six final-account models despite user-reported replenished credits. No source repair/deployment. Exact submitted values and durable findings are in `docs/audits/rfq-account-submissions-2026-10-14.json` and `docs/audits/rfq-account-audit-2026-10-14.md`.
+
+## RFQ audit repairs — 2026-10-14
+
+Released customer per-part process fallback, authenticated same-origin PDF preview streaming, and structured drawing-requirement validation/prefill (existing JSON metadata, no migration). Added admin saved-original CAD retry and a specific APS capacity error. Autodesk returns `ProductAccessRequiresCapacity`; newly added credits were Codex credits. William must restore APS/Flex capacity; six AH CAD previews and persisted URN/dimension backfill remain outstanding. Release `dpl_FboVWTNXMVUuxkBmZ1oLvk9ijLDN`. See `docs/audits/rfq-audit-repairs-2026-10-14.md`.

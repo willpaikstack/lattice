@@ -23,7 +23,12 @@ export function validateSubmissionShape(value: unknown): asserts value is DraftR
   input.lineItems.forEach((part,index) => {
     const files = input.files.filter(f => f.lineItemIndex === index);
     if (files.filter(f => isCadFileName(f.name)).length !== 1) throw new Error(`Part ${index + 1}: upload exactly one CAD file.`);
-    const required = part.qualityDocumentation?.some(v => qualityDocumentationOptions.some(o => (o.value === v || o.label === v) && o.metadata?.requiresDrawing)) || /drawing required/i.test(part.notes ?? '');
+    // Older clients encoded selected feature flags as exact generated note lines.
+    // Never treat arbitrary prose (including "no drawing required") as a flag.
+    const legacyFeature = /^(?:Part markings|Linear tolerance tighter than general tolerance|Threads|Engineering fits|Sharp internal corners) requested; drawing required\.$/im.test(part.notes ?? '');
+    const requirements = part.manufacturingDetails?.drawingRequirements;
+    const required = part.qualityDocumentation?.some(v => qualityDocumentationOptions.some(o => (o.value === v || o.label === v) && o.metadata?.requiresDrawing))
+      || Object.values(requirements ?? {}).some(value => value === true) || (requirements === undefined && legacyFeature);
     if (required && !files.some(f => !isCadFileName(f.name))) throw new Error(`Part ${index + 1}: upload a drawing for the selected specifications.`);
   });
 }

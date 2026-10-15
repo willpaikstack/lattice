@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "./admin-quotes.module.css";
 
 import { groupAdminRfqFiles } from "@/lib/admin-rfq-package";
+import { adminSubmissionDate } from "@/lib/admin-rfq-submission";
 import type { OverseasVendor } from "@/lib/admin-vendors";
 import { quotedLineForRequestItem, type LatticeRequest } from "@/lib/request-model";
 import adminStyles from "./admin-workspace.module.css";
@@ -940,32 +941,6 @@ function QuoteHistory({ request }: { request: LatticeRequest }) {
   </details>;
 }
 
-function QuoteInspector({ request, customerProfileHrefs, onPrepare, onDecision, canDecide }: { request: LatticeRequest; customerProfileHrefs: Record<string, string>; onPrepare: () => void; onDecision: (decision: RfqDecisionStatus) => void; canDecide: boolean }) {
-  const supplier = selectedSupplierQuote(request);
-  const quote = request.customerQuotes.at(-1);
-  const completeness = { READY_FOR_REVIEW: "Ready for review", MISSING_INFO: "Missing information", COMPLETE: "Complete" }[request.operatorReview.completeness];
-  return <aside className={styles.inspector} aria-label={`RFQ inspector: ${request.title}`}>
-    <header><p className={styles.eyebrow}>{quoteReference(request)}</p><h2>{request.title}</h2><div className={styles.companyCell}><span>{request.buyerCompanyId ? request.buyerCompany : "Unassigned company"}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><p className={styles.muted}>{request.process} · {request.requesterName}</p><span className={styles.pill}>{completeness}</span></header>
-    <section><h3>RFQ package <span>{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"}</span></h3>
-      {request.lineItems.map((item) => <div className={styles.partCard} key={item.id}><strong>{item.partName}<span>Qty {item.quantity}</span></strong><PartManufacturingSummary item={item} fallbackProcess={request.process} /><p>{item.material} · {item.surfaceFinish || "Finish not specified"}</p><p>{item.generalTolerance || "Tolerance not specified"}</p>{item.qualityDocumentation?.length ? <p>Quality: {item.qualityDocumentation.join(", ")}</p> : null}{item.notes ? <p>{item.notes}</p> : null}</div>)}
-      <details className={styles.history} open><summary>RFQ files ({request.files.length})</summary><p className={styles.muted}>Files belong to the shared RFQ package.</p><div className={styles.fileList}>{request.files.map((file) => <DownloadFileLink file={file} key={file.id} />)}{!request.files.length ? <p>No files attached.</p> : null}</div></details>
-    </section>
-    <section><h3>Intake requirements</h3><p>Intended use: {request.intakeDeclaration?.endUse || "Not declared (legacy RFQ)"}</p>{request.intakeDeclaration?.endUseNotes ? <p>{request.intakeDeclaration.endUseNotes}</p> : null}<p>Restrictions: {request.intakeDeclaration?.restrictionStatus || "Not declared (legacy RFQ)"}</p><p className={styles.muted}>Customer declaration; operator eligibility review still required.</p></section>
-    <section><h3>Quality approval</h3><p>{request.requiresQualityApproval ? "Customer Admin approval of quality documents is required before shipment." : "Pre-shipment customer approval was not requested."}</p></section>
-    <section><h3>Supplier basis</h3>{supplier ? <><strong>{supplier.shopName}</strong><p className={styles.muted}>{supplier.country} · Selected supplier</p><p className={styles.muted}>{supplier.leadTimeDays ? `${supplier.leadTimeDays} days overall lead time` : "Lead time not specified"}</p></> : <p className={styles.muted}>No supplier selected.</p>}
-      <p className={styles.muted}>{request.supplierQuotes.length} supplier quotes · {request.supplierQuoteFiles.length} evidence files</p>
-      {request.supplierQuotes.length ? <details className={styles.history}><summary>Supplier responses</summary>{request.supplierQuotes.map((response) => <div key={response.id}><strong>{response.shopName}</strong><p>{response.country} · {response.isSelected || response.status === "SELECTED" ? "Selected" : response.status === "QUOTE_RECEIVED" ? "Quote received" : response.status === "DECLINED" ? "Declined" : "Invited"}</p><p>{formatCurrencyPrecise(response.priceCents)} · {response.leadTimeDays ? `${response.leadTimeDays} days` : "Lead time not specified"}</p>{response.notes ? <p>{response.notes}</p> : null}</div>)}</details> : null}
-      {request.supplierQuoteFiles.map((file) => <p key={file.id}>{file.storageKey ? <a className={styles.textButton} href={`/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`} download={file.name}>{file.name}</a> : <span className={styles.muted}>{file.name} · unavailable</span>}</p>)}
-      {request.status === "READY_FOR_SUPPLIER_RFQ" ? <p className={styles.muted}>RFQ is ready to send to suppliers.</p> : null}
-    </section>
-    <section><h3>Customer quote <span>{quote ? `v${quote.versionNumber}` : "Not issued"}</span></h3>{quote ? <><strong>{formatCurrencyPrecise(quote.totalCents)}</strong><p className={styles.muted}>Issued {formatDate(quote.issuedAt)} · Valid until {formatDate(quote.validUntil)}</p></> : <p className={styles.muted}>Review supplier-backed pricing, shipping, and validity before issuing.</p>}
-      <button className={styles.primaryButton} type="button" onClick={onPrepare}>{quote ? "View customer quote" : request.status === "CLOSED" ? "View RFQ details" : "Prepare customer quote"}</button>
-      {canDecide && request.status !== "CLOSED" && request.status !== "QUOTED" ? <div className={styles.decisionActions}><button type="button" onClick={() => onDecision("NEEDS_INFO")}>Request information</button><button type="button" onClick={() => onDecision("CLOSED")}>No quote</button></div> : null}
-    </section>
-    <details className={styles.history}><summary>Activity ({request.statusEvents.length})</summary>{[...request.statusEvents].reverse().map((event) => <div key={event.id}><strong>{statusCopy[event.to].label}</strong><p>{event.actor} · {formatDateTime(event.at)}</p></div>)}</details>
-  </aside>;
-}
-
 export function AdminQuoteManagement({
   customerProfileHrefs = {},
   overseasVendors = [],
@@ -1089,7 +1064,6 @@ export function AdminQuoteManagement({
   }
 
   const activeRequests = quoteRequests.filter((request) => adminQuoteStatusGroup(request) !== "ARCHIVED");
-  const selectedRequest = filteredRequests.find((request) => request.id === detailRequest?.id) ?? filteredRequests[0] ?? null;
   const owners = [...new Set(quoteRequests.map((request) => request.operatorReview.assignedOwner).filter((owner): owner is string => Boolean(owner)))].sort();
   const summaryCards = [
     { label: "Active RFQs", count: activeRequests.length, detail: "Submitted requests in review", icon: Inbox },
@@ -1134,25 +1108,23 @@ export function AdminQuoteManagement({
           <label><span className="sr-only">Assigned owner</span><select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}><option value="ALL">All owners</option><option value="UNASSIGNED">Unassigned</option>{owners.map((owner) => <option key={owner}>{owner}</option>)}</select></label>
         </div> : null}
       </div>
-      {view !== "DRAFTS" ? <div className={styles.reviewLayout}>
+      {view !== "DRAFTS" ? <div>
         <section className={styles.queue} aria-label="RFQ review queue">
           <div className={styles.tableScroll}><table className={styles.queueTable}>
-            <thead><tr><th>RFQ & customer</th><th>Stage</th><th>Package</th><th>Due / owner</th><th>Customer quote</th></tr></thead>
+            <thead><tr><th>RFQ & customer</th><th>Stage</th><th>Package</th><th>Submission date</th><th>Submitted by</th></tr></thead>
             <tbody>{filteredRequests.map((request) => {
-              const quote = request.customerQuotes.at(-1);
-              return <tr key={request.id} data-selected={selectedRequest?.id === request.id}>
-                <td><Link aria-label={`Manage quote submission for ${request.title}`} href={`/admin/quotes/${encodeURIComponent(request.id)}`} scroll={false}>{request.title}</Link><div className={styles.companyCell}><span>{request.buyerCompanyId ? request.buyerCompany : "Unassigned company"}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><small>{quoteReference(request)}</small></td>
+              return <tr key={request.id}>
+                <td><Link className={styles.rowLink} aria-label={`Manage quote submission for ${request.title}`} href={`/admin/quotes/${encodeURIComponent(request.id)}`} scroll={false}>{request.title}</Link><div className={styles.companyCell}><span>{request.buyerCompanyId ? request.buyerCompany : "Unassigned company"}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><small>{quoteReference(request)}</small></td>
                 <td><span className={`${styles.stage} ${statusCopy[request.status].tone}`}>{statusCopy[request.status].label}</span>{request.isArchived ? <small>Archived</small> : null}<small>{request.supplierQuoteFiles.length ? "Supplier evidence attached" : request.supplierQuotes.some((q) => q.status === "QUOTE_RECEIVED" || q.status === "SELECTED") ? "Supplier quote received" : "No supplier evidence"}</small></td>
                 <td><strong>{request.lineItems.length} {request.lineItems.length === 1 ? "part" : "parts"} · {request.lineItems.reduce((sum, item) => sum + item.quantity, 0)} units</strong><small>{request.files.length} {request.files.length === 1 ? "file" : "files"} · {request.process}</small></td>
-                <td><strong>{request.dueDate ? formatDate(request.dueDate) : "Not specified"}</strong><small>{request.operatorReview.assignedOwner || "Unassigned"}</small></td>
-                <td>{quote ? <><strong>v{quote.versionNumber} · {formatCurrencyPrecise(quote.totalCents)}</strong><small>Valid until {formatDate(quote.validUntil)}</small></> : <span className={styles.muted}>Not issued</span>}</td>
+                <td><strong>{adminSubmissionDate(request)}</strong></td>
+                <td><strong>{request.requesterName || "Name not recorded"}</strong></td>
               </tr>;
             })}</tbody>
           </table></div>
           {!filteredRequests.length ? <div className={styles.empty}><h2>No RFQs match this view</h2><p>Choose another stage or clear the search and owner filters.</p><button className={styles.textButton} onClick={() => { setQuery(""); setStageFilter("ALL"); setOwnerFilter("ALL"); }} type="button">Clear filters</button></div> : null}
-          <footer>{filteredRequests.length} submissions · Select an RFQ to review its package</footer>
+          <footer>{filteredRequests.length} submissions · Click an RFQ to open its details</footer>
         </section>
-        {selectedRequest ? <QuoteInspector key={selectedRequest.id} request={selectedRequest} customerProfileHrefs={customerProfileHrefs} onPrepare={() => prepareQuote(selectedRequest)} onDecision={(decision) => prepareQuote(selectedRequest, decision)} canDecide={Boolean(updateDecisionAction)} /> : null}
       </div> : null}
       {view === "DRAFTS" ? <details open className={adminStyles.drafts}>
         <summary className={adminStyles.draftSummary}>

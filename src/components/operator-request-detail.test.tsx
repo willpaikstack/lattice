@@ -96,17 +96,11 @@ function makeQuotedRequest() {
 
 
 describe("AdminQuoteManagement", () => {
-  it("shows intended use, eligibility and each part's engineering identity to the admin", () => {
+  it("opens saved RFQ details from the queue without a side inspector", () => {
     const request = makeSubmittedRequest();
-    request.intakeDeclaration = { restrictionStatus: "unrestricted", policyVersion: "overseas-intake-2026-10-12", endUse: "prototype", endUseNotes: "Evaluation only" };
-    request.lineItems[0].manufacturingDetails = { process: "cnc_turning", customerPartNumber: "SHAFT-10", cadRevision: "B", drawingRevision: "C", materialKey: "al_6061_t6", finishKey: "as_machined_ra_3_2", fileHistory: [] };
     render(<AdminQuoteManagement requests={[request]} />);
-    const inspector = screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` });
-    expect(inspector).toHaveTextContent("Intended use: prototype");
-    expect(inspector).toHaveTextContent("Restrictions: unrestricted");
-    expect(inspector).toHaveTextContent("CNC Turning");
-    expect(inspector).toHaveTextContent("SHAFT-10");
-    expect(inspector).toHaveTextContent("CAD rev: B");
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toHaveAttribute("href", `/admin/quotes/${request.id}`);
+    expect(screen.queryByRole("complementary", { name: /RFQ inspector/ })).not.toBeInTheDocument();
   });
   it("keeps draft RFQs out of the active queue and opens the draft tab", () => {
     const draft = { ...makeSubmittedRequest(), id: "draft_one", status: "DRAFT" as const, title: "Draft bracket" };
@@ -116,35 +110,22 @@ describe("AdminQuoteManagement", () => {
     expect(screen.getByText("Draft bracket")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open draft for Draft bracket" })).toBeInTheDocument();
   });
-  it("shows an RFQ inspector with its package and supplier basis", () => {
-    const request = makeSubmittedRequest();
-    render(<AdminQuoteManagement requests={[request]} />);
-    const inspector = screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` });
-    expect(within(inspector).getByText("Supplier basis")).toBeInTheDocument();
-    expect(within(inspector).getByRole("button", { name: "Prepare customer quote" })).toBeInTheDocument();
-  });
   it("filters the review queue by search", () => {
     render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} />);
     fireEvent.change(screen.getByRole("searchbox", { name: "Search quote submissions" }), { target: { value: "no matching RFQ" } });
     expect(screen.getByText(/0 submissions/)).toBeInTheDocument();
   });
-  it("opens the workbench from the inspector", () => {
-    render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} />);
-    fireEvent.click(screen.getByRole("button", { name: "Prepare customer quote" }));
-    expect(screen.getByRole("navigation", { name: "RFQ queue" })).toBeInTheDocument();
-    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("view=quote"), { scroll: false });
-  });
-  it("selects a valid deep-linked RFQ in the inspector", () => {
+  it("keeps a deep-linked RFQ available through its detail link", () => {
     const request = makeSubmittedRequest(); mockRequestIdParam = request.id;
     render(<AdminQuoteManagement requests={[request]} />);
-    expect(screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toHaveAttribute("href", `/admin/quotes/${request.id}`);
   });
   it("keeps closed RFQs in archive and hides decision controls", () => {
     const request = { ...makeSubmittedRequest(), status: "CLOSED" as const };
     render(<AdminQuoteManagement requests={[request]} updateDecisionAction={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Archive (1)" }));
     expect(screen.queryByRole("button", { name: "Request information" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View RFQ details" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toHaveAttribute("href", `/admin/quotes/${request.id}`);
   });
 });
 
@@ -163,6 +144,14 @@ describe("BuyerQuotes", () => {
 });
 
 describe("BuyerQuoteDetail", () => {
+  it("shows the saved process for each part in both layouts before a customer quote is issued", () => {
+    const request = makeSubmittedRequest();
+    request.process = "CNC Milling / CNC Turning";
+    request.lineItems[0].manufacturingDetails = { process: "cnc_turning", materialKey: "", finishKey: "", customerPartNumber: "", cadRevision: "", drawingRevision: "", fileHistory: [] };
+    render(<BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />);
+    expect(screen.getAllByText("CNC Turning")).toHaveLength(2);
+    expect(screen.queryByText("CNC Milling / CNC Turning")).not.toBeInTheDocument();
+  });
   it("lets customers edit and resubmit pending RFQs before pricing is ready", () => {
     const request = makeSubmittedRequest();
 

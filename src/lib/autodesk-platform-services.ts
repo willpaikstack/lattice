@@ -218,6 +218,10 @@ async function startTranslation(urn: string, token: string) {
   });
 
   if (!response.ok && response.status !== 409) {
+    const detail = await response.text();
+    if (response.status === 403 && detail.includes("ProductAccessRequiresCapacity")) {
+      throw new Error("Autodesk conversion capacity is unavailable. Lattice must restore its Autodesk APS capacity before CAD previews can be generated. The original file remains available.");
+    }
     throw new Error(`Unable to start Autodesk translation (${response.status})`);
   }
 }

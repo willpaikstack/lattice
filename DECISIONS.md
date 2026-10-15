@@ -1561,3 +1561,15 @@ Use the existing private R2/local file store for small server-written upload int
 - Editable vendor fields and detail rows belong in Postgres, with an additive table and explicit archive importer; application filesystem writes are not a Production persistence mechanism.
 - Quality documents use order/admin-scoped direct private storage, capped at 25 MB, followed by transactional attachment and approval invalidation. Legacy supplier/clarification form attachments have an explicit 3 MB supported limit.
 - npm is the repository package-manager contract (Node 24); keep one npm lockfile. Unpatched development-only lint glob advisories are tracked separately from runtime dependency exposure.
+
+## 2026-10-14 — Table-only admin RFQ queue
+
+The operator queue uses the full content width and opens the dedicated RFQ detail page from the entire row. Remove the duplicate side inspector; preserve the independent company shortcut and existing quote-pricing workflow. This is the user’s explicit navigation preference.
+
+## 2026-10-14 — Operator RFQ submission provenance
+
+Admin queue displays submission date/time in America/New_York with seasonal timezone and the submitting user’s name. New account RFQs save authenticated identity in existing requester fields; no extra customer-entered requester control. Legacy missing names may resolve by company-scoped stored email in the admin view, with unknown names stated explicitly and saved names preserved.
+
+## 2026-10-14 — Keep drawing requirements structured and PDF previews authenticated
+
+Persist selected drawing-dependent feature flags in manufacturing JSON metadata and enforce these plus selected inspection requirements. Treat customer notes as prose; only exact legacy generated requirement lines remain a compatibility fallback when structured flags are absent. Restore saved flags when reopening an RFQ. Stream authorized PDF previews through the app origin so browser storage redirects cannot prevent PDF.js from reading bytes; retain signed redirects for original downloads.

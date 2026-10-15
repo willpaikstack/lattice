@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { readLocalUpload, storedUploadDownloadUrl } from "@/lib/local-file-storage";
+import { inspectStoredUpload, openStoredUploadStream, readLocalUpload, storedUploadDownloadUrl } from "@/lib/local-file-storage";
 import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 function downloadName(storageKey: string, request: Request) {
   const url = new URL(request.url);
@@ -31,6 +32,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ stor
     const fileName = downloadName(storageKey, request).replace(/["\r\n\\]/g, "");
     const disposition = url.searchParams.get("preview") === "1" && contentType !== "application/octet-stream" ? "inline" : "attachment";
     const contentDisposition = `${disposition}; filename="${fileName.replace(/[^\x20-\x7e]/g, "_")}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+    // PDF.js must fetch readable bytes. Stream previews on the authenticated app
+    // origin so a storage redirect/CORS/browser block cannot break the viewer.
+    if (disposition === "inline" && contentType === "application/pdf") {
+      const stored = await inspectStoredUpload(storageKey);
+      const stream = await openStoredUploadStream(storageKey);
+      return new Response(stream, { headers: {
+        "Content-Disposition": contentDisposition,
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "sandbox",
+        "Content-Length": String(stored.sizeBytes),
+        "Content-Type": contentType,
+      } });
+    }
     const remoteUrl = await storedUploadDownloadUrl(storageKey, contentType, contentDisposition);
     if (remoteUrl) {
       return new Response(null, { status: 307, headers: { Location: remoteUrl, "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" } });
