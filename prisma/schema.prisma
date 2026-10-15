@@ -469,6 +469,8 @@ model SupplierQuoteAttachment {
 }
 
 model RequestLineItem {
+  /// ManufacturingDetails JSON schema: targetDeliveryDate is an optional YYYY-MM-DD customer arrival preference.
+  /// Legacy targetShipDate keys are normalized on read and migrated without changing saved date values.
   manufacturingDetails Json?
   id                   String   @id @default(cuid())
   requestId            String

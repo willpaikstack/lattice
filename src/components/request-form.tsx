@@ -7,7 +7,7 @@ import { WorkspaceContentReveal } from "./workspace-content-reveal";
 import { cadAccept, cadFileTypes, cadUploadError, drawingAccept, isCadFileName, manufacturingUploadError } from "@/lib/cad-upload-policy";
 import { canonicalMaterialValue, selectableRfqMaterials, searchRfqMaterials } from "@/lib/rfq-material-search";
 import { draftInitialState } from "@/lib/request-form-prefill";
-import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, offeredProcessOptions, processLabel, readIntakeDeclaration, restrictionPolicyVersion, type CadMetadata, type ManufacturingDetails, type PartFileHistory } from "@/lib/rfq-manufacturing";
+import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, offeredProcessOptions, processLabel, readIntakeDeclaration, readTargetDeliveryDate, restrictionPolicyVersion, type CadMetadata, type ManufacturingDetails, type PartFileHistory } from "@/lib/rfq-manufacturing";
 import { useDialogFocus } from "./use-dialog-focus";
 import { PreparedCadModelHost, PreparedCadViewerContext } from "./prepared-cad-viewer";
 import { createPortal } from "react-dom";
@@ -22,7 +22,6 @@ import { preloadAutodeskViewerAssets } from "./autodesk-model-viewer";
 
 import {
   DragEvent,
-  FormEvent,
   type KeyboardEvent,
   useCallback,
   useEffect,
@@ -86,7 +85,7 @@ type LineItemState = {
   customerPartNumber: string;
   cadRevision: string;
   drawingRevision: string;
-  targetShipDate: string;
+  targetDeliveryDate: string;
   fileHistory: PartFileHistory[];
   cadMetadata?: CadMetadata;
   id: string;
@@ -124,6 +123,8 @@ type InitialLineItemState = Partial<
   >
 > & {
   cadPreview?: CadUploadPreviewState;
+  /** Compatibility for saved drafts from before delivery-date terminology. */
+  targetShipDate?: string;
 };
 
 function cleanIntakeState(state: RequestFormInitialState | undefined): RequestFormInitialState | undefined {
@@ -191,7 +192,7 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   customerPartNumber: "",
   cadRevision: "",
   drawingRevision: "",
-  targetShipDate: "",
+  targetDeliveryDate: "",
   fileHistory: [],
   id,
   quantity: "1",
@@ -506,7 +507,7 @@ function missingLineItemFields(item: LineItemState): Array<{ field: Configuratio
 
 function manufacturingDetailsFor(item: LineItemState): ManufacturingDetails {
   return { process: item.process, customerPartNumber: item.customerPartNumber, cadRevision: item.cadRevision,
-    drawingRevision: item.drawingRevision, targetShipDate: item.targetShipDate, materialKey: item.material, finishKey: item.surfaceFinish,
+    drawingRevision: item.drawingRevision, targetDeliveryDate: item.targetDeliveryDate, materialKey: item.material, finishKey: item.surfaceFinish,
     fileHistory: [], drawingRequirements: { partMarkings: item.partMarkings, tightLinearTolerance: item.tightLinearTolerance,
       threads: item.threads, engineeringFits: item.engineeringFits, sharpInternalCorners: item.sharpInternalCorners },
     ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
@@ -813,7 +814,7 @@ function lineItemFromInitialLineItem(
     customerPartNumber: initialState?.customerPartNumber ?? "",
     cadRevision: initialState?.cadRevision ?? "",
     drawingRevision: initialState?.drawingRevision ?? "",
-    targetShipDate: initialState?.targetShipDate ?? "",
+    targetDeliveryDate: readTargetDeliveryDate(initialState),
     fileHistory: [],
     cadMetadata: initialState?.cadMetadata,
     quantity: initialState?.quantity ?? "1",
@@ -3036,7 +3037,7 @@ function LineItemConfigurationCard({
                 />
               </label>
               <div className="mt-5">
-                <TargetDatePicker value={lineItem.targetShipDate} onChange={value => updateLineItem(lineItem.id, "targetShipDate", value)} />
+                <TargetDatePicker value={lineItem.targetDeliveryDate} onChange={value => updateLineItem(lineItem.id, "targetDeliveryDate", value)} />
               </div>
             </section>
           </div>
@@ -3376,7 +3377,7 @@ export function RequestForm({
       customerPartNumber: lineItem.customerPartNumber,
       cadRevision: lineItem.cadRevision,
       drawingRevision: lineItem.drawingRevision,
-      targetShipDate: lineItem.targetShipDate,
+      targetDeliveryDate: lineItem.targetDeliveryDate,
       fileHistory: [],
       cadMetadata: lineItem.cadMetadata,
       fileName: lineItem.fileName,
@@ -3946,8 +3947,7 @@ export function RequestForm({
     return generatedNotes.filter((note) => !lineItem.notes.includes(note));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit() {
     if (submittingRef.current || !isReady) return;
     setError(null);
 
@@ -4112,7 +4112,7 @@ export function RequestForm({
   return (
     <PreparedCadViewerContext.Provider value={preparedViewerContext}>
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={event => event.preventDefault()} className="space-y-6">
         <header className="px-1 pt-1">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <RequestFormHeading />
@@ -4329,7 +4329,9 @@ export function RequestForm({
                   className="cursor-pointer rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
                   disabled={!isReady || isSubmitting}
                   aria-busy={isSubmitting}
-                  type="submit"
+                  type="button"
+                  onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }}
+                  onClick={() => { void handleSubmit(); }}
                 >
                   {isSubmitting ? "Submitting…" : "Request Quote"}
                 </button>

@@ -1,4 +1,4 @@
-import { processLabel, type ManufacturingDetails } from "./rfq-manufacturing";
+import { processLabel, readTargetDeliveryDate, type ManufacturingDetails } from "./rfq-manufacturing";
 import type { RequestFormInitialState } from "@/components/request-form";
 import type { LatticeRequest } from "@/lib/request-model";
 import {
@@ -115,7 +115,7 @@ function copiedRequestInitialState(
       customerPartNumber: lineItem.manufacturingDetails?.customerPartNumber ?? "",
       cadRevision: lineItem.manufacturingDetails?.cadRevision ?? "",
       drawingRevision: lineItem.manufacturingDetails?.drawingRevision ?? "",
-      targetShipDate: lineItem.manufacturingDetails?.targetShipDate ?? "",
+      targetDeliveryDate: readTargetDeliveryDate(lineItem.manufacturingDetails),
       fileHistory: [],
       cadMetadata: lineItem.manufacturingDetails?.cadMetadata,
       cadPreview: cadFile?.cadPreviewUrn

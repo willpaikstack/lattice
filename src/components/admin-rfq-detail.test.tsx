@@ -8,7 +8,7 @@ import { AdminRfqDetail } from "./admin-rfq-detail";
 afterEach(() => vi.unstubAllGlobals());
 function request() {
   const input = submitDraftRequest(buildDraftRequest({ title: "Multi-part RFQ", process: "CNC milling", lineItems: [
-    { partName: "Steel bracket", quantity: 3, material: "304 Stainless Steel", generalTolerance: "ISO 2768 Medium", surfaceFinish: "As machined", qualityDocumentation: ["CMM Inspection Report"], notes: "Threads M6 per drawing.\nMark serial number.", manufacturingDetails: { process: "cnc_milling", materialKey: "ss_304", finishKey: "as_machined", targetShipDate: "2026-11-01", customerPartNumber: "", cadRevision: "", drawingRevision: "", fileHistory: [] } },
+    { partName: "Steel bracket", quantity: 3, material: "304 Stainless Steel", generalTolerance: "ISO 2768 Medium", surfaceFinish: "As machined", qualityDocumentation: ["CMM Inspection Report"], notes: "Threads M6 per drawing.\nMark serial number.", manufacturingDetails: { process: "cnc_milling", materialKey: "ss_304", finishKey: "as_machined", targetDeliveryDate: "2026-11-01", customerPartNumber: "", cadRevision: "", drawingRevision: "", fileHistory: [] } },
     { partName: "Aluminum plate", quantity: 5, material: "6061 Aluminum", notes: "Do not deburr sealing face." },
   ], files: [
     { name: "plate.step", type: "model/step", sizeBytes: 10, storageKey: "rfq/test/plate.step", lineItemIndex: 1 },
@@ -36,6 +36,7 @@ describe("AdminRfqDetail", () => {
     expect(screen.getByText("304 Stainless Steel")).toBeInTheDocument();
     expect(screen.getByText("CMM Inspection Report")).toBeInTheDocument();
     expect(screen.getByText("2026-11-01")).toBeInTheDocument();
+    expect(screen.getByText("Target delivery date (customer preference)")).toBeInTheDocument();
     expect(screen.getByText(/Threads M6 per drawing/)).toHaveTextContent("Mark serial number.");
     expect(screen.getByRole("link", { name: "bracket.step" })).toHaveAttribute("href", "/api/local-files/rfq/test/bracket.step?name=bracket.step");
     fireEvent.click(screen.getByRole("button", { name: /Drawing · bracket.pdf/ }));

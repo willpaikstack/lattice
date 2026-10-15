@@ -95,7 +95,7 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
   }
   const today = dateKey(new Date());
   return <div ref={rootRef} className="min-w-0">
-    <label id={`${id}-label`} className="mb-2 block text-sm font-medium text-slate-700">Target ship date (optional)</label>
+    <label id={`${id}-label`} className="mb-2 block text-sm font-medium text-slate-700">Target delivery date (optional)</label>
     <button ref={triggerRef} type="button" aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-calendar` : undefined}
       onClick={() => { setActive(dateKey(selected ?? new Date())); setOpen(!open); }}
       onKeyDown={event => { if (event.key === "Escape") close(true); if (event.key === "ArrowDown") { event.preventDefault(); setActive(dateKey(selected ?? new Date())); setOpen(true); } }}
@@ -103,8 +103,8 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
       <span id={`${id}-value`} className={selected ? "text-slate-950" : "text-slate-400"}>{selected ? selected.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Select a date"}</span>
       <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-500" />
     </button>
-    <p className="mt-2 text-xs leading-5 text-slate-500">Your preferred shipment date. We’ll confirm availability in your quote; transit time is additional.</p>
-    {open && position ? createPortal(<div ref={popupRef} id={`${id}-calendar`} role="dialog" aria-label="Choose target ship date" style={position}
+    <p className="mt-2 text-xs leading-5 text-slate-500">Your preferred arrival date. We’ll confirm the delivery schedule in your quote.</p>
+    {open && position ? createPortal(<div ref={popupRef} id={`${id}-calendar`} role="dialog" aria-label="Choose target delivery date" style={position}
       onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(true); } }}
       className="fixed z-[110] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-[0_12px_36px_rgba(15,23,42,0.14)] sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-1">

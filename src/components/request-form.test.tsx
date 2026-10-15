@@ -171,6 +171,46 @@ describe("RequestForm", () => {
     vi.unstubAllGlobals();
   });
 
+  it("ignores Enter and implicit form submission, but submits a delivery preference on button click", async () => {
+    const fetchMock = mockRequestFormFetch();
+    render(<RequestForm initialState={{ projectName: "Delivery preference", lineItems: [{
+      fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step", material: "ss_304", quantity: "1", targetShipDate: "2026-11-12",
+    }] }} />);
+    const submit = screen.getByRole("button", { name: "Request Quote" });
+    expect(submit).toBeEnabled();
+    expect(submit).toHaveAttribute("type", "button");
+    expect(screen.getByText("Target delivery date (optional)")).toBeInTheDocument();
+    const material = screen.getByRole("button", { name: "Material dropdown" });
+    fireEvent.keyDown(material, { key: "Enter" });
+    fireEvent.keyDown(material, { key: "Enter" });
+    expect(fireEvent.keyDown(submit, { key: "Enter", cancelable: true })).toBe(false);
+    fireEvent.submit(submit.closest("form")!);
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/requests")).toHaveLength(0);
+    fireEvent.click(submit);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/requests", expect.anything()));
+    const form = fetchMock.mock.calls.find(([url]) => url === "/api/requests")![1]?.body as FormData;
+    const details = JSON.parse(String(form.get("request"))).lineItems[0].manufacturingDetails;
+    expect(details.targetDeliveryDate).toBe("2026-11-12");
+    expect(details).not.toHaveProperty("targetShipDate");
+  });
+
+  it("reassures users that a different-use part leaves the current draft saved and separate", async () => {
+    mockRequestFormFetch();
+    render(<RequestForm localDraftId="local_draft_preserve_progress" initialState={{ projectName: "Keep my progress", lineItems: [{
+      fileName: "existing.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/existing.step", material: "ss_304", quantity: "7", notes: "Keep this note",
+    }] }} />);
+    fireEvent.change(screen.getByLabelText("Upload another CAD file"), { target: { files: [new File(["solid"], "prototype.step")] } });
+    fireEvent.click(screen.getByRole("radio", { name: /No, this quote/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Prototype/ }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Your current quote progress is saved as a draft");
+    expect(screen.getByRole("link", { name: /Request a new quote/ })).toHaveAttribute("target", "_blank");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    const saved = window.localStorage.getItem("lattice.incompleteRfqs.v2.company_test");
+    expect(saved).toContain("Keep my progress");
+    expect(saved).toContain("Keep this note");
+    expect(saved).toContain('"quantity":"7"');
+  });
+
   it("starts advance CAD processing and advances from export restrictions directly to intended use", async () => {
     testingRender(<RequestForm />);
     expect(screen.getByLabelText("Choose CAD file")).toBeInTheDocument();

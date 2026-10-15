@@ -16,7 +16,7 @@ export type PartFileHistory = {
   storageKey?: string; revision: string; replacedAt: string;
 };
 export type ManufacturingDetails = {
-  process: string; customerPartNumber: string; cadRevision: string; drawingRevision: string; targetShipDate?: string;
+  process: string; customerPartNumber: string; cadRevision: string; drawingRevision: string; targetDeliveryDate?: string;
   materialKey: string; finishKey: string; fileHistory: PartFileHistory[]; cadMetadata?: CadMetadata;
   drawingRequirements?: Partial<Record<"partMarkings" | "tightLinearTolerance" | "threads" | "engineeringFits" | "sharpInternalCorners", boolean>>;
 };
@@ -49,6 +49,14 @@ export function readIntakeDeclaration(value: unknown): IntakeDeclaration | undef
   };
 }
 
+/** Preserve legacy ship-date preferences while all new writes use delivery terminology. */
+export function readTargetDeliveryDate(value: unknown): string {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  const record = value as Record<string, unknown>;
+  const date = typeof record.targetDeliveryDate === "string" ? record.targetDeliveryDate : record.targetShipDate;
+  return typeof date === "string" ? date.slice(0, 160) : "";
+}
+
 export function readManufacturingDetails(value: unknown): ManufacturingDetails | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const record = value as Record<string, unknown>;
@@ -65,7 +73,7 @@ export function readManufacturingDetails(value: unknown): ManufacturingDetails |
     ? Object.fromEntries(["partMarkings", "tightLinearTolerance", "threads", "engineeringFits", "sharpInternalCorners"].map(key => [key, (record.drawingRequirements as Record<string, unknown>)[key] === true])) : undefined;
   const cadMetadata = metadata && Array.isArray(metadata.dimensionsMm) && metadata.dimensionsMm.length === 3 && metadata.dimensionsMm.every(value => Number.isFinite(value) && value >= 0) && typeof metadata.sourceUnit === "string"
     ? { dimensionsMm: metadata.dimensionsMm as [number, number, number], sourceUnit: metadata.sourceUnit.slice(0, 40) } : undefined;
-  return { process: text("process"), customerPartNumber: text("customerPartNumber"), cadRevision: text("cadRevision"), drawingRevision: text("drawingRevision"), targetShipDate: text("targetShipDate"), materialKey: text("materialKey"), finishKey: text("finishKey"), fileHistory, ...(cadMetadata ? { cadMetadata } : {}), ...(drawingRequirements ? { drawingRequirements } : {}) };
+  return { process: text("process"), customerPartNumber: text("customerPartNumber"), cadRevision: text("cadRevision"), drawingRevision: text("drawingRevision"), targetDeliveryDate: readTargetDeliveryDate(record), materialKey: text("materialKey"), finishKey: text("finishKey"), fileHistory, ...(cadMetadata ? { cadMetadata } : {}), ...(drawingRequirements ? { drawingRequirements } : {}) };
 }
 
 // Conservative service matrix, researched from Protolabs Network's service table.
@@ -95,9 +103,9 @@ export function compatibleFinishOptions(material: string, process: string, selec
 
 export function validateManufacturingIntake(input: { intakeDeclaration?: IntakeDeclaration; lineItems: Array<{ material: string; surfaceFinish?: string; manufacturingDetails?: ManufacturingDetails }>; process?: string }) {
   for (const part of input.lineItems) {
-    const date = part.manufacturingDetails?.targetShipDate;
+    const date = readTargetDeliveryDate(part.manufacturingDetails);
     if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date)) {
-      throw new Error("Enter a valid target ship date or leave it blank.");
+      throw new Error("Enter a valid target delivery date or leave it blank.");
     }
   }
   const intake = readIntakeDeclaration(input.intakeDeclaration);

@@ -1,5 +1,5 @@
 import { draftInitialState } from "./request-form-prefill";
-import { readIntakeDeclaration, readManufacturingDetails } from "./rfq-manufacturing";
+import { readIntakeDeclaration, readManufacturingDetails, readTargetDeliveryDate } from "./rfq-manufacturing";
 import { buildDraftRequest, type LatticeRequest } from './request-model';
 
 type RecordValue = Record<string, unknown>;
@@ -25,6 +25,15 @@ function validInitialState(v: unknown): boolean {
     return typeof value==='string' || typeof value==='boolean' || (typeof value==='number' && Number.isFinite(value));
   });
 }
+function normalizeInitialDates(value: RecordValue): RecordValue {
+  const result = { ...value };
+  if ("targetShipDate" in result) {
+    result.targetDeliveryDate = readTargetDeliveryDate(result);
+    delete result.targetShipDate;
+  }
+  if (Array.isArray(result.lineItems)) result.lineItems = result.lineItems.map(part => record(part) ? normalizeInitialDates(part) : part);
+  return result;
+}
 export function normalizePersistedDraft(value: unknown) {
   if (!record(value) || typeof value.id!=='string' || !/^(local_draft_|demo_|fixture_)[a-z0-9_]+$/.test(value.id) || typeof (value.updatedAt ?? (record(value.request) ? value.request.updatedAt : undefined))!=='string' || !Number.isFinite(Date.parse(String(value.updatedAt ?? (record(value.request) ? value.request.updatedAt : '')))) || (value.schemaVersion!==undefined && value.schemaVersion!==1) || !record(value.request)) return null;
   const r=value.request; const updatedAt=String(value.updatedAt ?? r.updatedAt);
@@ -37,5 +46,5 @@ export function normalizePersistedDraft(value: unknown) {
   const request={...baseline,...r,intakeDeclaration:readIntakeDeclaration(r.intakeDeclaration),customerQuotes:r.customerQuotes??[],supplierQuotes:r.supplierQuotes??[],statusEvents:r.statusEvents??[],lineItems:r.lineItems.map((p,i)=>({...baseline.lineItems[i],...p,manufacturingDetails:readManufacturingDetails(p.manufacturingDetails)})),operatorReview:{...baseline.operatorReview,...(r.operatorReview as object??{})},supplierOrder:{...baseline.supplierOrder,...(r.supplierOrder as object??{})},quote:{...baseline.quote,...(r.quote as object??{})},purchasePayment:{...baseline.purchasePayment,...(r.purchasePayment as object??{})}} as LatticeRequest;
   // Invalid UI caches cannot override a recoverable saved request. Keep their
   // original database record intact; reconstruct the form from request fields.
-  return {...value,schemaVersion:1,id:value.id,updatedAt,request:{...request,id:value.id,createdAt:request.createdAt||updatedAt,updatedAt:request.updatedAt||updatedAt},initialState:validInitialState(value.initialState) && Object.keys(value.initialState as object).length ? value.initialState : draftInitialState(request)};
+  return {...value,schemaVersion:1,id:value.id,updatedAt,request:{...request,id:value.id,createdAt:request.createdAt||updatedAt,updatedAt:request.updatedAt||updatedAt},initialState:validInitialState(value.initialState) && Object.keys(value.initialState as object).length ? normalizeInitialDates(value.initialState as RecordValue) : draftInitialState(request)};
 }

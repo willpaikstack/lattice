@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-10-15 - Explicit RFQ Submission and Customer Delivery Preferences
+
+Request Quote is a button with an explicit click handler; form submit events never create RFQs and Enter cannot activate submission. Preserve keyboard selection within fields and newlines in notes. Mismatched Prototype/Commercial additions require a separate quote and explain draft preservation/new-tab behavior. Rename the optional per-part date preference to `targetDeliveryDate` throughout the ManufacturingDetails JSON schema and UI; it means preferred arrival, subject to confirmation in the quote. Preserve historical date values through legacy-key read compatibility, draft normalization and an idempotent submitted-part JSON backfill. Do not change shipping transit calculations or issue delivery guarantees.
+
 ## 2026-10-15 - Use Local CAD Rendering First at the Shared 200 MiB Limit
 
 Decision: STEP/STP, IGES/IGS, STL, OBJ, embedded glTF and self-contained GLB use OpenCascade/Three.js throughout customer intake, draft reopening and customer/admin RFQ review. Other accepted native types continue through Autodesk. User explicitly selected “Keep the original; show a preview error” for local failures, with no Autodesk retry or automatic fallback. Increase the demo/local processing cap to match the existing RFQ 200 MiB per-file cap (UI says 200 MB); this supersedes the earlier 50 MiB cap decision.

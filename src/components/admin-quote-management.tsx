@@ -1,5 +1,5 @@
 "use client";
-import { processLabel } from "@/lib/rfq-manufacturing";
+import { processLabel, readTargetDeliveryDate } from "@/lib/rfq-manufacturing";
 
 import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
@@ -1208,7 +1208,7 @@ function PartManufacturingSummary({ item, fallbackProcess }: { item: LatticeRequ
   const details = item.manufacturingDetails;
   return <div className="text-sm"><p>Process: {processLabel(details?.process || fallbackProcess)}</p>{details ? <>
     <p>Part #: {details.customerPartNumber || "Not specified"} · CAD rev: {details.cadRevision || "Not specified"} · Drawing rev: {details.drawingRevision || "Not specified"}</p>
-    {details.targetShipDate ? <p>Target ship date: {details.targetShipDate} (customer preference)</p> : null}
+    {readTargetDeliveryDate(details) ? <p>Target delivery date: {readTargetDeliveryDate(details)} (customer preference)</p> : null}
     {details.cadMetadata ? <p>CAD envelope (mm): {details.cadMetadata.dimensionsMm.map(value => value.toFixed(2)).join(" × ")} · Model units: {details.cadMetadata.sourceUnit}</p> : null}
   </> : null}</div>;
 }

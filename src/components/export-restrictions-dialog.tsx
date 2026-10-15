@@ -66,6 +66,7 @@ export function ExportRestrictionsDialog({ files, initialStatus, initialEndUse =
         </p> : null}
         {endUseMismatch ? <div role="alert" className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
           <p>This quote is configured for {quoteEndUse === "prototype" ? "prototype" : "commercial"} use. Upload this {endUse === "prototype" ? "prototype" : "commercial"} part in a new quote. Parts with different intended uses need separate quotes.</p>
+          <p className="mt-2">Your current quote progress is saved as a draft. The new quote opens in another tab, so you can return to this quote and continue where you left off.</p>
           <a href="/requests/new" target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center justify-center rounded-md bg-[#171717] px-4 text-sm font-semibold text-white hover:bg-black">Request a new quote<span className="sr-only"> (opens in a new tab)</span></a>
         </div> : null}
         <section aria-label={isNewSelection ? "Selected CAD files" : "Quote CAD files"} className="mt-5">

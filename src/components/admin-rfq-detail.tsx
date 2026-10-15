@@ -7,7 +7,7 @@ import { ArrowLeft, Download, FileText, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { LatticeRequest, UploadedFile } from "@/lib/request-model";
 import { groupAdminRfqFiles, rfqFileHref, rfqFileKind } from "@/lib/admin-rfq-package";
-import { processLabel } from "@/lib/rfq-manufacturing";
+import { processLabel, readTargetDeliveryDate } from "@/lib/rfq-manufacturing";
 import type { CadUploadPreviewState } from "./cad-upload-preview";
 import { cadDemoFormat } from "@/lib/cad-demo";
 import { SavedLocalCadPreview } from "./saved-local-cad-preview";
@@ -137,7 +137,7 @@ export function AdminRfqDetail({ request }: { request: LatticeRequest }) {
           <div className={styles.specs}><h3>Manufacturing requirements</h3><dl>
             <Field label="Process" value={processLabel(details?.process || request.process)} /><Field label="Material" value={part.lineItem.material} />
             <Field label="Surface finish" value={part.lineItem.surfaceFinish} /><Field label="General tolerance" value={part.lineItem.generalTolerance} />
-            <Field label="Quality documentation" value={part.lineItem.qualityDocumentation?.join(", ")} /><Field label="Target ship date (customer preference)" value={details?.targetShipDate} />
+            <Field label="Quality documentation" value={part.lineItem.qualityDocumentation?.join(", ")} /><Field label="Target delivery date (customer preference)" value={readTargetDeliveryDate(details)} />
             {details?.cadMetadata ? <><Field label="CAD envelope (mm)" value={details.cadMetadata.dimensionsMm.map(value => value.toFixed(2)).join(" × ")} /><Field label="Original model units" value={details.cadMetadata.sourceUnit} /></> : null}
             {details?.customerPartNumber ? <Field label="Customer part number (legacy)" value={details.customerPartNumber} /> : null}
             {details?.cadRevision ? <Field label="CAD revision (legacy)" value={details.cadRevision} /> : null}

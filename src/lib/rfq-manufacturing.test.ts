@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, restrictionPolicyVersion, validateManufacturingIntake } from "./rfq-manufacturing";
+import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, restrictionPolicyVersion, readManufacturingDetails, validateManufacturingIntake } from "./rfq-manufacturing";
 import { cadMetadataFromModel } from "./cad-model-metadata";
 
 describe("manufacturing eligibility and finishes", () => {
@@ -47,5 +47,16 @@ describe("CAD envelope metadata", () => {
   it("does not assume unknown units or infinite bounds", () => {
     expect(cadMetadataFromModel({ getUnitString: () => null, getUnitScale: () => 1 })).toBeUndefined();
     expect(cadMetadataFromModel({ getUnitString: () => "mm", getUnitScale: () => 0.001, getBoundingBox: () => ({ min: { x: 0, y: 0, z: 0 }, max: { x: Infinity, y: 1, z: 1 } }) })).toBeUndefined();
+  });
+});
+
+describe("target delivery date schema", () => {
+  it("normalizes legacy saved dates and gives the new field precedence, including an intentionally cleared date", () => {
+    expect(readManufacturingDetails({ targetShipDate: "2026-11-12" })).toMatchObject({ targetDeliveryDate: "2026-11-12" });
+    expect(readManufacturingDetails({ targetShipDate: "2026-11-12" })).not.toHaveProperty("targetShipDate");
+    expect(readManufacturingDetails({ targetShipDate: "2026-11-12", targetDeliveryDate: "" })?.targetDeliveryDate).toBe("");
+  });
+  it("validates actual calendar dates under the delivery schema", () => {
+    expect(() => validateManufacturingIntake({ lineItems: [{ material: "SS 304", manufacturingDetails: readManufacturingDetails({ targetDeliveryDate: "2026-02-30" }) }] })).toThrow("Enter a valid target delivery date");
   });
 });
