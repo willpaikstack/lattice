@@ -1,5 +1,7 @@
 # TODO
 
+- Quote configuration repairs released 2026-10-15 as dpl_83fU1hTTyKAg29PuKtavqy6Q4dkq: Enter cannot submit RFQs; explicit Request Quote clicks work; mismatched-use warning reassures draft preservation; targetDeliveryDate is canonical and 28 legacy Production part rows were migrated with values verified unchanged. All 638 tests pass.
+
 - Hybrid local-first RFQ CAD rendering is released as dpl_9ifRDmjCSFqabD7AVpEMDEs1i6rY at a shared 200 MiB cap. Browser/build verification passes (633 tests); test representative large/complex models on lower-memory devices. Local failures preserve originals and do not fall back to Autodesk. Restore APS account capacity for unsupported native types.
 
 ## Hosted release blockers — 2026-10-13
