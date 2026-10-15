@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Box, FileUp, ShieldCheck } from "lucide-react";
+import { Box, FileUp, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cadDemoFileError, cadDemoFormat, type CadDemoModel } from "@/lib/cad-demo";
 
@@ -21,6 +21,12 @@ export function CadDemo() {
 
   function cancel() {
     generation.current++; worker.current?.terminate(); worker.current = null; setBusy(false);
+  }
+
+  function removeModel() {
+    cancel();
+    setModel(null); setFileName(""); setError(""); setDuration(0);
+    if (input.current) input.current.value = "";
   }
 
   async function load(file?: File) {
@@ -68,7 +74,7 @@ export function CadDemo() {
     </header>
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
       <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm" aria-label="CAD preview">
-        <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4"><div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800"><Box className="shrink-0 text-blue-600" size={19} /><span className="break-all">{fileName || "Model preview"}</span></div><div className="flex gap-2"><button className="cad-demo-button" onClick={() => void load()}>Load sample</button><button className="cad-demo-button" onClick={() => input.current?.click()}><FileUp className="mr-2 inline" size={14} />Open CAD file</button></div></div>
+        <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4"><div className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800"><Box className="shrink-0 text-blue-600" size={19} /><span className="break-all">{fileName || "Model preview"}</span></div><div className="flex flex-wrap gap-2">{model && <button className="cad-demo-button" onClick={removeModel} aria-label="Remove current model"><X className="mr-2 inline" size={14} />Remove model</button>}<button className="cad-demo-button" onClick={() => void load()}>Load sample</button><button className="cad-demo-button" onClick={() => input.current?.click()}><FileUp className="mr-2 inline" size={14} />Open CAD file</button></div></div>
         <input ref={input} type="file" accept=".step,.stp,.iges,.igs" className="sr-only" aria-label="Choose a STEP or IGES model" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void load(file); }} />
         {busy ? <div className="flex min-h-[500px] flex-col items-center justify-center gap-4 bg-slate-50" role="status"><span className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600 motion-reduce:animate-none" /><p className="text-sm text-slate-600">Converting model in your browser…</p><button className="cad-demo-button" onClick={cancel}>Cancel</button></div> : model ? <Scene model={model} /> : <div className="flex min-h-[500px] flex-col items-center justify-center px-6 text-center"><div className="mb-5 rounded-2xl bg-blue-50 p-5 text-blue-600"><Box size={36} strokeWidth={1.4} /></div><h2 className="text-xl font-semibold text-slate-900">Bring a part into view</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">Open a STEP or IGES file, or start with the synthetic 20 mm cube. Rotate, zoom and inspect its geometry.</p><button className="mt-5 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" onClick={() => void load()}>Try sample model</button>{error && <p role="alert" className="mt-5 max-w-lg text-sm text-red-700">{error}</p>}</div>}
       </section>

@@ -1,5 +1,10 @@
 # Completed Work Log
 
+## 2026-10-15 — Add model removal to the OpenCascade demo
+
+- Added an admin-only demo control that clears the current CAD model, filename, geometry metrics, and conversion time so another local STEP/IGES file can be opened cleanly.
+- Verification: targeted typecheck/lint and live viewer QA confirmed the remove-and-reload flow; deployed with the admin demo.
+
 ## 2026-10-15 — Add browser-based OpenCascade CAD viewer demo
 
 Added `/admin/cad-viewer`, linked from the admin sidebar and gated through both the admin workspace and page-role authorization. The demo provides local STEP/STP and IGES/IGS selection, a synthetic 20 mm STEP cube, an OpenCascade WebAssembly import worker, and a Three.js viewer with fit/standard views/wireframe, orbit controls, triangle count, and millimeter bounding-box output. Files stay in the browser; the page does not read or attach RFQ data and does not call Autodesk. Runtime assets are copied from pinned `occt-import-js` 0.0.23 on install/build and its LGPL and OCCT license texts are linked in the UI. Targeted typecheck and lint passed; direct STEP importer check produced 1 mesh, 140 triangles and 20 × 20 × 20 mm bounds; local admin page loaded the sample and rendered controls. This remains a demo, not an APS viewer replacement.
