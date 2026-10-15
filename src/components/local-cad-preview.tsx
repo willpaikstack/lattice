@@ -7,7 +7,7 @@ import { loadLocalCadFile } from "@/lib/local-cad-loader";
 import type { CadMetadata } from "@/lib/rfq-manufacturing";
 import { saveLocalCadThumbnail } from "@/lib/local-cad-thumbnail";
 
-const Scene = dynamic(() => import("./cad-demo-scene"), { ssr: false, loading: () => <p role="status">Starting 3D viewer…</p> });
+const Scene = dynamic(() => import("./cad-demo-scene"), { ssr: false, loading: () => <div role="status" className="flex h-80 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600">Starting 3D viewer…</div> });
 
 export function LocalCadPreview({ file, url, name, sizeBytes, onMetadata, storageKey, onThumbnailSaved, onError }: {
   file?: File; url?: string; name: string; sizeBytes?: number;
@@ -74,6 +74,6 @@ export function LocalCadPreview({ file, url, name, sizeBytes, onMetadata, storag
 
   const current = state.source === (file ?? url) ? state : {};
   if (current.model) return <Scene model={current.model} onThumbnail={image => setThumbnail({ image, source: file ?? url })} onError={() => callbacks.current.onError?.()} />;
-  if (current.error || current.cancelled) return <div className="rounded-md border border-slate-200 bg-slate-50 p-5 text-sm" role="status"><p>{current.error || "Preview cancelled. The original file remains attached."}</p>{current.error ? <p className="mt-2 text-slate-600">3D preview unavailable. The original file remains attached to the RFQ.</p> : null}</div>;
-  return <div className="flex min-h-64 flex-col items-center justify-center gap-3 bg-slate-50 p-5 text-sm" role="status"><p>Opening 3D model…</p><button type="button" className="rounded border bg-white px-3 py-2" onClick={() => { controller.current?.abort(); setState({ cancelled: true, source: file ?? url }); }}>Cancel preview</button></div>;
+  if (current.error || current.cancelled) return <div className="flex h-80 flex-col justify-center rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm" role="status"><p>{current.error || "Preview cancelled. The original file remains attached."}</p>{current.error ? <p className="mt-2 text-slate-600">3D preview unavailable. The original file remains attached to the RFQ.</p> : null}</div>;
+  return <div className="flex h-80 flex-col items-center justify-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm" role="status"><p>Opening 3D model…</p><button type="button" className="rounded border bg-white px-3 py-2" onClick={() => { controller.current?.abort(); setState({ cancelled: true, source: file ?? url }); }}>Cancel preview</button></div>;
 }

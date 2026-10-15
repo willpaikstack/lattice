@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-10-15 - Preserve the CAD Viewer Presentation Across Renderer Changes
+
+A rendering-engine change must preserve the established compact product viewer instead of bringing the admin demo interface into RFQ workflows. Restore the 320px frame, orientation cube and bottom inspection controls while retaining the local renderer and private screenshot thumbnails. William explicitly requested local equivalents of Measure, Explode and Section. Measure supports approximate surface point-to-point distances with honest physical/model-unit labels; Explode separates independent rendered meshes and is unavailable for a single body; Section clips a chosen X/Y/Z half-space and supports position/reversal. These tools do not reproduce Autodesk CAD feature snapping, geometric entity measurements or capped solid sections.
+
 ## 2026-10-15 - Persist Local CAD Screenshots
 
 Capture an isometric screenshot from the local viewer and use it as the part thumbnail. Store normalized 384px PNG derivatives privately in the same storage system as the originals, keyed by the original storage key. Authenticate and authorize against the original file for every image read and write. Copy available derivatives when promoting draft files; regenerate missing older images in a serial browser queue. Keep geometry out of the Quotes list after capture and preserve the no-APS-fallback policy. No new database fields are required.
