@@ -2523,3 +2523,7 @@ Release confirmation: app commit `92125a3` pushed to Git and deployed as Ready P
 Added Submitted by to the quote preparation header alongside Customer, Reference and Process, using the saved requesterName rather than the signed-in operator. Archived RFQ details also display the name, with Name not recorded for missing historical values. Updated the operator feature map. No request data or schema changes.
 
 Release confirmation: app commit `9f22779` pushed and deployed to latticeos.co as Ready Production `dpl_21H4wGGYoKcs9zED5juQYFxm9Rvn`. Typecheck, focused ESLint, whitespace checks and hosted production build pass; automated tests were not run. A separate read-only browser tab verified Submitted by Carmen Practice alongside Greno Industries on the requested RFQ. No quote fields or workflow data were changed.
+
+## 2026-10-15 — Include submitter email in quote preparation
+
+Added Email next to Submitted by in the admin quote preparation header and archived RFQ details, sourced from the RFQ requesterEmail. Missing legacy values display Email not recorded. Updated the feature map. User explicitly confirmed Git push and Vercel production deployment. No request data changes or emails sent.
