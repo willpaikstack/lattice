@@ -2521,3 +2521,5 @@ Release confirmation: app commit `92125a3` pushed to Git and deployed as Ready P
 ## 2026-10-15 — Identify RFQ submitter in quote preparation
 
 Added Submitted by to the quote preparation header alongside Customer, Reference and Process, using the saved requesterName rather than the signed-in operator. Archived RFQ details also display the name, with Name not recorded for missing historical values. Updated the operator feature map. No request data or schema changes.
+
+Release confirmation: app commit `9f22779` pushed and deployed to latticeos.co as Ready Production `dpl_21H4wGGYoKcs9zED5juQYFxm9Rvn`. Typecheck, focused ESLint, whitespace checks and hosted production build pass; automated tests were not run. A separate read-only browser tab verified Submitted by Carmen Practice alongside Greno Industries on the requested RFQ. No quote fields or workflow data were changed.
