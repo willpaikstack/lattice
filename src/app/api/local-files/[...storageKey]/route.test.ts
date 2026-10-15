@@ -76,6 +76,25 @@ describe("local file route authorization", () => {
     expect(mocks.readLocalUpload).toHaveBeenCalledWith("rfq/2026-06-18/part.step");
   });
 
+  it("streams authorized CAD reads on the app origin instead of redirecting the viewer", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: true });
+    const response = await GET(new Request("http://localhost/api/local-files/rfq/test/part.glb?name=part.glb&read=1"), paramsFor("rfq/test/part.glb"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/octet-stream");
+    expect(response.headers.get("content-disposition")).toContain("attachment;");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(mocks.storedUploadDownloadUrl).not.toHaveBeenCalled();
+    expect(mocks.openStoredUploadStream).toHaveBeenCalledWith("rfq/test/part.glb");
+  });
+
+  it("denies CAD reads for another company before touching private storage", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: false });
+    const response = await GET(new Request("http://localhost/api/local-files/rfq/test/part.glb?read=1"), paramsFor("rfq/test/part.glb"));
+    expect(response.status).toBe(404);
+    expect(mocks.inspectStoredUpload).not.toHaveBeenCalled();
+    expect(mocks.openStoredUploadStream).not.toHaveBeenCalled();
+  });
+
   it("serves authorized PDF drawing bytes with private caching and sandbox protection", async () => {
     mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: true });
     mocks.readLocalUpload.mockResolvedValue({ contents: Buffer.from("%PDF-test"), sizeBytes: 9 });

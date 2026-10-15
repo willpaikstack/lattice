@@ -2,7 +2,7 @@ import type { LatticeRequest, UploadedFile } from "./request-model";
 
 export function rfqFileKind(file: Pick<UploadedFile, "name" | "type">) {
   if (/\.(pdf|dwg|dxf|png|jpg|jpeg|webp)$/i.test(file.name) || /pdf|image|drawing|dwg|dxf/i.test(file.type)) return "drawing";
-  if (/\.(step|stp|iges|igs|sldprt|sldasm|x_t|x_b|sat|ipt|iam|3mf|stl|obj)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type)) return "cad";
+  if (/\.(step|stp|iges|igs|sldprt|sldasm|x_t|x_b|sat|ipt|iam|3mf|stl|obj|gltf|glb)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type)) return "cad";
   return "other";
 }
 

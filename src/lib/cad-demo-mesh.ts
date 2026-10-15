@@ -25,7 +25,7 @@ export function toCadDemoModel(
     if (!geometry.getAttribute("normal")) geometry.computeVertexNormals();
 
     const indices = geometry.index?.array;
-    const index = indices ? Array.from(indices, value => Number(value)) : Array.from({ length: position.count }, (_, vertex) => vertex);
+    const index = indices ? Uint32Array.from(indices, value => Number(value)) : Uint32Array.from({ length: position.count }, (_, vertex) => vertex);
     if (index.length < 3) {
       geometry.dispose();
       return;
@@ -40,8 +40,8 @@ export function toCadDemoModel(
       name: object.name || `Mesh ${meshes.length + 1}`,
       color: color ? [color.r, color.g, color.b] : undefined,
       attributes: {
-        position: { array: Array.from(position.array) },
-        ...(normal ? { normal: { array: Array.from(normal.array) } } : {}),
+        position: { array: Float32Array.from(position.array) },
+        ...(normal ? { normal: { array: Float32Array.from(normal.array) } } : {}),
       },
       index: { array: index },
     });

@@ -12,10 +12,15 @@ describe("CAD demo file selection", () => {
     expect(cadDemoFileError(name, 1)).toBeNull();
   });
 
+  it("accepts the full shared 200 MiB allowance and refuses one byte above it", () => {
+    expect(cadDemoFileError("part.step", 200 * 1024 * 1024)).toBeNull();
+    expect(cadDemoFileError("part.step", 200 * 1024 * 1024 + 1)).toContain("200 MB");
+  });
+
   it("rejects unknown, empty, and over-limit files", () => {
     expect(cadDemoFileError("part.sldprt", 10)).toContain("Choose a STEP, IGES, STL, OBJ, glTF, or GLB");
     expect(cadDemoFileError("part.stl", 0)).toContain("empty");
-    expect(cadDemoFileError("part.stl", 50 * 1024 * 1024 + 1)).toContain("smaller than 50 MB");
+    expect(cadDemoFileError("part.stl", 200 * 1024 * 1024 + 1)).toContain("200 MB");
   });
 });
 

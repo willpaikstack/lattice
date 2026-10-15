@@ -6,6 +6,8 @@ import type { AccountAddress } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 import { quoteHasExpired } from "@/lib/quote-validity";
+import { cadDemoFormat } from "@/lib/cad-demo";
+import { LocalCadPreviewButton } from "./saved-local-cad-preview";
 import { processLabel } from "@/lib/rfq-manufacturing";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
@@ -229,7 +231,8 @@ function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][numbe
   const faceTone = index % 2 === 0 ? "bg-[#d8e5f3]" : "bg-[#dfe7dd]";
   const sideTone = index % 2 === 0 ? "bg-[#b8cbe1]" : "bg-[#c2d1bf]";
   const topTone = index % 2 === 0 ? "bg-[#edf3fa]" : "bg-[#eef4ec]";
-  const thumbnailHref = file?.cadPreviewUrn
+  const local = file && Boolean(cadDemoFormat(file.name));
+  const thumbnailHref = !local && file?.cadPreviewUrn
     ? `/api/cad-previews/thumbnail?urn=${encodeURIComponent(file.cadPreviewUrn)}&size=320`
     : null;
 
@@ -250,11 +253,12 @@ function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][numbe
             <div className={`absolute left-5 top-7 h-7 w-10 -skew-y-6 rounded-sm border border-[#8f9ba8] ${faceTone}`} />
             <div className={`absolute left-7 top-4 h-8 w-10 skew-y-[20deg] rounded-sm border border-[#9aa6b2] ${topTone}`} />
             <div className={`absolute left-[3.35rem] top-7 h-8 w-6 skew-y-[20deg] rounded-sm border border-[#8f9ba8] ${sideTone}`} />
-            <span className="absolute bottom-1 left-1 rounded bg-white/85 px-1 py-0.5 text-[8px] font-semibold uppercase text-[#69717c]">Preview pending</span>
+            <span className="absolute bottom-1 left-1 rounded bg-white/85 px-1 py-0.5 text-[8px] font-semibold uppercase text-[#69717c]">{local ? "3D model" : "Preview pending"}</span>
           </>
         )}
       </div>
       <p className="border-t border-[#e4e6ea] px-2 py-1 text-center text-[12px] font-semibold text-[#5f6670]">Rev 1</p>
+      {local && file?.storageKey ? <LocalCadPreviewButton file={file} /> : null}
     </div>
   );
 }

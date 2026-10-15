@@ -16,6 +16,7 @@ import { CadMetadataSummary } from "./cad-metadata-summary";
 import { TargetDatePicker } from "./target-date-picker";
 import { ExportRestrictionsDialog } from "./export-restrictions-dialog";
 import { type UploadDeclaration, uploadRequestDraftFile } from "@/lib/request-draft-upload";
+import { cadDemoFormat } from "@/lib/cad-demo";
 import { refreshCadPreviewState } from "@/lib/cad-preview-status";
 import { preloadAutodeskViewerAssets } from "./autodesk-model-viewer";
 
@@ -759,6 +760,8 @@ function initialCadPreview(
   if (!initialState?.fileName?.trim()) {
     return { status: "empty" };
   }
+
+  if (cadDemoFormat(initialState.fileName)) return { status: "reference_only", fileName: initialState.fileName, message: initialState.fileStorageKey ? "The original CAD file is available for local preview." : "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview." };
 
   const persistedPreview = initialState.cadPreview;
   if (persistedPreview?.status === "processing") {
@@ -2691,7 +2694,9 @@ function LineItemConfigurationCard({
                 </p>
                 <CadMetadataSummary metadata={lineItem.cadMetadata} />
               </div>
-              <CadUploadPreview
+              {(!isCollapsed || !cadDemoFormat(lineItem.fileName)) && <CadUploadPreview
+                file={lineItem.selectedFile ?? undefined}
+                sizeBytes={lineItem.fileSizeBytes}
                 onReplacementFileSelected={(file) =>
                   onCadFileSelected(lineItem.id, file)
                 }
@@ -2699,7 +2704,7 @@ function LineItemConfigurationCard({
                 onMetadata={(metadata) => onCadMetadata(lineItem.id, metadata)}
                 state={lineItem.cadPreview}
                 recovery={{ storageKey: lineItem.fileStorageKey ?? "", ...previewDeclaration }}
-              />
+              />}
             </div>
 
             <div className="mt-5" id={configurationFieldId(lineItem.id, "drawing")}>
@@ -3699,6 +3704,7 @@ export function RequestForm({
   }
 
   function requestCadPreview(file: File, stored: PersistedDraftFile, declaration: UploadDeclaration): Promise<CadUploadPreviewState> {
+    if (cadDemoFormat(file.name)) return Promise.resolve({ status: "reference_only", fileName: file.name, message: "The saved original will open in the local 3D viewer." });
     const pending = pendingCadPreviewsRef.current.get(file);
     if (pending) return pending;
     const operation = (async (): Promise<CadUploadPreviewState> => {
@@ -3728,7 +3734,7 @@ export function RequestForm({
   }
 
   function persistCadFileAndPreview(id: string, file: File, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
-    void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
+    if (!cadDemoFormat(file.name)) void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
     void persistCadDraftUpload(id, file, declaration).then((stored) => {
       if (stored) return startCadPreview(id, file, stored, declaration);
       setLineItems(current => current.map(item => item.id === id && item.selectedFile === file
@@ -3812,7 +3818,7 @@ export function RequestForm({
     setError(null);
     setPreparedModels(current => current.filter(model => model.approved && lineItems.some(item => item.selectedFile === model.file)));
     setStagedCad({ files, targetId });
-    void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
+    if (files.some(file => !cadDemoFormat(file.name))) void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
     // Keep advance processing separate from the customer's unanswered declaration.
     const declaration: UploadDeclaration = { restrictionStatus: "unconfirmed", restrictionPolicyVersion, processingIntent: "advance_cad_preview" };
     files.forEach(file => {

@@ -40,9 +40,9 @@ export default function CadDemoScene({ model }: { model: CadDemoModel }) {
     const group = new THREE.Group();
     for (const mesh of model.meshes) {
       const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute("position", new THREE.Float32BufferAttribute(mesh.attributes.position.array, 3));
-      geometry.setIndex(mesh.index.array);
-      if (mesh.attributes.normal) geometry.setAttribute("normal", new THREE.Float32BufferAttribute(mesh.attributes.normal.array, 3));
+      geometry.setAttribute("position", new THREE.BufferAttribute(mesh.attributes.position.array instanceof Float32Array ? mesh.attributes.position.array : Float32Array.from(mesh.attributes.position.array), 3));
+      geometry.setIndex(new THREE.BufferAttribute(mesh.index.array instanceof Uint32Array ? mesh.index.array : Uint32Array.from(mesh.index.array), 1));
+      if (mesh.attributes.normal) geometry.setAttribute("normal", new THREE.BufferAttribute(mesh.attributes.normal.array instanceof Float32Array ? mesh.attributes.normal.array : Float32Array.from(mesh.attributes.normal.array), 3));
       else geometry.computeVertexNormals();
       // Preserve per-face colors where present, with the mesh color as fallback.
       const colors = [mesh.color ?? [0.57, 0.68, 0.82], ...(mesh.brep_faces ?? []).map(face => face.color ?? mesh.color ?? [0.57, 0.68, 0.82])];
@@ -61,6 +61,7 @@ export default function CadDemoScene({ model }: { model: CadDemoModel }) {
         if (cursor < mesh.index.array.length) geometry.addGroup(cursor, mesh.index.array.length - cursor, 0);
       }
       group.add(new THREE.Mesh(geometry, materials));
+      if (mesh.index.array.length > 600000) continue; // Avoid a second large geometry allocation for optional edge outlines.
       const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 25), new THREE.LineBasicMaterial({ color: 0x334a63, transparent: true, opacity: 0.45 }));
       group.add(edges);
     }
@@ -123,12 +124,13 @@ export default function CadDemoScene({ model }: { model: CadDemoModel }) {
   }, [model]);
 
   return <div>
+    <style>{`.cad-demo-button{border:1px solid #dbe2ec;border-radius:6px;padding:8px 12px;font-size:12px;font-weight:600;color:#24354e;background:white;cursor:pointer}.cad-demo-button:hover,.cad-demo-button[aria-pressed=true]{background:#edf2ff;border-color:#8eaaff}.cad-demo-button:focus-visible{outline:2px solid #2455f5;outline-offset:2px;outline-color:#2563eb}`}</style>
     <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white p-3">
-      <button className="cad-demo-button" onClick={() => actions.current?.fit()}>Fit model</button>
-      <button className="cad-demo-button" onClick={() => actions.current?.fit(new THREE.Vector3(1, -1, 0.8))}>Isometric</button>
-      <button className="cad-demo-button" onClick={() => actions.current?.fit(new THREE.Vector3(0, -1, 0))}>Front</button>
-      <button className="cad-demo-button" onClick={() => actions.current?.fit(new THREE.Vector3(0.001, 0, 1))}>Top</button>
-      <button className="cad-demo-button" aria-pressed={wireframe} onClick={() => { actions.current?.wire(); setWireframe(value => !value); }}>Wireframe {wireframe ? "on" : "off"}</button>
+      <button type="button" className="cad-demo-button" onClick={() => actions.current?.fit()}>Fit model</button>
+      <button type="button" className="cad-demo-button" onClick={() => actions.current?.fit(new THREE.Vector3(1, -1, 0.8))}>Isometric</button>
+      <button type="button" className="cad-demo-button" onClick={() => actions.current?.fit(new THREE.Vector3(0, -1, 0))}>Front</button>
+      <button type="button" className="cad-demo-button" onClick={() => actions.current?.fit(new THREE.Vector3(0.001, 0, 1))}>Top</button>
+      <button type="button" className="cad-demo-button" aria-pressed={wireframe} onClick={() => { actions.current?.wire(); setWireframe(value => !value); }}>Wireframe {wireframe ? "on" : "off"}</button>
     </div>
     {error ? <p role="alert" className="p-8 text-red-700">{error}</p> : <div ref={host} className="h-[440px] w-full overflow-hidden sm:h-[560px]" />}
     <div className="flex flex-wrap justify-between gap-2 border-t border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span>Drag to rotate · Scroll to zoom · Right-drag to pan</span><span aria-label="Model dimensions">{dimensions}</span></div>

@@ -1,6 +1,6 @@
 # TODO
 
-- Compare the admin-only OpenCascade demo against representative synthetic STEP/IGES files and confirm the formats, units, assemblies, and large-file performance needed before considering any Autodesk RFQ-preview replacement. The demo does not need Autodesk conversion capacity.
+- Hybrid local-first RFQ CAD rendering is implemented locally at a shared 200 MiB cap. Browser/build verification passes (633 tests); record release status and test representative large/complex models on lower-memory devices. Local failures preserve originals and do not fall back to Autodesk. Restore APS account capacity for unsupported native types.
 
 ## Hosted release blockers — 2026-10-13
 

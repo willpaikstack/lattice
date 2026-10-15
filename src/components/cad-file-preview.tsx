@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
+import { cadDemoFormat } from "@/lib/cad-demo";
 import type { UploadedFile } from "@/lib/request-model";
 
 function fileExtension(name: string) {
@@ -28,7 +29,7 @@ export function CadRenderThumbnail({
   const accent = seed % 3 === 0 ? "#2563eb" : seed % 3 === 1 ? "#0f9d68" : "#7c3aed";
   const notchX = 56 + (seed % 8);
   const bossX = 94 + (seed % 10);
-  const thumbnailHref = file?.cadPreviewUrn
+  const thumbnailHref = file?.cadPreviewUrn && !cadDemoFormat(file.name)
     ? `/api/cad-previews/thumbnail?urn=${encodeURIComponent(file.cadPreviewUrn)}&size=320`
     : null;
   const [failedThumbnailHref, setFailedThumbnailHref] = useState<string | null>(null);

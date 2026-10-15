@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildDraftRequest, submitDraftRequest } from "@/lib/request-model";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("next/dynamic", () => ({ default: () => ({ url, name }: { url?: string; name?: string }) => url ? <div data-testid="pdf-preview" aria-label={`Drawing preview: ${name}`} data-source={url} /> : <p>CAD viewer</p> }));
+vi.mock("./saved-local-cad-preview", () => ({ SavedLocalCadPreview: ({ file }: { file: { name: string } }) => <p>Local CAD model: {file.name}</p> }));
 import { AdminRfqDetail } from "./admin-rfq-detail";
 afterEach(() => vi.unstubAllGlobals());
 function request() {
@@ -19,14 +20,15 @@ function request() {
 describe("AdminRfqDetail", () => {
   it("retries the selected saved original and explains an Autodesk capacity refusal", async () => {
     const input = request();
+    input.files = input.files.map(file => file.name === "bracket.step" ? { ...file, name: "bracket.sldprt", storageKey: "rfq/test/bracket.sldprt" } : file);
     input.intakeDeclaration = { restrictionStatus: "unrestricted", policyVersion: "overseas-intake-2026-10-12", endUse: "prototype", endUseNotes: "" };
     const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ error: "Autodesk conversion capacity is unavailable." }), { status: 500 }));
     vi.stubGlobal("fetch", fetchMock);
     render(<AdminRfqDetail request={input} />);
     fireEvent.click(screen.getByRole("button", { name: "Retry CAD preview" }));
     expect(await screen.findByText("Autodesk conversion capacity is unavailable.")).toBeInTheDocument();
-    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toMatchObject({ storageKey: "rfq/test/bracket.step", restrictionStatus: "unrestricted", reuseExisting: true });
-    expect(screen.getByRole("link", { name: "bracket.step" })).toBeInTheDocument();
+    expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toMatchObject({ storageKey: "rfq/test/bracket.sldprt", restrictionStatus: "unrestricted", reuseExisting: true });
+    expect(screen.getByRole("link", { name: "bracket.sldprt" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Retry CAD preview" })).toBeEnabled();
   });
   it("shows saved manufacturing requirements, full notes and the correct file for each part", () => {

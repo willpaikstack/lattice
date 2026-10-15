@@ -1,5 +1,19 @@
 # Decisions
 
+## 2026-10-15 - Use Local CAD Rendering First at the Shared 200 MiB Limit
+
+Decision: STEP/STP, IGES/IGS, STL, OBJ, embedded glTF and self-contained GLB use OpenCascade/Three.js throughout customer intake, draft reopening and customer/admin RFQ review. Other accepted native types continue through Autodesk. User explicitly selected “Keep the original; show a preview error” for local failures, with no Autodesk retry or automatic fallback. Increase the demo/local processing cap to match the existing RFQ 200 MiB per-file cap (UI says 200 MB); this supersedes the earlier 50 MiB cap decision.
+
+Implementation: share parser/scene code, parse in abortable workers with a two-minute timeout, serialize conversions and transfer compact geometry buffers. Retrieve saved originals only through the existing role/company-authorized app route (read=1 streams privately). Preserve independent original-file storage/submission regardless of preview success. Local previews do not expose admin data or read an admin route. Do not assign physical millimeter measurements to unitless STL/OBJ; only save trustworthy normalized bounding-box metadata. Use View 3D to load saved customer models on demand; no replacement APS thumbnails are generated for local-supported files. No database migration is required.
+
+## 2026-10-15 - Expand Customer CAD Intake Formats
+
+Decision: accept STL, OBJ, glTF and GLB in customer CAD intake. Intended preview routing is browser-side local rendering for formats supported by the CAD demo and Autodesk only for unsupported formats. The extension allowlist is implemented; customer preview routing remains follow-up work. Keep the separate 50 MiB local processing cap until representative browser memory/performance testing supports a change; customer uploads remain capped at 200 MiB.
+
+Reason: let customers submit common mesh and glTF deliverables while avoiding Autodesk conversion for formats Lattice can inspect in the browser.
+
+Implications: `.gltf` preview requires embedded buffers/textures, otherwise sidecar assets cannot be resolved through the current single-file flow. A local parse failure for a supported extension should preserve the original file and report an unavailable preview rather than silently send that type to Autodesk. Files above the local processing limit need an explicit no-preview state unless browser performance is validated at a higher limit.
+
 ## 2026-10-15 - Isolate an OpenCascade CAD Viewer Demo
 
 Decision: add a separate, admin-only `/admin/cad-viewer` demo using locally hosted `occt-import-js` WebAssembly and Three.js. Restrict its initial format support to STEP/IGES, keep file parsing and geometry in the browser, and leave the production RFQ viewer on Autodesk Platform Services while comparing coverage and reliability.

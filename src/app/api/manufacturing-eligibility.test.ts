@@ -32,8 +32,17 @@ describe("server upload eligibility gates", () => {
     const storageRoute = await import("./request-draft-files/route");
     const previewRoute = await import("./cad-previews/route");
     expect((await storageRoute.POST(fakeRequest)).status).toBe(201);
-    expect((await previewRoute.POST(fakeRequest)).status).toBe(202);
-    expect(mocks.save).toHaveBeenCalledOnce(); expect(mocks.translate).toHaveBeenCalledWith(file);
+    expect((await previewRoute.POST(fakeRequest)).status).toBe(200);
+    expect(mocks.save).toHaveBeenCalledOnce(); expect(mocks.translate).not.toHaveBeenCalled();
+  });
+  it("keeps eligible native formats on Autodesk", async () => {
+    const file = new File(["synthetic geometry"], "test.sldprt");
+    const form = new FormData(); form.set("file", file);
+    form.set("restrictionStatus", "unrestricted"); form.set("restrictionPolicyVersion", restrictionPolicyVersion);
+    mocks.translate.mockResolvedValue({ status: "processing", urn: "synthetic" });
+    const { POST } = await import("./cad-previews/route");
+    expect((await POST({ formData: async () => form } as Request)).status).toBe(202);
+    expect(mocks.translate).toHaveBeenCalledWith(file);
   });
   it("rejects an obsolete policy even with a no-restrictions declaration", async () => {
     const form = new FormData();

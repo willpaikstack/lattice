@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ stor
     const contentDisposition = `${disposition}; filename="${fileName.replace(/[^\x20-\x7e]/g, "_")}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
     // PDF.js must fetch readable bytes. Stream previews on the authenticated app
     // origin so a storage redirect/CORS/browser block cannot break the viewer.
-    if (disposition === "inline" && contentType === "application/pdf") {
+    if (url.searchParams.get("read") === "1" || (disposition === "inline" && contentType === "application/pdf")) {
       const stored = await inspectStoredUpload(storageKey);
       const stream = await openStoredUploadStream(storageKey);
       return new Response(stream, { headers: {

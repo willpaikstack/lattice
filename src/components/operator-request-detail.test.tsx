@@ -282,7 +282,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getAllByText("Unit price").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Line total").length).toBeGreaterThan(0);
     expect(screen.getByText("$76.04/ea")).toBeInTheDocument();
-    expect(screen.getAllByText("Preview pending").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("3D model").length).toBeGreaterThan(0);
     const fileLinks = screen.getAllByRole("link", { name: "mounting-bracket.step" });
     expect(fileLinks[0]).toHaveAttribute(
       "href",

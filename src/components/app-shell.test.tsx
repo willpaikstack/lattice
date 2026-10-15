@@ -455,6 +455,7 @@ describe("AppShell", () => {
             "/admin/support",
             "/admin/material-inquiries",
             "/admin/resources",
+            "/admin/cad-viewer",
           ],
         }),
       );

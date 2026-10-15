@@ -9,6 +9,8 @@ import type { LatticeRequest, UploadedFile } from "@/lib/request-model";
 import { groupAdminRfqFiles, rfqFileHref, rfqFileKind } from "@/lib/admin-rfq-package";
 import { processLabel } from "@/lib/rfq-manufacturing";
 import type { CadUploadPreviewState } from "./cad-upload-preview";
+import { cadDemoFormat } from "@/lib/cad-demo";
+import { SavedLocalCadPreview } from "./saved-local-cad-preview";
 import { refreshCadPreviewState } from "@/lib/cad-preview-status";
 
 const PdfViewer = dynamic(() => import("./drawing-pdf-preview").then(module => module.DrawingPdfPreview), { ssr: false, loading: () => <p>Loading drawing…</p> });
@@ -74,7 +76,7 @@ function SavedCadPreview({ file, request }: { file: UploadedFile; request: Latti
 }
 function SavedFilePreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
   const href = rfqFileHref(file, true);
-  if (rfqFileKind(file) === "cad") return <SavedCadPreview file={file} request={request} />;
+  if (rfqFileKind(file) === "cad") return cadDemoFormat(file.name) ? <SavedLocalCadPreview file={file} /> : <SavedCadPreview file={file} request={request} />;
   if (href && /\.pdf$/i.test(file.name)) return <PdfViewer url={href} name={file.name} />;
   if (href && /\.(png|jpg|jpeg|webp)$/i.test(file.name)) {
     // The authorized local-file endpoint supplies the stored drawing bytes.
