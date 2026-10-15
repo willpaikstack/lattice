@@ -1,6 +1,6 @@
 # TODO
 
-- Hybrid local-first RFQ CAD rendering is implemented locally at a shared 200 MiB cap. Browser/build verification passes (633 tests); record release status and test representative large/complex models on lower-memory devices. Local failures preserve originals and do not fall back to Autodesk. Restore APS account capacity for unsupported native types.
+- Hybrid local-first RFQ CAD rendering is released as dpl_9ifRDmjCSFqabD7AVpEMDEs1i6rY at a shared 200 MiB cap. Browser/build verification passes (633 tests); test representative large/complex models on lower-memory devices. Local failures preserve originals and do not fall back to Autodesk. Restore APS account capacity for unsupported native types.
 
 ## Hosted release blockers — 2026-10-13
 
