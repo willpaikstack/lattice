@@ -16,6 +16,8 @@ import type { OverseasVendor } from "@/lib/admin-vendors";
 import { quotedLineForRequestItem, type LatticeRequest } from "@/lib/request-model";
 import adminStyles from "./admin-workspace.module.css";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
+import { TargetDatePicker } from "./target-date-picker";
+import { CustomSelect } from "./custom-select";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
@@ -415,6 +417,8 @@ function AdminQuoteWorkbench({
   const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
   const currentShopName = selectedShopNameFromRequest(request) || overseasVendors[0]?.name || "China supplier team";
   const shopOptions = vendorShopOptions(overseasVendors, currentShopName);
+  const [shippingTerms, setShippingTerms] = useState(request.quote.shippingTerms || "");
+  const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState(request.quote.estimatedDeliveryDate || "");
   const [selectedShippingMethod, setSelectedShippingMethod] = useState(request.quote.shippingMethod || defaultShippingMethod);
   const [quoteLinePrices, setQuoteLinePrices] = useState(() => Object.fromEntries(request.lineItems.map((item) => [item.id, lineItemUnitPriceInput(request, item)])));
   const [shippingPrice, setShippingPrice] = useState(formatCurrencyInput(request.quote.shippingCostCents));
@@ -501,6 +505,8 @@ function AdminQuoteWorkbench({
                       setQuoteLinePrices(Object.fromEntries(request.lineItems.map((item) => [item.id, lineItemUnitPriceInput(request, item)])));
                       setQuoteLineLeadTimeValues(Object.fromEntries(request.lineItems.map((item) => [item.id, String(lineItemLeadTimeInput(request, item) ?? "")])));
                       setShippingPrice(formatCurrencyInput(request.quote.shippingCostCents));
+                      setShippingTerms(request.quote.shippingTerms || "");
+                      setEstimatedDeliveryDate(request.quote.estimatedDeliveryDate || "");
                       setSelectedShippingMethod(request.quote.shippingMethod || defaultShippingMethod);
                       setQuoteValidUntil(isEditingIssuedQuote ? defaultQuoteValidUntil(request, quoteCreatedDate) : calculateQuoteValidUntil(todayIsoDate()));
                       onDirty(false);
@@ -840,52 +846,25 @@ function AdminQuoteWorkbench({
                         placeholder="Billed at actual or 125.00"
                       />
                     </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Shipping speed
-                      <select
-                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        name="shippingMethod"
-                        onChange={(event) => setSelectedShippingMethod(event.currentTarget.value)}
-                        value={selectedShippingMethod}
-                      >
-                        <option value="International">International</option>
-                        <option value="Domestic">Domestic</option>
-                      </select>
-                    </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Shipping terms
-                      <select
-                        className="h-11 rounded-md border border-[#d9d9d9] bg-white px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.shippingTerms}
-                        name="shippingTerms"
-                      >
-                        <option value="">Select terms</option>
-                        <option value="EXW">EXW</option>
-                        <option value="DDP">DDP</option>
-                        <option value="Determined at Checkout">Determined at Checkout</option>
-                        <option value="DAP">DAP</option>
-                        <option value="FOB">FOB</option>
-                      </select>
-                    </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Estimated delivery date
-                      <input
-                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        defaultValue={request.quote.estimatedDeliveryDate}
-                        name="estimatedDeliveryDate"
-                        type="date"
-                      />
-                    </label>
-                    <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                      Quote valid until
-                      <input
-                        className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
-                        name="quoteValidUntil"
-                        readOnly
-                        type="date"
-                        value={quoteValidUntil}
-                      />
-                    </label>
+                    <div>
+                      <input type="hidden" name="shippingMethod" value={selectedShippingMethod} />
+                      <CustomSelect label="Shipping speed" value={selectedShippingMethod} options={[
+                        { value: "International", label: "International" },
+                        { value: "Domestic", label: "Domestic" },
+                      ]} onChange={(value) => { setSelectedShippingMethod(value); onDirty(); }} />
+                    </div>
+                    <div>
+                      <input type="hidden" name="shippingTerms" value={shippingTerms} />
+                      <CustomSelect label="Shipping terms" value={shippingTerms} placeholder="Select terms" options={[
+                        { value: "", label: "Select terms" },
+                        ...["EXW", "DDP", "Determined at Checkout", "DAP", "FOB"].map((value) => ({ value, label: value })),
+                      ]} onChange={(value) => { setShippingTerms(value); onDirty(); }} />
+                    </div>
+                    <TargetDatePicker label="Estimated delivery date" description={null} name="estimatedDeliveryDate" value={estimatedDeliveryDate}
+                      onChange={(value) => { setEstimatedDeliveryDate(value); onDirty(); }} />
+                    <TargetDatePicker label="Quote valid until" description="Defaults to 15 business days after the quote issue date. Adjust as needed."
+                      name="quoteValidUntil" value={quoteValidUntil} allowClear={false}
+                      onChange={(value) => { setQuoteValidUntil(value); onDirty(); }} />
                     <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
                       Customer note
                       <textarea

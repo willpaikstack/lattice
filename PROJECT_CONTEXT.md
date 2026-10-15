@@ -1,5 +1,7 @@
 # Project Context
 
+Quote preparation controls (2026-10-15): Estimated delivery date and Quote valid until use the shared customer calendar; Shipping speed/Shipping terms use shared custom selects. Expiration retains its 15-business-day default but supports a validated operator override through issuance and persisted quote versions.
+
 CAD viewer presentation restoration (2026-10-15): local CAD rendering keeps the prior compact 320px rounded viewport, top-right orientation cube/Home and floating bottom inspection toolbar. Local replacements provide surface point-to-point Measure (mm/in or explicit model units), multi-mesh Explode and X/Y/Z section clipping. Demo text-button rows and the duplicated visible dimension footer are removed; intake keeps the separate envelope metadata. Screenshot capture remains an unmodified isometric view and excludes tool overlays. Local tools operate on tessellated surfaces; sections do not generate solid caps or CAD edge/face snapping.
 
 Local CAD screenshots (2026-10-15): supported local viewer formats now capture a 384px isometric PNG. Screenshots use private storage sidecars keyed by the original file, with original-file authorization on every read/write. Intake, reopened saved models, quote list/detail and draft continuation share the images; legacy missing thumbnails generate serially in the browser on demand. Draft promotion copies available screenshots. No database schema change or APS conversion is required.

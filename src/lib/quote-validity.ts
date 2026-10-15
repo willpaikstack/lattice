@@ -13,6 +13,16 @@ export function quoteValidUntil(issuedOn: string) {
   return date.toISOString().slice(0, 10);
 }
 
+/** Keep the calculated default while allowing an explicit operator-selected expiry. */
+export function resolveQuoteValidUntil(issuedOn: string, selectedDate?: string) {
+  const defaultDate = quoteValidUntil(issuedOn);
+  if (!selectedDate) return defaultDate;
+  try { quoteValidUntil(selectedDate); }
+  catch { throw new Error("Select a valid quote expiration date."); }
+  if (selectedDate < issuedOn) throw new Error("Quote expiration cannot be before the quote issue date.");
+  return selectedDate;
+}
+
 export function quoteHasExpired(request: LatticeRequest, now = new Date()) {
   const expiry = request.customerQuotes.at(-1)?.validUntil || request.quote.quoteValidUntil;
   return !expiry || expiry < now.toISOString().slice(0, 10);

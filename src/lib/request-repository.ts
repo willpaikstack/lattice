@@ -1,5 +1,5 @@
 import { queueCustomerLifecycleEmail } from "./customer-lifecycle-email";
-import { quoteValidUntil, assertQuoteCanBePurchased } from "./quote-validity";
+import { resolveQuoteValidUntil, assertQuoteCanBePurchased } from "./quote-validity";
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import { isMockDataMode } from "./data-mode";
@@ -379,7 +379,7 @@ export async function saveCustomerQuoteForRequest(
     throw new Error("Only active RFQs can receive customer quotes");
   }
 
-  input = { ...input, validUntil: quoteValidUntil(input.quoteDate), notes: current.requiresQualityApproval && !input.notes.includes("Customer Admin quality approval is required before shipment.") ? `${input.notes.trim()}\nCustomer Admin quality approval is required before shipment.`.trim() : input.notes };
+  input = { ...input, validUntil: resolveQuoteValidUntil(input.quoteDate, input.validUntil), notes: current.requiresQualityApproval && !input.notes.includes("Customer Admin quality approval is required before shipment.") ? `${input.notes.trim()}\nCustomer Admin quality approval is required before shipment.`.trim() : input.notes };
 
   const nextStatus = "QUOTED" as const;
 

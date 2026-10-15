@@ -1,6 +1,6 @@
 "use server";
 import { processLabel } from "@/lib/rfq-manufacturing";
-import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
+import { resolveQuoteValidUntil, quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
 import { revalidatePath } from "next/cache";
 
@@ -103,8 +103,10 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     if (!["", "EXW", "DDP", "Determined at Checkout", "DAP", "FOB"].includes(shippingTerms)) throw new QuoteValidationError("Select valid shipping terms.");
     const quoteCreatedDate = getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10);
     let quoteValidUntil: string;
-    try { quoteValidUntil = calculateQuoteValidUntil(quoteCreatedDate); }
+    try { calculateQuoteValidUntil(quoteCreatedDate); }
     catch { throw new QuoteValidationError("Select a valid quote issue date."); }
+    try { quoteValidUntil = resolveQuoteValidUntil(quoteCreatedDate, getString(formData, "quoteValidUntil")); }
+    catch (error) { throw new QuoteValidationError(error instanceof Error ? error.message : "Select a valid quote expiration date."); }
     const estimatedDeliveryDate = getString(formData, "estimatedDeliveryDate");
     if (estimatedDeliveryDate) {
       try { calculateQuoteValidUntil(estimatedDeliveryDate); }

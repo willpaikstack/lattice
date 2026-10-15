@@ -1611,3 +1611,7 @@ Admin queue displays submission date/time in America/New_York with seasonal time
 ## 2026-10-14 — Keep drawing requirements structured and PDF previews authenticated
 
 Persist selected drawing-dependent feature flags in manufacturing JSON metadata and enforce these plus selected inspection requirements. Treat customer notes as prose; only exact legacy generated requirement lines remain a compatibility fallback when structured flags are absent. Restore saved flags when reopening an RFQ. Stream authorized PDF previews through the app origin so browser storage redirects cannot prevent PDF.js from reading bytes; retain signed redirects for original downloads.
+
+## 2026-10-15 — Quote preparation controls and editable expiration
+
+Reuse the customer intake calendar and custom dropdown components in Prepare customer quote. Quote expiration defaults to the existing 15-weekday calculation, but an operator can select a different valid date on/after the issue date. The issuance action and repository preserve that selection in both the quote snapshot and version; omitted dates retain the calculated default. Explicit reissue still starts with a fresh calculated default. This supersedes the mandatory fixed 15-weekday rule for operator-prepared quotes.

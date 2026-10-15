@@ -164,7 +164,7 @@ Also update `PROJECT_CONTEXT.md`, `DECISIONS.md`, or `TODO.md` when the change a
 ## 2026-10-08 — Customer audit implementation (local; production pending)
 
 - RFQ: optional pre-shipment quality approval, persisted drafts shared within a company, private draft file references, explicit CAD/drawing part association. Legacy unscoped draft files require re-upload.
-- Quotes: new/reissued validity is 15 weekdays; expired payment attempts are blocked. Needs-information RFQs accept in-app clarification and revised drawings, retain dated history, and return to review.
+- Quotes: new/reissued validity defaults to 15 weekdays; operators can select an expiration on/after the issue date with the shared calendar, and the selected date persists in the quote snapshot/version. Expired payment attempts are blocked. Needs-information RFQs accept in-app clarification and revised drawings, retain dated history, and return to review.
 - Checkout: initial method is credit card. PO, company carrier billing and unreviewed exemption are unavailable; terms, delivery and compliance snapshots save on the server. Payment ownership, idempotency, USD/amount checks are enforced. Live configuration and shipping/tax finalization are still required; see the separate checkout audit.
 - Orders: original/quality downloads where bytes exist; missing bytes explicitly unavailable. Customer Admin quality approval and Lattice compliance review hold shipment. `/admin/orders/[requestId]` supports real inspection-document upload and review notes. Customer/admin PDFs use saved annual invoice records and actual payment amounts.
 - `/admin/support`: persistent order-help and RFQ-clarification queue, with outstanding lifecycle email delivery visible. Support uses support@latticeos.co without an SLA promise.
@@ -309,3 +309,5 @@ RFQ verification update (2026-10-14): the hosted intake → admin-review path wa
 ### RFQ audit repair release — 2026-10-14
 
 Customer quote detail shows each saved part's process (issued quote lines still take precedence). PDF drawings load through an authenticated same-origin stream in admin review. Drawing validation and reopened forms use structured selected requirements, with exact generated-line support for legacy records. Admin CAD review offers a saved-original retry and explains APS capacity refusals. The six AH conversions remain blocked by `ProductAccessRequiresCapacity`; William must restore Autodesk APS/Flex capacity. Persisted URN/dimension backfill after recovery remains follow-up. Release and verification: `audits/rfq-audit-repairs-2026-10-14.md`.
+
+- 2026-10-15: Prepare customer quote uses the shared customer calendar for Estimated delivery date and editable Quote valid until, and shared custom dropdowns for Shipping speed/Shipping terms. Shipping values and lead-time calculations are unchanged. Custom selections participate in unsent-edit warnings and submit as named form fields; new/reissued expiration defaults to 15 business days.

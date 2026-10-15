@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -22,7 +22,14 @@ const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const months = Array.from({ length: 12 }, (_, i) => new Date(2026, i, 1).toLocaleDateString("en-US", { month: "long" }));
 const controlClass = "rounded-md p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400";
 
-export function TargetDatePicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function TargetDatePicker({ value, onChange, label = "Target delivery date (optional)", description = "Your preferred arrival date. We’ll confirm the delivery schedule in your quote.", name, allowClear = true }: {
+  value: string;
+  onChange: (value: string) => void;
+  label?: string;
+  description?: ReactNode;
+  name?: string;
+  allowClear?: boolean;
+}) {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -95,7 +102,8 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
   }
   const today = dateKey(new Date());
   return <div ref={rootRef} className="min-w-0">
-    <label id={`${id}-label`} className="mb-2 block text-sm font-medium text-slate-700">Target delivery date (optional)</label>
+    {name ? <input type="hidden" name={name} value={value} /> : null}
+    <label id={`${id}-label`} className="mb-2 block text-sm font-medium text-slate-700">{label}</label>
     <button ref={triggerRef} type="button" aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-calendar` : undefined}
       onClick={() => { setActive(dateKey(selected ?? new Date())); setOpen(!open); }}
       onKeyDown={event => { if (event.key === "Escape") close(true); if (event.key === "ArrowDown") { event.preventDefault(); setActive(dateKey(selected ?? new Date())); setOpen(true); } }}
@@ -103,8 +111,8 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
       <span id={`${id}-value`} className={selected ? "text-slate-950" : "text-slate-400"}>{selected ? selected.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Select a date"}</span>
       <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-500" />
     </button>
-    <p className="mt-2 text-xs leading-5 text-slate-500">Your preferred arrival date. We’ll confirm the delivery schedule in your quote.</p>
-    {open && position ? createPortal(<div ref={popupRef} id={`${id}-calendar`} role="dialog" aria-label="Choose target delivery date" style={position}
+    {description ? <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p> : null}
+    {open && position ? createPortal(<div ref={popupRef} id={`${id}-calendar`} role="dialog" aria-label={`Choose ${label.toLowerCase().replace(" (optional)", "")}`} style={position}
       onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(true); } }}
       className="fixed z-[110] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-[0_12px_36px_rgba(15,23,42,0.14)] sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-1">
@@ -128,7 +136,7 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
         })}</div>)}
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-        <button type="button" onClick={() => choose("")} className={`${controlClass} text-sm`}>Clear date</button>
+        {allowClear ? <button type="button" onClick={() => choose("")} className={`${controlClass} text-sm`}>Clear date</button> : <span />}
         <button type="button" onClick={() => choose(today)} className="rounded-lg bg-[#171717] px-3 py-2 text-sm font-medium text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">Today</button>
       </div>
     </div>, document.body) : null}
