@@ -382,3 +382,5 @@ Quote preparation simplification release: source a17ffd6/9a3b1fd is live at latt
 Admin RFQ queue grouping (2026-10-16): Active now renders two distinct tables: Submitted RFQs (SUBMITTED/NEEDS_INFO/READY_FOR_SUPPLIER_RFQ) and Customer quotes issued (QUOTED). Shared search/stage/owner filters apply to both. The Submitted RFQs metric excludes issued quotes; Drafts and Archive retain their views. No request statuses or records change.
 
 Admin queue split release verified (2026-10-16): source 7cf4ad8 is live as dpl_BxaCczsSFJSQ1jYSbCThyiv3BMFG. Genuine admin view shows Submitted RFQs 15 and Customer quotes issued 2, with 17 distinct RFQ detail links. Search, issued-stage filtering, Drafts and Archive pass browser checks; unfiltered Active restored. No request data changed.
+
+Quote submissions summary cards removed (2026-10-16): the page now opens with queue tabs/search/filters and the separate submitted/issued tables. Counts remain in the table headings and view tabs.

@@ -4,7 +4,7 @@ import { processLabel, readTargetDeliveryDate } from "@/lib/rfq-manufacturing";
 
 import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
-import { ChevronDown, Clock3, ExternalLink, FileCheck2, FileText, Inbox, Search, X } from "lucide-react";
+import { ChevronDown, ExternalLink, FileText, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { KeyboardEvent } from "react";
@@ -1065,12 +1065,6 @@ export function AdminQuoteManagement({
 
   const activeRequests = quoteRequests.filter((request) => adminQuoteStatusGroup(request) !== "ARCHIVED");
   const owners = [...new Set(quoteRequests.map((request) => request.operatorReview.assignedOwner).filter((owner): owner is string => Boolean(owner)))].sort();
-  const summaryCards = [
-    { label: "Submitted RFQs", count: activeRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_REQUESTED").length, detail: "In review; customer quote not issued", icon: Inbox },
-    { label: "Needs information", count: activeRequests.filter((r) => r.status === "NEEDS_INFO").length, detail: "Waiting on customer clarification", icon: Clock3 },
-    { label: "Supplier ready", count: activeRequests.filter((r) => r.status === "READY_FOR_SUPPLIER_RFQ").length, detail: "Ready to send to suppliers", icon: FileText },
-    { label: "Customer quote issued", count: activeRequests.filter((r) => r.status === "QUOTED").length, detail: "Awaiting a customer decision", icon: FileCheck2 },
-  ];
   const queueGroups = view === "ACTIVE" ? [
     { key: "submitted", title: "Submitted RFQs", description: "Received requests in review, awaiting a customer quote.", emptyTitle: "No submitted RFQs match this view", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_REQUESTED") },
     { key: "issued", title: "Customer quotes issued", description: "Quotes sent to customers, awaiting their decision.", emptyTitle: "No issued quotes match this view", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_RECEIVED") },
@@ -1085,14 +1079,6 @@ export function AdminQuoteManagement({
 
   return (
     <div className="space-y-5">
-      <section aria-label="Quote operations summary" className={adminStyles.metrics}>
-        {summaryCards.map(({ label, count, detail, icon: Icon }) => (
-          <article className={adminStyles.metric} key={label}>
-            <span className={adminStyles.metricIcon}><Icon aria-hidden="true" size={20} strokeWidth={1.7} /></span>
-            <div><p>{label}</p><strong>{count}</strong><span>{detail}</span></div>
-          </article>
-        ))}
-      </section>
       <div className={styles.toolbar}>
         <div className={styles.viewTabs} aria-label="Quote queue views">
           {(["ACTIVE", "DRAFTS", "ARCHIVED"] as const).map((tab) => <button type="button" key={tab} aria-pressed={view === tab} onClick={() => { setView(tab); setStageFilter("ALL"); setOwnerFilter("ALL"); closeDetail(); }}>{tab === "ACTIVE" ? `Active (${activeRequests.length})` : tab === "DRAFTS" ? `Drafts (${draftRequests.length})` : `Archive (${quoteRequests.length - activeRequests.length})`}</button>)}
