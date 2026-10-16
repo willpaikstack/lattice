@@ -321,3 +321,5 @@ Customer quote detail shows each saved part's process (issued quote lines still 
 ### Quote preparation simplification — 2026-10-16
 
 The quote workbench omits the embedded Active RFQs list and uses its full available width. Review queue, global navigation and the quote-summary rail remain. Shop name is optional with No shop selected; unassigned records do not default to the first directory vendor. Quote commercial requirements remain enforced.
+
+Quote preparation simplification release verified 2026-10-16: dpl_8SsFm13ehsEEd6BffUjSdNCCPhMo (a17ffd6/9a3b1fd). Hosted RFQ A7476 shows No shop selected, a non-required selector and zero embedded RFQ navigation panels; global navigation and the customer quote summary remain. No quote mutation.
