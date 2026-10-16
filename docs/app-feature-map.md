@@ -327,3 +327,5 @@ Quote preparation simplification release verified 2026-10-16: dpl_8SsFm13ehsEEd6
 ### Admin queue split by issuance — 2026-10-16
 
 Active Quote submissions displays separate Submitted RFQs and Customer quotes issued tables, each with a heading, matching count, empty state and RFQ detail links. Submitted includes SUBMITTED, NEEDS_INFO and READY_FOR_SUPPLIER_RFQ; issued includes QUOTED. Search/stage/owner filters apply across both. The first summary metric is Submitted RFQs and excludes issued quotes; Active tab still totals both groups. Drafts/Archive remain separate. No database/status mutation.
+
+Admin queue split released and verified 2026-10-16: dpl_BxaCczsSFJSQ1jYSbCThyiv3BMFG, source 7cf4ad8. Current active counts are 15 submitted and 2 issued with no duplicated RFQ links. Shared search/stage filters and separate Drafts/Archive views verified; active filters restored.
