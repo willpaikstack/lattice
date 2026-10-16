@@ -204,6 +204,16 @@ describe("requests API QC", () => {
     );
   });
 
+  it("uses current server-resolved shipping and billing defaults instead of stale or forged draft values", async () => {
+    const { POST } = await import("./route");
+    mocks.state.session = { user: { email: "buyer@test.example", id: "buyer_1", name: "Buyer", role: "customer", companyId: "company_test", companyName: "Test Company" } };
+    mocks.contactSnapshotFromAccountSettings.mockReturnValueOnce({ shipToAddress1: "Updated shipping", shipToCompany: "Test Company", requesterPhone: "555-0102" });
+    mocks.getAccountSettings.mockResolvedValueOnce({ billingAddress: { address1: "Updated billing" }, billing: { email: "ap@test.example", invoiceRoutingNotes: "Route to AP" } });
+    const response = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...validInput(), contact: { shipToAddress1: "Old draft shipping" }, billingSnapshot: { address: { address1: "Forged billing" }, contact: { email: "forged@test.example" } } }) }));
+    expect(response.status).toBe(201);
+    expect(mocks.createSubmittedRequest).toHaveBeenLastCalledWith(expect.objectContaining({ contact: expect.objectContaining({ shipToAddress1: "Updated shipping" }), billingSnapshot: expect.objectContaining({ address: expect.objectContaining({ address1: "Updated billing" }), contact: expect.objectContaining({ email: "ap@test.example" }) }) }), { buyerCompanyId: "company_test", requireDatabase: true });
+  });
+
   it("does not let an unassigned customer submit an RFQ into an unowned company", async () => {
     const { POST } = await import("./route");
     mocks.state.session = {

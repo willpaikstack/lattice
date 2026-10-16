@@ -18,6 +18,7 @@ beforeEach(() => {
     lineItems: [{ partName: "Bracket", quantity: 3, material: "6061-T6 Aluminum" }],
     files: [{ name: "bracket.step", sizeBytes: 2048, type: "model/step" }],
   })), id: "req_test" };
+  request.quote = { ...request.quote, shippingCostCents: 1250, shippingTerms: "DDP", estimatedDeliveryDate: "2026-11-10", leadTimeDays: 7, summary: "Manufacture to the supplied drawing." };
   mocks.params = new URLSearchParams("requestId=req_test&view=quote");
 });
 async function prepare(action = vi.fn()) {

@@ -1,3 +1,4 @@
+import { readRequestBillingSnapshot, type RequestBillingSnapshot } from "./request-billing";
 import type { IntakeDeclaration, ManufacturingDetails } from "./rfq-manufacturing";
 export type RequestStatus = "DRAFT" | "SUBMITTED" | "NEEDS_INFO" | "READY_FOR_SUPPLIER_RFQ" | "QUOTED" | "PURCHASED" | "CLOSED";
 
@@ -72,6 +73,7 @@ export type RequestContactSnapshot = {
 };
 
 export type DraftRequestInput = {
+  billingSnapshot?: RequestBillingSnapshot | null;
   intakeDeclaration?: IntakeDeclaration;
   buyerCompany?: string;
   contact?: Partial<RequestContactSnapshot>;
@@ -264,6 +266,7 @@ export type OperatorReview = {
 };
 
 export type LatticeRequest = {
+  billingSnapshot?: RequestBillingSnapshot | null;
   id: string;
   buyerCompany: string;
   buyerCompanyId?: string | null;
@@ -388,6 +391,7 @@ export function buildDraftRequest(input: DraftRequestInput): LatticeRequest {
     guestAccessTokenExpiresAt: input.guestAccessTokenExpiresAt ?? null,
     guestAccessTokenHash: input.guestAccessTokenHash?.trim() ?? "",
     requestOrigin: input.requestOrigin ?? "ACCOUNT",
+    billingSnapshot: readRequestBillingSnapshot(input.billingSnapshot),
     requesterEmail: contact.requesterEmail,
     requesterName: text(input.requesterName),
     requesterPhone: contact.requesterPhone,

@@ -1,3 +1,4 @@
+import { billingSnapshotFromAccountSettings } from "@/lib/request-billing";
 import { validateSubmissionShape } from "@/lib/rfq-submission-validation";
 import { validateManufacturingIntake } from "@/lib/rfq-manufacturing";
 import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
@@ -86,9 +87,10 @@ async function withAccountDefaults(input: DraftRequestInput): Promise<DraftReque
     ...input,
     // Resolve the display name on the server; ownership comes from the session company ID.
     buyerCompany: settings.companyName,
+    billingSnapshot: billingSnapshotFromAccountSettings(settings),
     contact: {
-      ...defaults,
       ...(input.contact ?? {}),
+      ...defaults,
     },
   };
 }

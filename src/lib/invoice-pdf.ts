@@ -1,3 +1,4 @@
+import { requestBillToLines } from "./request-billing";
 import type { Invoice } from "@prisma/client";
 import { createRequire } from "node:module";
 
@@ -185,7 +186,7 @@ export function orderInvoicePdfFileName(order: LatticeRequest) {
 
 function invoiceInputForOrder(order: LatticeRequest): InvoicePdfInput {
   const invoiceDate = orderedDate(order);
-  const billToLines = [order.requesterName, order.buyerCompany, order.requesterEmail, order.requesterPhone].map(safeText).filter(Boolean);
+  const billToLines = requestBillToLines(order).map(safeText).filter(Boolean);
   const shipToLines = requestShipToLines({
     shipToAddress1: order.shipToAddress1,
     shipToAddress2: order.shipToAddress2,

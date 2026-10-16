@@ -14,6 +14,7 @@ const purchasedRequest = {
   requesterName: "Test Buyer",
   requesterEmail: "will@latticeos.co",
   requesterPhone: "",
+  billingSnapshot: { address: { name: "Accounts Payable", company: "Lattice Test Co", address1: "77 Billing Way", address2: "Suite 2", city: "New York", state: "NY", zipCode: "10016" }, contact: { email: "ap@test.example", invoiceRoutingNotes: "Reference PO" } },
   shipToAddress1: "1 Test St",
   shipToAddress2: "",
   shipToCity: "New York",
@@ -66,5 +67,6 @@ describe("invoice repository", () => {
 
     expect(create.mock.calls[0][0].data.customerPo).toBe("QA-PO-1047");
     expect(invoice.customerPo).toBe("QA-PO-1047");
+    expect(create.mock.calls[0][0].data.billToSnapshot).toEqual(["Accounts Payable", "Lattice Test Co", "77 Billing Way", "Suite 2", "New York, NY 10016", "ap@test.example"]);
   });
 });

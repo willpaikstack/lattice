@@ -1,3 +1,4 @@
+import { readRequestBillingSnapshot } from "./request-billing";
 import { readIntakeDeclaration, readManufacturingDetails } from "./rfq-manufacturing";
 import type { DraftRequestInput, LatticeRequest } from "./request-model";
 import { buildDraftRequest, submitDraftRequest } from "./request-model";
@@ -40,6 +41,7 @@ export const storedRequestInclude = {
 } as const;
 
 export type StoredRequest = {
+  billingSnapshot?: unknown;
   intakeDeclaration?: unknown;
   id: string;
   title: string;
@@ -280,6 +282,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput, optio
 
   return {
     title: submitted.title,
+    ...(submitted.billingSnapshot ? { billingSnapshot: submitted.billingSnapshot } : {}),
     ...(submitted.intakeDeclaration ? { intakeDeclaration: submitted.intakeDeclaration } : {}),
     process: submitted.process,
     dueDate: toDueDate(submitted.dueDate),
@@ -379,6 +382,7 @@ export function buildSubmittedRequestCreateInput(input: DraftRequestInput, optio
 export function mapStoredRequest(stored: StoredRequest): LatticeRequest {
   return {
     id: stored.id,
+    billingSnapshot: readRequestBillingSnapshot(stored.billingSnapshot),
     buyerCompany: stored.buyerCompany?.name ?? "Unknown buyer",
     buyerCompanyId: stored.buyerCompanyId,
     guestAccessTokenExpiresAt: stored.guestAccessTokenExpiresAt?.toISOString() ?? null,

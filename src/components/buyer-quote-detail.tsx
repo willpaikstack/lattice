@@ -1,3 +1,4 @@
+import { RequestBillingAddress } from "./request-billing-address";
 import Link from "next/link";
 import { ArrowLeft, CircleDot, Download, Mail, Phone, User } from "lucide-react";
 
@@ -257,7 +258,7 @@ function fileDownloadHref(file: LatticeRequest["files"][number] | undefined) {
 
 function quoteShippingAddressLines(request: LatticeRequest, savedShippingAddress?: AccountAddress) {
   const hasCompleteSnapshot = Boolean(request.shipToAddress1 && request.shipToCity && request.shipToState && request.shipToZipCode);
-  const shippingSource = hasCompleteSnapshot || !savedShippingAddress
+  const shippingSource = request.status !== "DRAFT" || hasCompleteSnapshot || !savedShippingAddress
     ? {
         shipToAddress1: request.shipToAddress1,
         shipToAddress2: request.shipToAddress2,
@@ -628,15 +629,13 @@ export function BuyerQuoteDetail({
                   ))}
                 </p>
               ) : null}
-              <Link
+              {request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ" ? <Link
                 className="mt-3 inline-flex text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]"
-                href={request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ"
-                  ? `/account/settings?edit=shipping&request=${encodeURIComponent(request.id)}`
-                  : "/account/settings?edit=shipping"}
-              >
-                Change
-              </Link>
+                href={`/account/settings?edit=shipping&request=${encodeURIComponent(request.id)}`}
+              >Change</Link> : null}
             </div>
+
+            <RequestBillingAddress request={request} />
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Your dedicated account manager</p>

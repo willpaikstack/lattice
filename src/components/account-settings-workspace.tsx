@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { ClerkPasswordEditor } from "@/components/clerk-password-editor";
+import Link from "next/link";
 import { ProfilePictureEditor } from "@/components/profile-picture-editor";
 import {
   defaultAccountSettings,
   type AccountAddress,
   type AccountSettingsSnapshot,
+  type AccountSettingsField,
   type BillingContact,
   type EmailVerificationStatus,
 } from "@/lib/account-settings-shared";
@@ -55,7 +56,7 @@ function Notice({ children, error = false }: { children: React.ReactNode; error?
 
 function verification(status: EmailVerificationStatus, date: string) {
   if (status === "verified" && date) return `Verified on ${date}`;
-  if (status === "verified") return "Email verified.";
+  if (status === "verified" || status === "verification-date-unavailable") return "Email verified.";
   if (status === "not-verified") return "Email is not verified.";
   return "Verification status is temporarily unavailable.";
 }
@@ -106,7 +107,7 @@ export function AccountSettingsWorkspace({
 }: {
   cardCheckoutAvailable?: boolean;
   initialSettings?: AccountSettingsSnapshot;
-  saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<AccountSettingsSnapshot>;
+  saveSettingsAction?: (settings: AccountSettingsSnapshot, field: AccountSettingsField) => Promise<AccountSettingsSnapshot>;
   deferInitialAddressOnboardingAction?: () => Promise<void>;
   updateRequestShippingAddressAction?: (requestId: string, address: AccountAddress) => Promise<void>;
   updateDisplayNameAction?: (name: string) => Promise<{ name: string }>;
@@ -123,8 +124,10 @@ export function AccountSettingsWorkspace({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [skipping, setSkipping] = useState(false);
+  const [saving, setSaving] = useState(false);
   const canManage = Boolean(settings.canManageCompany);
-  const canSetup = canManage || Boolean(settings.canCompleteInitialAddressOnboarding);
+  const canSetup = canManage || Boolean(settings.canManageCompanyDefaults) || Boolean(settings.canCompleteInitialAddressOnboarding);
+  const canEditPersonal = settings.canEditPersonalProfile !== false;
   const initials = settings.name.split(/\s+/).filter(Boolean).map((name) => name[0]).join("").slice(0, 2).toUpperCase() || "A";
   const showOnboardingDialog = onboarding && canSetup && (editing === "shipping" || editing === "billingAddress");
 
@@ -138,7 +141,12 @@ export function AccountSettingsWorkspace({
     if (field === "billing") setBillingDraft(settings.billing);
   };
   const cancel = () => { setEditing(null); setError(""); };
-  async function persist(next: AccountSettingsSnapshot) { const saved = await saveSettingsAction(next); setSettings(saved); return saved; }
+  async function persist(next: AccountSettingsSnapshot, field: AccountSettingsField) {
+    setSaving(true);
+    setError("");
+    try { const saved = await saveSettingsAction(next, field); setSettings(saved); router.refresh(); return saved; }
+    finally { setSaving(false); }
+  }
   async function skipOnboarding() {
     if (!deferInitialAddressOnboardingAction) return router.replace("/dashboard");
     setSkipping(true);
@@ -153,27 +161,31 @@ export function AccountSettingsWorkspace({
   }
   async function saveText(field: "name" | "phone" | "company") {
     const value = draft.trim();
-    if (!value) return setError("This field cannot be blank.");
+    if (!value && field !== "phone") return setError("This field cannot be blank.");
     try {
       if (field === "name" && updateDisplayNameAction) {
+        setSaving(true);
         const updated = await updateDisplayNameAction(value);
-        await persist({ ...settings, name: updated.name });
-      } else await persist({ ...settings, [field === "company" ? "companyName" : field]: value });
+        setSettings({ ...settings, name: updated.name });
+        router.refresh();
+      } else await persist({ ...settings, [field === "company" ? "companyName" : field]: value }, field === "company" ? "companyName" : field);
       setEditing(null);
       setMessage("Saved.");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this change."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this change."); } finally { setSaving(false); }
   }
   async function saveAddress(field: "shipping" | "billingAddress") {
     const next = Object.fromEntries(Object.entries(addressDraft).map(([key, value]) => [key, value.trim()])) as AccountAddress;
     if (!completeAddress(next)) return setError("Name, company, address, city, state, and ZIP code are required.");
     try {
+      setSaving(true);
+      setError("");
       if (field === "shipping" && requestId && updateRequestShippingAddressAction) {
         await updateRequestShippingAddressAction(requestId, next);
         setSettings({ ...settings, shipping: next });
         router.replace(`/quotes/${encodeURIComponent(requestId)}`);
         return;
       }
-      const saved = await persist({ ...settings, [field]: next });
+      const saved = await persist({ ...settings, [field]: next }, field);
       if (onboarding && field === "shipping") {
         setAddressDraft(fillMissingAddressFields(saved.billingAddress, saved.shipping));
         setEditing("billingAddress");
@@ -183,12 +195,12 @@ export function AccountSettingsWorkspace({
       setEditing(null);
       setMessage(onboarding ? "Addresses saved. Taking you to your workspace." : "Company address saved.");
       if (onboarding) router.replace("/dashboard");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this address."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this address."); } finally { setSaving(false); }
   }
   async function saveBilling() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingDraft.email)) return setError("Enter a valid billing email address.");
-    try { await persist({ ...settings, billing: billingDraft }); setEditing(null); setMessage("Billing contact saved."); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save billing contact."); }
+    try { await persist({ ...settings, billing: billingDraft }, "billing"); setEditing(null); setMessage("Billing contact saved."); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save billing contact."); }
   }
 
-  return <><div aria-hidden={showOnboardingDialog} className="mx-auto max-w-[1040px] space-y-5"><header><h1 className="text-[28px] font-semibold tracking-tight text-[#182231]">Account settings</h1><p className="mt-1 text-[14px] leading-6 text-[#5f6673]">Manage your profile and operational company defaults.</p></header>{message ? <Notice>{message}</Notice> : null}<div className="grid gap-5 xl:grid-cols-[.72fr_1.28fr]"><aside className="space-y-5"><ProfilePictureEditor initials={initials} initialImageUrl={settings.profileImageUrl} initialPreset={settings.avatarPreset} /><Card><CardTitle title="Account Summary" detail="Current workspace access." /><div className="space-y-4 p-6"><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Role</p><p className="mt-1 font-semibold">{settings.roleLabel || "Customer Member"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Account</p><p className="mt-1 font-semibold">{settings.companyName || "No company assigned"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Currency</p><p className="mt-1 font-semibold">USD</p></div></div></Card></aside><div className="space-y-5"><Card><CardTitle title="Personal Information" detail="Contact details shown on RFQs, quotes, and order communication." /><Row label="Name" action={<Button onClick={() => start("name", settings.name)}>Edit name</Button>}>{editing === "name" ? <div className="space-y-3"><Input label="Name" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("name")} cancel={cancel} error={error} /></div> : <><p>{settings.name}</p><p className="text-[#737b86]">{settings.accountCreatedAt ? `Account created on ${settings.accountCreatedAt}` : "Account creation date unavailable."}</p></>}</Row><Row label="Phone" action={<Button onClick={() => start("phone", settings.phone)}>Edit phone</Button>}>{editing === "phone" ? <div className="space-y-3"><Input label="Phone number" value={draft} setValue={setDraft} type="tel" /><SaveCancel save={() => saveText("phone")} cancel={cancel} error={error} /></div> : <p>{settings.phone || "Not provided."}</p>}</Row></Card><Card><CardTitle title="Account Security" detail="Sign-in details are sourced from Clerk." /><Row label="Email"><p>{settings.email}</p><p className="mt-1 text-[12px] font-medium text-[#008f72]">{verification(settings.emailVerificationStatus, settings.emailVerifiedAt)}</p><p className="mt-2 text-[12px] text-[#737b86]">To change your sign-in email, contact <a className="font-semibold text-[#3b5bdb]" href="mailto:support@latticeos.co?subject=Email%20address%20change%20request">Lattice support</a>.</p></Row><Row label="Password"><ClerkPasswordEditor /></Row><Row label="Buyer company" action={canManage ? <Button onClick={() => start("company", settings.companyName)}>Edit company</Button> : undefined}>{editing === "company" ? <div className="space-y-3"><Input label="Buyer company" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("company")} cancel={cancel} error={error} /></div> : <><p>{settings.companyName || "Not configured."}</p><p className="text-[#737b86]">Company details are managed by Lattice Admin.</p></>}</Row><Row label="Payments"><p className="font-semibold">{cardCheckoutAvailable ? "Card payments available for eligible quotes" : "Card checkout is currently unavailable"}</p><p className="text-[#737b86]">{cardCheckoutAvailable ? "Pay for an issued quote by card through Stripe’s secure checkout. Saved-card management is not enabled." : "Lattice is completing payment setup. Contact support@latticeos.co about purchasing; saved-card management is not enabled."}</p></Row></Card><Card><CardTitle title="Manufacturing Account Defaults" detail="Shared company shipping and billing defaults." />{!canSetup ? <p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">Lattice Admin manages company defaults. You can update shipping for an individual quote from that quote’s shipping panel.</p> : null}<Row label="Shipping" action={canSetup || requestId ? <Button onClick={() => start("shipping")}>Edit shipping</Button> : undefined}>{editing === "shipping" && !showOnboardingDialog ? <AddressEditor value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("shipping")} cancel={cancel} error={error} /> : <AddressValue value={settings.shipping} />}</Row><Row label="Billing address" action={canSetup ? <Button onClick={() => start("billingAddress")}>Edit billing address</Button> : undefined}>{editing === "billingAddress" && !showOnboardingDialog ? <AddressEditor value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("billingAddress")} cancel={cancel} error={error} /> : <AddressValue value={settings.billingAddress} />}</Row><Row label="Billing contact" action={canSetup ? <Button onClick={() => start("billing")}>Edit billing</Button> : undefined}>{editing === "billing" ? <div className="space-y-3"><Input label="Billing email" value={billingDraft.email} setValue={(email) => setBillingDraft({ ...billingDraft, email })} type="email" /><label className="block text-[13px] font-semibold">Invoice notes<textarea className="mt-2 w-full rounded-md border p-3" onChange={(event) => setBillingDraft({ ...billingDraft, invoiceRoutingNotes: event.target.value })} value={billingDraft.invoiceRoutingNotes} /></label><SaveCancel save={saveBilling} cancel={cancel} error={error} /></div> : <>{settings.billing.email ? <p>{settings.billing.email}</p> : <p className="text-[#737b86]">Not configured.</p>}{settings.billing.invoiceRoutingNotes ? <p className="mt-1 text-[#737b86]">{settings.billing.invoiceRoutingNotes}</p> : null}</>}</Row></Card><Card><CardTitle title="Team access" detail="Company users are managed by Lattice Admin." /><p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">For access changes, contact Lattice support. Customer-admin team management is planned for a future release.</p></Card></div></div></div>{showOnboardingDialog ? <AddressOnboardingDialog error={error} field={editing} save={() => saveAddress(editing)} setValue={setAddressDraft} skip={skipOnboarding} value={addressDraft} /> : null}{skipping ? <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45"><p className="rounded-md bg-white px-4 py-3 text-sm font-medium shadow">Skipping address setup…</p></div> : null}</>;
+  return <fieldset aria-busy={saving} className="min-w-0 border-0 p-0" disabled={saving}><div aria-hidden={showOnboardingDialog} className="mx-auto max-w-[1040px] space-y-5"><header><h1 className="text-[28px] font-semibold tracking-tight text-[#182231]">Account settings</h1><p className="mt-1 text-[14px] leading-6 text-[#5f6673]">Manage your profile and operational company defaults.</p></header>{saving ? <p role="status" className="text-sm text-[#5f6673]">Saving changes…</p> : null}{message ? <Notice>{message}</Notice> : null}<div className="grid gap-5 xl:grid-cols-[.72fr_1.28fr]"><aside className="space-y-5">{canEditPersonal ? <ProfilePictureEditor initials={initials} initialImageUrl={settings.profileImageUrl} initialPreset={settings.avatarPreset} /> : <Notice>Personal profile editing is unavailable in a support session.</Notice>}<Card><CardTitle title="Account Summary" detail="Current workspace access." /><div className="space-y-4 p-6"><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Role</p><p className="mt-1 font-semibold">{settings.roleLabel || "Customer Member"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Company</p><p className="mt-1 font-semibold">{settings.companyName || "No company assigned"}</p></div></div></Card></aside><div className="space-y-5"><Card><CardTitle title="Personal Information" detail="Contact details shown on RFQs, quotes, and order communication." /><Row label="Name" action={canEditPersonal ? <Button onClick={() => start("name", settings.name)}>Edit name</Button> : undefined}>{editing === "name" ? <div className="space-y-3"><Input label="Name" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("name")} cancel={cancel} error={error} /></div> : <><p>{settings.name}</p><p className="text-[#737b86]">{settings.accountCreatedAt ? `Account created on ${settings.accountCreatedAt}` : "Account creation date unavailable."}</p></>}</Row><Row label="Phone" action={canEditPersonal ? <Button onClick={() => start("phone", settings.phone)}>Edit phone</Button> : undefined}>{editing === "phone" ? <div className="space-y-3"><Input label="Phone number" value={draft} setValue={setDraft} type="tel" /><SaveCancel save={() => saveText("phone")} cancel={cancel} error={error} /></div> : <p>{settings.phone || "Not provided."}</p>}</Row></Card><Card><CardTitle title="Account Security" detail="Sign-in details are sourced from Clerk." /><Row label="Email"><p>{settings.email}</p><p className="mt-1 text-[12px] font-medium text-[#008f72]">{verification(settings.emailVerificationStatus, settings.emailVerifiedAt)}</p><p className="mt-2 text-[12px] text-[#737b86]">To change your sign-in email, contact <a className="font-semibold text-[#3b5bdb]" href="mailto:support@latticeos.co?subject=Email%20address%20change%20request">Lattice support</a>.</p></Row><Row label="Password"><p className="text-[#737b86]">Use a secure reset link to choose a new password.</p>{canEditPersonal ? <Link className="mt-2 inline-flex rounded-md border border-[#cfd5dd] px-3 py-2 text-[13px] font-semibold text-[#3b5bdb]" href={`/forgot-password?email=${encodeURIComponent(settings.email)}`}>Reset password</Link> : null}</Row><Row label="Buyer company" action={canManage ? <Button onClick={() => start("company", settings.companyName)}>Edit company</Button> : undefined}>{editing === "company" ? <div className="space-y-3"><Input label="Buyer company" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("company")} cancel={cancel} error={error} /></div> : <><p>{settings.companyName || "Not configured."}</p><p className="text-[#737b86]">Company details are managed by Lattice Admin.</p></>}</Row><Row label="Payments"><p className="font-semibold">{cardCheckoutAvailable ? "Card payments available for eligible quotes" : "Card checkout is currently unavailable"}</p><p className="text-[#737b86]">{cardCheckoutAvailable ? "Pay for an issued quote by card through Stripe’s secure checkout. Saved-card management is not enabled." : "Lattice is completing payment setup. Contact support@latticeos.co about purchasing; saved-card management is not enabled."}</p></Row></Card><Card><CardTitle title="Manufacturing Account Defaults" detail="Shared company defaults for new quote requests. Existing quotes and orders keep their saved addresses and billing contact." />{!canSetup ? <p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">Customer Admins and Lattice Admins manage company defaults. You can update shipping for an individual quote from that quote’s shipping panel.</p> : null}<Row label="Shipping" action={canSetup || requestId ? <Button onClick={() => start("shipping")}>Edit shipping</Button> : undefined}>{editing === "shipping" && !showOnboardingDialog ? <AddressEditor value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("shipping")} cancel={cancel} error={error} /> : <AddressValue value={settings.shipping} />}</Row><Row label="Billing address" action={canSetup ? <Button onClick={() => start("billingAddress")}>Edit billing address</Button> : undefined}>{editing === "billingAddress" && !showOnboardingDialog ? <AddressEditor value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("billingAddress")} cancel={cancel} error={error} /> : <AddressValue value={settings.billingAddress} />}</Row><Row label="Billing contact" action={canSetup ? <Button onClick={() => start("billing")}>Edit billing</Button> : undefined}>{editing === "billing" ? <div className="space-y-3"><Input label="Billing email" value={billingDraft.email} setValue={(email) => setBillingDraft({ ...billingDraft, email })} type="email" /><label className="block text-[13px] font-semibold">Invoice notes<textarea className="mt-2 w-full rounded-md border p-3" onChange={(event) => setBillingDraft({ ...billingDraft, invoiceRoutingNotes: event.target.value })} value={billingDraft.invoiceRoutingNotes} /></label><SaveCancel save={saveBilling} cancel={cancel} error={error} /></div> : <>{settings.billing.email ? <p>{settings.billing.email}</p> : <p className="text-[#737b86]">Not configured.</p>}{settings.billing.invoiceRoutingNotes ? <p className="mt-1 text-[#737b86]">{settings.billing.invoiceRoutingNotes}</p> : null}</>}</Row></Card><Card><CardTitle title="Team access" detail="Company users are managed by Lattice Admin." /><p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">For access changes, contact Lattice support. Customer-admin team management is planned for a future release.</p></Card></div></div></div>{showOnboardingDialog ? <AddressOnboardingDialog error={error} field={editing} save={() => saveAddress(editing)} setValue={setAddressDraft} skip={skipOnboarding} value={addressDraft} /> : null}{skipping ? <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45"><p className="rounded-md bg-white px-4 py-3 text-sm font-medium shadow">Skipping address setup…</p></div> : null}</fieldset>;
 }

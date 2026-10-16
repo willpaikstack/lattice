@@ -35,6 +35,7 @@ let current: LatticeRequest;
 function quoteForm(overrides: Record<string, string> = {}) {
   return form({ requestId: current.id, status: "QUOTED", quoteCreatedDate: "2026-10-13",
     shippingMethod: "International", shippingTerms: "DDP", shippingCost: "12.25",
+    estimatedDeliveryDate: "2026-11-10", quoteValidUntil: "2026-11-03", quoteSummary: "Manufacture to the supplied drawing; DDP delivery included.",
     [`unitPrice:${current.lineItems[0].id}`]: "10.25", [`leadTimeDays:${current.lineItems[0].id}`]: "7", ...overrides });
 }
 function decisionForm(overrides: Record<string, string> = {}) {
@@ -53,7 +54,7 @@ describe("admin quote issuance", () => {
     expect(mocks.saveCustomerQuoteForRequest).not.toHaveBeenCalled();
   });
   it.each(["0", "-3", "2.5", "7days"])("rejects invalid lead time %s", async (value) => {
-    expect(await updateAdminQuoteStatusAction(quoteForm({ [`leadTimeDays:${current.lineItems[0].id}`]: value }))).toEqual({ error: expect.stringContaining("Lead times") });
+    expect(await updateAdminQuoteStatusAction(quoteForm({ [`leadTimeDays:${current.lineItems[0].id}`]: value }))).toEqual({ error: expect.stringContaining("positive whole-number lead time") });
     expect(mocks.saveCustomerQuoteForRequest).not.toHaveBeenCalled();
   });
   it.each(["DRAFT", "CLOSED", "PURCHASED"] as const)("rejects %s RFQs", async (status) => {
@@ -80,9 +81,17 @@ describe("admin quote issuance", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/quotes/${current.id}`);
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/dashboard");
   });
-  it("keeps blank shipping and lead times optional, and accepts an explicit zero price", async () => {
-    expect(await updateAdminQuoteStatusAction(quoteForm({ shippingCost: "", [`leadTimeDays:${current.lineItems[0].id}`]: "", [`unitPrice:${current.lineItems[0].id}`]: "0" }))).toEqual({ success: true });
-    expect(mocks.saveCustomerQuoteForRequest).toHaveBeenCalledWith(current.id, expect.objectContaining({ estimatedPriceCents: 0, shippingCostCents: null, leadTimeDays: null }), { requireDatabase: true });
+  it("rejects missing commercial fields instead of issuing an incomplete quote", async () => {
+    expect(await updateAdminQuoteStatusAction(quoteForm({ shippingCost: "", [`leadTimeDays:${current.lineItems[0].id}`]: "", [`unitPrice:${current.lineItems[0].id}`]: "0" }))).toEqual({ error: expect.stringContaining("shipping cost") });
+    expect(mocks.saveCustomerQuoteForRequest).not.toHaveBeenCalled();
+  });
+  it("accepts explicit zero unit and shipping prices with complete commercial terms", async () => {
+    expect(await updateAdminQuoteStatusAction(quoteForm({ shippingCost: "0", [`unitPrice:${current.lineItems[0].id}`]: "0" }))).toEqual({ success: true });
+    expect(mocks.saveCustomerQuoteForRequest).toHaveBeenCalledWith(current.id, expect.objectContaining({ estimatedPriceCents: 0, shippingCostCents: 0, leadTimeDays: 7 }), { requireDatabase: true });
+  });
+  it("preserves an explicit expiration override", async () => {
+    expect(await updateAdminQuoteStatusAction(quoteForm({ quoteValidUntil: "2026-11-12" }))).toEqual({ success: true });
+    expect(mocks.saveCustomerQuoteForRequest).toHaveBeenCalledWith(current.id, expect.objectContaining({ validUntil: "2026-11-12" }), { requireDatabase: true });
   });
   it("returns a recoverable error on persistence failure without leaking internals", async () => {
     mocks.saveCustomerQuoteForRequest.mockRejectedValue(new Error("private database credentials"));

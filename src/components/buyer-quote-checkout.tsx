@@ -8,6 +8,7 @@ import { useMemo, useRef, useState } from "react";
 import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import type { AccountAddress, PaymentCard } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
+import { RequestBillingAddress } from "./request-billing-address";
 import { StripeElementsPayment } from "./stripe-elements-payment";
 
 type StripeElementsCheckoutSession = {
@@ -160,14 +161,15 @@ export function BuyerQuoteCheckout({
   const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const latestQuote = request.customerQuotes.at(-1);
-  const deliveryCompany = trimText(shippingAddress?.company) || request.shipToCompany || request.buyerCompany;
-  const deliveryContact = trimText(shippingAddress?.name) || request.shipToName || request.requesterName;
-  const deliveryAddress1 = trimText(shippingAddress?.address1) || request.shipToAddress1;
-  const deliveryAddress2 = trimText(shippingAddress?.address2) || request.shipToAddress2;
-  const deliveryCity = trimText(shippingAddress?.city) || request.shipToCity;
-  const deliveryState = trimText(shippingAddress?.state) || request.shipToState;
-  const deliveryZipCode = trimText(shippingAddress?.zipCode) || request.shipToZipCode;
-  const defaultReceivingPhone = trimText(receivingPhone) || request.shipToPhone || request.requesterPhone;
+  const draftShipping = request.status === "DRAFT" ? shippingAddress : undefined;
+  const deliveryCompany = request.shipToCompany || trimText(draftShipping?.company) || request.buyerCompany;
+  const deliveryContact = request.shipToName || trimText(draftShipping?.name) || request.requesterName;
+  const deliveryAddress1 = request.shipToAddress1 || trimText(draftShipping?.address1);
+  const deliveryAddress2 = request.shipToAddress2 || trimText(draftShipping?.address2);
+  const deliveryCity = request.shipToCity || trimText(draftShipping?.city);
+  const deliveryState = request.shipToState || trimText(draftShipping?.state);
+  const deliveryZipCode = request.shipToZipCode || trimText(draftShipping?.zipCode);
+  const defaultReceivingPhone = request.shipToPhone || request.requesterPhone || (request.status === "DRAFT" ? trimText(receivingPhone) : "");
   const noticeCopy =
     paymentNotice === "canceled"
       ? "Stripe payment was canceled. No order was placed, and you can restart card checkout when ready."
@@ -497,6 +499,7 @@ export function BuyerQuoteCheckout({
                 <h2 className="text-[16px] font-semibold text-[#202020]">Order summary</h2>
                 <p className="mt-1 text-[12px] text-[#7b8088]">{quoteId}</p>
               </div>
+              <RequestBillingAddress request={request} />
               <div className="space-y-4 px-6 py-5">
                 {request.lineItems.map((item) => (
                   <div className="flex gap-3 rounded-md border border-[#eeeeee] bg-[#fafafa] p-3" key={item.id}>

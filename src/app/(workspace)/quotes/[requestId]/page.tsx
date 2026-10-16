@@ -8,7 +8,6 @@ import { getCurrentSession } from "@/lib/session";
 import { notFound, redirect } from "next/navigation";
 
 import { BuyerQuoteDetail } from "@/components/buyer-quote-detail";
-import { getAccountSettings } from "@/lib/account-settings";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +18,7 @@ type BuyerQuoteDetailPageProps = {
 
 export default async function BuyerQuoteDetailPage({ params }: BuyerQuoteDetailPageProps) {
   const { requestId } = await params;
-  const [request, accountSettings] = await Promise.all([
-    getCustomerRequestByIdForCurrentSession(requestId),
-    getAccountSettings(),
-  ]);
+  const request = await getCustomerRequestByIdForCurrentSession(requestId);
 
   if (!request || request.status === "DRAFT") {
     notFound();
@@ -45,7 +41,7 @@ export default async function BuyerQuoteDetailPage({ params }: BuyerQuoteDetailP
   ]);
   return (
     <div className="space-y-5">
-      <BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} savedShippingAddress={accountSettings.shipping} />
+      <BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />
       {expired ? <CustomerQuoteRenewal key={latestQuote?.id ?? request.id} requestId={requestId} quoteVersionId={latestQuote?.id ?? ""} quoteNumber={latestQuote?.quoteNumber ?? requestId} demo={demo} canSubmit={Boolean(latestQuote && (demo || (request.buyerCompanyId && !request.id.startsWith("demo_") && !request.id.startsWith("fixture_"))))} requestedAt={renewal?.createdAt.toISOString()} /> : null}
       {request.status === "NEEDS_INFO" ? <CustomerClarification requestId={requestId} parts={request.lineItems.map((item) => item.partName)} /> : null}
       {replies.length > 0 ? <section className="rounded-lg border bg-white p-5"><h2 className="font-semibold">Clarification history</h2>{replies.map((reply) => <article className="mt-3 border-t pt-3" key={reply.id}><p className="text-xs text-stone-500">{reply.email} · {reply.createdAt.toISOString()}</p><p className="whitespace-pre-wrap">{reply.message}</p></article>)}</section> : null}

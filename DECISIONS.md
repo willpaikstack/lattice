@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-10-15 - Operational Company Defaults and Request Billing Snapshots
+
+William approved Customer Admins and Lattice Admins as editors of shared company shipping, billing-address and billing-contact defaults. Customer Members retain personal editing; company renaming remains Lattice Admin-only. This supersedes the earlier restriction allowing Customer Admin address writes only during initial onboarding.
+
+Persist only the edited field group and derive ownership/permissions on the server. Refresh the shared layout after saves. New RFQ submissions use current server-resolved defaults, including when submitted from an old draft; preserve submitted/issued/purchased request snapshots through display, checkout and invoice creation. Add Request.billingSnapshot JSONB for billing address, AP email and routing notes. Before release, freeze current company billing for existing requests lacking a snapshot; unknown earlier historical values cannot be recovered. Do not alter existing Invoice records.
+
+Clerk remains authoritative for profile images, emoji metadata and credentials. Display the saved avatar in settings and the sidebar; treat Clerk's default image separately from a user upload. Replace in-settings password editing with the existing recovery entry point, and synchronize recovery completion to Clerk and local credentials/audit with atomic one-time token claiming. Account Summary labels the company Company and omits currency. Local verification and release limitations are in docs/audits/account-settings-2026-10-15.md.
+
 ## 2026-10-15 - Preserve the CAD Viewer Presentation Across Renderer Changes
 
 A rendering-engine change must preserve the established compact product viewer instead of bringing the admin demo interface into RFQ workflows. Restore the 320px frame, orientation cube and bottom inspection controls while retaining the local renderer and private screenshot thumbnails. William explicitly requested local equivalents of Measure, Explode and Section. Measure supports approximate surface point-to-point distances with honest physical/model-unit labels; Explode separates independent rendered meshes and is unavailable for a single body; Section clips a chosen X/Y/Z half-space and supports position/reversal. These tools do not reproduce Autodesk CAD feature snapping, geometric entity measurements or capped solid sections.

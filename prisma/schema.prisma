@@ -266,6 +266,7 @@ model AccountDefaults {
 }
 
 model Request {
+  billingSnapshot                 Json?
   intakeDeclaration               Json?
   id                              String                           @id @default(cuid())
   title                           String

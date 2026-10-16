@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { consumePasswordReset } from "@/lib/password-reset";
+import { consumePasswordReset, PasswordResetError } from "@/lib/password-reset";
 
 export async function resetPasswordAction(formData: FormData) {
   const token = String(formData.get("token") ?? "");
@@ -11,8 +11,9 @@ export async function resetPasswordAction(formData: FormData) {
   if (password !== confirmation) redirect(`/reset-password?token=${encodeURIComponent(token)}&error=mismatch`);
   try {
     await consumePasswordReset(token, password);
-  } catch {
-    redirect(`/reset-password?token=${encodeURIComponent(token)}&error=invalid`);
+  } catch (error) {
+    const code = error instanceof PasswordResetError ? error.code : "service";
+    redirect(`/reset-password?token=${encodeURIComponent(token)}&error=${code}`);
   }
   redirect("/login?reset=complete");
 }

@@ -9,6 +9,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { CustomerOnboarding, type CustomerOnboardingState } from "./customer-onboarding";
 import adminStyles from "./admin-workspace.module.css";
 import { LatticeMarkIcon } from "@/components/lattice-brand";
+import { ProfileAvatar, type AvatarState } from "./profile-avatar";
 import { initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
 import { pageTransition } from "@/lib/page-transition";
@@ -489,10 +490,13 @@ function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" 
   );
 }
 
-function ProfileMenu({ user }: { user: { email: string; name: string } }) {
+type ShellProfile = { email: string; name: string; profileImageUrl?: string; avatarPreset?: { colorId: string; presetId: string } | null };
+
+function ProfileMenu({ user }: { user: ShellProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const initials = initialsForName(user.name);
+  const avatar: AvatarState = user.avatarPreset ? { type: "preset", ...user.avatarPreset } : user.profileImageUrl ? { type: "upload", url: user.profileImageUrl } : { type: "initials" };
 
   useEffect(() => {
     if (!isOpen) {
@@ -543,9 +547,7 @@ function ProfileMenu({ user }: { user: { email: string; name: string } }) {
           href="/account/settings"
           onClick={() => setIsOpen(false)}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#171717] text-[12px] font-semibold text-[#ffffff]">
-            {initials}
-          </span>
+          <ProfileAvatar avatar={avatar} initials={initials} size="menu" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[14px] font-semibold leading-5 text-[#303036]">{user.name}</span>
             <span className="block truncate text-[12px] font-medium leading-4 text-[#85858c]">{user.email}</span>
@@ -589,7 +591,7 @@ function PageTransition({
   );
 }
 
-export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onboarding, onboardingPreview = false }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: { email: string; name: string }; supportAdmin?: { name: string }; onboardingPreview?: boolean; onboarding?: CustomerOnboardingState | null }) {
+export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onboarding, onboardingPreview = false }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: ShellProfile; supportAdmin?: { name: string }; onboardingPreview?: boolean; onboarding?: CustomerOnboardingState | null }) {
   const currentPathname = usePathname();
   const pathname = onboardingPreview ? "/dashboard" : currentPathname;
   const router = useRouter();

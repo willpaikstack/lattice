@@ -194,7 +194,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getAllByText("Please upload the latest drawing with thread callouts before we can quote accurately.").length).toBeGreaterThan(0);
   });
 
-  it("fills an incomplete RFQ shipping snapshot from the customer's saved shipping address", () => {
+  it("keeps an incomplete submitted snapshot unchanged when shared defaults later change", () => {
     const request = {
       ...makeSubmittedRequest(),
       shipToAddress1: "",
@@ -219,11 +219,9 @@ describe("BuyerQuoteDetail", () => {
       />,
     );
 
-    expect(screen.getByText("Receiving Team")).toBeInTheDocument();
-    expect(screen.getByText("Lattice Receiving")).toBeInTheDocument();
-    expect(screen.getByText("75 Varick St")).toBeInTheDocument();
-    expect(screen.getByText("Dock 3")).toBeInTheDocument();
-    expect(screen.getByText("New York, NY 10013")).toBeInTheDocument();
+    expect(screen.queryByText("Receiving Team")).not.toBeInTheDocument();
+    expect(screen.queryByText("75 Varick St")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", `/account/settings?edit=shipping&request=${encodeURIComponent(request.id)}`);
   });
 
   it("shows no-quote copy and reason when an RFQ is closed with an operator note", () => {
@@ -305,7 +303,7 @@ describe("BuyerQuoteDetail", () => {
     expect(drawingLinks[0]).toHaveAttribute("download", "mounting-bracket.pdf");
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Shipping address")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", "/account/settings?edit=shipping");
+    expect(screen.queryByRole("link", { name: "Change" })).not.toBeInTheDocument();
     const shippingAddressSection = screen.getByText("Shipping address").closest("div");
     expect(shippingAddressSection).not.toBeNull();
     expect(within(shippingAddressSection as HTMLElement).getByText(checkoutShippingAddress.name)).toBeInTheDocument();
@@ -423,6 +421,7 @@ describe("BuyerQuoteDetail", () => {
     const baseQuotedRequest = makeQuotedRequest();
     const quotedRequest = {
       ...baseQuotedRequest,
+      shipToPhone: "+1 (310) 617-4533",
       quote: {
         ...baseQuotedRequest.quote,
         shippingCostCents: 45800,
@@ -442,7 +441,7 @@ describe("BuyerQuoteDetail", () => {
         placeOrderAction={() => undefined}
         accountsPayableEmail={checkoutBillingContact.email}
         cards={checkoutCards}
-        receivingPhone="+1 (310) 617-4533"
+        receivingPhone="New shared phone"
         shippingAddress={checkoutShippingAddress}
       />,
     );
@@ -657,3 +656,18 @@ describe("SupplierOrderDetail", () => {
 });
 
 vi.mock("@/app/(workspace)/orders/[requestId]/help/actions", () => ({ submitOrderSupport: vi.fn(async () => ({ id: "support_test" })) }));
+
+
+describe("saved billing across customer records", () => {
+  it.each(["quote", "checkout", "order"] as const)("uses the saved address and AP contact in %s instead of current shared defaults", (surface) => {
+    const request = { ...makeQuotedRequest(), shipToAddress2: "", billingSnapshot: { address: { ...checkoutShippingAddress, address1: "77 Saved Billing Way" }, contact: { email: "saved-ap@example.com", invoiceRoutingNotes: "Reference the original PO" } } };
+    if (surface === "quote") render(<BuyerQuoteDetail request={request} />);
+    else if (surface === "checkout") render(<BuyerQuoteCheckout request={request} placeOrderAction={() => undefined} shippingAddress={{ ...checkoutShippingAddress, address1: "New default shipping", address2: "New default suite" }} />);
+    else render(<BuyerOrderDetail order={{ ...request, status: "PURCHASED" }} />);
+    expect(screen.getByText("77 Saved Billing Way")).toBeInTheDocument();
+    expect(screen.getByText("saved-ap@example.com")).toBeInTheDocument();
+    expect(screen.getByText("Reference the original PO")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("New default shipping")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("New default suite")).not.toBeInTheDocument();
+  });
+});
