@@ -416,7 +416,7 @@ function AdminQuoteWorkbench({
   const { bundles, unassignedFiles } = bundledFilesByPart(request);
   const quoteCreatedDate = isEditingIssuedQuote ? todayIsoDate() : defaultQuoteCreatedDate(request);
   const [quoteValidUntil, setQuoteValidUntil] = useState(defaultQuoteValidUntil(request, quoteCreatedDate));
-  const currentShopName = selectedShopNameFromRequest(request) || overseasVendors[0]?.name || "China supplier team";
+  const currentShopName = selectedShopNameFromRequest(request);
   const shopOptions = vendorShopOptions(overseasVendors, currentShopName);
   const [shippingTerms, setShippingTerms] = useState(request.quote.shippingTerms || "");
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState(request.quote.estimatedDeliveryDate || "");
