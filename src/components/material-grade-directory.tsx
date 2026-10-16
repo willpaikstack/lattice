@@ -512,7 +512,7 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
 
                             {profile.machinabilitySourceUrl ? <p className="mt-4 text-[10px] leading-[15px] text-[#73757a]">Machinability reference: <a className="underline underline-offset-2 hover:text-[#404246]" href={profile.machinabilitySourceUrl} rel="noreferrer" target="_blank">{profile.machinabilitySourceLabel}</a>.</p> : null}
 
-                            {!usesFunctionalTraits ? <div className="mt-5 border-t border-[#d9d8d5] pt-4">
+                            {!usesFunctionalTraits ? <div>
                               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><p className="text-[12px] font-semibold text-[#343538]">Reference mechanical properties</p><p className="text-[10px] text-[#73757a]">{selectedCondition ? `${selectedCondition.label} typical values` : mechanicalProperties.condition}</p></div>
                               <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-[4px] border border-[#d6d5d2] bg-[#d6d5d2] md:hidden">
                                 {[
