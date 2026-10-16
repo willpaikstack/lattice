@@ -374,3 +374,5 @@ Production RFQ intake/review audit completed (2026-10-14): four genuine customer
 ## RFQ audit repairs — 2026-10-14
 
 Released customer per-part process fallback, authenticated same-origin PDF preview streaming, and structured drawing-requirement validation/prefill (existing JSON metadata, no migration). Added admin saved-original CAD retry and a specific APS capacity error. Autodesk returns `ProductAccessRequiresCapacity`; newly added credits were Codex credits. William must restore APS/Flex capacity; six AH CAD previews and persisted URN/dimension backfill remain outstanding. Release `dpl_FboVWTNXMVUuxkBmZ1oLvk9ijLDN`. See `docs/audits/rfq-audit-repairs-2026-10-14.md`.
+
+Quote preparation layout (2026-10-16): removed the embedded Active RFQs sidebar from the customer-quote workbench and expanded the editor to its available width. Global navigation, Review queue and the quote summary remain. Shop name is explicitly optional, with a blank No shop selected option; generic unassigned supplier metadata does not appear as a named vendor.

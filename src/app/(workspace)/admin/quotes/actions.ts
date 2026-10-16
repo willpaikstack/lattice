@@ -157,7 +157,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
       lineItems: supplierLineItems,
       notes: "",
       priceCents: supplierLineTotalCents + (shippingCostCents ?? 0),
-      shopName: getString(formData, "supplierQuoteShop").trim() || current.supplierOrder.shopName || "China supplier team",
+      shopName: getString(formData, "supplierQuoteShop").trim() || "China supplier team",
     };
     const lineLeadTimes = lineItems
       .map((item) => item.leadTimeDays)

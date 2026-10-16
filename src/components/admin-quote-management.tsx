@@ -328,7 +328,7 @@ function selectedShopNameFromRequest(request: LatticeRequest) {
   const selectedShop = selectedSupplierQuote(request)?.shopName.trim();
 
   if (selectedShop) {
-    return selectedShop;
+    return selectedShop === "China supplier team" ? "" : selectedShop;
   }
 
   const orderShop = request.supplierOrder.shopName.trim();
@@ -641,13 +641,14 @@ function AdminQuoteWorkbench({
           >
             <fieldset key={String(isReadOnlyIssuedQuote)} className="grid gap-4 lg:grid-cols-3" disabled={isReadOnlyIssuedQuote || isSaving || decisionPending}>
               <label className="grid gap-1 text-[13px] font-semibold text-[#30343a]">
-                Shop name
+                Shop name (optional)
                 <select
                   className="h-11 rounded-md border border-[#d9d9d9] px-3 text-[15px] text-[#202020] outline-none focus:border-[#9b9b9b]"
                   defaultValue={currentShopName}
                   form={quoteResponseFormId}
                   name="supplierQuoteShop"
                 >
+                  <option value="">No shop selected</option>
                   {shopOptions.map((vendor) => (
                     <option key={vendor.value} value={vendor.value}>
                       {vendor.label}
@@ -1070,19 +1071,8 @@ export function AdminQuoteManagement({
     { label: "Supplier ready", count: activeRequests.filter((r) => r.status === "READY_FOR_SUPPLIER_RFQ").length, detail: "Ready to send to suppliers", icon: FileText },
     { label: "Customer quote issued", count: activeRequests.filter((r) => r.status === "QUOTED").length, detail: "Awaiting a customer decision", icon: FileCheck2 },
   ];
-  function prepareQuote(request: LatticeRequest, decision?: RfqDecisionStatus) {
-    setDetailRequest(request);
-    setHasUnsentEdits(false);
-    setIsWorkbench(true);
-    router.push(`${decision ? quoteDecisionHref(request, decision) : quoteDetailHref(request)}&view=quote`, { scroll: false });
-  }
   if (isWorkbench && detailRequest) {
     return <div className={styles.workbenchLayout}>
-      <nav className={styles.workbenchQueue} aria-label="RFQ queue"><button className={styles.textButton} type="button" onClick={closeDetail}>← Review queue</button><h2>Active RFQs</h2>
-        {activeRequests.map((request) => <button key={request.id} aria-current={request.id === detailRequest.id ? "true" : undefined} type="button" onClick={() => {
-          if (request.id !== detailRequest.id && (!hasUnsentEdits || window.confirm("Switch RFQs? Your unsent quote edits will be discarded."))) prepareQuote(request);
-        }}><strong>{request.title}</strong><span>{request.buyerCompany}</span><small>{statusCopy[request.status].label}</small></button>)}
-      </nav>
       <AdminQuoteWorkbench onDirty={(dirty = true) => setHasUnsentEdits(dirty)} key={`${detailRequest.id}:${deepLinkedDecision ?? "quote"}`} initialDecision={deepLinkedDecision} onClose={closeDetail} overseasVendors={overseasVendors} request={detailRequest} updateDecisionAction={updateDecisionAction} updateStatusAction={updateStatusAction} />
     </div>;
   }

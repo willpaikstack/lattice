@@ -50,13 +50,7 @@
 .empty { text-align:center; padding:40px 20px; font-size:13px; color:#7c8591; }
 .empty h2 { color:#293443; font-weight:600; }
 .textButton { color:#3157d5; font-size:12px; font-weight:600; border:0; background:transparent; cursor:pointer; overflow-wrap:anywhere; }
-.workbenchLayout { display:grid; grid-template-columns:200px minmax(0,1fr); gap:18px; align-items:start; }
-.workbenchQueue { background:white; border:1px solid #e0e2e5; border-radius:8px; overflow:hidden; padding:14px 0; }
-.workbenchQueue>.textButton,.workbenchQueue h2 { margin:0 14px 14px; }
-.workbenchQueue h2 { font-size:14px; font-weight:650; margin-top:15px; }
-.workbenchQueue>button:not(.textButton) { display:grid; text-align:left; gap:5px; width:100%; padding:15px 14px; border-top:1px solid #eef0f3; background:white; font-size:12px; }
-.workbenchQueue>button[aria-current="true"] { background:#f0f4ff; box-shadow:inset 3px 0 #3157d5; }
-.workbenchQueue span,.workbenchQueue small { color:#7c8592; font-size:11px; }
+.workbenchLayout { min-width:0; }
 .workbench { min-width:0; }
 .workbenchBody { display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:24px; padding:24px; align-items:start; }
 .editor { min-width:0; }
@@ -74,9 +68,8 @@
 .documentPreview>p { color:#7e8794; margin-bottom:12px; }
 .documentPreview>div { display:flex; gap:10px; justify-content:space-between; border-top:1px solid #eef0f3; padding:9px 0; }
 .documentPreview span:last-child { white-space:nowrap; color:#78818e; }
-.toolbar button:focus-visible,.primaryButton:focus-visible,.textButton:focus-visible,.workbenchQueue button:focus-visible,.decisionActions button:focus-visible { outline:2px solid #3157d5; outline-offset:3px; }
-@media (max-width:1500px) { .workbenchLayout { grid-template-columns:170px minmax(0,1fr); gap:12px; } .workbenchBody { grid-template-columns:minmax(0,1fr) 250px; gap:16px; padding:18px; } }
-@media (max-width:1200px) { .workbenchLayout { display:block; } .workbenchQueue { display:none; } }
+.toolbar button:focus-visible,.primaryButton:focus-visible,.textButton:focus-visible,.decisionActions button:focus-visible { outline:2px solid #3157d5; outline-offset:3px; }
+@media (max-width:1500px) { .workbenchBody { grid-template-columns:minmax(0,1fr) 250px; gap:16px; padding:18px; } }
 @media (max-width:1000px) { .workbenchBody { grid-template-columns:1fr; } .quoteSummary { position:static; } .inspector { padding:20px; } }
 @media (max-width:600px) { .filters { width:100%; } .search { width:100%; } .search input { width:100%; } .commercialFields { grid-template-columns:1fr; } .viewTabs button { padding:10px; } .workbenchBody { padding:14px; } }
 /* Keep the pricing table usable when the app sidebar reduces available space. */
@@ -87,7 +80,6 @@
 .editor form[enctype="multipart/form-data"]>label>span:nth-child(2)>span:first-child { font-size:15px; line-height:1.5; }
 .editor form[enctype="multipart/form-data"]>label>span:nth-child(2)>span:nth-child(2) { font-size:11px; font-weight:400; }
 .editor :is(input,select,textarea):focus-visible,.filters :is(input,select):focus-visible { outline:2px solid #3157d5; outline-offset:2px; }
-@media (max-width:1550px) { .workbenchLayout { display:block; } .workbenchQueue { display:none; } }
 @media (max-width:600px) { .editor fieldset { grid-template-columns:1fr; } }
 
 .editor .quoteFields { display:block; min-width:0; border:0; padding:0; margin:0; }

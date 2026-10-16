@@ -1631,3 +1631,7 @@ Operators must provide a unit price and positive whole-day lead time for every p
 ## 2026-10-15 — Signed-in recovery and linked company billing
 
 Account settings recovery is bound to the signed-in Clerk identity's verified primary email, including server-side request and token-completion checks. Public signed-out recovery remains available through mailbox-controlled single-use tokens. Same-as-shipping is an explicit persisted preference: copy authoritative shared shipping on enablement and subsequent shipping saves, serialize address writes, and preserve existing request/invoice snapshots. Billing contact is independent. City/state/ZIP suggestions use bundled U.S. postal data with manual entry always available; full street-search/provider validation is not connected.
+
+## 2026-10-16 — Keep quote preparation focused on one RFQ
+
+Remove the embedded Active RFQs list from quote preparation, keeping global navigation and Review queue. Supplier shop selection is optional and starts blank when unassigned; do not implicitly select the first vendor or restore an older named vendor when the operator explicitly leaves the choice blank. Existing supplier-order placeholder metadata remains available for the downstream workflow.
