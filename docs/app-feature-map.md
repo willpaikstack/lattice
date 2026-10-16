@@ -339,3 +339,5 @@ Summary-card removal released and browser-verified 2026-10-16 as dpl_4LeAnUKpDHd
 ### Admin Companies and Users — 2026-10-16
 
 Renamed Customers to Companies in the admin sidebar, directory title, search/filter labels, creation button and profile breadcrumb. Existing /admin/customers routes and workflows remain. Added /admin/users with all provisioned platform users, including Lattice Admins and users without a company. Read-only name/email, role, company-profile link, sign-in setup and creation date; search and role/company filters include empty/reset states. Lattice Admin authorization is checked before private queries in both page and server-only data access. Only explicit display DTOs reach the client; no password, recovery or provider identifiers.
+
+Users/Companies released 2026-10-16 as dpl_Hy9864p5ChTfLEqxviRUy8VdqpDH (b6c8a9a). Hosted Admin directory shows all six accounts; email search, Customer Member role, no-company filtering and empty/reset state verified. Companies browser title/header/breadcrumb/sidebar and Users navigation verified. Genuine Customer Admin access is denied with dashboard redirect.
