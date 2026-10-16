@@ -7,3 +7,5 @@ export type StreetAddressSuggestion = {
   zipCode: string;
   label: string;
 };
+
+export type StreetLookupFailure = "not_configured" | "credentials" | "quota" | "unavailable";

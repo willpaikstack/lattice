@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireRouteRole } from "@/lib/route-authorization";
 import { usStates } from "@/lib/us-address-options";
-import type { StreetAddressSuggestion } from "@/lib/street-address";
+import type { StreetAddressSuggestion, StreetLookupFailure } from "@/lib/street-address";
 
 const headers = { "Cache-Control": "private, no-store" };
 
@@ -16,13 +16,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Enter 3–200 characters for street lookup." }, { status: 400, headers });
   }
   const apiKey = process.env.GEOAPIFY_API_KEY?.trim();
-  if (!apiKey) return NextResponse.json({ available: false, options: [] }, { headers });
+  if (!apiKey) return NextResponse.json({ available: false, reason: "not_configured", options: [] }, { headers });
   const query = new URLSearchParams({ text: text.trim(), filter: "countrycode:us", lang: "en", format: "json", limit: "5", apiKey });
   try {
     const response = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?${query}`, {
       cache: "no-store", signal: AbortSignal.timeout(5000),
     });
-    if (!response.ok) throw new Error("Address lookup unavailable");
+    if (!response.ok) {
+      const reason: StreetLookupFailure = response.status === 401 || response.status === 403 ? "credentials" : response.status === 429 ? "quota" : "unavailable";
+      // Record only an HTTP status, never the provider URL, key, body or search text.
+      console.warn("Street address provider request failed", { status: response.status, reason });
+      return NextResponse.json({ available: false, reason, options: [] }, { headers });
+    }
     const result = await response.json() as { results?: Array<Record<string, unknown>> };
     const clean = (value: unknown) => typeof value === "string" ? value.trim().slice(0, 200) : "";
     const options: StreetAddressSuggestion[] = [];
@@ -40,6 +45,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ available: true, options }, { headers });
   } catch {
     // Provider errors can include URLs containing the key and address: do not log them.
-    return NextResponse.json({ available: false, options: [] }, { headers });
+    return NextResponse.json({ available: false, reason: "unavailable", options: [] }, { headers });
   }
 }

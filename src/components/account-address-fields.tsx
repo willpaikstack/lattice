@@ -38,14 +38,23 @@ export function AccountAddressFields({ value, setValue }: { value: AccountAddres
   };
   const field = (label: string, key: keyof AccountAddress, autoComplete: string, list?: string) => <label className="block text-[13px] font-semibold text-[#303846]">{label}<input autoComplete={autoComplete} className={inputClass} list={list} onChange={(event) => update(key, event.target.value)} value={value[key] ?? ""} /></label>;
   const cities = [...new Set(options.map((item) => item.city))];
+  const selectedState = usStates.find(([code, name]) => code.toLowerCase() === value.state.toLowerCase() || name.toLowerCase() === value.state.toLowerCase())?.[0] ?? value.state;
+  const stateOptions = [...usStates].sort((a, b) => a[1].localeCompare(b[1]));
   return <div className="space-y-3">
     <div className="grid gap-3 sm:grid-cols-2">{field("Full name", "name", "name")}{field("Company", "company", "organization")}</div>
     <label className="block text-[13px] font-semibold text-[#303846]">Phone number (optional)<input autoComplete="tel" className={inputClass} maxLength={30} onChange={(event) => update("phone", formatPhoneNumber(event.target.value))} placeholder="(555) 123-4567" type="tel" value={value.phone ?? ""} /></label>
     {value.phone && !isValidPhoneNumber(value.phone) ? <p className="text-xs text-red-700" role="alert">Enter a complete phone number.</p> : null}
     <StreetAddressInput value={value} setValue={(next) => { setLookupField(null); setOptions([]); setValue(next); }} />
     {field("Unit or suite number (optional)", "address2", "address-line2")}
-    <div className="grid gap-3 sm:grid-cols-3">{field("City", "city", "address-level2", `${id}-cities`)}{field("State", "state", "address-level1", `${id}-states`)}{field("ZIP code", "zipCode", "postal-code", `${id}-zips`)}</div>
-    <datalist id={`${id}-states`}>{usStates.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</datalist>
+    {field("City", "city", "address-level2", `${id}-cities`)}
+    <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <label className="block text-[13px] font-semibold text-[#303846]">State<select autoComplete="address-level1" className="mt-2 min-h-[38px] w-full rounded-lg border border-[#888c8c] bg-[#f0f2f2] px-3 py-2 text-[14px] font-normal text-[#0f1111] shadow-sm hover:bg-[#e3e6e6] focus:border-[#007185] focus:outline-none focus:ring-[3px] focus:ring-[#c8f3fa]" onChange={(event) => update("state", event.target.value)} value={selectedState}>
+        <option value="">Select</option>
+        {selectedState && !stateOptions.some(([code]) => code === selectedState) ? <option value={selectedState}>{value.state}</option> : null}
+        {stateOptions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+      </select></label>
+      {field("ZIP code", "zipCode", "postal-code", `${id}-zips`)}
+    </div>
     <datalist id={`${id}-cities`}>{cities.map((city) => <option key={city} value={city} />)}</datalist>
     <datalist id={`${id}-zips`}>{options.map((item) => <option key={item.zipCode} value={item.zipCode}>{item.city}, {item.state}</option>)}</datalist>
     {options.length ? <div aria-label="Address suggestions" className="flex max-h-36 flex-wrap gap-2 overflow-auto">{options.slice(0, 12).map((item) => <button className="rounded border px-2 py-1 text-left text-xs text-[#3b5bdb] hover:bg-slate-50" key={item.zipCode} onClick={() => { setLookupField(null); setValue({ ...value, ...item }); setOptions([]); }} type="button">{item.city}, {item.state} {item.zipCode}</button>)}</div> : null}
