@@ -28,7 +28,7 @@ The key is used by an authenticated same-origin POST route, never returned to th
 - **Temporarily unavailable**: network failure, malformed response or another provider error. Manual entry remains available.
 - **No matching streets**: provider responded successfully but returned no usable U.S. street matches. Try a fuller address or enter it manually.
 
-The state field uses an Amazon-style native dropdown with full alphabetical state/territory names and a Select placeholder. It stores the postal abbreviation and preserves an already-saved legacy region as an option until the user changes it.
+The state field uses a custom searchable picker styled to match Lattice form controls. It lists full alphabetical state and territory names with two-letter postal codes, supports keyboard selection, and stores the selected postal abbreviation. An existing legacy region remains available until the user chooses a U.S. state.
 
 ## Address phones and snapshots
 

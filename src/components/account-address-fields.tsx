@@ -5,6 +5,7 @@ import { StreetAddressInput } from "./street-address-input";
 import { formatPhoneNumber, isValidPhoneNumber } from "@/lib/contact-format";
 import type { AccountAddress } from "@/lib/account-settings-shared";
 import { usStates, type AddressSuggestion } from "@/lib/us-address-options";
+import { USStatePicker } from "./us-state-picker";
 
 const inputClass = "mt-2 w-full rounded-md border border-[#cfd5dd] px-3 py-2 text-[14px]";
 
@@ -38,8 +39,6 @@ export function AccountAddressFields({ value, setValue }: { value: AccountAddres
   };
   const field = (label: string, key: keyof AccountAddress, autoComplete: string, list?: string) => <label className="block text-[13px] font-semibold text-[#303846]">{label}<input autoComplete={autoComplete} className={inputClass} list={list} onChange={(event) => update(key, event.target.value)} value={value[key] ?? ""} /></label>;
   const cities = [...new Set(options.map((item) => item.city))];
-  const selectedState = usStates.find(([code, name]) => code.toLowerCase() === value.state.toLowerCase() || name.toLowerCase() === value.state.toLowerCase())?.[0] ?? value.state;
-  const stateOptions = [...usStates].sort((a, b) => a[1].localeCompare(b[1]));
   return <div className="space-y-3">
     <div className="grid gap-3 sm:grid-cols-2">{field("Full name", "name", "name")}{field("Company", "company", "organization")}</div>
     <label className="block text-[13px] font-semibold text-[#303846]">Phone number (optional)<input autoComplete="tel" className={inputClass} maxLength={30} onChange={(event) => update("phone", formatPhoneNumber(event.target.value))} placeholder="(555) 123-4567" type="tel" value={value.phone ?? ""} /></label>
@@ -48,11 +47,7 @@ export function AccountAddressFields({ value, setValue }: { value: AccountAddres
     {field("Unit or suite number (optional)", "address2", "address-line2")}
     {field("City", "city", "address-level2", `${id}-cities`)}
     <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-      <label className="block text-[13px] font-semibold text-[#303846]">State<select autoComplete="address-level1" className="mt-2 min-h-[38px] w-full rounded-lg border border-[#888c8c] bg-[#f0f2f2] px-3 py-2 text-[14px] font-normal text-[#0f1111] shadow-sm hover:bg-[#e3e6e6] focus:border-[#007185] focus:outline-none focus:ring-[3px] focus:ring-[#c8f3fa]" onChange={(event) => update("state", event.target.value)} value={selectedState}>
-        <option value="">Select</option>
-        {selectedState && !stateOptions.some(([code]) => code === selectedState) ? <option value={selectedState}>{value.state}</option> : null}
-        {stateOptions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
-      </select></label>
+      <div><span className="block text-[13px] font-semibold text-[#303846]">State</span><USStatePicker onChange={(next) => update("state", next)} value={value.state} /></div>
       {field("ZIP code", "zipCode", "postal-code", `${id}-zips`)}
     </div>
     <datalist id={`${id}-cities`}>{cities.map((city) => <option key={city} value={city} />)}</datalist>
