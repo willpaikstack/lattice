@@ -333,3 +333,5 @@ Admin queue split released and verified 2026-10-16: dpl_BxaCczsSFJSQ1jYSbCThyiv3
 ### Quote queue cards removed — 2026-10-16
 
 Removed the top Quote operations summary card section from /admin/quotes. Tabs, search/stage/owner filters and the separate Submitted RFQs / Customer quotes issued tables remain, with counts in their headings. No request data or workflow changes.
+
+Summary-card removal released and browser-verified 2026-10-16 as dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj; filters/tabs lead directly to the two tables.

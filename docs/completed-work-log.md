@@ -2599,3 +2599,5 @@ Release confirmation (2026-10-16): source 7cf4ad8 pushed, hosted build passed, a
 ## 2026-10-16 — Remove quote operations summary cards
 
 Removed the top metric-card section from Quote submissions, its unused card definitions and icon imports. Queue controls and separate submitted/issued tables retain their counts. Shared metric styles used elsewhere are preserved. Focused lint/typecheck and release evidence follow; automated tests were not run. No request data changed.
+
+Release confirmation (2026-10-16): source 4388798 pushed and deployed from a clean committed-source archive as Ready Production dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj, promoted to latticeos.co. Genuine Admin browser confirms zero Quote operations summary sections, retained filters/view tabs, and separate tables with 15 submitted and 2 issued records. Focused lint, typecheck and hosted build pass; automated tests were not run. No request data changed. Screenshot: /tmp/lattice-quote-no-cards.jpg. Unrelated address-editor changes remain local and untouched.

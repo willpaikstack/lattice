@@ -384,3 +384,5 @@ Admin RFQ queue grouping (2026-10-16): Active now renders two distinct tables: S
 Admin queue split release verified (2026-10-16): source 7cf4ad8 is live as dpl_BxaCczsSFJSQ1jYSbCThyiv3BMFG. Genuine admin view shows Submitted RFQs 15 and Customer quotes issued 2, with 17 distinct RFQ detail links. Search, issued-stage filtering, Drafts and Archive pass browser checks; unfiltered Active restored. No request data changed.
 
 Quote submissions summary cards removed (2026-10-16): the page now opens with queue tabs/search/filters and the separate submitted/issued tables. Counts remain in the table headings and view tabs.
+
+Quote summary-card removal is released as dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj (4388798). Hosted admin browser confirms zero summary-card sections and the existing 15 submitted/2 issued rows retained.
