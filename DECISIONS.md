@@ -1635,3 +1635,7 @@ Account settings recovery is bound to the signed-in Clerk identity's verified pr
 ## 2026-10-16 — Keep quote preparation focused on one RFQ
 
 Remove the embedded Active RFQs list from quote preparation, keeping global navigation and Review queue. Supplier shop selection is optional and starts blank when unassigned; do not implicitly select the first vendor or restore an older named vendor when the operator explicitly leaves the choice blank. Existing supplier-order placeholder metadata remains available for the downstream workflow.
+
+## 2026-10-16 — Separate unquoted RFQs from issued customer quotes
+
+The admin Active queue contains two visible tables: Submitted RFQs includes received/information-needed/supplier-ready RFQs awaiting customer quote issuance; Customer quotes issued includes QUOTED requests awaiting a buyer decision. Archived/closed requests and drafts retain their separate views. Apply the existing filters to both tables and keep the Submitted RFQs metric exclusive of issued quotes.

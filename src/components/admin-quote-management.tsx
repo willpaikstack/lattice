@@ -1066,10 +1066,16 @@ export function AdminQuoteManagement({
   const activeRequests = quoteRequests.filter((request) => adminQuoteStatusGroup(request) !== "ARCHIVED");
   const owners = [...new Set(quoteRequests.map((request) => request.operatorReview.assignedOwner).filter((owner): owner is string => Boolean(owner)))].sort();
   const summaryCards = [
-    { label: "Active RFQs", count: activeRequests.length, detail: "Submitted requests in review", icon: Inbox },
+    { label: "Submitted RFQs", count: activeRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_REQUESTED").length, detail: "In review; customer quote not issued", icon: Inbox },
     { label: "Needs information", count: activeRequests.filter((r) => r.status === "NEEDS_INFO").length, detail: "Waiting on customer clarification", icon: Clock3 },
     { label: "Supplier ready", count: activeRequests.filter((r) => r.status === "READY_FOR_SUPPLIER_RFQ").length, detail: "Ready to send to suppliers", icon: FileText },
     { label: "Customer quote issued", count: activeRequests.filter((r) => r.status === "QUOTED").length, detail: "Awaiting a customer decision", icon: FileCheck2 },
+  ];
+  const queueGroups = view === "ACTIVE" ? [
+    { key: "submitted", title: "Submitted RFQs", description: "Received requests in review, awaiting a customer quote.", emptyTitle: "No submitted RFQs match this view", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_REQUESTED") },
+    { key: "issued", title: "Customer quotes issued", description: "Quotes sent to customers, awaiting their decision.", emptyTitle: "No issued quotes match this view", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_RECEIVED") },
+  ] : [
+    { key: "archive", title: "Archived RFQs", description: "Closed and archived requests.", emptyTitle: "No archived RFQs match this view", requests: filteredRequests },
   ];
   if (isWorkbench && detailRequest) {
     return <div className={styles.workbenchLayout}>
@@ -1097,11 +1103,12 @@ export function AdminQuoteManagement({
           <label><span className="sr-only">Assigned owner</span><select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}><option value="ALL">All owners</option><option value="UNASSIGNED">Unassigned</option>{owners.map((owner) => <option key={owner}>{owner}</option>)}</select></label>
         </div> : null}
       </div>
-      {view !== "DRAFTS" ? <div>
-        <section className={styles.queue} aria-label="RFQ review queue">
-          <div className={styles.tableScroll}><table className={styles.queueTable}>
+      {view !== "DRAFTS" ? <div className="space-y-5">
+        {queueGroups.map((group) => <section className={styles.queue} aria-label={group.title} key={group.key}>
+          <header className={styles.queueHeading}><div><h2>{group.title}</h2><p>{group.description}</p></div><span aria-label={`${group.requests.length} matching requests`}>{group.requests.length}</span></header>
+          <div className={styles.tableScroll}><table className={styles.queueTable} aria-label={group.title}>
             <thead><tr><th>RFQ & customer</th><th>Stage</th><th>Package</th><th>Submission date</th><th>Submitted by</th></tr></thead>
-            <tbody>{filteredRequests.map((request) => {
+            <tbody>{group.requests.map((request) => {
               return <tr key={request.id}>
                 <td><Link className={styles.rowLink} aria-label={`Manage quote submission for ${request.title}`} href={`/admin/quotes/${encodeURIComponent(request.id)}`} scroll={false}>{request.title}</Link><div className={styles.companyCell}><span>{request.buyerCompanyId ? request.buyerCompany : "Unassigned company"}</span><CustomerProfileShortcut companyName={request.buyerCompany} customerProfileHrefs={customerProfileHrefs} /></div><small>{quoteReference(request)}</small></td>
                 <td><span className={`${styles.stage} ${statusCopy[request.status].tone}`}>{statusCopy[request.status].label}</span>{request.isArchived ? <small>Archived</small> : null}<small>{request.supplierQuoteFiles.length ? "Supplier evidence attached" : request.supplierQuotes.some((q) => q.status === "QUOTE_RECEIVED" || q.status === "SELECTED") ? "Supplier quote received" : "No supplier evidence"}</small></td>
@@ -1111,9 +1118,9 @@ export function AdminQuoteManagement({
               </tr>;
             })}</tbody>
           </table></div>
-          {!filteredRequests.length ? <div className={styles.empty}><h2>No RFQs match this view</h2><p>Choose another stage or clear the search and owner filters.</p><button className={styles.textButton} onClick={() => { setQuery(""); setStageFilter("ALL"); setOwnerFilter("ALL"); }} type="button">Clear filters</button></div> : null}
-          <footer>{filteredRequests.length} submissions · Click an RFQ to open its details</footer>
-        </section>
+          {!group.requests.length ? <div className={styles.empty}><h3>{group.emptyTitle}</h3><p>Choose another stage or clear the search and owner filters.</p><button className={styles.textButton} onClick={() => { setQuery(""); setStageFilter("ALL"); setOwnerFilter("ALL"); }} type="button">Clear filters</button></div> : null}
+          <footer>{group.requests.length} {group.requests.length === 1 ? "request" : "requests"} · Click an RFQ to open its details</footer>
+        </section>)}
       </div> : null}
       {view === "DRAFTS" ? <details open className={adminStyles.drafts}>
         <summary className={adminStyles.draftSummary}>
