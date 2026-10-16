@@ -27,7 +27,9 @@ describe("MaterialGradeDirectory", () => {
     expect(screen.getByRole("button", { name: /6063 UNS A96063/ })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByLabelText("6063 available conditions")).toHaveTextContent("T5");
     expect(screen.getByLabelText("6063 available conditions")).toHaveTextContent("T6");
-    expect(screen.getByText("Selection guidance")).toBeInTheDocument();
+    expect(screen.getByText("Grade Description")).toBeInTheDocument();
+    expect(screen.queryByText("Typical applications")).not.toBeInTheDocument();
+    expect(screen.queryByText("Selection guidance")).not.toBeInTheDocument();
     expect(screen.getByText("Reference mechanical properties")).toBeInTheDocument();
     expect(screen.getAllByText("145 MPa")).toHaveLength(2);
     expect(screen.getAllByText("186 MPa")).toHaveLength(2);

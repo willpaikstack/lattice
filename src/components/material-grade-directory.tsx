@@ -399,7 +399,7 @@ function PlasticDirectoryGradeCard({ grade, profile }: { grade: string; profile:
   return (
     <article className="grid w-full gap-3 border-b border-[#e7e6e3] px-4 py-4 last:border-b-0 md:min-w-[820px] md:grid-cols-[130px_minmax(190px,1.2fr)_minmax(160px,1fr)_150px] md:gap-4">
       <div><p className="text-[14px] font-semibold text-[#242527]">{displayGradeName(grade)}</p><p className="mt-0.5 text-[11px] text-[#77797d]">Designation as listed</p></div>
-      <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Best suited for</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
+      <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Grade Description</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Common forms</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.forms}</p></div>
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">â€”</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}</div>
       <PlasticFunctionalProfile detailsClassName="md:col-span-4" summaryClassName="md:ml-auto md:w-[150px]" traits={profile.functionalTraits} />
@@ -469,7 +469,7 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                 <div className="border-t border-[#e2e1de]">
                   <div className="overflow-x-auto">
                     <div className="hidden min-w-[820px] grid-cols-[130px_minmax(190px,1.2fr)_minmax(160px,1fr)_150px] gap-4 border-b border-[#e2e1de] px-4 py-3 text-[11px] font-semibold text-[#353639] md:grid">
-                      <span>{familyName === "Aluminum" ? "Alloy offering" : "Grade"}</span><span>Best suited for</span><span>Common forms</span><span>Machinability</span>
+                      <span>{familyName === "Aluminum" ? "Alloy offering" : "Grade"}</span><span>Grade Description</span><span>Common forms</span><span>Machinability</span>
                     </div>
 
                     {group.grades.map((grade) => {
@@ -487,18 +487,13 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                       <article className="border-b border-[#e7e6e3] last:border-b-0" key={`${group.name}-${grade}`}>
                         <button aria-expanded={isExpanded} className="grid w-full gap-3 px-4 py-4 text-left transition hover:bg-[#fafaf8] md:min-w-[820px] md:grid-cols-[130px_minmax(190px,1.2fr)_minmax(160px,1fr)_150px] md:gap-4" onClick={() => setExpandedGrade(isExpanded ? "" : grade)} type="button">
                           <div className="pr-6 md:pr-0"><p className="text-[14px] font-semibold text-[#242527]">{displayGradeName(grade)}</p><p className="mt-0.5 text-[11px] text-[#77797d]">{familyName === "Aluminum" ? aluminumDesignationLabel(grade, profile.uns) : profile.uns ? `UNS ${profile.uns}` : "Designation as listed"}</p>{familyName === "Aluminum" ? <p className="mt-1 text-[11px] font-medium text-[#5f6165]">{conditions.length > 0 ? `Available: ${conditions.map((condition) => condition.label).join(" · ")}` : "Condition confirmed in RFQ"}</p> : null}</div>
-                          <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Best suited for</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
+                          <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Grade Description</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
                           <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Common forms</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.forms}</p></div>
                           <div className="relative"><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">—</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}{isExpanded ? <ChevronUp aria-hidden="true" className="absolute right-0 top-0 h-4 w-4" /> : <ChevronDown aria-hidden="true" className="absolute right-0 top-0 h-4 w-4" />}</div>
                         </button>
 
                         {isExpanded ? (
                           <div className="mx-3 mb-3 rounded-[6px] border border-[#deddda] bg-[#f5f4f1] px-4 py-4 md:min-w-[796px] md:px-5">
-                            <div className="grid gap-5 md:grid-cols-2 md:gap-8">
-                              <div><p className="text-[11px] font-medium text-[#4d4f53]">Typical applications</p><p className="mt-1 text-[12px] leading-[18px] text-[#626469]">{profile.applications}</p></div>
-                              <div><p className="text-[11px] font-medium text-[#4d4f53]">Selection guidance</p><p className="mt-1 text-[12px] leading-[18px] text-[#626469]">{profile.selectionGuidance}</p></div>
-                            </div>
-
                             {group.notesByGrade?.[grade] ? <p className="mt-4 border-t border-[#d9d8d5] pt-3 text-[12px] leading-[18px] text-[#626469]">{group.notesByGrade[grade]}</p> : null}
 
                             {familyName === "Aluminum" ? (

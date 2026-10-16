@@ -2663,3 +2663,7 @@ Reviewed the live customer `/materials` family atlas and compared its 307 family
 ## 2026-10-16 — Normalize stainless directory presentation
 
 The stainless family guide groups the three 2205 source labels into one `2205 Duplex Stainless Steel` row and displays UNS S31803/S32205 with an explicit RFQ confirmation note; underlying vendor labels and existing quote records remain untouched. The featured entries now use the same 304/304L and 316/316L names as the directory, and their UNS identities are shown. A single `stainlessCatalogPresentationMode` switch restores the original directory labels. Updated the Materials feature map. No automated tests run; no deployment.
+
+## 2026-10-16 — Simplify material grade dropdown details
+
+Renamed the material-directory column `Best suited for` to `Grade Description`, including its mobile label. Removed the repeated `Typical applications` and `Selection guidance` block from expanded grade rows, leaving grade descriptions in the table and preserving grade-specific notes, aluminum condition selection, machinability references, and mechanical-property details. Updated the feature map and the existing directory expectation. No automated tests run; Production deployment pending.
