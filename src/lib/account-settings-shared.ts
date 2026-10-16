@@ -1,4 +1,6 @@
 export type AccountAddress = {
+  /** Separate address contact; optional for addresses saved before this field existed. */
+  phone?: string;
   address1: string;
   address2: string;
   city: string;

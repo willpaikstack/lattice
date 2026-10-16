@@ -14,7 +14,7 @@ export function readRequestBillingSnapshot(value: unknown): RequestBillingSnapsh
   const contact = candidate.contact as Record<string, unknown>;
   const text = (value: unknown) => typeof value === "string" ? value.trim() : "";
   return {
-    address: { address1: text(address.address1), address2: text(address.address2), city: text(address.city), company: text(address.company), name: text(address.name), state: text(address.state), zipCode: text(address.zipCode) },
+    address: { ...(text(address.phone) ? { phone: text(address.phone) } : {}), address1: text(address.address1), address2: text(address.address2), city: text(address.city), company: text(address.company), name: text(address.name), state: text(address.state), zipCode: text(address.zipCode) },
     contact: { email: text(contact.email), invoiceRoutingNotes: text(contact.invoiceRoutingNotes) },
   };
 }
@@ -27,5 +27,5 @@ export function requestBillToLines(request: { billingSnapshot?: RequestBillingSn
   const snapshot = request.billingSnapshot;
   if (!snapshot) return [request.requesterName, request.buyerCompany, request.requesterEmail, request.requesterPhone].filter(Boolean);
   const address = snapshot.address;
-  return [address.name || request.requesterName, address.company || request.buyerCompany, address.address1, address.address2, [address.city, [address.state, address.zipCode].filter(Boolean).join(" ")].filter(Boolean).join(", "), snapshot.contact.email || request.requesterEmail].filter(Boolean);
+  return [address.name || request.requesterName, address.company || request.buyerCompany, address.address1, address.address2, [address.city, [address.state, address.zipCode].filter(Boolean).join(" ")].filter(Boolean).join(", "), snapshot.contact.email || request.requesterEmail, address.phone ?? ""].filter(Boolean);
 }

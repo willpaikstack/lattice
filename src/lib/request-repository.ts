@@ -31,6 +31,7 @@ export type PurchaseQuoteDeliveryInput = {
 };
 
 export type RequestShippingAddressInput = {
+  shipToPhone?: string;
   shipToAddress1: string;
   shipToAddress2: string;
   shipToCity: string;
@@ -171,6 +172,7 @@ export async function updateRequestShippingAddress(id: string, input: RequestShi
   }
 
   const delivery = {
+    ...(input.shipToPhone !== undefined ? { shipToPhone: cleanText(input.shipToPhone) } : {}),
     shipToAddress1: cleanText(input.shipToAddress1),
     shipToAddress2: cleanText(input.shipToAddress2),
     shipToCity: cleanText(input.shipToCity),

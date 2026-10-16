@@ -253,3 +253,9 @@ Resolved: updated the existing Resend secret and redeployed the same current Pro
 ## Production RFQ account audit completed with findings — 2026-10-14
 
 Twelve genuine-customer Production RFQs across four accounts are submitted and admin-reviewed: 24 parts, 39 byte-identical original downloads, 840 matching requirement/metadata comparisons. Exact durable record: `docs/audits/rfq-account-submissions-2026-10-14.json`; findings/report: `docs/audits/rfq-account-audit-2026-10-14.md`. Customer process display, hosted PDF preview and negated-note validation are now repaired/released; see `docs/audits/rfq-audit-repairs-2026-10-14.md`. Autodesk returns `ProductAccessRequiresCapacity`; William confirmed the refill was Codex credits. William must restore Autodesk APS/Flex capacity for the app/team. Admin saved-original retry is implemented and its capacity message is verified. After capacity is restored, verify the six AH previews and add/verify persisted original-file URN plus derived-dimension backfill. Preserve all twelve QA records and the three earlier user RFQs. The audit was read-only apart from its authorized submissions; the subsequent repair release is documented separately.
+
+
+## 2026-10-16 — Address lookup activation
+
+- Add server-only GEOAPIFY_API_KEY to the existing lattice Vercel project, then redeploy. The account owner must create the provider account/key; see docs/address-autocomplete-setup.md.
+- After activation, exercise real U.S. street suggestion selection in shipping and billing, keyboard selection, manual entry and provider-failure fallback. Before key activation, only the no-provider/manual flow can be checked live.

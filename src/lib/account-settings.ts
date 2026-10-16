@@ -18,6 +18,8 @@ import { getStripeClient, isStripeConfigured, stripePaymentMethodCardSnapshot } 
 
 type StoredAccountDefaults = {
   billingSameAsShipping?: boolean;
+  billingPhone?: string;
+  shippingPhone?: string;
   billingAddress1: string;
   billingAddress2: string;
   billingCity: string;
@@ -122,6 +124,7 @@ async function clerkEmailVerification(
 
 function normalizeAddress(address: AccountAddress): AccountAddress {
   return {
+    phone: formatPhoneNumber(text(address.phone)),
     address1: text(address.address1),
     address2: text(address.address2),
     city: text(address.city),
@@ -195,6 +198,7 @@ function fromStoredAccountDefaults(stored: StoredAccountDefaults): AccountSettin
     },
     billingSameAsShipping: Boolean(stored.billingSameAsShipping),
     billingAddress: {
+      phone: stored.billingPhone ?? "",
       address1: stored.billingAddress1,
       address2: stored.billingAddress2,
       city: stored.billingCity,
@@ -211,6 +215,7 @@ function fromStoredAccountDefaults(stored: StoredAccountDefaults): AccountSettin
     phone: stored.phone,
     stripeCustomerId: stored.stripeCustomerId ?? "",
     shipping: {
+      phone: stored.shippingPhone ?? "",
       address1: stored.shippingAddress1,
       address2: stored.shippingAddress2,
       city: stored.shippingCity,
@@ -227,6 +232,7 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
 
   return {
     billingSameAsShipping: Boolean(normalized.billingSameAsShipping),
+    billingPhone: normalized.billingAddress.phone ?? "",
     billingAddress1: normalized.billingAddress.address1,
     billingAddress2: normalized.billingAddress.address2,
     billingCity: normalized.billingAddress.city,
@@ -244,6 +250,7 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
     passwordChangedAt: normalized.passwordChangedAt,
     phone: normalized.phone,
     stripeCustomerId: normalized.stripeCustomerId,
+    shippingPhone: normalized.shipping.phone ?? "",
     shippingAddress1: normalized.shipping.address1,
     shippingAddress2: normalized.shipping.address2,
     shippingCity: normalized.shipping.city,
@@ -271,6 +278,8 @@ async function prisma() {
 type StoredCompanyDefaults = {
   addressOnboardingDeferredAt: Date | null;
   billingSameAsShipping?: boolean;
+  billingPhone?: string;
+  shippingPhone?: string;
   billingAddress1: string;
   billingAddress2: string;
   billingCity: string;
@@ -352,6 +361,7 @@ function accountSettingsWithCompanyDefaults(
     },
     billingSameAsShipping: Boolean(company.billingSameAsShipping),
     billingAddress: {
+      phone: company.billingPhone ?? "",
       address1: company.billingAddress1,
       address2: company.billingAddress2,
       city: company.billingCity,
@@ -362,6 +372,7 @@ function accountSettingsWithCompanyDefaults(
     },
     companyName: company.name,
     shipping: {
+      phone: company.shippingPhone ?? "",
       address1: company.shippingAddress1,
       address2: company.shippingAddress2,
       city: company.shippingCity,
@@ -377,6 +388,7 @@ function companyDefaultsFromAccountSettings(settings: AccountSettingsSnapshot) {
   const normalized = normalizeAccountSettings(settings);
 
   return {
+    billingPhone: normalized.billingAddress.phone ?? "",
     billingAddress1: normalized.billingAddress.address1,
     billingAddress2: normalized.billingAddress.address2,
     billingCity: normalized.billingAddress.city,
@@ -386,6 +398,7 @@ function companyDefaultsFromAccountSettings(settings: AccountSettingsSnapshot) {
     billingName: normalized.billingAddress.name,
     billingState: normalized.billingAddress.state,
     billingZipCode: normalized.billingAddress.zipCode,
+    shippingPhone: normalized.shipping.phone ?? "",
     shippingAddress1: normalized.shipping.address1,
     shippingAddress2: normalized.shipping.address2,
     shippingCity: normalized.shipping.city,
@@ -512,6 +525,7 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot, fie
   }
   if (field === "shipping" || field === "billingAddress") {
     const address = normalized[field];
+    if (!isValidPhoneNumber(address.phone ?? "")) throw new Error("Enter a complete phone number for this address.");
     if (!hasRequiredAddressFields(address)) throw new Error("Name, company, address, city, state, and ZIP code are required.");
     if (Object.values(address).some((value) => value.length > 200 || /[\u0000-\u001f\u007f]/.test(value))) throw new Error("Address fields must be 200 characters or fewer and contain no control characters.");
   }
@@ -562,7 +576,7 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot, fie
       const linked = field === "billingAddress" ? Boolean(settings.billingSameAsShipping) : current.billingSameAsShipping;
       if (linked && (field === "shipping" || field === "billingAddress")) {
         const shipping = field === "shipping" ? normalized.shipping : {
-          name: current.shippingName, company: current.shippingCompany,
+          phone: current.shippingPhone, name: current.shippingName, company: current.shippingCompany,
           address1: current.shippingAddress1, address2: current.shippingAddress2,
           city: current.shippingCity, state: current.shippingState, zipCode: current.shippingZipCode,
         };
@@ -655,7 +669,7 @@ export function contactSnapshotFromAccountSettings(settings: AccountSettingsSnap
     shipToCity: settings.shipping.city,
     shipToCompany: settings.shipping.company,
     shipToName: settings.shipping.name || settings.name,
-    shipToPhone: settings.phone,
+    shipToPhone: settings.shipping.phone || settings.phone,
     shipToState: settings.shipping.state,
     shipToZipCode: settings.shipping.zipCode,
   };

@@ -26,6 +26,7 @@ function fillMissingAddressFields(address: AccountAddress, fallback: AccountAddr
   const valueOrFallback = (value: string, fallbackValue: string) => value.trim() ? value : fallbackValue;
 
   return {
+    phone: valueOrFallback(address.phone ?? "", fallback.phone ?? ""),
     address1: valueOrFallback(address.address1, fallback.address1),
     address2: valueOrFallback(address.address2, fallback.address2),
     city: valueOrFallback(address.city, fallback.city),
@@ -76,7 +77,7 @@ function AddressEditor({ value, setValue, save, cancel, error, cancelLabel }: { 
 }
 
 function AddressValue({ value }: { value: AccountAddress }) {
-  return completeAddress(value) ? <address className="not-italic">{value.name}<br />{value.company}<br />{value.address1}{value.address2 ? <><br />{value.address2}</> : null}<br />{value.city}, {value.state} {value.zipCode}</address> : <p className="text-[#737b86]">Not configured.</p>;
+  return completeAddress(value) ? <address className="not-italic">{value.name}<br />{value.company}<br />{value.address1}{value.address2 ? <><br />{value.address2}</> : null}<br />{value.city}, {value.state} {value.zipCode}{value.phone ? <><br />{formatPhoneNumber(value.phone)}</> : null}</address> : <p className="text-[#737b86]">Not configured.</p>;
 }
 
 function AddressOnboardingDialog({
@@ -184,6 +185,7 @@ export function AccountSettingsWorkspace({
   }
   async function saveAddress(field: "shipping" | "billingAddress") {
     const next = Object.fromEntries(Object.entries(field === "billingAddress" && sameAsShipping ? settings.shipping : addressDraft).map(([key, value]) => [key, value.trim()])) as AccountAddress;
+    if (!isValidPhoneNumber(next.phone ?? "")) return setError("Enter a complete phone number for this address.");
     if (!completeAddress(next)) return setError("Name, company, address, city, state, and ZIP code are required.");
     try {
       setSaving(true);

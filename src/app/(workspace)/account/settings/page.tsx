@@ -13,7 +13,7 @@ export default async function AccountSettingsPage({ searchParams }: { searchPara
   if (requestId) {
     const request = await getCustomerRequestByIdForCurrentSession(requestId);
     if (!request) notFound();
-    settings.shipping = { name: request.shipToName, company: request.shipToCompany, address1: request.shipToAddress1, address2: request.shipToAddress2, city: request.shipToCity, state: request.shipToState, zipCode: request.shipToZipCode };
+    settings.shipping = { phone: request.shipToPhone, name: request.shipToName, company: request.shipToCompany, address1: request.shipToAddress1, address2: request.shipToAddress2, city: request.shipToCity, state: request.shipToState, zipCode: request.shipToZipCode };
   }
 
   return (

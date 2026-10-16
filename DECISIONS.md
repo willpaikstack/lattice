@@ -1643,3 +1643,8 @@ The admin Active queue contains two visible tables: Submitted RFQs includes rece
 ## 2026-10-16 — Separate Companies and Users in admin navigation
 
 Companies names the existing /admin/customers company directory; keep those URLs to preserve saved links. Users at /admin/users lists all provisioned platform User records across roles and company assignment, including Lattice Admins. It is read-only and Lattice Admin-only, with authorization inside both page and server-only data access and explicit display-field selection. Waiting-list entries without a platform account remain in the Companies waiting-list tab.
+
+
+### 2026-10-16 — U.S. street lookup and address phones
+
+Use Geoapify Address Autocomplete, restricted to U.S. results, via a signed-in server route and a server-only GEOAPIFY_API_KEY. Keep manual entry and existing bundled city/state/ZIP lookup usable when the provider is absent or unavailable. Provider suggestions assist entry and are not a deliverability guarantee. Store separate optional shippingPhone/billingPhone values on Company and standalone AccountDefaults. Same-as-shipping links the contact phone as well. New requests freeze these address contacts; existing snapshots are unchanged. Blank legacy shipping phones retain the existing account-phone fallback for new RFQ contact construction.

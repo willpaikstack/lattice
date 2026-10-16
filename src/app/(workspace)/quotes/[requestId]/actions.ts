@@ -10,6 +10,7 @@ import type { AccountAddress } from "@/lib/account-settings-shared";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { quoteCheckoutAmountCents, recordStripeCheckoutSession, updateRequestShippingAddress } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
+import { formatPhoneNumber, isValidPhoneNumber } from "@/lib/contact-format";
 import { assertStripeMerchantReady, getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 import { assertCardCheckoutEnabled, finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
 
@@ -77,7 +78,9 @@ export async function updateRequestShippingAddressAction(requestId: string, addr
     throw new Error("This RFQ is not available to your account.");
   }
 
+  if (address.phone !== undefined && (typeof address.phone !== "string" || !isValidPhoneNumber(address.phone))) throw new Error("Enter a complete address phone number.");
   await updateRequestShippingAddress(requestId, {
+    ...(address.phone !== undefined ? { shipToPhone: formatPhoneNumber(address.phone) } : {}),
     shipToAddress1: address.address1,
     shipToAddress2: address.address2,
     shipToCity: address.city,
