@@ -1,6 +1,6 @@
 # Account settings operational audit — 2026-10-15
 
-Status: implemented and verified locally. Production migration completed during the authorized release follow-through below; deployment and hosted checks are in progress.
+Status: released to Production with migration and genuine Customer Admin checks complete. Genuine Member sign-in and user-completed password recovery remain pending. Earlier local-only checkpoints below are historical; the authorized release section records current evidence.
 
 ## Scope and decisions
 
@@ -48,7 +48,7 @@ Historical RFQs did **not** store a separate billing address/contact snapshot. T
 
 Browser image evidence is local: `/tmp/lattice-settings-photo-verified.jpg` and `/tmp/lattice-settings-final.jpg`. No customer workflow records, orders, emails or Production data were changed by this audit.
 
-## Remaining release checks
+## Initial release checklist (superseded by follow-through below)
 
 Apply the additive migration to the intended hosted environment before deployment. Verify hosted Customer Admin/Member sessions, provider email delivery and user-driven password completion in a controlled account. Password-provider failure, policy rejection, one-time token contention and database synchronization are covered by automated tests; no real credential was changed during this work. Saved-card/team-management/provider address suggestions remain separately deferred features.
 
@@ -59,3 +59,18 @@ William authorized Production migration/deployment, hosted checks using the two 
 Production migration froze billing snapshots on all 15 existing requests; an independent per-record deep comparison verified every other Request field was unchanged and each new billing snapshot equals its pre-migration company defaults. There are no existing Invoice rows. A second run updated zero rows. The private baseline is kept only in ignored .vercel files.
 
 Resolved the eleven baseline test failures by supplying complete commercial inputs, asserting required missing-field rejection/explicit zero-price acceptance and expiration overrides, and matching the approved Request submitted/Unable to quote notification labels. Full suite: 677 tests pass, one opt-in database test skipped. Typecheck and focused lint pass. Production deployment and hosted evidence follow below.
+
+### Production release and hosted evidence
+
+- Source commit `6f05bfd` and deployment-packaging commit `2cdac4f` pushed to `origin/codex/opencascade-admin-demo`. Packaging excludes ignored local audit/design artifacts from uploads. Hosted Production build succeeded as `dpl_G4gNx6XcserXJMyV5rEheNFan6en`; staged login rendered, then deployment was promoted to https://latticeos.co.
+- Genuine signed-in Apple Customer Admin `willclawpaik@gmail.com`: temporarily saved a synthetic name, phone, shipping address, billing address, AP email and routing note through the hosted UI. Reload and direct Production database reads confirmed all writes. Uploaded a synthetic PNG via the real file chooser, saved and reloaded; settings/sidebar both loaded the durable provider image. Switched to an emoji and reloaded; both surfaces rendered it.
+- Submitted one explicitly labeled synthetic RFQ `rfq_f18ce944786a6fcd3439d5c24ce09744b9cd3bb0` (`QA Account Settings 2026 10 15`, reference `LQ-RFQ_F18C`) with the repository demo cube. Its notes explicitly state no manufacturing or supplier outreach is requested. No quote was issued or purchase made. The record remains as identifiable audit evidence.
+- Restored the original Admin name, blank phone, initials avatar, shipping/billing addresses, AP email and blank routing notes through the UI. Production reads independently confirm restoration. All 15 original Request records are still deeply equal to the pre-migration baseline excluding only the additive billing snapshot. The new QA RFQ retains its changed requester/shipping/billing/AP snapshots after restoration, verified in both the database and reloaded quote UI.
+- Local evidence: `/tmp/lattice-settings-production-photo.jpg`, `/tmp/lattice-settings-production-restored.jpg`, `/tmp/lattice-settings-production-rfq.jpg`. Private baseline and boolean proof are stored only in ignored `.vercel` files, not source control.
+- Deployment logs over the audit window show zero HTTP 500+ requests. Eight runtime stderr entries were PostgreSQL/Node deprecation warnings (seven SSL-mode warnings and one concurrent-query warning), with no application failure observed in that window.
+
+### Remaining user handoffs
+
+The genuine Member check requires William to sign in as `paik.e.william@gmail.com` in the retained Production login tab. The browser still shows the login page. Member permissions, cross-company isolation and shared-default visibility already have automated/database coverage, but this does not substitute for a genuine hosted Member session.
+
+The Production recovery form accepted the authorized request for `willclawpaik@gmail.com` and persisted an unconsumed one-hour token at 8:14 PM Eastern on October 15 (expires 9:14 PM Eastern). Inbox receipt is not confirmed. Browser credential-change policy requires William to enter, confirm and submit the new password himself; no password was entered or changed by the agent. After completion, verify token consumption, password-reset audit state and genuine Clerk sign-in. If the link expires, request a new one through the normal recovery form. Do not treat the generic sent confirmation as proof of inbox delivery.
