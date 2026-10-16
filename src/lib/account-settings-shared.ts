@@ -43,6 +43,7 @@ export type AccountSettingsSnapshot = {
   addressOnboardingDeferred: boolean;
   billing: BillingContact;
   billingAddress: AccountAddress;
+  billingSameAsShipping?: boolean;
   cards: PaymentCard[];
   companyName: string;
   email: string;
@@ -83,6 +84,7 @@ export function defaultAccountSettings(): AccountSettingsSnapshot {
     addressOnboardingDeferred: false,
     billing: initialBillingContact,
     billingAddress: initialBillingAddress,
+    billingSameAsShipping: false,
     cards: initialCards,
     companyName: "",
     email: "",

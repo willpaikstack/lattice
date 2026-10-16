@@ -1,3 +1,5 @@
+import type { PrismaClient } from "@prisma/client";
+import { formatPhoneNumber, isValidBillingEmail, isValidPhoneNumber } from "./contact-format";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
 import {
@@ -15,6 +17,7 @@ import type { RequestContactSnapshot } from "./request-model";
 import { getStripeClient, isStripeConfigured, stripePaymentMethodCardSnapshot } from "./stripe";
 
 type StoredAccountDefaults = {
+  billingSameAsShipping?: boolean;
   billingAddress1: string;
   billingAddress2: string;
   billingCity: string;
@@ -157,7 +160,8 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
       email: text(settings.billing.email),
       invoiceRoutingNotes: text(settings.billing.invoiceRoutingNotes),
     },
-    billingAddress: normalizeAddress(settings.billingAddress),
+    billingSameAsShipping: Boolean(settings.billingSameAsShipping),
+    billingAddress: normalizeAddress(settings.billingSameAsShipping ? settings.shipping : settings.billingAddress),
     cards: settings.cards,
     companyName: text(settings.companyName) || defaultAccountSettings().companyName,
     email: text(settings.email),
@@ -166,7 +170,7 @@ export function normalizeAccountSettings(settings: AccountSettingsSnapshot): Acc
     mfaEnabled: Boolean(settings.mfaEnabled),
     name: text(settings.name),
     passwordChangedAt: text(settings.passwordChangedAt),
-    phone: text(settings.phone),
+    phone: formatPhoneNumber(text(settings.phone)),
     shipping: normalizeAddress(settings.shipping),
     stripeCustomerId: text(settings.stripeCustomerId),
     teamMembers: settings.teamMembers,
@@ -189,6 +193,7 @@ function fromStoredAccountDefaults(stored: StoredAccountDefaults): AccountSettin
       email: stored.billingEmail,
       invoiceRoutingNotes: stored.billingInvoiceRoutingNotes,
     },
+    billingSameAsShipping: Boolean(stored.billingSameAsShipping),
     billingAddress: {
       address1: stored.billingAddress1,
       address2: stored.billingAddress2,
@@ -221,6 +226,7 @@ function toStoredAccountDefaults(settings: AccountSettingsSnapshot) {
   const normalized = normalizeAccountSettings(settings);
 
   return {
+    billingSameAsShipping: Boolean(normalized.billingSameAsShipping),
     billingAddress1: normalized.billingAddress.address1,
     billingAddress2: normalized.billingAddress.address2,
     billingCity: normalized.billingAddress.city,
@@ -264,6 +270,7 @@ async function prisma() {
 
 type StoredCompanyDefaults = {
   addressOnboardingDeferredAt: Date | null;
+  billingSameAsShipping?: boolean;
   billingAddress1: string;
   billingAddress2: string;
   billingCity: string;
@@ -343,6 +350,7 @@ function accountSettingsWithCompanyDefaults(
       email: company.billingEmail,
       invoiceRoutingNotes: company.billingInvoiceRoutingNotes,
     },
+    billingSameAsShipping: Boolean(company.billingSameAsShipping),
     billingAddress: {
       address1: company.billingAddress1,
       address2: company.billingAddress2,
@@ -499,15 +507,15 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot, fie
     throw new Error("Personal profiles cannot be edited in a support session.");
   }
   const normalized = forUser(normalizeAccountSettings(settings), context);
-  if (field === "phone" && (normalized.phone.length > 50 || /[\u0000-\u001f\u007f]/.test(normalized.phone))) {
-    throw new Error("Enter a phone number with 50 characters or fewer.");
+  if (field === "phone" && !isValidPhoneNumber(normalized.phone)) {
+    throw new Error("Enter a complete phone number, including the country code for international numbers.");
   }
   if (field === "shipping" || field === "billingAddress") {
     const address = normalized[field];
     if (!hasRequiredAddressFields(address)) throw new Error("Name, company, address, city, state, and ZIP code are required.");
     if (Object.values(address).some((value) => value.length > 200 || /[\u0000-\u001f\u007f]/.test(value))) throw new Error("Address fields must be 200 characters or fewer and contain no control characters.");
   }
-  if (field === "billing" && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.billing.email) || normalized.billing.email.length > 254 || normalized.billing.invoiceRoutingNotes.length > 2000)) {
+  if (field === "billing" && (!isValidBillingEmail(normalized.billing.email) || normalized.billing.email.length > 254 || normalized.billing.invoiceRoutingNotes.length > 2000)) {
     throw new Error("Enter a valid billing email and invoice notes of 2,000 characters or fewer.");
   }
   const companyName = text(settings.companyName);
@@ -519,21 +527,52 @@ export async function saveAccountSettings(settings: AccountSettingsSnapshot, fie
   const client = await prisma();
   const allCompanyDefaults = companyDefaultsFromAccountSettings(normalized);
   const prefix = field === "shipping" ? "shipping" : field === "billingAddress" ? "billing" : "";
-  const companyUpdate: Record<string, string> = field === "companyName" ? { name: companyName }
+  const companyUpdate: Record<string, string | boolean> = field === "companyName" ? { name: companyName }
     : field === "billing" ? { billingEmail: normalized.billing.email, billingInvoiceRoutingNotes: normalized.billing.invoiceRoutingNotes }
-    : Object.fromEntries(Object.entries(allCompanyDefaults).filter(([key]) => prefix && key.startsWith(prefix) && key !== "billingEmail" && key !== "billingInvoiceRoutingNotes"));
+    : Object.fromEntries(Object.entries(allCompanyDefaults).filter(([key]) => prefix && key.startsWith(prefix) && key !== "billingEmail" && key !== "billingInvoiceRoutingNotes" && key !== "billingSameAsShipping"));
+  if (field === "billingAddress") companyUpdate.billingSameAsShipping = Boolean(settings.billingSameAsShipping);
   const personalUpdate = field === "phone" ? { phone: normalized.phone } : field === "stripeCustomerId" ? { stripeCustomerId: normalized.stripeCustomerId } : field === "name" ? { name: normalized.name } : {};
 
   if (!context.companyId) {
-    await client.accountDefaults.upsert({
-      create: { ...toStoredAccountDefaults(emptyForUser(context)), ...personalUpdate, ...(companyField ? field === "companyName" ? { companyName } : companyUpdate : {}), id: context.id },
-      update: { ...personalUpdate, ...(companyField ? field === "companyName" ? { companyName } : companyUpdate : {}) },
-      where: { id: context.id },
+    const database = await getPrismaClient() as PrismaClient;
+    await database.$transaction(async (tx) => {
+      const stored = await tx.accountDefaults.upsert({
+        where: { id: context.id }, update: {},
+        create: { ...toStoredAccountDefaults(emptyForUser(context)), id: context.id },
+      });
+      if ((field === "shipping" && stored.billingSameAsShipping) || (field === "billingAddress" && settings.billingSameAsShipping)) {
+        const source = field === "shipping" ? normalized.shipping : fromStoredAccountDefaults(stored).shipping;
+        if (!hasRequiredAddressFields(source)) throw new Error("Save a complete shipping address before using it for billing.");
+        for (const [key, value] of Object.entries(source)) companyUpdate[`billing${key[0].toUpperCase()}${key.slice(1)}`] = value;
+      }
+      await tx.accountDefaults.update({ where: { id: context.id }, data: {
+        ...personalUpdate, ...(companyField ? field === "companyName" ? { companyName } : companyUpdate : {}),
+      } });
     });
+  } else if (companyField && field !== "shipping" && field !== "billingAddress") {
+    await client.company.update({ where: { id: context.companyId }, data: companyUpdate });
   } else if (companyField) {
     // Update only the edited group. A stale profile page must never overwrite
     // another member's saved shipping, billing or personal changes.
-    await client.company.update({ where: { id: context.companyId }, data: companyUpdate });
+    const database = await getPrismaClient() as PrismaClient;
+    await database.$transaction(async (tx) => {
+      // Serialize shipping and billing changes so linked addresses cannot diverge.
+      await tx.$queryRaw`SELECT id FROM "Company" WHERE id = ${context.companyId} FOR UPDATE`;
+      const current = await tx.company.findUniqueOrThrow({ where: { id: context.companyId! } });
+      const linked = field === "billingAddress" ? Boolean(settings.billingSameAsShipping) : current.billingSameAsShipping;
+      if (linked && (field === "shipping" || field === "billingAddress")) {
+        const shipping = field === "shipping" ? normalized.shipping : {
+          name: current.shippingName, company: current.shippingCompany,
+          address1: current.shippingAddress1, address2: current.shippingAddress2,
+          city: current.shippingCity, state: current.shippingState, zipCode: current.shippingZipCode,
+        };
+        if (!hasRequiredAddressFields(shipping)) throw new Error("Save a complete shipping address before using it for billing.");
+        for (const [key, value] of Object.entries(shipping)) {
+          companyUpdate[`billing${key[0].toUpperCase()}${key.slice(1)}`] = value;
+        }
+      }
+      await tx.company.update({ where: { id: context.companyId! }, data: companyUpdate });
+    });
   } else {
     const blankPersonal = { ...toStoredAccountDefaults(emptyForUser(context)), ...Object.fromEntries(Object.keys(allCompanyDefaults).map((key) => [key, ""])) };
     await client.accountDefaults.upsert({

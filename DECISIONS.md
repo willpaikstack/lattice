@@ -1627,3 +1627,7 @@ Reuse the customer intake calendar and custom dropdown components in Prepare cus
 ## 2026-10-15 — Require complete customer quotes before issuance
 
 Operators must provide a unit price and positive whole-day lead time for every part, explicit shipping cost (0 allowed when included), shipping speed, shipping terms, estimated delivery date, valid expiration and customer note before initial issuance or reissue. Disable issuance with a visible completion list and enforce the same contract server-side. Do not silently convert missing shipping into bill-at-actual or synthesize a note. Existing issued records remain readable. Supplier attachment uploads remain optional; this request does not change supplier-document requirements.
+
+## 2026-10-15 — Signed-in recovery and linked company billing
+
+Account settings recovery is bound to the signed-in Clerk identity's verified primary email, including server-side request and token-completion checks. Public signed-out recovery remains available through mailbox-controlled single-use tokens. Same-as-shipping is an explicit persisted preference: copy authoritative shared shipping on enablement and subsequent shipping saves, serialize address writes, and preserve existing request/invoice snapshots. Billing contact is independent. City/state/ZIP suggestions use bundled U.S. postal data with manual entry always available; full street-search/provider validation is not connected.

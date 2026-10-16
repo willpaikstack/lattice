@@ -1,0 +1,48 @@
+"use client";
+
+import { useEffect, useId, useState } from "react";
+import type { AccountAddress } from "@/lib/account-settings-shared";
+import { usStates, type AddressSuggestion } from "@/lib/us-address-options";
+
+const inputClass = "mt-2 w-full rounded-md border border-[#cfd5dd] px-3 py-2 text-[14px]";
+
+export function AccountAddressFields({ value, setValue }: { value: AccountAddress; setValue: (value: AccountAddress) => void }) {
+  const id = useId();
+  const [options, setOptions] = useState<AddressSuggestion[]>([]);
+  const [lookupField, setLookupField] = useState<"city" | "zip">("city");
+  const [lookupFailed, setLookupFailed] = useState(false);
+  useEffect(() => {
+    const abort = new AbortController();
+    const timer = setTimeout(async () => {
+      const query = new URLSearchParams(lookupField === "zip" ? { zip: value.zipCode.split("-")[0] } : { state: value.state, city: value.city });
+      if ((lookupField === "zip" ? value.zipCode.length < 3 : !value.city.trim())) { setOptions([]); return; }
+      try {
+        const response = await fetch(`/api/address-suggestions?${query}`, { signal: abort.signal });
+        if (!response.ok) throw new Error("Lookup unavailable");
+        const result = await response.json() as { options: AddressSuggestion[] };
+        setOptions(result.options);
+        setLookupFailed(false);
+      } catch { if (!abort.signal.aborted) { setOptions([]); setLookupFailed(true); } }
+    }, 200);
+    return () => { clearTimeout(timer); abort.abort(); };
+  }, [value.city, value.state, value.zipCode, lookupField]);
+  const update = (key: keyof AccountAddress, next: string) => {
+    setOptions([]);
+    if (key === "city") setLookupField("city");
+    if (key === "zipCode") setLookupField("zip");
+    if (key === "state") next = usStates.find(([code, name]) => code.toLowerCase() === next.toLowerCase() || name.toLowerCase() === next.toLowerCase())?.[0] ?? next;
+    setValue({ ...value, [key]: next });
+  };
+  const field = (label: string, key: keyof AccountAddress, autoComplete: string, list?: string) => <label className="block text-[13px] font-semibold text-[#303846]">{label}<input autoComplete={autoComplete} className={inputClass} list={list} onChange={(event) => update(key, event.target.value)} value={value[key]} /></label>;
+  const cities = [...new Set(options.map((item) => item.city))];
+  return <div className="space-y-3">
+    <div className="grid gap-3 sm:grid-cols-2">{field("Name", "name", "name")}{field("Company", "company", "organization")}</div>
+    {field("Address line 1", "address1", "address-line1")}{field("Address line 2", "address2", "address-line2")}
+    <div className="grid gap-3 sm:grid-cols-3">{field("City", "city", "address-level2", `${id}-cities`)}{field("State", "state", "address-level1", `${id}-states`)}{field("ZIP code", "zipCode", "postal-code", `${id}-zips`)}</div>
+    <datalist id={`${id}-states`}>{usStates.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</datalist>
+    <datalist id={`${id}-cities`}>{cities.map((city) => <option key={city} value={city} />)}</datalist>
+    <datalist id={`${id}-zips`}>{options.map((item) => <option key={item.zipCode} value={item.zipCode}>{item.city}, {item.state}</option>)}</datalist>
+    {options.length ? <div aria-label="Address suggestions" className="flex max-h-36 flex-wrap gap-2 overflow-auto">{options.slice(0, 12).map((item) => <button className="rounded border px-2 py-1 text-left text-xs text-[#3b5bdb] hover:bg-slate-50" key={item.zipCode} onClick={() => { setValue({ ...value, ...item }); setOptions([]); }} type="button">{item.city}, {item.state} {item.zipCode}</button>)}</div> : null}
+    <p className="text-xs font-normal text-[#737b86]">{lookupFailed ? "Suggestions are temporarily unavailable. " : "U.S. city, state and ZIP suggestions are available. "}You can always type your full address manually.</p>
+  </div>;
+}

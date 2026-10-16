@@ -1,5 +1,7 @@
 # TODO
 
+- Account settings usability follow-up (2026-10-15): phone formatting, billing email validation, signed-in recovery identity binding, persistent same-as-shipping and U.S. city/state/ZIP/manual-entry controls implemented. Development/Production additive schema applied; finish hosted release/UI evidence. No automated tests run for this follow-up.
+
 - Account settings released (2026-10-15) as dpl_G4gNx6XcserXJMyV5rEheNFan6en. Production migration and genuine Apple Customer Admin settings/photo/emoji/new-RFQ snapshot checks pass; original settings restored and 15 existing RFQs preserved. All 677 tests pass (one opt-in DB test skipped; explicit PostgreSQL audit already passed). Genuine Apple Member personal-save/shared-read-only/RFQ snapshot checks now pass. William confirmed reset email receipt/completion; Production token consumption, credential timestamp and completion audit confirm success after Clerk accepted the update. A separate new-password login was not independently exercised. See docs/audits/account-settings-2026-10-15.md.
 
 - Quote configuration repairs released 2026-10-15 as dpl_83fU1hTTyKAg29PuKtavqy6Q4dkq: Enter cannot submit RFQs; explicit Request Quote clicks work; mismatched-use warning reassures draft preservation; targetDeliveryDate is canonical and 28 legacy Production part rows were migrated with values verified unchanged. All 638 tests pass.

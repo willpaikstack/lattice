@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 
+import { auth } from "@clerk/nextjs/server";
+import { signedInRecoveryEmail } from "./password-reset-identity";
 import { clerkClient } from "@clerk/nextjs/server";
 
 import { PrismaClient } from "@prisma/client";
@@ -43,6 +45,12 @@ export async function consumePasswordReset(token: string, password: string) {
   const record = await client.passwordResetToken.findUnique({ where: { tokenHash: hashToken(token) } });
   if (!record || record.consumedAt || record.expiresAt <= new Date()) throw new PasswordResetError("invalid");
 
+  const { userId: signedInUserId } = await auth();
+  if (signedInUserId) {
+    await signedInRecoveryEmail();
+    const owner = await client.user.findUnique({ where: { id: record.userId }, select: { clerkUserId: true } });
+    if (owner?.clerkUserId !== signedInUserId) throw new PasswordResetError("invalid");
+  }
   const credentials = createPasswordCredentials(password);
   await client.$transaction(async (tx) => {
     // Claim the one-time token atomically. A concurrent reset must never be

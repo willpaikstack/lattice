@@ -1,3 +1,4 @@
+import { signedInRecoveryEmail } from "@/lib/password-reset-identity";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -19,7 +20,8 @@ type ForgotPasswordPageProps = {
 export default async function ForgotPasswordPage({ searchParams }: ForgotPasswordPageProps) {
   const params = await searchParams;
   const status = params?.status;
-  const initialEmail = normalizeEmail(params?.email);
+  const accountEmail = await signedInRecoveryEmail();
+  const initialEmail = accountEmail ?? normalizeEmail(params?.email);
   const isSent = status === "sent";
 
   return (
@@ -32,7 +34,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
               <div>
                 <h1 className="text-2xl font-semibold tracking-normal text-stone-900">Reset your password</h1>
                 <p className="mt-1 text-sm leading-6 text-stone-600">
-                  {isSent ? "If that account exists, reset instructions are on the way." : "Enter your work email and we will send secure reset instructions."}
+                  {isSent ? "If that account exists, reset instructions are on the way." : accountEmail ? "We will send reset instructions to your signed-in account email." : "Enter your work email and we will send secure reset instructions."}
                 </p>
               </div>
 
@@ -44,9 +46,9 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                   <Link className="inline-flex min-h-12 w-full items-center justify-center rounded-lg bg-stone-900 px-4 font-medium text-white transition-colors hover:bg-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2" href="/login">
                     Return to sign in
                   </Link>
-                  <Link className="inline-flex min-h-6 w-full items-center justify-center text-sm font-medium text-stone-700 underline-offset-4 hover:text-stone-950 hover:underline focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2" href="/forgot-password">
+                  {!accountEmail ? <Link className="inline-flex min-h-6 w-full items-center justify-center text-sm font-medium text-stone-700 underline-offset-4 hover:text-stone-950 hover:underline focus:outline-none focus:ring-2 focus:ring-stone-900 focus:ring-offset-2" href="/forgot-password">
                     Try another email
-                  </Link>
+                  </Link> : null}
                 </div>
               ) : (
                 <form action={forgotPasswordAction} aria-label="Forgot password form" className="space-y-5">
@@ -63,6 +65,7 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
                       required
                       type="email"
                       defaultValue={initialEmail}
+                      readOnly={Boolean(accountEmail)}
                     />
                   </div>
 
