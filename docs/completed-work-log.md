@@ -2667,3 +2667,7 @@ The stainless family guide groups the three 2205 source labels into one `2205 Du
 ## 2026-10-16 — Simplify material grade dropdown details
 
 Renamed the material-directory column `Best suited for` to `Grade Description`, including its mobile label. Removed the repeated `Typical applications` and `Selection guidance` block from expanded grade rows, leaving grade descriptions in the table and preserving grade-specific notes, aluminum condition selection, machinability references, and mechanical-property details. Updated the feature map and the existing directory expectation. No automated tests run; Production deployment pending.
+
+## 2026-10-16 — Remove divider above stainless mechanical properties
+
+Removed the extra top margin, divider, and padding from the expanded mechanical-properties block in material grade rows. The surrounding detail card and its interior padding remain, as do separate dividers for aluminum condition choices, specification notes, and property sources. Updated the Materials feature map. `git diff --check` passes; no tests were run. Source commit `981ea99` is pushed to `codex/stainless-materials-catalog-cleanup`. Production promotion is pending: the Vercel API returned 403 for this project scope, the local Vercel CLI is unavailable, and the dashboard requires sign-in. No deployment status is claimed.
