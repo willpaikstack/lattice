@@ -94,3 +94,19 @@ Added the opt-in Billing address is the same as shipping checkbox to account set
 Shared shipping/billing fields offer state/territory dropdown suggestions and searchable city/ZIP results from the bundled zipcodes dataset through an authenticated same-origin endpoint. Selecting a suggestion fills city, state and ZIP together. All fields allow manual entry, including when suggestions fail or lack the address. Street fields support browser address autofill; no external street-search or deliverability service is connected. Dataset reference: https://github.com/davglass/zipcodes. Search terms are not sent to a third-party lookup provider.
 
 Typecheck, changed-file ESLint and local production build pass. Automated tests were not added or run for this follow-up. Hosted release evidence follows.
+
+### Usability follow-up release — 2026-10-16
+
+Source `1d5877c` is pushed and released at latticeos.co as Ready Production `dpl_Bz8CdC7v4JduhdfPQZZ7uoRbRmir`. Hosted production build passes. A genuine Member session visibly formats a typed synthetic phone as `(310) 555-0123`; the unsaved edit was canceled. Navigating to recovery with another account's email in the query still renders the signed-in Member's email with readOnly=true and no alternate-email link; no reset was requested.
+
+The hosted shipping editor on the synthetic audit RFQ returned Rancho Palos Verdes, CA for ZIP 90275. Selecting the suggestion filled city/state/ZIP together. Arbitrary manual city/region values remained editable. All address changes were canceled and the original RFQ address reappeared; no account or RFQ values changed. Evidence: /tmp/lattice-settings-phone-format.jpg, /tmp/lattice-settings-reset-bound.jpg, /tmp/lattice-settings-address-suggestions.jpg.
+
+At the initial follow-up release checkpoint only the Member session was available; Admin verification was pending. That handoff is now complete below. This follow-up did not run automated tests, send reset email, or change a credential.
+
+### Completed Admin usability checks — 2026-10-16
+
+Genuine willclawpaik@gmail.com Customer Admin session is available after Google sign-in; the current profile name is Erin Paik, as independently changed by the user, and was preserved. Its existing stored phone displays `(310) 386-0825`. A malformed billing email disables Save and shows an inline error; a syntactically valid plus-address enables Save. Both drafts were canceled, preserving the original AP email and invoice notes.
+
+The Billing address is the same as shipping checkbox hides duplicate entry fields and displays the shipping address. Saved it, confirmed the Company boolean in Production, reloaded and saw Same as shipping. Current shipping/billing addresses were already identical, so their values did not change. Unchecked/saved it to restore the original independent-billing preference, then reloaded to confirm. The billing editor also displays live city/state/ZIP suggestions. No shipping values were changed to exercise subsequent propagation in Production; that behavior is implemented by the serialized server update, not claimed as a hosted distinct-address mutation test.
+
+Independent Production comparison confirms original preference restored, every shipping/billing field and AP contact/routing note unchanged, and all 17 Request records deeply unchanged from the immediate pre-check baseline. Private baseline/boolean proof are kept only in ignored .vercel files. Evidence: /tmp/lattice-settings-invalid-email.jpg and /tmp/lattice-settings-linked-billing.jpg. Short-window request logs returned zero HTTP 500+ records. No remaining user handoff for this follow-up. Automated tests were not run; static checks and local/hosted builds passed.
