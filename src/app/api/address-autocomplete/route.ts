@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import zipcodes from "zipcodes";
 import { requireRouteRole } from "@/lib/route-authorization";
 import { usStates } from "@/lib/us-address-options";
-import type { StreetAddressSuggestion, StreetLookupFailure } from "@/lib/street-address";
+import { canSearchStreet, type StreetAddressSuggestion, type StreetLookupFailure } from "@/lib/street-address";
 
 const headers = { "Cache-Control": "private, no-store" };
 
@@ -10,17 +11,24 @@ export async function POST(request: NextRequest) {
   const denied = await requireRouteRole(["admin", "customer"]);
   if (denied) return denied;
   let text: unknown;
-  try { text = (await request.json()).text; }
+  let zipCode: unknown;
+  try { ({ text, zipCode } = await request.json()); }
   catch { return NextResponse.json({ error: "Enter a street address." }, { status: 400, headers }); }
   if (typeof text !== "string" || text.trim().length < 3 || text.length > 200 || /[\u0000-\u001f\u007f]/.test(text)) {
     return NextResponse.json({ error: "Enter 3–200 characters for street lookup." }, { status: 400, headers });
   }
+  if (!canSearchStreet(text)) return NextResponse.json({ available: true, options: [] }, { headers });
   const apiKey = process.env.GEOAPIFY_API_KEY?.trim();
   if (!apiKey) return NextResponse.json({ available: false, reason: "not_configured", options: [] }, { headers });
   const query = new URLSearchParams({ text: text.trim(), filter: "countrycode:us", lang: "en", format: "json", limit: "5", apiKey });
+  // Prefer the existing postal area without excluding valid addresses elsewhere.
+  const postalArea = typeof zipCode === "string" && /^\d{5}(?:-\d{4})?$/.test(zipCode) ? zipcodes.lookup(zipCode.slice(0, 5)) : undefined;
+  if (postalArea?.country === "US") query.set("bias", `proximity:${postalArea.longitude},${postalArea.latitude}`);
+  const timeout = AbortSignal.timeout(15000);
+  const startedAt = Date.now();
   try {
     const response = await fetch(`https://api.geoapify.com/v1/geocode/autocomplete?${query}`, {
-      cache: "no-store", signal: AbortSignal.timeout(5000),
+      cache: "no-store", signal: AbortSignal.any([timeout, request.signal]),
     });
     if (!response.ok) {
       const reason: StreetLookupFailure = response.status === 401 || response.status === 403 ? "credentials" : response.status === 429 ? "quota" : "unavailable";
@@ -44,7 +52,9 @@ export async function POST(request: NextRequest) {
     }
     return NextResponse.json({ available: true, options }, { headers });
   } catch {
-    // Provider errors can include URLs containing the key and address: do not log them.
-    return NextResponse.json({ available: false, reason: "unavailable", options: [] }, { headers });
+    // Never log exception messages, request URLs, credentials or address text.
+    const reason: StreetLookupFailure = timeout.aborted ? "timeout" : "unavailable";
+    if (!request.signal.aborted) console.warn("Street address provider request incomplete", { reason, elapsedMs: Date.now() - startedAt });
+    return NextResponse.json({ available: false, reason, options: [] }, { headers });
   }
 }

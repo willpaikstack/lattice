@@ -8,4 +8,9 @@ export type StreetAddressSuggestion = {
   label: string;
 };
 
-export type StreetLookupFailure = "not_configured" | "credentials" | "quota" | "unavailable";
+export type StreetLookupFailure = "not_configured" | "credentials" | "quota" | "timeout" | "unavailable";
+
+/** House numbers alone cannot identify a street. */
+export function canSearchStreet(text: string) {
+  return text.trim().length >= 3 && /\p{L}/u.test(text);
+}

@@ -2,7 +2,7 @@
 
 ## Current connection
 
-Activated 2026-10-16: Geoapify project **Lattice** uses the Free plan. GEOAPIFY_API_KEY is stored as a Vercel Secret in **Production** and **Preview**. Production is redeployed and genuine Customer Admin shipping/billing autocomplete and native full-name state selection are verified. No local Development key was added. Key values belong only in secret storage.
+Activated 2026-10-16: Geoapify project **Lattice** uses the Free plan. GEOAPIFY_API_KEY is stored as a Vercel Secret in **Production** and **Preview**. Production is redeployed and genuine Customer Admin shipping/billing autocomplete and native full-name state selection are verified. A live diagnosis found valid street-only results taking about 5.5 seconds, beyond the former 5-second timeout; the server now allows 15 seconds and reports timeout distinctly. Street suggestions open again when the field is focused or clicked, including a previously entered value. Number-only input stays local and prompts the user to continue with a street name. Optional ZIP proximity biases result ranking without excluding other U.S. addresses. No local Development key was added. Key values belong only in secret storage.
 
 ## Provider and activation
 
@@ -17,14 +17,15 @@ Lattice uses Geoapify Address Autocomplete for street suggestions. The app reque
 
 At implementation time (2026-10-16), the Free plan offers 3,000 credits/day, up to 5 requests/second, commercial Production use and no credit card requirement. These limits can change; check [current pricing](https://www.geoapify.com/pricing/). Autocomplete is debounced, but every completed search consumes provider quota. Configure the account's available usage controls and monitor usage before expanding volume.
 
-The key is used by an authenticated same-origin POST route, never returned to the browser. Only address-search text is sent to Geoapify, with a fixed U.S. filter. Names and phone numbers are not forwarded. Results are returned with `private, no-store`; only safe provider HTTP status/reason codes are logged; provider URLs, response bodies and exceptions are never logged because they may include the key and search address. The dropdown includes Geoapify and OpenStreetMap attribution. Because the integration runs server-side, browser referrer/origin restrictions must not be applied to this key; only use IP restrictions if the deployment has a known fixed outbound IP.
+The key is used by an authenticated same-origin POST route, never returned to the browser. Only street-search text is sent to Geoapify, with a fixed U.S. filter; when a valid ZIP is already present, its public ZIP-area center is used as a soft proximity bias. The ZIP does not restrict the search. Requests time out after 15 seconds; the UI indicates a slow lookup and offers retry. Names and phone numbers are not forwarded. Results are returned with `private, no-store`; only safe provider HTTP status/reason codes are logged; provider URLs, response bodies and exceptions are never logged because they may include the key and search address. The dropdown includes Geoapify and OpenStreetMap attribution. Because the integration runs server-side, browser referrer/origin restrictions must not be applied to this key; only use IP restrictions if the deployment has a known fixed outbound IP.
 
 ## Diagnosing unavailable suggestions
 
 - **Not enabled yet**: GEOAPIFY_API_KEY is missing from the running deployment. Add it to the correct Vercel environment and redeploy.
 - **Lookup needs attention**: provider returned HTTP 401/403. Check the key and restrictions in the provider dashboard; use a valid server-side key and redeploy if changed.
 - **Search limit reached**: provider returned HTTP 429. Review the provider quota/rate limit.
-- **Temporarily unavailable**: provider timeout, network failure, malformed response or another provider error. Manual entry remains available.
+- **Search took too long**: provider exceeded the 15-second server cutoff. Retry, add city/ZIP, or enter manually.
+- **Temporarily unavailable**: network failure, malformed response or another provider error. Manual entry remains available.
 - **No matching streets**: provider responded successfully but returned no usable U.S. street matches. Try a fuller address or enter it manually.
 
 The state field uses an Amazon-style native dropdown with full alphabetical state/territory names and a Select placeholder. It stores the postal abbreviation and preserves an already-saved legacy region as an option until the user changes it.
