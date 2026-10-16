@@ -86,22 +86,23 @@ const familyForms: Record<string, string> = {
 };
 
 const familySummaryOverrides: Record<string, string> = {
-  "alloy-steel": "Heat-treatable alloy steels deliver higher strength, toughness, fatigue life, and wear resistance for gears, shafts, and high-load components.",
-  brass: "Brass alloys combine excellent machinability, corrosion resistance, and electrical conductivity for fittings, valves, instrumentation, and precision components.",
-  copper: "Copper alloys provide high electrical and thermal conductivity for power distribution, electronics, heat transfer, and precision tooling.",
-  "inconel-incoloy": "Nickel-based superalloys engineered for extreme temperature, pressure, corrosion, and long-duration service in critical components.",
-  "magnesium-zinc": "Lightweight magnesium and precise zinc die-casting alloys for housings, structural castings, hardware, and weight-sensitive components.",
-  "mild-steel": "Mild steels provide reliable strength, weldability, and cost efficiency for structural fabrication, machinery, fixtures, and general industrial parts.",
-  "plastics-polymers": "Engineering plastics provide low friction, chemical resistance, electrical insulation, and weight reduction for machined and molded components.",
-  "precision-alloys": "Controlled-expansion and soft-magnetic alloys for glass sealing, optical systems, electronics, instruments, and dimensional-stability applications.",
-  "stainless-steel": "Corrosion-resistant stainless alloys for food processing, marine, chemical, energy, and industrial equipment—from versatile 304 and 316 to high-strength specialty grades.",
-  "tool-steel": "Hardenable tool steels provide wear resistance, dimensional stability, and hot-work performance for dies, molds, punches, and production tooling.",
-  titanium: "Titanium alloys combine high strength, low density, and exceptional corrosion resistance for aerospace, energy, marine, and medical applications.",
+  aluminum: "Aluminum grades span lightweight structural alloys, corrosion-resistant sheet, and high-strength aerospace stock; temper and product form determine the right fit.",
+  "alloy-steel": "Alloy steels cover heat-treatable grades for shafts, gears, and loaded parts; strength and machinability depend on the specified heat-treatment condition.",
+  brass: "Brass options range from free-machining bar stock to formable and marine grades for fittings, electrical parts, and hardware.",
+  copper: "Copper grades serve electrical and thermal applications, with high-conductivity stock as well as alloys designed for forming or added strength.",
+  "inconel-incoloy": "Nickel alloys are used in hot, corrosive, or high-load service; grade and condition determine temperature capability and fabrication requirements.",
+  "magnesium-zinc": "Magnesium and zinc offerings include lightweight wrought stock and die-casting alloys for housings, brackets, and detailed components.",
+  "mild-steel": "Low-carbon and structural steels support economical fabrication and machining; choose by strength, weldability, stock form, and governing specification.",
+  "plastics-polymers": "Engineering plastics range from low-friction wear materials to chemical-resistant and high-temperature resins for machined components.",
+  "precision-alloys": "Precision alloys support controlled thermal expansion or magnetic response in seals, instruments, electronics, and stable structures.",
+  "stainless-steel": "Stainless grades range from general-purpose 304/304L and chloride-resistant 316/316L to free-machining, duplex, martensitic, and precipitation-hardened options.",
+  "tool-steel": "Tool steels are selected by wear, toughness, hot-work duty, and heat-treatment condition for dies, molds, punches, and production tooling.",
+  titanium: "Commercially pure and alloyed titanium grades offer different balances of corrosion resistance, strength, formability, and weight for industrial and aerospace parts.",
 };
 
 const aluminumGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "General-purpose structural parts, fixtures, machine components.",
+    applications: "Versatile machined and structural parts, fixtures, and frames; temper and stock form set the available strength.",
     commonStartingPoint: true,
     forms: "Plate, extrusions, bar, tube",
     image: "/materials/detail/aluminum-6061.png",
@@ -112,7 +113,7 @@ const aluminumGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS A96061",
   },
   {
-    applications: "High-strength components, aerospace structures, tooling.",
+    applications: "High-strength, weight-sensitive structures, tooling, and machined components.",
     forms: "Plate, bar, forgings",
     image: "/materials/detail/aluminum-7075.png",
     imageAlt: "Lightweight CNC-machined high-strength aluminum bracket",
@@ -122,7 +123,7 @@ const aluminumGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS A97075",
   },
   {
-    applications: "Marine panels, tanks, enclosures, welded assemblies.",
+    applications: "Formed sheet, marine panels, tanks, and welded enclosures where corrosion resistance matters.",
     forms: "Sheet, plate",
     image: "/materials/detail/aluminum-5052.png",
     imageAlt: "Formed aluminum sheet enclosure beside stacked plate",
@@ -132,7 +133,7 @@ const aluminumGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS A95052",
   },
   {
-    applications: "Aircraft structures, riveted assemblies, high-strength parts.",
+    applications: "Aircraft structures and fatigue-loaded parts; corrosion protection is commonly part of the specification.",
     forms: "Sheet, plate, bar",
     image: "/materials/detail/aluminum-2024.png",
     imageAlt: "Machined aluminum structural frame with triangular ribs",
@@ -145,7 +146,7 @@ const aluminumGradeProfiles: MaterialGradeProfile[] = [
 
 const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Food equipment, enclosures, tanks, and general industrial parts.",
+    applications: "Food-contact equipment, tanks, enclosures, and general corrosion-resistant components.",
     commonStartingPoint: true,
     forms: "Sheet, plate, bar, tube",
     image: "/materials/detail/stainless-steel/304.png",
@@ -156,7 +157,7 @@ const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS S30400 / S30403",
   },
   {
-    applications: "Marine, chemical-processing, pharmaceutical, and washdown parts.",
+    applications: "Marine, chemical-processing, and washdown components needing greater chloride resistance than 304.",
     forms: "Sheet, plate, bar, tube",
     image: "/materials/detail/stainless-steel/316.png",
     imageAlt: "Machined 316 stainless corrosion-service pump component",
@@ -166,7 +167,7 @@ const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS S31600 / S31603",
   },
   {
-    applications: "Turned fittings, shafts, fasteners, and precision components.",
+    applications: "High-volume turned fittings, fasteners, shafts, and other machined parts.",
     forms: "Bar, rod, wire",
     image: "/materials/detail/stainless-steel/303.png",
     imageAlt: "Precision-turned 303 stainless shafts and fittings",
@@ -176,7 +177,7 @@ const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS S30300",
   },
   {
-    applications: "High-load brackets, valve parts, aerospace hardware, and shafts.",
+    applications: "High-strength shafts, valve parts, brackets, and aerospace hardware in a specified aged condition.",
     forms: "Bar, plate, forgings",
     image: "/materials/detail/stainless-steel/17-4-ph.png",
     imageAlt: "High-strength machined 17-4 PH stainless clevis",
@@ -189,7 +190,7 @@ const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
 
 const mildSteelGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Frames, base plates, brackets, weldments, and structural assemblies.",
+    applications: "Structural frames, base plates, brackets, and welded assemblies.",
     commonStartingPoint: true,
     forms: "Plate, sheet, structural shapes",
     image: "/materials/detail/mild-steel/a36.png",
@@ -200,7 +201,7 @@ const mildSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS K02600",
   },
   {
-    applications: "Shafts, pins, spacers, fixtures, and general machined parts.",
+    applications: "General machined parts, pins, spacers, and fixtures from low-carbon bar stock.",
     forms: "Cold-finished bar, rod",
     image: "/materials/detail/mild-steel/1018.png",
     imageAlt: "Precision-turned 1018 steel shafts and spacers",
@@ -210,7 +211,7 @@ const mildSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS G10180",
   },
   {
-    applications: "Tubular assemblies, general fabrication, fittings, and light-duty parts.",
+    applications: "Tubing, fittings, and general formed or welded fabrication.",
     forms: "Bar, tube, sheet, plate",
     image: "/materials/detail/mild-steel/1020.png",
     imageAlt: "Welded 1020 steel tube assembly and machined plate",
@@ -220,7 +221,7 @@ const mildSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS G10200",
   },
   {
-    applications: "Gears, axles, pins, rollers, and higher-strength machine parts.",
+    applications: "Gears, shafts, axles, and machine parts requiring more strength than low-carbon grades.",
     forms: "Bar, plate, forgings",
     image: "/materials/detail/mild-steel/1045.png",
     imageAlt: "Machined 1045 steel gear and keyed shaft",
@@ -233,7 +234,7 @@ const mildSteelGradeProfiles: MaterialGradeProfile[] = [
 
 const brassGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Fittings, valve parts, threaded components, and precision hardware.",
+    applications: "Precision-turned fittings, valve parts, and threaded hardware.",
     commonStartingPoint: true,
     forms: "Bar, rod, tube",
     image: "/materials/detail/brass/c360.png",
@@ -244,7 +245,7 @@ const brassGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS C36000",
   },
   {
-    applications: "Formed housings, electrical parts, radiator components, and decorative hardware.",
+    applications: "Deep-drawn housings, electrical components, and formed sheet hardware.",
     forms: "Sheet, strip, tube",
     image: "/materials/detail/brass/c260.png",
     imageAlt: "Formed C260 brass sheet enclosures",
@@ -365,7 +366,7 @@ const nickelAlloyGradeProfiles: MaterialGradeProfile[] = [
 
 const copperGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Electrical busbars, terminals, heat sinks, and power-distribution parts.",
+    applications: "Electrical busbars, terminals, heat-transfer parts, and power-distribution components.",
     commonStartingPoint: true,
     forms: "Plate, sheet, bar, busbar",
     image: "/materials/detail/copper/c110.png",
@@ -376,7 +377,7 @@ const copperGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS C11000",
   },
   {
-    applications: "RF hardware, vacuum components, electronics, and high-conductivity parts.",
+    applications: "High-conductivity electrical, RF, vacuum, and electronic components.",
     forms: "Bar, plate, rod",
     image: "/materials/detail/copper/c101.png",
     imageAlt: "Precision-machined C101 copper RF and vacuum components",
@@ -409,7 +410,7 @@ const copperGradeProfiles: MaterialGradeProfile[] = [
 
 const alloySteelGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Shafts, gears, fixtures, couplings, and general high-strength machine parts.",
+    applications: "Heat-treated shafts, gears, couplings, and other loaded machine parts.",
     commonStartingPoint: true,
     forms: "Bar, plate, tube, forgings",
     image: "/materials/detail/alloy-steel/4140.png",
@@ -420,7 +421,7 @@ const alloySteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS G41400",
   },
   {
-    applications: "Landing-gear parts, high-load shafts, aerospace hardware, and critical forgings.",
+    applications: "High-load shafts, aerospace hardware, and forgings requiring high strength and toughness.",
     forms: "Bar, plate, forgings",
     image: "/materials/detail/alloy-steel/4340.png",
     imageAlt: "High-load machined 4340 alloy-steel aerospace component",
@@ -430,7 +431,7 @@ const alloySteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS G43400",
   },
   {
-    applications: "Carburized gears, pinions, bushings, and wear-resistant transmission parts.",
+    applications: "Carburized gears, pinions, and transmission parts with a hard wear surface and tough core.",
     forms: "Bar, forgings",
     image: "/materials/detail/alloy-steel/8620.png",
     imageAlt: "Carburized 8620 alloy-steel gear and pinion",
@@ -440,7 +441,7 @@ const alloySteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS G86200",
   },
   {
-    applications: "Welded aerospace structures, motorsport frames, tubing, and fittings.",
+    applications: "Welded tubular structures, aerospace and motorsport frames, and fittings.",
     forms: "Tube, sheet, plate, bar",
     image: "/materials/detail/alloy-steel/4130.png",
     imageAlt: "Welded 4130 chromoly tubular frame node and fitting",
@@ -453,7 +454,7 @@ const alloySteelGradeProfiles: MaterialGradeProfile[] = [
 
 const toolSteelGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Blanking dies, wear plates, shear blades, and long-run production tooling.",
+    applications: "Wear-resistant blanking dies, shear blades, and long-run cold-work tooling.",
     commonStartingPoint: true,
     forms: "Plate, bar, ground stock",
     image: "/materials/detail/tool-steel/d2.png",
@@ -464,7 +465,7 @@ const toolSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS T30402",
   },
   {
-    applications: "Punches, dies, gauges, and precision cold-work tooling.",
+    applications: "Cold-work punches, dies, gauges, and precision tooling.",
     forms: "Plate, bar, ground stock",
     image: "/materials/detail/tool-steel/a2.png",
     imageAlt: "A2 tool-steel precision stamping die and punch",
@@ -474,7 +475,7 @@ const toolSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS T30102",
   },
   {
-    applications: "Gauges, fixture pins, small cutting tools, and short-run dies.",
+    applications: "Gauges, fixture pins, cutting tools, and short-run dies.",
     forms: "Bar, plate, ground stock",
     image: "/materials/detail/tool-steel/o1.png",
     imageAlt: "O1 tool-steel gauge blocks, pins, and form tool",
@@ -484,7 +485,7 @@ const toolSteelGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS T31501",
   },
   {
-    applications: "Hot-forging dies, extrusion tooling, die-casting inserts, and hot shear blades.",
+    applications: "Hot-work dies, extrusion tooling, die-casting inserts, and shear blades.",
     forms: "Bar, plate, forgings",
     image: "/materials/detail/tool-steel/h13.png",
     imageAlt: "H13 hot-work tool-steel extrusion and forging dies",
@@ -497,7 +498,7 @@ const toolSteelGradeProfiles: MaterialGradeProfile[] = [
 
 const precisionAlloyGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Glass-to-metal seals, electronic packages, feedthroughs, and sensor housings.",
+    applications: "Glass-to-metal seals, electronic packages, feedthroughs, and sensor housings requiring matched expansion.",
     commonStartingPoint: true,
     forms: "Sheet, strip, bar, wire",
     image: "/materials/detail/precision-alloys/kovar.png",
@@ -508,7 +509,7 @@ const precisionAlloyGradeProfiles: MaterialGradeProfile[] = [
     uns: "UNS K94610",
   },
   {
-    applications: "Optical tooling, metrology frames, precision instruments, and stable reference structures.",
+    applications: "Metrology frames, optical tooling, and reference structures requiring low thermal expansion.",
     forms: "Plate, sheet, bar",
     image: "/materials/detail/precision-alloys/invar-36.png",
     imageAlt: "Invar 36 optical metrology frame and reference bar",
@@ -541,7 +542,7 @@ const precisionAlloyGradeProfiles: MaterialGradeProfile[] = [
 
 const magnesiumZincGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Electronics housings, gearbox covers, brackets, and general die-cast components.",
+    applications: "Lightweight die-cast housings, gearbox covers, and brackets.",
     commonStartingPoint: true,
     forms: "Die castings",
     image: "/materials/detail/magnesium-zinc/az91d.png",
@@ -552,7 +553,7 @@ const magnesiumZincGradeProfiles: MaterialGradeProfile[] = [
     uns: "Specification review",
   },
   {
-    applications: "Impact-resistant automotive structures, frames, and thin-wall safety castings.",
+    applications: "Impact-loaded structures and thin-wall automotive castings where ductility is prioritized.",
     forms: "Die castings",
     image: "/materials/detail/magnesium-zinc/am60b.png",
     imageAlt: "AM60B magnesium thin-wall structural die casting",
@@ -562,7 +563,7 @@ const magnesiumZincGradeProfiles: MaterialGradeProfile[] = [
     uns: "Specification review",
   },
   {
-    applications: "Formed brackets, machined plates, lightweight enclosures, and extruded parts.",
+    applications: "Lightweight formed sheet, plate, extrusion, and machined bracket applications.",
     forms: "Sheet, plate, bar, extrusions",
     image: "/materials/detail/magnesium-zinc/az31b.png",
     imageAlt: "AZ31B magnesium formed bracket, plate, and extrusion",
@@ -572,7 +573,7 @@ const magnesiumZincGradeProfiles: MaterialGradeProfile[] = [
     uns: "Specification review",
   },
   {
-    applications: "Precision hardware, lock housings, covers, handles, and detailed die castings.",
+    applications: "Detailed zinc die-cast hardware, lock housings, covers, and handles.",
     forms: "Die castings",
     image: "/materials/detail/magnesium-zinc/zamak-3.png",
     imageAlt: "Zamak 3 zinc precision die-cast hardware housing",
@@ -585,7 +586,7 @@ const magnesiumZincGradeProfiles: MaterialGradeProfile[] = [
 
 const plasticsPolymersGradeProfiles: MaterialGradeProfile[] = [
   {
-    applications: "Gears, bushings, wear parts, fixtures, and low-friction machine components.",
+    applications: "Low-friction gears, bushings, wear parts, and dimensionally stable fixtures.",
     commonStartingPoint: true,
     forms: "Rod, sheet, plate",
     image: "/materials/detail/plastics-polymers/pom.png",
@@ -602,7 +603,7 @@ const plasticsPolymersGradeProfiles: MaterialGradeProfile[] = [
     uns: "Resin grade review",
   },
   {
-    applications: "Aerospace hardware, medical components, bearings, and high-temperature electrical parts.",
+    applications: "High-temperature aerospace, medical, bearing, and electrical components.",
     forms: "Rod, plate, tube",
     image: "/materials/detail/plastics-polymers/peek.png",
     imageAlt: "Machined PEEK bearing cages and manifold block",
@@ -618,7 +619,7 @@ const plasticsPolymersGradeProfiles: MaterialGradeProfile[] = [
     uns: "Resin grade review",
   },
   {
-    applications: "Seals, valve seats, gaskets, chemical-service parts, and electrical insulation.",
+    applications: "Chemically resistant seals, valve seats, gaskets, and electrical insulation parts.",
     forms: "Sheet, rod, tube",
     image: "/materials/detail/plastics-polymers/ptfe.png",
     imageAlt: "Machined white PTFE valve seats, seals, and gaskets",
@@ -634,7 +635,7 @@ const plasticsPolymersGradeProfiles: MaterialGradeProfile[] = [
     uns: "Resin grade review",
   },
   {
-    applications: "Wear strips, conveyor guides, chutes, sprockets, and impact-resistant liners.",
+    applications: "Low-friction wear strips, conveyor guides, chutes, and impact-resistant liners.",
     forms: "Sheet, plate, rod",
     image: "/materials/detail/plastics-polymers/uhmw-pe.png",
     imageAlt: "UHMW-PE wear strips, conveyor guide, and sprocket",

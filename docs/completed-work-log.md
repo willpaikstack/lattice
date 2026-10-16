@@ -111,6 +111,11 @@ Update this file at the end of a substantial work session. Keep entries concise,
 - Defined the customer invitation-to-workspace experience in `docs/customer-invitation-join-experience.md`, covering professional tone, the current first-cohort journey, screen and email copy direction, visual/interaction guidance, recovery states, phased delivery, and acceptance criteria.
 - Updated `TODO.md` to use the experience brief as the implementation direction before controlled end-to-end invitation validation. No application behavior changed.
 
+## 2026-10-16
+
+- Completed a public-source competitive review of customer-facing material descriptions across Xometry, Fictiv, Hubs / Protolabs Network, and Protolabs. Refreshed all 12 material-family index summaries and 34 featured grade descriptions with original Lattice wording using broad family coverage plus exact featured-grade matches. Recorded each replacement and comparator source in `docs/audits/material-description-competitive-review-2026-10-16.md`; no material availability, certification, or capability claims were added.
+- Verification: reviewed the copy diff and report source links; no automated tests run.
+
 ## Entry Format
 
 ```md
