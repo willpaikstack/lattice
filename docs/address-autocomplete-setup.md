@@ -1,5 +1,9 @@
 # U.S. address autocomplete
 
+## Current connection
+
+Activated 2026-10-16: Geoapify project **Lattice** uses the Free plan. GEOAPIFY_API_KEY is stored as a Vercel Secret in **Production** and **Preview**. Production is redeployed and genuine Customer Admin shipping/billing autocomplete and native full-name state selection are verified. No local Development key was added. Key values belong only in secret storage.
+
 ## Provider and activation
 
 Lattice uses Geoapify Address Autocomplete for street suggestions. The app requests up to five U.S. matches after 350 ms without typing. Choosing a result fills street/city/state/ZIP; name, company, unit/suite and address phone remain editable. Users may enter the complete address manually. Existing bundled city/ZIP suggestions remain available if street lookup is unavailable. Suggestions help entry; they do not certify deliverability.

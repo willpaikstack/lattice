@@ -257,5 +257,4 @@ Twelve genuine-customer Production RFQs across four accounts are submitted and a
 
 ## 2026-10-16 — Address lookup activation
 
-- Add server-only GEOAPIFY_API_KEY to the existing lattice Vercel project, then redeploy. The account owner must create the provider account/key; see docs/address-autocomplete-setup.md.
-- After activation, exercise real U.S. street suggestion selection in shipping and billing, keyboard selection, manual entry and provider-failure fallback. Before key activation, only the no-provider/manual flow can be checked live.
+- Completed 2026-10-16: Lattice Geoapify Free-plan project created with owner approval; server-only key connected as a Vercel Secret for Production/Preview and deployment promoted. Genuine Admin shipping/billing suggestions, keyboard/mouse autofill, manual entry and native state dropdown verified. Original address values preserved. See docs/address-autocomplete-setup.md and the completed-work log.
