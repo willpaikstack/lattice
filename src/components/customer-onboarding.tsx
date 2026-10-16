@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowRight, Clock, X } from "lucide-react";
+import { ArrowRight, Clock, X, Mail, Play } from "lucide-react";
 import { saveCustomerOnboarding } from "@/app/(workspace)/onboarding/actions";
 import { LatticeMarkIcon } from "./lattice-brand";
 import s from "./customer-onboarding-draft.module.css";
@@ -51,7 +51,7 @@ export function CustomerOnboarding({ initial }: { initial: CustomerOnboardingSta
   return <div className={s.root}>
     {target && visible && step > 0 && <div aria-hidden="true" className={s.spotlight} style={{ position: "fixed", zIndex: 1001, top: target.top, left: target.left, width: target.width, height: target.height }} />}
     <div className={s.welcomeVeil} style={{ position: "fixed", zIndex: 1002, background: step > 0 && !help ? "transparent" : undefined }}>
-      <div aria-modal="true" aria-labelledby="customer-tour-title" role="dialog" tabIndex={-1} ref={dialog} className={s.welcome} onKeyDown={(event) => {
+      <div aria-modal="true" aria-labelledby="customer-tour-title" role="dialog" tabIndex={-1} ref={dialog} className={`${s.welcome} ${help ? s.helpWelcome : ""}`} onKeyDown={(event) => {
         if (event.key === "Escape" && !pending) { if (help) setHelp(false); else persist(step, true); }
         if (event.key === "Tab") {
           const controls = Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]') ?? []);
@@ -61,12 +61,12 @@ export function CustomerOnboarding({ initial }: { initial: CustomerOnboardingSta
           else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) { event.preventDefault(); first.focus(); }
         }
       }}>
-        <div className={s.welcomeArtwork}><LatticeMarkIcon /><span>Request</span><i /><span>Quote</span><i /><span>Order</span></div>
-        <p className={s.eyebrow}>{help ? "Workspace help" : step === 0 ? initial.company : `Workspace tour · ${step} of 4`}</p>
-        <h2 id="customer-tour-title">{help ? "How can we help?" : step === 0 ? `Welcome to Lattice, ${initial.name.split(" ")[0]}.` : stops[step - 1].title}</h2>
-        <p>{help ? "Get familiar with your workspace or contact the Lattice team." : step === 0 ? "Submit manufacturing requests, review quotes, and follow your orders in one place." : stops[step - 1].text}</p>
+        <div className={s.welcomeArtwork}><LatticeMarkIcon /><span>{help ? "LATTICE · CUSTOMER CARE" : "Request"}</span>{!help && <><i /><span>Quote</span><i /><span>Order</span></>}</div>
+        <p className={s.eyebrow}>{help ? "Here when you need us" : step === 0 ? initial.company : `Workspace tour · ${step} of 4`}</p>
+        <h2 id="customer-tour-title">{help ? "Need a hand?" : step === 0 ? `Welcome to Lattice, ${initial.name.split(" ")[0]}.` : stops[step - 1].title}</h2>
+        <p>{help ? "Get a quick refresher or talk with our team about your workspace." : step === 0 ? "Submit manufacturing requests, review quotes, and follow your orders in one place." : stops[step - 1].text}</p>
         {error && <p role="alert">{error}</p>}
-        {help ? <><button disabled={pending} className={s.primary} onClick={() => persist(0)}>Replay workspace tour</button><a className={s.textButton} href="mailto:support@latticeos.co">Contact support@latticeos.co</a><button className={s.textButton} onClick={() => setHelp(false)}><X size={14} />Close</button></> : <><div className={s.time}><Clock size={14} />About one minute · progress saves automatically</div><button disabled={pending} className={s.primary} onClick={() => persist(step === 4 ? 4 : step + 1, step === 4)}>{step === 0 ? "Show me around" : step === 4 ? "Start using Lattice" : "Next"}<ArrowRight size={15} /></button>{step > 0 && <button disabled={pending} className={s.textButton} onClick={() => persist(step - 1)}>Back</button>}<button disabled={pending} className={s.textButton} onClick={() => persist(step, true)}>Skip tour</button></>}
+        {help ? <div className={s.helpActions}><a href="mailto:support@latticeos.co"><Mail size={16} /><span><strong>Contact our team</strong><small>support@latticeos.co</small></span><ArrowRight size={15} /></a><button disabled={pending} onClick={() => persist(0)}><Play size={16} /><span><strong>Replay the workspace tour</strong><small>A quick four step refresher</small></span><ArrowRight size={15} /></button><button className={s.textButton} onClick={() => setHelp(false)}><X size={14} />Close</button></div> : <><div className={s.time}><Clock size={14} />About one minute · progress saves automatically</div><button disabled={pending} className={s.primary} onClick={() => persist(step === 4 ? 4 : step + 1, step === 4)}>{step === 0 ? "Show me around" : step === 4 ? "Start using Lattice" : "Next"}<ArrowRight size={15} /></button>{step > 0 && <button disabled={pending} className={s.textButton} onClick={() => persist(step - 1)}>Back</button>}<button disabled={pending} className={s.textButton} onClick={() => persist(step, true)}>Skip tour</button></>}
       </div>
     </div>
   </div>;
