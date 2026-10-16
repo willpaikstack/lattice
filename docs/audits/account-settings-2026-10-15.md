@@ -1,6 +1,6 @@
 # Account settings operational audit — 2026-10-15
 
-Status: released to Production with migration and genuine Customer Admin checks complete. Genuine Member sign-in and user-completed password recovery remain pending. Earlier local-only checkpoints below are historical; the authorized release section records current evidence.
+Status: released to Production with migration and genuine Customer Admin/Member checks complete. William confirmed recovery email receipt and reset completion, corroborated by Production token/credential/audit state. A separate new-password sign-in was not independently exercised. Earlier local-only checkpoints below are historical; the authorized release section records current evidence.
 
 ## Scope and decisions
 
@@ -69,8 +69,16 @@ Resolved the eleven baseline test failures by supplying complete commercial inpu
 - Local evidence: `/tmp/lattice-settings-production-photo.jpg`, `/tmp/lattice-settings-production-restored.jpg`, `/tmp/lattice-settings-production-rfq.jpg`. Private baseline and boolean proof are stored only in ignored `.vercel` files, not source control.
 - Deployment logs over the audit window show zero HTTP 500+ requests. Eight runtime stderr entries were PostgreSQL/Node deprecation warnings (seven SSL-mode warnings and one concurrent-query warning), with no application failure observed in that window.
 
-### Remaining user handoffs
+### User handoffs at initial release checkpoint (completed below)
 
 The genuine Member check requires William to sign in as `paik.e.william@gmail.com` in the retained Production login tab. The browser still shows the login page. Member permissions, cross-company isolation and shared-default visibility already have automated/database coverage, but this does not substitute for a genuine hosted Member session.
 
 The Production recovery form accepted the authorized request for `willclawpaik@gmail.com` and persisted an unconsumed one-hour token at 8:14 PM Eastern on October 15 (expires 9:14 PM Eastern). Inbox receipt is not confirmed. Browser credential-change policy requires William to enter, confirm and submit the new password himself; no password was entered or changed by the agent. After completion, verify token consumption, password-reset audit state and genuine Clerk sign-in. If the link expires, request a new one through the normal recovery form. Do not treat the generic sent confirmation as proof of inbox delivery.
+
+### Completed Member and recovery follow-through — 2026-10-15
+
+William confirmed genuine Member sign-in and receipt/completion of the reset email. The retained Production browser showed `paik.e.william@gmail.com` / Customer Member / Apple. Shared shipping, billing address and AP contact matched the restored company defaults, with no shared-edit buttons; name, phone and avatar controls remained available. Saved synthetic phone `555-0103` through the form and reloaded successfully, then restored the original blank phone through the form. A final browser navigation and Production AccountDefaults query confirm restoration. The same Member could open the Admin-created QA RFQ and view its saved shipping/billing/AP snapshots after company defaults had been restored. Screenshot: `/tmp/lattice-settings-production-member.jpg`.
+
+Production recovery evidence: the authorized token created October 15 at 8:14:47 PM Eastern was consumed at 8:28:19 PM Eastern before expiration; User.passwordChangedAt updated and mustChangePassword is false. PASSWORD_RESET_COMPLETED was recorded in the same completion transaction. That code records completion only after Clerk accepts the password update and session-revocation request. William entered/submitted the new password himself; no credential was accessed by the agent. User confirmation establishes inbox receipt and completion; database evidence corroborates successful recovery. A separate sign-in using the new password was not independently exercised.
+
+All four authorized follow-through items are now handled: Production migration/release, genuine Admin/Member checks, user-completed recovery, and eleven baseline test repairs. No additional application changes or test rerun were needed for these final hosted checks.
