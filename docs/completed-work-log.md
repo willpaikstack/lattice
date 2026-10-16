@@ -2654,3 +2654,12 @@ Diagnosed the live settings flow with public U.S. addresses. Geoapify returned v
 ## 2026-10-16 — Searchable state picker
 
 Replaced the browser-native state menu on account shipping and billing forms with a Lattice-styled searchable picker. It shows full state/territory names and two-letter codes, supports keyboard navigation and selection, and preserves an existing legacy region until the user picks a U.S. state. Deployed from commit bd9d2ac as production deployment dpl_Fff9ABuwpi7mDoDJw4rDUGHgLZ8V and promoted to latticeos.co. In a fresh Customer Admin settings editor, verified the styled popover, filtering to New York, keyboard ArrowDown/Enter selection, and postal-abbreviation-backed value. Canceled the editor and confirmed saved address remained unchanged. Screenshot: /tmp/lattice-state-picker-live.jpg. Typecheck and focused ESLint pass; no automated tests run.
+
+
+## 2026-10-16 — Customer materials catalog deduplication audit
+
+Reviewed the live customer `/materials` family atlas and compared its 307 family-directory entries across 12 families with the 114 raw RFQ material options (109 selectable after five aliases are hidden). Documented family-by-family duplicate candidates, catalog/dropdown coverage mismatch, confirmed alias patterns, potential cross-family misplacements, and cases that need procurement/source review before merging. Key issues include broad plastic synonym clusters, duplicate Invar/Kovar placement, incomplete 304/316 cleanup, Zamak subgroup classification, and non-grade family names in grade counts. Read-only audit; no customer data changes. Full findings and recommendations: `docs/audits/materials-catalog-deduplication-2026-10-16.md`.
+
+## 2026-10-16 — Normalize stainless directory presentation
+
+The stainless family guide groups the three 2205 source labels into one `2205 Duplex Stainless Steel` row and displays UNS S31803/S32205 with an explicit RFQ confirmation note; underlying vendor labels and existing quote records remain untouched. The featured entries now use the same 304/304L and 316/316L names as the directory, and their UNS identities are shown. A single `stainlessCatalogPresentationMode` switch restores the original directory labels. Updated the Materials feature map. No automated tests run; no deployment.

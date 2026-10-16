@@ -4,6 +4,7 @@ import { vendorMaterialOfferings, type MaterialOfferingCategory } from "./vendor
 
 export type CustomerMaterialSubGroup = {
   conditionsByGrade?: Record<string, CustomerMaterialCondition[]>;
+  notesByGrade?: Record<string, string>;
   name: string;
   grades: string[];
 };
@@ -224,6 +225,16 @@ const aluminumOfferings = buildAluminumOfferings(aluminumSourceGrades);
 const aluminumGrades = aluminumOfferings.grades;
 const steelGrades = combinedGrades("Carbon / Alloy Steel", "Steel", "Tool steel");
 const stainlessGrades = combinedGrades("Stainless Steel", "Stainless steel");
+// Revert this presentation-only cleanup by changing the mode to "source".
+// Source/vendor labels remain intact in their source datasets either way.
+export const stainlessCatalogPresentationMode: "normalized" | "source" = "normalized";
+const stainlessDirectoryGrades = stainlessCatalogPresentationMode === "normalized"
+  ? unique(stainlessGrades.map((grade) =>
+      grade === "Duplex 2205 / S31803" || grade === "Duplex 2205 / S32205"
+        ? "2205 Duplex Stainless Steel"
+        : grade,
+    ))
+  : stainlessGrades;
 const nickelGrades = combinedGrades("Nickel / Cobalt Alloy", "Nickel / precision alloy");
 const precisionGrades = combinedGrades("Controlled Expansion / Precision Alloy", "Nickel / precision alloy")
   .filter((grade) => /Invar|Kovar|4J|1J/i.test(grade));
@@ -258,13 +269,22 @@ const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
   },
   {
     ...existing("stainless-steel"),
-    materialGroups: groupGrades(stainlessGrades, [
+    materialGroups: groupGrades(stainlessDirectoryGrades, [
       { name: "300 series austenitic", matches: (grade) => /\b30[12349]\b|303Se|303Sulf|304|304L|304H|310|310S|316|316L|316H|316Ti|321|330|347|347H|18-8/i.test(grade) },
       { name: "400 series martensitic/ferritic", matches: (grade) => /\b40|410|416|420|430|431|440|1\.4005|1\.4305|20Cr13|40Cr13/i.test(grade) },
       { name: "Precipitation-hardened stainless steels", matches: (grade) => /13-8|15-5|17-4|630|Custom 455|PH/i.test(grade) },
       { name: "Duplex and super duplex", matches: (grade) => /Duplex|F51|F55|2205|2507|Z100|S32760|S31803|S32205/i.test(grade) },
       { name: "Specialty stainless", matches: (grade) => /Nitronic|904L|Alloy 20|253MA|254SMO|817M40T|1\.2085/i.test(grade) },
-    ]),
+    ]).map((group) => ({
+      ...group,
+      ...(stainlessCatalogPresentationMode === "normalized" && group.grades.includes("2205 Duplex Stainless Steel")
+        ? {
+            notesByGrade: {
+              "2205 Duplex Stainless Steel": "The source catalog lists UNS S31803 and S32205 designations. Confirm the governing specification during RFQ review; this family grouping does not treat them as automatically interchangeable.",
+            },
+          }
+        : {}),
+    })),
   },
   {
     ...existing("mild-steel"),

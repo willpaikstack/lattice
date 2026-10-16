@@ -151,9 +151,9 @@ const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
     image: "/materials/detail/stainless-steel/304.png",
     imageAlt: "CNC-machined 304 stainless sanitary flange",
     machinability: "Fair",
-    name: "304",
+    name: "304/304L",
     selectionNote: "The general-purpose stainless starting point, with strong corrosion resistance, formability, and broad stock availability.",
-    uns: "UNS S30400",
+    uns: "UNS S30400 / S30403",
   },
   {
     applications: "Marine, chemical-processing, pharmaceutical, and washdown parts.",
@@ -161,9 +161,9 @@ const stainlessSteelGradeProfiles: MaterialGradeProfile[] = [
     image: "/materials/detail/stainless-steel/316.png",
     imageAlt: "Machined 316 stainless corrosion-service pump component",
     machinability: "Fair",
-    name: "316",
+    name: "316/316L",
     selectionNote: "Selected over 304 when chloride and chemical exposure require stronger pitting and corrosion resistance.",
-    uns: "UNS S31600",
+    uns: "UNS S31600 / S31603",
   },
   {
     applications: "Turned fittings, shafts, fasteners, and precision components.",

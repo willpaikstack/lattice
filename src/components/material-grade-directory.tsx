@@ -147,11 +147,15 @@ const unsByDesignation: Array<[RegExp, string]> = [
 ];
 
 function unsForGrade(grade: string) {
+  if (/304\/304L/i.test(grade)) return "S30400 / S30403";
+  if (/304LVM/i.test(grade)) return "S30473";
+  if (/304H/i.test(grade)) return "S30409";
   if (/\b316\/316L\b/i.test(grade)) return "S31600 / S31603";
   if (/\b316LVM\b/i.test(grade)) return "S31673";
   if (/\b316Ti\b/i.test(grade)) return "S31635";
   if (/\b316L\b/i.test(grade)) return "S31603";
   if (/\b316\b/i.test(grade)) return "S31600";
+  if (/2205/i.test(grade)) return "S31803 / S32205";
   return unsByDesignation.find(([designation]) => designation.test(grade))?.[1] ?? null;
 }
 
@@ -494,6 +498,8 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                               <div><p className="text-[11px] font-medium text-[#4d4f53]">Typical applications</p><p className="mt-1 text-[12px] leading-[18px] text-[#626469]">{profile.applications}</p></div>
                               <div><p className="text-[11px] font-medium text-[#4d4f53]">Selection guidance</p><p className="mt-1 text-[12px] leading-[18px] text-[#626469]">{profile.selectionGuidance}</p></div>
                             </div>
+
+                            {group.notesByGrade?.[grade] ? <p className="mt-4 border-t border-[#d9d8d5] pt-3 text-[12px] leading-[18px] text-[#626469]">{group.notesByGrade[grade]}</p> : null}
 
                             {familyName === "Aluminum" ? (
                               <div className="mt-5 border-t border-[#d9d8d5] pt-4">
