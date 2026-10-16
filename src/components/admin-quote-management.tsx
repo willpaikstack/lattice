@@ -4,7 +4,7 @@ import { processLabel, readTargetDeliveryDate } from "@/lib/rfq-manufacturing";
 
 import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
-import { ChevronDown, ExternalLink, FileText, Search, X } from "lucide-react";
+import { ChevronDown, ExternalLink, FileText, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { KeyboardEvent } from "react";
@@ -22,7 +22,7 @@ import { CustomSelect } from "./custom-select";
 
 const statusCopy: Record<LatticeRequest["status"], { label: string; tone: string; nextAction: string }> = {
   DRAFT: { label: "Draft", nextAction: "Review draft", tone: "border-slate-200 bg-slate-50 text-slate-700" },
-  SUBMITTED: { label: "Submitted", nextAction: "Assign owner and review intake", tone: "border-[#ffd1d4] bg-[#fff1f2] text-[#FF5A5F]" },
+  SUBMITTED: { label: "Submitted", nextAction: "Review intake", tone: "border-[#ffd1d4] bg-[#fff1f2] text-[#FF5A5F]" },
   NEEDS_INFO: { label: "Needs information", nextAction: "Recover buyer clarification", tone: "border-[#ffd4c3] bg-[#fff0ea] text-[#FC642D]" },
   READY_FOR_SUPPLIER_RFQ: { label: "Supplier ready", nextAction: "Send supplier RFQs", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
   QUOTED: { label: "Customer quote issued", nextAction: "Follow buyer decision", tone: "border-[#b8eee8] bg-[#e6f8f6] text-[#007a70]" },
@@ -709,7 +709,6 @@ function AdminQuoteWorkbench({
             <fieldset disabled={isSaving || decisionPending} className={styles.quoteFields}>
             <input name="requestId" type="hidden" value={request.id} />
             <input name="status" type="hidden" value="QUOTED" />
-            <input name="assignedOwner" type="hidden" value={request.operatorReview.assignedOwner ?? ""} />
             <input name="supplierPackageNotes" type="hidden" value={request.operatorReview.supplierPackageNotes} />
             <input name="internalNotes" type="hidden" value={request.operatorReview.internalNotes} />
             <input name="quoteCreatedDate" type="hidden" value={quoteCreatedDate} />
@@ -959,10 +958,7 @@ export function AdminQuoteManagement({
   const deepLinkedRequestId = searchParams.get("requestId");
   const deepLinkedDecision = parsedRfqDecision(searchParams.get("decision"));
   const deepLinkedWorkbench = searchParams.get("view") === "quote";
-  const [query, setQuery] = useState("");
   const [view, setView] = useState<QueueView>("ACTIVE");
-  const [stageFilter, setStageFilter] = useState("ALL");
-  const [ownerFilter, setOwnerFilter] = useState("ALL");
   const [isWorkbench, setIsWorkbench] = useState(false);
   const [hasUnsentEdits, setHasUnsentEdits] = useState(false);
   const [detailRequest, setDetailRequest] = useState<LatticeRequest | null>(null);
@@ -991,30 +987,10 @@ export function AdminQuoteManagement({
     return () => window.clearTimeout(timeoutId);
   }, [deepLinkedRequestId, deepLinkedDecision, deepLinkedWorkbench, quoteRequests, router]);
 
-  const filteredRequests = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return sortByUpdatedAtNewest(quoteRequests.filter((request) => {
-      const statusGroup = adminQuoteStatusGroup(request);
-      const matchesStatus = (view === "ARCHIVED" ? statusGroup === "ARCHIVED" : statusGroup !== "ARCHIVED") && (stageFilter === "ALL" || request.status === stageFilter) && (ownerFilter === "ALL" || (request.operatorReview.assignedOwner || "UNASSIGNED") === ownerFilter);
-      const searchable = [
-        request.title,
-        request.process,
-        request.buyerCompany,
-        request.requesterName,
-        quoteReference(request),
-        ...request.lineItems.flatMap((item) => [item.partName, item.material]),
-        request.operatorReview.assignedOwner,
-        ...request.files.map((file) => file.name),
-        ...request.supplierQuotes.map((quote) => quote.shopName),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return matchesStatus && (!normalizedQuery || searchable.includes(normalizedQuery));
-    }));
-  }, [query, quoteRequests, view, stageFilter, ownerFilter]);
+  const filteredRequests = useMemo(() => sortByUpdatedAtNewest(quoteRequests.filter((request) => {
+    const archived = adminQuoteStatusGroup(request) === "ARCHIVED";
+    return view === "ARCHIVED" ? archived : !archived;
+  })), [quoteRequests, view]);
 
   useEffect(() => {
     function handlePageShow(event: PageTransitionEvent) {
@@ -1064,12 +1040,11 @@ export function AdminQuoteManagement({
   }
 
   const activeRequests = quoteRequests.filter((request) => adminQuoteStatusGroup(request) !== "ARCHIVED");
-  const owners = [...new Set(quoteRequests.map((request) => request.operatorReview.assignedOwner).filter((owner): owner is string => Boolean(owner)))].sort();
   const queueGroups = view === "ACTIVE" ? [
-    { key: "submitted", title: "Submitted RFQs", description: "Received requests in review, awaiting a customer quote.", emptyTitle: "No submitted RFQs match this view", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_REQUESTED") },
-    { key: "issued", title: "Customer quotes issued", description: "Quotes sent to customers, awaiting their decision.", emptyTitle: "No issued quotes match this view", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_RECEIVED") },
+    { key: "submitted", title: "Submitted RFQs", description: "Received requests in review, awaiting a customer quote.", emptyTitle: "No submitted RFQs", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_REQUESTED") },
+    { key: "issued", title: "Customer quotes issued", description: "Quotes sent to customers, awaiting their decision.", emptyTitle: "No customer quotes issued yet", requests: filteredRequests.filter((request) => adminQuoteStatusGroup(request) === "QUOTE_RECEIVED") },
   ] : [
-    { key: "archive", title: "Archived RFQs", description: "Closed and archived requests.", emptyTitle: "No archived RFQs match this view", requests: filteredRequests },
+    { key: "archive", title: "Archived RFQs", description: "Closed and archived requests.", emptyTitle: "No archived RFQs", requests: filteredRequests },
   ];
   if (isWorkbench && detailRequest) {
     return <div className={styles.workbenchLayout}>
@@ -1081,17 +1056,12 @@ export function AdminQuoteManagement({
     <div className="space-y-5">
       <div className={styles.toolbar}>
         <div className={styles.viewTabs} aria-label="Quote queue views">
-          {(["ACTIVE", "DRAFTS", "ARCHIVED"] as const).map((tab) => <button type="button" key={tab} aria-pressed={view === tab} onClick={() => { setView(tab); setStageFilter("ALL"); setOwnerFilter("ALL"); closeDetail(); }}>{tab === "ACTIVE" ? `Active (${activeRequests.length})` : tab === "DRAFTS" ? `Drafts (${draftRequests.length})` : `Archive (${quoteRequests.length - activeRequests.length})`}</button>)}
+          {(["ACTIVE", "DRAFTS", "ARCHIVED"] as const).map((tab) => <button type="button" key={tab} aria-pressed={view === tab} onClick={() => { setView(tab); closeDetail(); }}>{tab === "ACTIVE" ? `Active (${activeRequests.length})` : tab === "DRAFTS" ? `Drafts (${draftRequests.length})` : `Archive (${quoteRequests.length - activeRequests.length})`}</button>)}
         </div>
-        {view !== "DRAFTS" ? <div className={styles.filters}>
-          <label className={styles.search}><Search size={16} aria-hidden="true" /><span className="sr-only">Search quote submissions</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search RFQs, customers, parts…" /></label>
-          <label><span className="sr-only">RFQ stage</span><select value={stageFilter} onChange={(event) => setStageFilter(event.target.value)}><option value="ALL">All stages</option>{["SUBMITTED", "NEEDS_INFO", "READY_FOR_SUPPLIER_RFQ", "QUOTED", "CLOSED"].map((stage) => <option key={stage} value={stage}>{statusCopy[stage as LatticeRequest["status"]].label}</option>)}</select></label>
-          <label><span className="sr-only">Assigned owner</span><select value={ownerFilter} onChange={(event) => setOwnerFilter(event.target.value)}><option value="ALL">All owners</option><option value="UNASSIGNED">Unassigned</option>{owners.map((owner) => <option key={owner}>{owner}</option>)}</select></label>
-        </div> : null}
       </div>
       {view !== "DRAFTS" ? <div className="space-y-5">
         {queueGroups.map((group) => <section className={styles.queue} aria-label={group.title} key={group.key}>
-          <header className={styles.queueHeading}><div><h2>{group.title}</h2><p>{group.description}</p></div><span aria-label={`${group.requests.length} matching requests`}>{group.requests.length}</span></header>
+          <header className={styles.queueHeading}><div><h2>{group.title}</h2><p>{group.description}</p></div><span aria-label={`${group.requests.length} requests`}>{group.requests.length}</span></header>
           <div className={styles.tableScroll}><table className={styles.queueTable} aria-label={group.title}>
             <thead><tr><th>RFQ & customer</th><th>Stage</th><th>Package</th><th>Submission date</th><th>Submitted by</th></tr></thead>
             <tbody>{group.requests.map((request) => {
@@ -1104,7 +1074,7 @@ export function AdminQuoteManagement({
               </tr>;
             })}</tbody>
           </table></div>
-          {!group.requests.length ? <div className={styles.empty}><h3>{group.emptyTitle}</h3><p>Choose another stage or clear the search and owner filters.</p><button className={styles.textButton} onClick={() => { setQuery(""); setStageFilter("ALL"); setOwnerFilter("ALL"); }} type="button">Clear filters</button></div> : null}
+          {!group.requests.length ? <div className={styles.empty}><h3>{group.emptyTitle}</h3><p>Requests will appear here when they reach this stage.</p></div> : null}
           <footer>{group.requests.length} {group.requests.length === 1 ? "request" : "requests"} · Click an RFQ to open its details</footer>
         </section>)}
       </div> : null}

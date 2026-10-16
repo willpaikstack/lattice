@@ -147,7 +147,7 @@ export function AdminRfqDetail({ request }: { request: LatticeRequest }) {
       </section> : <p>No parts were saved with this RFQ.</p>}
     </div>
     {unassignedFiles.length ? <section className={styles.shared}><h2>Shared RFQ files</h2><p>These files have no valid saved part association. Review the package before assigning them to a part.</p><div>{unassignedFiles.map(item => <FileLink key={item.id} file={item} />)}</div></section> : null}
-    <section className={styles.operations} aria-label="RFQ operations"><div><h2>Operator review</h2><dl><Field label="Assigned owner" value={request.operatorReview.assignedOwner || "Unassigned"} /><Field label="Review status" value={request.operatorReview.completeness.replaceAll("_", " ")} /></dl>
+    <section className={styles.operations} aria-label="RFQ operations"><div><h2>Operator review</h2><dl><Field label="Review status" value={request.operatorReview.completeness.replaceAll("_", " ")} /></dl>
       {request.operatorReview.internalNotes ? <p className={styles.notes}>{request.operatorReview.internalNotes}</p> : null}{request.operatorReview.supplierPackageNotes ? <p className={styles.notes}>{request.operatorReview.supplierPackageNotes}</p> : null}
       {canQuote ? <div className={styles.actions}><Link href={`${base}&decision=NEEDS_INFO`}>Request information</Link><Link href={`${base}&decision=CLOSED`}>No quote</Link></div> : null}
     </div><div><h2>Supplier evidence</h2>{request.supplierQuoteFiles.length ? <div className={styles.fileList}>{request.supplierQuoteFiles.map(item => <FileLink key={item.id} file={item} />)}</div> : <p>No supplier quote files attached.</p>}
