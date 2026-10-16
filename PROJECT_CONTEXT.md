@@ -386,3 +386,5 @@ Admin queue split release verified (2026-10-16): source 7cf4ad8 is live as dpl_B
 Quote submissions summary cards removed (2026-10-16): the page now opens with queue tabs/search/filters and the separate submitted/issued tables. Counts remain in the table headings and view tabs.
 
 Quote summary-card removal is released as dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj (4388798). Hosted admin browser confirms zero summary-card sections and the existing 15 submitted/2 issued rows retained.
+
+Admin Users directory (2026-10-16): added /admin/users and a sidebar entry showing every provisioned User across Lattice Admin/Customer Admin/Customer Member roles, including unassigned accounts. Search, role/company filters, company-profile links, sign-in setup and creation date are read-only. Page and server-only data access enforce Lattice Admin authorization before private queries and return a field-limited DTO. Renamed the existing company directory to Companies throughout its navigation/header/search/breadcrumb; /admin/customers URLs remain compatible.

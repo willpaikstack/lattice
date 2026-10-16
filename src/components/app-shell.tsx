@@ -83,7 +83,8 @@ const adminNavSections: NavSection[] = [
     title: "Admin",
     items: [
       { href: "/admin/quotes", label: "Quote Submissions", icon: "money" },
-      { href: "/admin/customers", label: "Customers", icon: "user" },
+      { href: "/admin/customers", label: "Companies", icon: "factory" },
+      { href: "/admin/users", label: "Users", icon: "user" },
       { href: "/admin/vendors", label: "Overseas Vendors", icon: "factory" },
       { href: "/admin/orders", label: "Placed Orders", icon: "factory" },
       { href: "/admin/support", label: "Customer Support", icon: "resources" },

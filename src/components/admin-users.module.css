@@ -1,0 +1,27 @@
+.directory { border:1px solid #e3e7ee; border-radius:9px; background:white; overflow:hidden; }
+.filters { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:18px 20px; border-bottom:1px solid #edf0f4; }
+.search { display:flex; align-items:center; gap:9px; color:#7a8390; flex:1; min-width:240px; max-width:480px; }
+.search input { background:transparent; border:0; outline:none; min-width:0; width:100%; color:#25364d; }
+.search,.filters select { height:42px; border:1px solid #dfe3ea; border-radius:6px; background:#fbfcfe; padding:0 12px; font-size:13px; }
+.filters select { max-width:240px; color:#34445d; }
+.search:focus-within,.filters select:focus-visible { outline:2px solid #245be8; outline-offset:2px; }
+.scroll { overflow-x:auto; }
+.table { width:100%; min-width:820px; border-collapse:collapse; text-align:left; font-size:13px; }
+.table th { padding:14px 20px; background:#fafbfc; color:#78808a; text-transform:uppercase; letter-spacing:.06em; font-size:10px; font-weight:600; }
+.table td { border-top:1px solid #edf0f4; padding:18px 20px; vertical-align:middle; color:#34445d; }
+.table tr:hover td { background:#fafcff; }
+.identity { display:flex; align-items:center; gap:12px; }
+.identity strong { display:block; color:#202c3b; font-weight:600; }
+.avatar { display:grid; place-items:center; width:36px; height:36px; flex-shrink:0; border-radius:50%; background:#edf2fb; color:#365475; font-size:12px; font-weight:600; }
+.email { display:block; margin-top:5px; color:#69778b; font-size:12px; overflow-wrap:anywhere; }
+.company { color:#245be8; font-weight:500; }
+.company:hover,.email:hover { text-decoration:underline; }
+.role { border-radius:5px; padding:5px 8px; background:#eef2f8; color:#405673; white-space:nowrap; font-size:11px; font-weight:500; }
+.connected { color:#14725a; font-size:12px; }
+.pending,.muted { color:#78808a; font-size:12px; }
+.footer { border-top:1px solid #edf0f4; background:#fafbfc; padding:14px 20px; font-size:12px; color:#69778b; }
+.empty { display:grid; justify-items:center; gap:10px; text-align:center; padding:40px 20px; color:#78808a; font-size:13px; }
+.empty h2 { font-size:16px; font-weight:600; color:#34445d; }
+.empty button { color:#245be8; font-weight:600; padding:5px 10px; }
+.directory a:focus-visible,.empty button:focus-visible { outline:2px solid #245be8; outline-offset:3px; }
+@media (max-width:640px) { .filters { padding:14px; } .search { min-width:100%; max-width:none; } .filters>label:not(.search) { flex:1; min-width:0; } .filters select { width:100%; max-width:none; } }

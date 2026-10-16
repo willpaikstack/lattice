@@ -335,3 +335,7 @@ Admin queue split released and verified 2026-10-16: dpl_BxaCczsSFJSQ1jYSbCThyiv3
 Removed the top Quote operations summary card section from /admin/quotes. Tabs, search/stage/owner filters and the separate Submitted RFQs / Customer quotes issued tables remain, with counts in their headings. No request data or workflow changes.
 
 Summary-card removal released and browser-verified 2026-10-16 as dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj; filters/tabs lead directly to the two tables.
+
+### Admin Companies and Users — 2026-10-16
+
+Renamed Customers to Companies in the admin sidebar, directory title, search/filter labels, creation button and profile breadcrumb. Existing /admin/customers routes and workflows remain. Added /admin/users with all provisioned platform users, including Lattice Admins and users without a company. Read-only name/email, role, company-profile link, sign-in setup and creation date; search and role/company filters include empty/reset states. Lattice Admin authorization is checked before private queries in both page and server-only data access. Only explicit display DTOs reach the client; no password, recovery or provider identifiers.

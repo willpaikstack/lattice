@@ -1639,3 +1639,7 @@ Remove the embedded Active RFQs list from quote preparation, keeping global navi
 ## 2026-10-16 — Separate unquoted RFQs from issued customer quotes
 
 The admin Active queue contains two visible tables: Submitted RFQs includes received/information-needed/supplier-ready RFQs awaiting customer quote issuance; Customer quotes issued includes QUOTED requests awaiting a buyer decision. Archived/closed requests and drafts retain their separate views. Apply the existing filters to both tables and keep the Submitted RFQs metric exclusive of issued quotes.
+
+## 2026-10-16 — Separate Companies and Users in admin navigation
+
+Companies names the existing /admin/customers company directory; keep those URLs to preserve saved links. Users at /admin/users lists all provisioned platform User records across roles and company assignment, including Lattice Admins. It is read-only and Lattice Admin-only, with authorization inside both page and server-only data access and explicit display-field selection. Waiting-list entries without a platform account remain in the Companies waiting-list tab.

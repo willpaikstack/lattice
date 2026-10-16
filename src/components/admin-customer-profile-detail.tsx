@@ -279,7 +279,7 @@ export function AdminCustomerProfileDetail({
   return (
     <div className={styles.page}>
       <div className={styles.breadcrumb}>
-        <Link href="/admin/customers">Customers</Link>
+        <Link href="/admin/customers">Companies</Link>
         <span aria-hidden="true">/</span>
         <span>{profile.name}</span>
       </div>
