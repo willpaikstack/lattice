@@ -2631,3 +2631,8 @@ Inspected the live Amazon add-address state control: native select, Select place
 
 
 Release status (2026-10-16): source b5284a9 pushed and deployed from an isolated committed-source archive as Ready Production dpl_EbSTedh1nAxiAouQNDCJD9b8AYnc at latticeos.co. Typecheck, focused lint and hosted build pass; no automated tests run. User requested help provisioning the missing provider key. Opened Geoapify registration in the in-app browser for the owner to complete password creation, terms acceptance and any verification; retained it as a handoff. Provider activation and full hosted shipping/billing checks remain pending account setup. User’s existing settings draft was preserved. No account/request data changed.
+
+
+## 2026-10-16 — Repair Google account choice after logout
+
+Reproduced the reported Production behavior in the user’s Chrome tab: Continue with Google returned directly to the will@latticeos.co admin workspace. Confirmed the deployed page already passes oidcPrompt=select_account; inspected the live Clerk JS 6.39.0 bundle and found its social authenticateWithRedirect helper drops that value when creating the attempt. Replaced initial social buttons with direct Clerk attempt creation; Google’s returned authorization URL explicitly requests selection without a previous login hint and preserves state, PKCE, callback, scopes and consent. Microsoft uses its Clerk-provided redirect. Clerk’s built-in password UI, callback, recovery and MFA screens remain in use. Errors offer retry/password sign-in; duplicate social starts are blocked. Local Chrome confirms Choose an account and Use another account; six focused tests, typecheck and focused lint pass. React accessibility/hooks checklist reviewed. Production release verification follows.

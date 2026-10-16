@@ -390,3 +390,8 @@ Quote summary-card removal is released as dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj (4388
 Admin Users directory (2026-10-16): added /admin/users and a sidebar entry showing every provisioned User across Lattice Admin/Customer Admin/Customer Member roles, including unassigned accounts. Search, role/company filters, company-profile links, sign-in setup and creation date are read-only. Page and server-only data access enforce Lattice Admin authorization before private queries and return a field-limited DTO. Renamed the existing company directory to Companies throughout its navigation/header/search/breadcrumb; /admin/customers URLs remain compatible.
 
 Users/Companies release verified (2026-10-16): b6c8a9a deployed as dpl_Hy9864p5ChTfLEqxviRUy8VdqpDH. Admin Users shows all six database accounts, search/role/company/reset filters pass, and Companies labels/title/navigation are visible. Genuine Customer Admin direct access to /admin/users redirects to /dashboard. No user/company mutation.
+
+
+## 2026-10-16 — Google account selection repair
+
+The /login social buttons create Clerk OAuth attempts directly with select_account. Production Clerk JS 6.39.0 drops oidcPrompt inside its social authenticateWithRedirect helper; the returned Google authorization URL is also given select_account with prior login_hint removed, preserving state, PKCE, callback and consent. Clerk still handles passwords and nested callback/recovery/MFA challenges. Local Chrome displays Choose an account with Use another account; six focused tests, typecheck and focused lint pass. Production release verification follows in the completed-work log.

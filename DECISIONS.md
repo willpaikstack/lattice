@@ -1648,3 +1648,8 @@ Companies names the existing /admin/customers company directory; keep those URLs
 ### 2026-10-16 — U.S. street lookup and address phones
 
 Use Geoapify Address Autocomplete, restricted to U.S. results, via a signed-in server route and a server-only GEOAPIFY_API_KEY. Keep manual entry and existing bundled city/state/ZIP lookup usable when the provider is absent or unavailable. Provider suggestions assist entry and are not a deliverability guarantee. Store separate optional shippingPhone/billingPhone values on Company and standalone AccountDefaults. Same-as-shipping links the contact phone as well. New requests freeze these address contacts; existing snapshots are unchanged. Blank legacy shipping phones retain the existing account-phone fallback for new RFQ contact construction.
+
+
+## 2026-10-16 — Require explicit Google account choice at login
+
+Signing out of Lattice does not end the browser’s Google session. Continue with Google must offer account selection on every fresh login. Create the Clerk social attempt directly because Clerk JS 6.39.0 omits oidcPrompt for social OAuth; explicitly add select_account to the returned Google authorization URL, remove a stale login hint and preserve OAuth state, PKCE, callbacks and any consent prompt. Keep Clerk responsible for credentials, authorization verification, callbacks and further challenges.
