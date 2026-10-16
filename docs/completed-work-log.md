@@ -2612,3 +2612,6 @@ Release confirmation (2026-10-16): source b6c8a9a pushed and deployed from a cle
 ## 2026-10-16 — Simplify quote queue and RFQ review
 
 Removed the quote queue search box, stage filter and owner filter, including their state, filtering logic, unused styles and stale empty-state instructions. Active/Drafts/Archive tabs, sorting and separate submitted/issued tables remain. Removed Assigned owner from RFQ operator review and its unused hidden workbench input; server quote saves already preserve historical owner data. Updated intake next-action copy. Typecheck and focused lint pass; React component checklist reviewed. Automated tests were not added or run. Release evidence follows.
+
+
+Release confirmation (2026-10-16): source 7e8be39 pushed and deployed from a clean committed-source archive as Ready Production dpl_6ZyaUqg3fftx5dGY78otbs7mVY5M, promoted to latticeos.co. Fresh genuine Admin browser confirms zero queue search/stage/owner controls, 15 submitted and 2 issued rows, working Drafts/Archive/Active tabs, and no Assigned owner in the RFQ operator review (Review status remains). Typecheck, focused lint and hosted build pass; automated tests were not run. Screenshots: /tmp/lattice-quote-queue-simplified.jpg and /tmp/lattice-rfq-review-no-owner.jpg. No RFQ data changed; unrelated address-editor work remains local and excluded.
