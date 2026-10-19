@@ -121,7 +121,7 @@ function buildQuoteWorkflow(request: LatticeRequest, now: Date, renewalRequested
 
   return {
     completedSteps: 1,
-    ctaLabel: awaitingRenewal ? "View renewal status" : isExpired ? "Request renewed quote" : "Review and accept quote",
+    ctaLabel: awaitingRenewal ? "View renewal status" : isExpired ? "Request renewed quote" : "Review quote",
     detail: awaitingRenewal ? "Your request is saved. Lattice is reviewing current pricing and lead time; review the new quote once it is issued." : isExpired
       ? "Request updated pricing and lead time. Lattice must issue a renewed quote before you can purchase."
       : "Review pricing, lead time, assumptions, and checkout options before making a purchasing decision.",

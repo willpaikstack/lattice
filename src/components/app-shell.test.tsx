@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -344,7 +344,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin/quotes");
   });
 
-  it("keeps request quote as a primary CTA instead of a workspace nav item", () => {
+  it("provides a request quote CTA in desktop and compact navigation", () => {
     mockUsePathname.mockReturnValue("/requests/new");
 
     render(
@@ -355,7 +355,9 @@ describe("AppShell", () => {
 
     const requestQuoteLinks = screen.getAllByRole("link", { name: "Request Quote" });
 
-    expect(requestQuoteLinks).toHaveLength(1);
+    expect(requestQuoteLinks).toHaveLength(2);
+    expect(within(document.querySelector("aside")!).getByRole("link", { name: "Request Quote" })).toHaveAttribute("href", "/requests/new");
+    expect(within(screen.getByRole("navigation", { name: "Compact navigation" })).getByRole("link", { name: "Request Quote" })).toHaveAttribute("href", "/requests/new");
     expect(requestQuoteLinks[0]).toHaveAttribute("href", "/requests/new");
     expect(requestQuoteLinks[0]).toHaveAttribute("aria-current", "page");
     expect(requestQuoteLinks[0]).toHaveClass("border-[#505050]", "bg-[#505050]", "font-semibold");
@@ -405,7 +407,7 @@ describe("AppShell", () => {
     );
 
     expectAllLinksNamed("Lattice admin home", "/admin/quotes");
-    expectAllLinksNamed("Customers", "/admin/customers");
+    expectAllLinksNamed("Companies", "/admin/customers");
     expectAllLinksNamed("Quote Submissions", "/admin/quotes");
     expectAllLinksNamed("Placed Orders", "/admin/orders");
     expectAllLinksNamed("Resources", "/admin/resources");
@@ -439,7 +441,7 @@ describe("AppShell", () => {
       },
     };
     const desktopQuoteSubmissionsLink = screen.getAllByRole("link", { name: "Quote Submissions" })[0];
-    const desktopCustomersLink = screen.getAllByRole("link", { name: "Customers" })[0];
+    const desktopCustomersLink = screen.getAllByRole("link", { name: "Companies" })[0];
 
     fireEvent.dragStart(desktopQuoteSubmissionsLink, { dataTransfer });
     fireEvent.drop(desktopCustomersLink, { dataTransfer });
@@ -450,11 +452,13 @@ describe("AppShell", () => {
           Admin: [
             "/admin/customers",
             "/admin/quotes",
+            "/admin/users",
             "/admin/vendors",
             "/admin/orders",
             "/admin/support",
             "/admin/material-inquiries",
             "/admin/resources",
+            "/admin/cad-viewer",
           ],
         }),
       );
@@ -462,15 +466,15 @@ describe("AppShell", () => {
 
     const desktopAdminNav = document.querySelector("aside nav section div");
 
-    expect(desktopAdminNav?.textContent).toMatch(/Customers\s*Quote Submissions\s*Overseas Vendors\s*Placed Orders\s*Customer Support\s*Material Inquiries\s*Resources/);
+    expect(desktopAdminNav?.textContent).toMatch(/Companies\s*Quote Submissions\s*Users\s*Overseas Vendors\s*Placed Orders\s*Customer Support\s*Material Inquiries\s*Resources/);
     expect(desktopAdminNav?.textContent).not.toContain("Overview");
   });
 
-  it("applies saved navigation order after the initial render", async () => {
+  it("uses the revised resource order even when an old sidebar order was saved", async () => {
     window.localStorage.setItem(
       "lattice:sidebar-nav-order:will@latticeos.co:customer",
       JSON.stringify({
-        "Your Resources": ["/equipment", "/materials", "/capabilities"],
+        "Your Resources": ["/equipment-explorer", "/equipment", "/materials", "/capabilities"],
       }),
     );
 
@@ -482,11 +486,21 @@ describe("AppShell", () => {
 
     const customerNav = document.querySelector("aside nav section:nth-child(2) div");
 
-    expect(customerNav?.textContent).toMatch(/Materials\s*Capabilities\s*Equipment\s*Inspection & Certificates/);
+    expect(customerNav?.textContent).toMatch(/How Lattice works\s*Capabilities\s*Materials\s*Equipment\s*Inspection & Certificates/);
 
     await waitFor(() => {
-      expect(customerNav?.textContent).toMatch(/Equipment\s*Materials\s*Capabilities\s*Inspection & Certificates/);
-      expect(customerNav?.textContent).toMatch(/How Lattice works\s*Equipment explorer/);
+      expect(customerNav?.textContent).toMatch(/How Lattice works\s*Capabilities\s*Materials\s*Equipment\s*Inspection & Certificates/);
+      expect(customerNav?.textContent).not.toContain("Equipment explorer");
+    });
+  });
+
+  it("keeps new resource reordering preferences after the default order changes", async () => {
+    window.localStorage.setItem("lattice:sidebar-nav-order:will@latticeos.co:customer", JSON.stringify({
+      "Your Resources:v2": ["/equipment", "/how-it-works", "/capabilities", "/materials", "/quality-documentation"],
+    }));
+    render(<AppShell sessionUser={testCustomer}><div>content</div></AppShell>);
+    await waitFor(() => {
+      expect(document.querySelector("aside nav section:nth-child(2) div")?.textContent).toMatch(/Equipment\s*How Lattice works\s*Capabilities\s*Materials\s*Inspection & Certificates/);
     });
   });
 
@@ -501,7 +515,7 @@ describe("AppShell", () => {
 
     const currentLinks = screen.getAllByRole("link", { current: "page" });
 
-    expect(currentLinks.map((link) => link.textContent)).toEqual(["Customers", "Customers"]);
+    expect(currentLinks.map((link) => link.textContent)).toEqual(["Companies", "Companies"]);
     expect(screen.queryByRole("link", { name: "Overview" })).not.toBeInTheDocument();
   });
 

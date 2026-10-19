@@ -7,6 +7,7 @@ import { packageTrackingLink } from "@/lib/package-tracking";
 import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 import { customerOrderStatusLabel, isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem, type SupplierDocumentCategory, type SupplierOrderStatus } from "@/lib/request-model";
+import { RequestBillingAddress } from "./request-billing-address";
 import { SupplierQuoteFiles } from "./supplier-quote-files";
 
 type OrderDetailRouteConfig = {
@@ -575,6 +576,7 @@ export function BuyerOrderDetail({
               </div>
             </div>
 
+            <RequestBillingAddress request={order} />
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Billing and payment</p>
               <dl className="mt-4 space-y-3 text-[13px]">

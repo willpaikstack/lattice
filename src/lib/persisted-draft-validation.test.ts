@@ -6,3 +6,9 @@ it('rejects incomplete and incompatible shared records without throwing',()=>{ex
 it('repairs legacy missing quote arrays and preserves valid form caches',()=>{const v=valid();const r={...v.request,customerQuotes:undefined};const n=normalizePersistedDraft({...v,request:r});expect(n?.schemaVersion).toBe(1);expect(n?.request.customerQuotes).toEqual([]);expect(n?.initialState).toEqual(v.initialState);});
 it('quarantines unknown future versions and drops unusable UI caches',()=>{expect(normalizePersistedDraft({...valid(),schemaVersion:2})).toBeNull();expect(normalizePersistedDraft({...valid(),initialState:{lineItems:'broken'}})?.initialState).toMatchObject({projectName:'Incomplete QA'});});
 it('reconstructs legacy form caches from authorized saved-file references',()=>{const v=valid();v.request.files=[{id:'qa_file',name:'qa.step',sizeBytes:10,type:'model/step',storageKey:'rfq-drafts/qa/file.step',lineItemIndex:0}];expect(normalizePersistedDraft({...v,initialState:null})?.initialState).toMatchObject({lineItems:[{fileName:'qa.step',fileStorageKey:'rfq-drafts/qa/file.step'}]});});
+
+it("normalizes old draft date keys without losing configuration or an intentionally cleared delivery date", () => {
+  const v = valid();
+  const normalized = normalizePersistedDraft({ ...v, initialState: { projectName: "Retain progress", lineItems: [{ quantity: "7", notes: "Keep note", targetShipDate: "2026-11-12" }, { targetDeliveryDate: "", targetShipDate: "2026-11-12" }] } });
+  expect(normalized?.initialState).toEqual({ projectName: "Retain progress", lineItems: [{ quantity: "7", notes: "Keep note", targetDeliveryDate: "2026-11-12" }, { targetDeliveryDate: "" }] });
+});

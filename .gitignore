@@ -52,3 +52,9 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Generated CAD runtime and private local evidence
+public/cad-demo/occt-*/
+output/qa/
+.audit/
+.codex/

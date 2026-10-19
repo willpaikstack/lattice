@@ -22,6 +22,8 @@ vi.mock("./autodesk-model-viewer", () => ({
   preloadAutodeskViewerAssets: async () => {},
 }));
 
+vi.mock("./local-cad-preview", () => ({ LocalCadPreview: ({ name }: { name: string }) => <p>Local CAD preview: {name}</p> }));
+
 const configurationRequiredPreview = {
   status: "configuration_required",
   message: "Add APS credentials to enable live previews.",
@@ -169,21 +171,82 @@ describe("RequestForm", () => {
     vi.unstubAllGlobals();
   });
 
-  it("starts advance CAD processing while an unanswered declaration still blocks quote continuation", () => {
+  it("keeps tolerance choices and ISO Fine values when switching between new and legacy designs", async () => {
+    mockRequestFormFetch();
+    const initialState = { projectName: "Tolerance comparison", lineItems: [{ fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step", material: "ss_304", quantity: "1", generalTolerance: "iso_2768_fine_f" }] };
+    const view = render(<RequestForm initialState={initialState} />);
+    expect(screen.getByRole("radio", { name: /Saved requirement: ISO 2768 Fine \(f\)/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: /requires tolerances tighter than ±\.005/ }));
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
+    view.unmount();
+    render(<RequestForm initialState={initialState} toleranceDesign="legacy" />);
+    expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("ISO 2768 Fine (f)");
+    cleanup();
+    render(<RequestForm initialState={initialState} toleranceDesign="cards" />);
+    expect(screen.getByRole("radio", { name: /Saved requirement: ISO 2768 Fine \(f\)/ })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: /Tolerances will be held to ±\.005/ }));
+    expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
+  });
+
+  it("ignores Enter and implicit form submission, but submits a delivery preference on button click", async () => {
+    const fetchMock = mockRequestFormFetch();
+    render(<RequestForm initialState={{ projectName: "Delivery preference", lineItems: [{
+      fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step", material: "ss_304", quantity: "1", targetShipDate: "2026-11-12",
+    }] }} />);
+    const submit = screen.getByRole("button", { name: "Request Quote" });
+    expect(submit).toBeEnabled();
+    expect(submit).toHaveAttribute("type", "button");
+    expect(screen.getByText("Target delivery date (optional)")).toBeInTheDocument();
+    const material = screen.getByRole("button", { name: "Material dropdown" });
+    fireEvent.keyDown(material, { key: "Enter" });
+    fireEvent.keyDown(material, { key: "Enter" });
+    expect(fireEvent.keyDown(submit, { key: "Enter", cancelable: true })).toBe(false);
+    fireEvent.submit(submit.closest("form")!);
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/requests")).toHaveLength(0);
+    fireEvent.click(submit);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/requests", expect.anything()));
+    const form = fetchMock.mock.calls.find(([url]) => url === "/api/requests")![1]?.body as FormData;
+    const details = JSON.parse(String(form.get("request"))).lineItems[0].manufacturingDetails;
+    expect(details.targetDeliveryDate).toBe("2026-11-12");
+    expect(details).not.toHaveProperty("targetShipDate");
+  });
+
+  it("reassures users that a different-use part leaves the current draft saved and separate", async () => {
+    mockRequestFormFetch();
+    render(<RequestForm localDraftId="local_draft_preserve_progress" initialState={{ projectName: "Keep my progress", lineItems: [{
+      fileName: "existing.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/existing.step", material: "ss_304", quantity: "7", notes: "Keep this note",
+    }] }} />);
+    fireEvent.change(screen.getByLabelText("Upload another CAD file"), { target: { files: [new File(["solid"], "prototype.step")] } });
+    fireEvent.click(screen.getByRole("radio", { name: /No, this quote/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Prototype/ }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Your current quote progress is saved as a draft");
+    expect(screen.getByRole("link", { name: /Request a new quote/ })).toHaveAttribute("target", "_blank");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    const saved = window.localStorage.getItem("lattice.incompleteRfqs.v2.company_test");
+    expect(saved).toContain("Keep my progress");
+    expect(saved).toContain("Keep this note");
+    expect(saved).toContain('"quantity":"7"');
+  });
+
+  it("starts advance CAD processing and advances from export restrictions directly to intended use", async () => {
     testingRender(<RequestForm />);
     expect(screen.getByLabelText("Choose CAD file")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Choose CAD file"), { target: { files: [new File(["solid"], "part.step")] } });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /No, this quote/ })).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith("/api/request-draft-files", expect.objectContaining({ body: expect.stringContaining("advance_cad_preview") }));
     fireEvent.click(screen.getByRole("radio", { name: /Yes, parts in this quote/ }));
     expect(screen.getByRole("status")).toHaveTextContent("cannot accept");
     expect(screen.queryByRole("radio", { name: /I'm unsure/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole("radio", { name: /No, this quote/ })));
+    expect(screen.getByText("How will the parts in this quote be used?")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "‹ Back" }));
+    await act(async () => fireEvent.click(screen.getByRole("radio", { name: /^Prototype/ })));
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Choose CAD file")).toBeInTheDocument();
   });
 
   it("submits each part's process and revisions with customer intended use", async () => {
@@ -212,7 +275,7 @@ describe("RequestForm", () => {
     expect(screen.queryByText(/Previous files/)).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Replace Part"), { target: { files: [new File(["solid"], "new.step", { type: "model/step" })] } });
     confirmSelectedCad();
-    await screen.findByText("Autodesk preview setup needed");
+    await screen.findByText("Local CAD preview: new.step");
     expect(screen.queryByText(/Previous files/)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "old.step" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "deleted.step" })).not.toBeInTheDocument();
@@ -294,8 +357,7 @@ describe("RequestForm", () => {
     const submittedForm = fetchMock.mock.calls.find(([url]) => url === "/api/requests")![1]?.body as FormData;
     expect(submittedForm.get("file-0")).toBeNull();
     expect(JSON.parse(String(submittedForm.get("request"))).files[0].storageKey).toBe(storageKey);
-    const previewBody = fetchMock.mock.calls.find(([url]) => url === "/api/cad-previews")![1]?.body;
-    expect(JSON.parse(String(previewBody)).storageKey).toBe(storageKey);
+    expect(fetchMock.mock.calls.some(([url]) => url === "/api/cad-previews")).toBe(false);
     expect(fetchMock.mock.calls.filter(([, init]) => init?.body === file)).toHaveLength(1);
   });
 
@@ -303,7 +365,7 @@ describe("RequestForm", () => {
     mockRequestFormFetch();
     render(<RequestForm initialState={{ projectName: "Bracket", lineItems: [{
       fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step",
-       quantity: "1",
+      quantity: "1",
     }] }} />);
     expect(screen.getByLabelText("Material")).toHaveValue("");
     fireEvent.click(screen.getByRole("button", { name: "Collapse Line item 1: bracket" }));
@@ -315,8 +377,8 @@ describe("RequestForm", () => {
   it("contains ISO dialog focus and returns it to the opening button", () => {
     mockRequestFormFetch();
     render(<RequestForm initialState={{ projectName: "Bracket", lineItems: [{
-      fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step",
-       quantity: "1",
+      fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step", generalTolerance: "iso_2768_medium_m",
+      quantity: "1",
     }] }} />);
     const trigger = screen.getByRole("button", { name: "ISO 2768-1 standards" });
     trigger.focus();
@@ -338,7 +400,7 @@ describe("RequestForm", () => {
     expect(screen.getByRole("navigation", { name: "Request quote progress" })).toBeInTheDocument();
     expect(screen.getByText("Drafts autosave as you work")).toBeInTheDocument();
     expect(screen.getByText("Drag & drop CAD files here, or browse")).toBeInTheDocument();
-    expect(screen.getByText(/STEP, STP, IGES, IGS, SLDPRT, SAT, X_T, X_B, IPT/)).toBeInTheDocument();
+    expect(screen.getByText(/STEP, STP, IGES, IGS, STL, OBJ, GLTF, GLB, SLDPRT, SAT, X_T, X_B, IPT/)).toBeInTheDocument();
     expect(screen.getByText("Maximum file size: 200 MB per file")).toBeInTheDocument();
     expect(screen.queryByLabelText("Customer PO#")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Company Name")).not.toBeInTheDocument();
@@ -472,7 +534,7 @@ describe("RequestForm", () => {
   it("reveals quote configuration fields after a CAD file is selected", async () => {
     mockRequestFormFetch();
 
-    render(<RequestForm />);
+    render(<RequestForm toleranceDesign="legacy" />);
 
     const file = new File(["solid"], "bracket.step", { type: "model/step" });
     fireEvent.change(screen.getByLabelText("Choose CAD file"), {
@@ -483,7 +545,7 @@ describe("RequestForm", () => {
     await screen.findByText("Line item 1: bracket");
     expect(screen.queryByRole("heading", { name: "Bracket" })).not.toBeInTheDocument();
     expect(screen.getByText("CAD file preview")).toBeInTheDocument();
-    expect(screen.getByText("Autodesk preview setup needed")).toBeInTheDocument();
+    expect(screen.getByText("Local CAD preview: bracket.step")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Inspections & Certificates" })).toBeInTheDocument();
     expect(screen.getByLabelText(/Technical drawing/)).toBeInTheDocument();
     expect(screen.queryByLabelText("Customer PO#")).not.toBeInTheDocument();
@@ -518,7 +580,8 @@ describe("RequestForm", () => {
     fireEvent.keyDown(materialSearch, { key: "ArrowDown" });
     fireEvent.keyDown(materialSearch, { key: "Enter" });
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("6061-T651 Aluminum");
-    expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("ISO 2768 Medium (m)");
+    expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("±0.005″ (±0.127 mm)");
+    fireEvent.change(screen.getByLabelText("General Tolerances"), { target: { value: "iso_2768_medium_m" } });
     fireEvent.click(screen.getByRole("button", { name: "ISO 2768-1 standards" }));
     expect(screen.getByRole("dialog", { name: "ISO 2768-1 tolerances" })).toBeInTheDocument();
     expect(screen.getByText("Limits for nominal size")).toBeInTheDocument();
@@ -876,7 +939,7 @@ describe("RequestForm", () => {
     });
     confirmSelectedCad();
 
-    await screen.findByText("Autodesk preview setup needed");
+    await screen.findByText("Local CAD preview: mounting-bracket.step");
     expect(screen.getByText(/This is only a saved drawing filename/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeDisabled();
 
@@ -947,7 +1010,7 @@ describe("RequestForm", () => {
       />,
     );
 
-    expect(screen.getByText("This CAD file is saved with the RFQ. Upload a replacement only if you want to change it.")).toBeInTheDocument();
+    expect(screen.getByText("Local CAD preview: Aluminum Plate.STEP")).toBeInTheDocument();
     expect(screen.queryByText(/This is only a saved filename/)).not.toBeInTheDocument();
     expect(screen.queryByText(/This is only a saved drawing filename/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Request Quote" })).toBeEnabled();
@@ -984,12 +1047,12 @@ describe("RequestForm", () => {
       <RequestForm
         initialState={{
 
-          fileName: "mounting-bracket.step",
+          fileName: "mounting-bracket.sldprt",
 
           projectName: "Valve manifold order reorder",
           cadPreview: {
             status: "ready",
-            fileName: "mounting-bracket.step",
+            fileName: "mounting-bracket.sldprt",
             urn: "saved-viewer-urn",
           },
         }}
@@ -999,7 +1062,7 @@ describe("RequestForm", () => {
     await waitFor(() => expect(screen.getByText("Loading interactive CAD preview...")).toBeInTheDocument());
     expect(fetchMock).toHaveBeenCalledWith("/api/cad-previews/status?urn=saved-viewer-urn", { cache: "no-store" });
     expect(screen.queryByText("3D preview ready")).not.toBeInTheDocument();
-    expect(screen.queryByText("mounting-bracket.step")).not.toBeInTheDocument();
+    expect(screen.queryByText("mounting-bracket.sldprt")).not.toBeInTheDocument();
     expect(screen.getByText("Loading interactive CAD preview...")).toBeInTheDocument();
     expect(screen.queryByText("CAD file reference only")).not.toBeInTheDocument();
   });
@@ -1014,7 +1077,7 @@ describe("RequestForm", () => {
 
     render(<RequestForm />);
 
-    const file = new File(["solid"], "bracket.step", { type: "model/step" });
+    const file = new File(["solid"], "bracket.sldprt", { type: "model/step" });
     fireEvent.change(screen.getByLabelText("Choose CAD file"), {
       target: { files: [file] },
     });
@@ -1024,7 +1087,7 @@ describe("RequestForm", () => {
     await screen.findByText(/Progress: 60% complete/);
     expect(fetchMock.mock.calls.filter(([url, init]) => url === "/api/cad-previews" && init?.method === "POST")).toHaveLength(1);
     expect(screen.getByText("Line item 1: bracket")).toBeInTheDocument();
-    expect(screen.getByText("bracket.step")).toBeInTheDocument();
+    expect(screen.getByText("bracket.sldprt")).toBeInTheDocument();
     expect(screen.getByText(/You can keep building and submit the RFQ while this finishes/)).toBeInTheDocument();
     expect(screen.queryByText(/Progress: queued/)).not.toBeInTheDocument();
   });
@@ -1252,14 +1315,14 @@ describe("RequestForm", () => {
     expect(submitted.lineItems).toMatchObject([
       {
         quantity: 1,
-        material: "304 Stainless Steel",
+        material: "304/304L Stainless Steel",
         qualityDocumentation: ["Standard Inspection", "Material Test Report (MTR)"],
       },
-      { quantity: 3, material: "304 Stainless Steel" },
+      { quantity: 3, material: "304/304L Stainless Steel" },
     ]);
     expect(submitted.files).toMatchObject([
-      { name: "bracket.step", storageKey: "rfq-drafts/test/bracket.step", cadPreviewUrn: "translated-model-urn" },
-      { name: "housing.step", storageKey: "rfq-drafts/test/housing.step", cadPreviewUrn: "translated-model-urn" },
+      { name: "bracket.step", storageKey: "rfq-drafts/test/bracket.step" },
+      { name: "housing.step", storageKey: "rfq-drafts/test/housing.step" },
     ]);
     expect(submittedForm.get("file-0")).toBeNull();
     expect(submittedForm.get("file-1")).toBeNull();

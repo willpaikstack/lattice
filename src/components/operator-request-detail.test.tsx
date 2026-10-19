@@ -96,17 +96,11 @@ function makeQuotedRequest() {
 
 
 describe("AdminQuoteManagement", () => {
-  it("shows intended use, eligibility and each part's engineering identity to the admin", () => {
+  it("opens saved RFQ details from the queue without a side inspector", () => {
     const request = makeSubmittedRequest();
-    request.intakeDeclaration = { restrictionStatus: "unrestricted", policyVersion: "overseas-intake-2026-10-12", endUse: "prototype", endUseNotes: "Evaluation only" };
-    request.lineItems[0].manufacturingDetails = { process: "cnc_turning", customerPartNumber: "SHAFT-10", cadRevision: "B", drawingRevision: "C", materialKey: "al_6061_t6", finishKey: "as_machined_ra_3_2", fileHistory: [] };
     render(<AdminQuoteManagement requests={[request]} />);
-    const inspector = screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` });
-    expect(inspector).toHaveTextContent("Intended use: prototype");
-    expect(inspector).toHaveTextContent("Restrictions: unrestricted");
-    expect(inspector).toHaveTextContent("CNC Turning");
-    expect(inspector).toHaveTextContent("SHAFT-10");
-    expect(inspector).toHaveTextContent("CAD rev: B");
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toHaveAttribute("href", `/admin/quotes/${request.id}`);
+    expect(screen.queryByRole("complementary", { name: /RFQ inspector/ })).not.toBeInTheDocument();
   });
   it("keeps draft RFQs out of the active queue and opens the draft tab", () => {
     const draft = { ...makeSubmittedRequest(), id: "draft_one", status: "DRAFT" as const, title: "Draft bracket" };
@@ -116,35 +110,51 @@ describe("AdminQuoteManagement", () => {
     expect(screen.getByText("Draft bracket")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open draft for Draft bracket" })).toBeInTheDocument();
   });
-  it("shows an RFQ inspector with its package and supplier basis", () => {
+  it("filters the review queue by search", () => {
     const request = makeSubmittedRequest();
     render(<AdminQuoteManagement requests={[request]} />);
-    const inspector = screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` });
-    expect(within(inspector).getByText("Supplier basis")).toBeInTheDocument();
-    expect(within(inspector).getByRole("button", { name: "Prepare customer quote" })).toBeInTheDocument();
+    const search = screen.getByRole("searchbox", { name: "Search quote submissions" });
+    fireEvent.change(search, { target: { value: "no matching RFQ" } });
+    expect(screen.queryByRole("link", { name: `Manage quote submission for ${request.title}` })).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText("0 requests")).toHaveLength(2);
+    fireEvent.change(search, { target: { value: "amogy" } });
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toBeInTheDocument();
   });
-  it("filters the review queue by search", () => {
-    render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} />);
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search quote submissions" }), { target: { value: "no matching RFQ" } });
-    expect(screen.getByText(/0 submissions/)).toBeInTheDocument();
+  it("applies owner and stage filters to both active tables and search to the archive", () => {
+    const submitted = makeSubmittedRequest();
+    const pending = { ...submitted, id: "pending", title: "Pending bracket", operatorReview: { ...submitted.operatorReview, assignedOwner: "Adam" } };
+    const issued = { ...makeQuotedRequest(), id: "issued", title: "Issued bracket" };
+    const other = { ...submitted, id: "other", title: "Other owner's bracket", operatorReview: { ...submitted.operatorReview, assignedOwner: "Morgan" } };
+    const archived = { ...pending, id: "archived", title: "Archived bracket", status: "CLOSED" as const };
+    render(<AdminQuoteManagement requests={[pending, issued, other, archived]} />);
+    const row = (title: string) => screen.queryByRole("link", { name: `Manage quote submission for ${title}` });
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by owner" }), { target: { value: "Adam" } });
+    expect(row(pending.title)).toBeInTheDocument();
+    expect(row(issued.title)).toBeInTheDocument();
+    expect(row(other.title)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by stage" }), { target: { value: "QUOTED" } });
+    expect(row(pending.title)).not.toBeInTheDocument();
+    expect(row(issued.title)).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("combobox", { name: "Filter by stage" }), { target: { value: "ALL" } });
+    fireEvent.click(screen.getByRole("button", { name: "Archive (1)" }));
+    expect(row(archived.title)).toBeInTheDocument();
+    const search = screen.getByRole("searchbox", { name: "Search quote submissions" });
+    fireEvent.change(search, { target: { value: "pending" } });
+    expect(row(archived.title)).not.toBeInTheDocument();
+    fireEvent.change(search, { target: { value: "archived" } });
+    expect(row(archived.title)).toBeInTheDocument();
   });
-  it("opens the workbench from the inspector", () => {
-    render(<AdminQuoteManagement requests={[makeSubmittedRequest()]} />);
-    fireEvent.click(screen.getByRole("button", { name: "Prepare customer quote" }));
-    expect(screen.getByRole("navigation", { name: "RFQ queue" })).toBeInTheDocument();
-    expect(mockPush).toHaveBeenCalledWith(expect.stringContaining("view=quote"), { scroll: false });
-  });
-  it("selects a valid deep-linked RFQ in the inspector", () => {
+  it("keeps a deep-linked RFQ available through its detail link", () => {
     const request = makeSubmittedRequest(); mockRequestIdParam = request.id;
     render(<AdminQuoteManagement requests={[request]} />);
-    expect(screen.getByRole("complementary", { name: `RFQ inspector: ${request.title}` })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toHaveAttribute("href", `/admin/quotes/${request.id}`);
   });
   it("keeps closed RFQs in archive and hides decision controls", () => {
     const request = { ...makeSubmittedRequest(), status: "CLOSED" as const };
     render(<AdminQuoteManagement requests={[request]} updateDecisionAction={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Archive (1)" }));
     expect(screen.queryByRole("button", { name: "Request information" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "View RFQ details" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: `Manage quote submission for ${request.title}` })).toHaveAttribute("href", `/admin/quotes/${request.id}`);
   });
 });
 
@@ -163,7 +173,27 @@ describe("BuyerQuotes", () => {
 });
 
 describe("BuyerQuoteDetail", () => {
-  it("lets customers edit and resubmit pending RFQs before pricing is ready", () => {
+  it.each(["willclawpaik@gmail.com", "other-customer@example.com"])("renders neutral activity for %s even with historical event copy", (requesterEmail) => {
+    const request = { ...makeSubmittedRequest(), id: "rfq_activity", requesterEmail };
+    request.statusEvents = request.statusEvents.map((event) => ({ ...event, detail: "Buyer opened the RFQ workspace.", title: "RFQ submitted for review" }));
+    render(<BuyerQuoteDetail request={request} checkoutHref={`/quotes/${request.id}/checkout`} />);
+    const activity = screen.getByText("Quote activity").closest("section")!;
+    const parts = screen.getByRole("heading", { name: "Parts and pricing" }).closest("section")!;
+    expect(parts.nextElementSibling).toBe(activity);
+    expect(within(activity).getByText("LQ-RFQ_ACTI was created.")).toBeInTheDocument();
+    expect(within(activity).getByText("Request submitted")).toBeInTheDocument();
+    expect(within(activity).getByText("The request was submitted. Lattice is reviewing the files and requirements and collecting supplier pricing.")).toBeInTheDocument();
+    expect(activity.textContent).not.toMatch(/\bbuyer\b|\byou(?:r)?\b|remaining details|Event log|RFQ submitted for review/i);
+  });
+  it("shows the saved process for each part in both layouts before a customer quote is issued", () => {
+    const request = makeSubmittedRequest();
+    request.process = "CNC Milling / CNC Turning";
+    request.lineItems[0].manufacturingDetails = { process: "cnc_turning", materialKey: "", finishKey: "", customerPartNumber: "", cadRevision: "", drawingRevision: "", fileHistory: [] };
+    render(<BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />);
+    expect(screen.getAllByText("CNC Turning")).toHaveLength(2);
+    expect(screen.queryByText("CNC Milling / CNC Turning")).not.toBeInTheDocument();
+  });
+  it("shows pending RFQ status without edit or resubmission controls", () => {
     const request = makeSubmittedRequest();
 
     render(<BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} />);
@@ -174,12 +204,12 @@ describe("BuyerQuoteDetail", () => {
         "Lattice is gathering feedback from its supplier network to prepare accurate pricing and lead time for this order.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("What happens next")).toBeInTheDocument();
+    expect(screen.queryByText("What happens next")).not.toBeInTheDocument();
     expect(screen.queryByText("No action needed")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Lattice is checking the RFQ package before supplier outreach." })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit and resubmit request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Download quote PDF" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", `/account/settings?edit=shipping&request=${request.id}`);
+    expect(screen.queryByRole("link", { name: "Change" })).not.toBeInTheDocument();
   });
 
   it("shows the operator note when more information is requested", () => {
@@ -194,7 +224,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getAllByText("Please upload the latest drawing with thread callouts before we can quote accurately.").length).toBeGreaterThan(0);
   });
 
-  it("fills an incomplete RFQ shipping snapshot from the customer's saved shipping address", () => {
+  it("displays shared shipping for an incomplete quote without changing its saved snapshot", () => {
     const request = {
       ...makeSubmittedRequest(),
       shipToAddress1: "",
@@ -220,10 +250,11 @@ describe("BuyerQuoteDetail", () => {
     );
 
     expect(screen.getByText("Receiving Team")).toBeInTheDocument();
-    expect(screen.getByText("Lattice Receiving")).toBeInTheDocument();
     expect(screen.getByText("75 Varick St")).toBeInTheDocument();
-    expect(screen.getByText("Dock 3")).toBeInTheDocument();
-    expect(screen.getByText("New York, NY 10013")).toBeInTheDocument();
+    expect(request.shipToAddress1).toBe("");
+    expect(request.shipToCity).toBe("");
+    expect(request.shipToState).toBe("");
+    expect(request.shipToZipCode).toBe("");
   });
 
   it("shows no-quote copy and reason when an RFQ is closed with an operator note", () => {
@@ -282,7 +313,6 @@ describe("BuyerQuoteDetail", () => {
     render(<BuyerQuoteDetail checkoutHref={`/quotes/${requestWithCustomerQuote.id}/checkout`} request={requestWithCustomerQuote} />);
 
     expect(screen.getByRole("heading", { name: "LQ-1001" })).toBeInTheDocument();
-    expect(screen.getByText("Hydrogen skid bracket RFQ")).toBeInTheDocument();
     expect(screen.getAllByText("Quote received").length).toBeGreaterThan(0);
     expect(screen.getAllByText("$1,825.00").length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Parts and pricing" })).toBeInTheDocument();
@@ -290,10 +320,10 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.queryByRole("link", { name: "Modify quote request" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Edit configuration" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Configure via drawing" })).not.toBeInTheDocument();
-    expect(screen.getAllByText("Unit price").length).toBeGreaterThan(0);
+    expect(screen.queryByRole("columnheader", { name: "Unit price" })).not.toBeInTheDocument();
     expect(screen.getAllByText("Line total").length).toBeGreaterThan(0);
-    expect(screen.getByText("$76.04/ea")).toBeInTheDocument();
-    expect(screen.getAllByText("Preview pending").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$76.04 / ea")).toHaveLength(2);
+    expect(screen.getAllByRole("img", { name: /CAD render snapshot for mounting-bracket.step/ }).length).toBeGreaterThan(0);
     const fileLinks = screen.getAllByRole("link", { name: "mounting-bracket.step" });
     expect(fileLinks[0]).toHaveAttribute(
       "href",
@@ -305,7 +335,7 @@ describe("BuyerQuoteDetail", () => {
     expect(drawingLinks[0]).toHaveAttribute("download", "mounting-bracket.pdf");
     expect(screen.getByText("Saved customer quote notes.")).toBeInTheDocument();
     expect(screen.getByText("Shipping address")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Change" })).toHaveAttribute("href", "/account/settings?edit=shipping");
+    expect(screen.queryByRole("link", { name: "Change" })).not.toBeInTheDocument();
     const shippingAddressSection = screen.getByText("Shipping address").closest("div");
     expect(shippingAddressSection).not.toBeNull();
     expect(within(shippingAddressSection as HTMLElement).getByText(checkoutShippingAddress.name)).toBeInTheDocument();
@@ -314,7 +344,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByText(`${checkoutShippingAddress.city}, ${checkoutShippingAddress.state} ${checkoutShippingAddress.zipCode}`)).toBeInTheDocument();
     expect(screen.queryByText("123 Main Street")).not.toBeInTheDocument();
     expect(screen.getByText("Summary")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Accept quote" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Begin checkout" })).toBeEnabled();
     expect(screen.queryByRole("link", { name: "Edit and resubmit quote" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Download quote PDF" })).toHaveAttribute("href", `/quotes/${requestWithCustomerQuote.id}/quote.pdf`);
     expect(screen.getByText("Quote activity")).toBeInTheDocument();
@@ -413,7 +443,7 @@ describe("BuyerQuoteDetail", () => {
     expect(screen.getByRole("heading", { name: "LQ-1002" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "LQ-1001" })).not.toBeInTheDocument();
     expect(screen.getAllByText("$2,124.00").length).toBeGreaterThan(0);
-    expect(screen.getByText("$88.50/ea")).toBeInTheDocument();
+    expect(screen.getAllByText("$88.50 / ea")).toHaveLength(2);
     expect(screen.getByText("Updated customer-visible quote notes.")).toBeInTheDocument();
     expect(screen.queryByText("Original customer quote notes.")).not.toBeInTheDocument();
     expect(screen.getByText("$458.00")).toBeInTheDocument();
@@ -423,6 +453,7 @@ describe("BuyerQuoteDetail", () => {
     const baseQuotedRequest = makeQuotedRequest();
     const quotedRequest = {
       ...baseQuotedRequest,
+      shipToPhone: "+1 (310) 617-4533",
       quote: {
         ...baseQuotedRequest.quote,
         shippingCostCents: 45800,
@@ -442,20 +473,21 @@ describe("BuyerQuoteDetail", () => {
         placeOrderAction={() => undefined}
         accountsPayableEmail={checkoutBillingContact.email}
         cards={checkoutCards}
-        receivingPhone="+1 (310) 617-4533"
+        receivingPhone="New shared phone"
         shippingAddress={checkoutShippingAddress}
       />,
     );
 
     expect(screen.getByRole("heading", { name: /Checkout for/ })).toBeInTheDocument();
-    expect(screen.getByText("Delivery address")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Amogy")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("19 Morris Ave")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Brooklyn")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("NY")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("11205")).toBeInTheDocument();
-    expect(screen.getAllByDisplayValue("William Paik").length).toBeGreaterThan(0);
-    expect(screen.getByDisplayValue("+1 (310) 617-4533")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Shipping and billing addresses" })).toBeInTheDocument();
+    const shippingFields = within(screen.getByRole("group", { name: "Shipping address" }));
+    expect(shippingFields.getByLabelText("Company")).toHaveValue("Amogy");
+    expect(shippingFields.getByLabelText("Street address")).toHaveValue("19 Morris Ave");
+    expect(shippingFields.getByRole("combobox", { name: "City" })).toHaveValue("Brooklyn");
+    expect(shippingFields.getByRole("button", { name: "State, New York" })).toBeInTheDocument();
+    expect(shippingFields.getByRole("combobox", { name: "ZIP code" })).toHaveValue("11205");
+    expect(shippingFields.getByLabelText("Delivery Attn:")).toHaveValue("William Paik");
+    expect(shippingFields.getByLabelText("Phone number (optional)")).toHaveValue("+1 (310) 617-4533");
     expect(screen.getByText("Shipping and import method")).toBeInTheDocument();
     expect(screen.getByText("Customs and compliance")).toBeInTheDocument();
     expect(screen.getByText("Payment and purchasing")).toBeInTheDocument();
@@ -657,3 +689,26 @@ describe("SupplierOrderDetail", () => {
 });
 
 vi.mock("@/app/(workspace)/orders/[requestId]/help/actions", () => ({ submitOrderSupport: vi.fn(async () => ({ id: "support_test" })) }));
+
+
+describe("saved billing across customer records", () => {
+  it.each(["quote", "checkout", "order"] as const)("uses the saved address and AP contact in %s instead of current shared defaults", (surface) => {
+    const request = { ...makeQuotedRequest(), shipToAddress2: "", billingSnapshot: { address: { ...checkoutShippingAddress, address1: "77 Saved Billing Way" }, contact: { email: "saved-ap@example.com", invoiceRoutingNotes: "Reference the original PO" } } };
+    if (surface === "quote") render(<BuyerQuoteDetail request={request} />);
+    else if (surface === "checkout") render(<BuyerQuoteCheckout request={request} placeOrderAction={() => undefined} shippingAddress={{ ...checkoutShippingAddress, address1: "New default shipping", address2: "New default suite" }} />);
+    else render(<BuyerOrderDetail order={{ ...request, status: "PURCHASED" }} />);
+    if (surface === "checkout") {
+      const billing = screen.getByRole("group", { name: "Billing address" });
+      expect(within(billing).getByDisplayValue("77 Saved Billing Way")).toBeInTheDocument();
+      const form = new FormData(document.querySelector("form")!);
+      expect(form.get("billToAddress1")).toBe("77 Saved Billing Way");
+      expect(form.get("shipToAddress1")).toBe(checkoutShippingAddress.address1);
+    } else {
+      expect(screen.getByText("77 Saved Billing Way")).toBeInTheDocument();
+      expect(screen.getByText("saved-ap@example.com")).toBeInTheDocument();
+      expect(screen.getByText("Reference the original PO")).toBeInTheDocument();
+    }
+    expect(screen.queryByDisplayValue("New default shipping")).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue("New default suite")).not.toBeInTheDocument();
+  });
+});

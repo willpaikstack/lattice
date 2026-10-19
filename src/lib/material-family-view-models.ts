@@ -1,5 +1,5 @@
 import { customerMaterialCatalog, type CustomerMaterialCatalogEntry } from "./customer-material-catalog";
-import { materialMechanicalProperties, type MaterialMechanicalProperties } from "./material-grade-properties";
+import { getMaterialMechanicalProperties, type MaterialMechanicalProperties } from "./material-grade-properties";
 
 export type MaterialFamilyCardData = {
   catalogNoun: "grades" | "offerings";
@@ -748,7 +748,7 @@ export function getMaterialFamilyDetail(slug: string): MaterialFamilyDetail | un
 
   const featuredGrades = (featuredGradeProfilesBySlug[slug] ?? genericFeaturedGrades(catalogEntry, family)).map((grade) => ({
     ...grade,
-    mechanicalProperties: materialMechanicalProperties[grade.name],
+    mechanicalProperties: getMaterialMechanicalProperties(grade.name),
   }));
   const hero = familyHeroBySlug[slug];
   const heroImage = hero?.src ?? featuredGrades[0]?.image ?? family.texture;

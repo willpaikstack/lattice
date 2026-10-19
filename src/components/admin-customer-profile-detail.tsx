@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ChevronRight, ExternalLink, Pencil } from "lucide-react";
+import { AdminCompanyDeletion } from "./admin-company-deletion";
 import { AdminCompanyUserManagement } from "./admin-company-user-management";
 import { CustomerProfileIcon } from "./customer-profile-icon";
 import {
@@ -269,9 +270,11 @@ function RequestHistory({
 export function AdminCustomerProfileDetail({
   profile,
   updateAction,
+  deleteAction,
 }: {
   profile: CustomerProfile;
   updateAction?: ProfileAction;
+  deleteAction?: (previous: { message: string }, formData: FormData) => Promise<{ message: string }>;
 }) {
   const [tab, setTab] = useState<"overview" | "users" | "history">("overview");
   const [editing, setEditing] = useState(false);
@@ -279,7 +282,7 @@ export function AdminCustomerProfileDetail({
   return (
     <div className={styles.page}>
       <div className={styles.breadcrumb}>
-        <Link href="/admin/customers">Customers</Link>
+        <Link href="/admin/customers">Companies</Link>
         <span aria-hidden="true">/</span>
         <span>{profile.name}</span>
       </div>
@@ -329,15 +332,12 @@ export function AdminCustomerProfileDetail({
             </div>
           </div>
         </div>
-        <button
-          className={styles.secondaryButton}
-          disabled={!updateAction}
-          onClick={() => setEditing(true)}
-          type="button"
-        >
-          <Pencil size={14} />
-          Edit company
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <button className={styles.secondaryButton} disabled={!updateAction} onClick={() => setEditing(true)} type="button">
+            <Pencil size={14} />Edit company
+          </button>
+          {deleteAction ? <AdminCompanyDeletion profile={profile} deleteAction={deleteAction} /> : null}
+        </div>
       </div>
       <CustomerTabs
         id="company-profile"

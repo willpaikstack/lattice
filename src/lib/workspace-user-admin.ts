@@ -3,12 +3,15 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { clerkClient } from "@clerk/nextjs/server";
 
-import { WorkspaceRole, type PrismaClient } from "@prisma/client";
+import { Prisma, WorkspaceRole, type PrismaClient } from "@prisma/client";
 
 import { createPasswordCredentials } from "./auth-crypto";
 import { deliverCustomerInvitation, type CustomerInvitationDelivery } from "./customer-invitation-delivery";
 import { beginEmailChange } from "./email-change";
 import { getPrismaClient } from "./prisma";
+import { deleteStoredUploads } from "./local-file-storage";
+import { isStripeConfigured, getStripeClient } from "./stripe";
+import { deleteCadPreviewAssets } from "./autodesk-platform-services";
 
 export type CustomerWorkspaceRole = "CUSTOMER_ADMIN" | "CUSTOMER_MEMBER";
 export type CreateCustomerCompanyInput = {
@@ -324,12 +327,12 @@ export async function createCustomerCompanyAndSendInvitation(input: CreateCustom
 }
 
 /** Replaces the temporary password and sends a new invitation, revoking prior invitation records. */
-export async function resetCustomerUserPasswordAndSendInvitation(companyId: string, userId: string) {
+export async function resetCustomerUserPasswordAndSendInvitation(companyId: string, userId: string, options: { replaceExistingPassword?: boolean } = {}) {
   const company = await ensureCompany(companyId);
   const client = await prisma();
   const currentUser = await client.user.findFirst({ where: { id: userId, companyId } });
   if (!currentUser) throw new Error("Customer user not found.");
-  if (currentUser.mustChangePassword && !currentUser.temporaryPasswordExpiresAt && !currentUser.passwordHash) {
+  if (!options.replaceExistingPassword && currentUser.mustChangePassword && !currentUser.temporaryPasswordExpiresAt && !currentUser.passwordHash) {
     const invitation = await invitationDelivery(company, currentUser, null);
     return { invitation, user: currentUser };
   }
@@ -458,4 +461,125 @@ export async function removeCustomerUser(companyId: string, userId: string) {
     await (await clerkClient()).users.deleteUser(user.clerkUserId);
   }
   await client.user.delete({ where: { id: user.id } });
+}
+
+export async function permanentlyDeletePlatformUser(userId: string, actingAdminId: string) {
+  if (!userId || userId === actingAdminId) throw new Error("You cannot delete your own signed-in account.");
+  const client = await prisma();
+  const user = await client.user.findUnique({ where: { id: userId } });
+  if (!user) throw new Error("User not found.");
+  if (user.role === WorkspaceRole.LATTICE_ADMIN) {
+    const adminCount = await client.user.count({ where: { role: WorkspaceRole.LATTICE_ADMIN } });
+    if (adminCount <= 1) throw new Error("The last Lattice Admin cannot be deleted.");
+  }
+  if (user.role === WorkspaceRole.CUSTOMER_ADMIN && user.companyId) {
+    await ensureAnotherCustomerAdmin(user.companyId, user.id);
+  }
+  const accountDefaults = await client.accountDefaults.findUnique({ where: { id: `user:${user.id}` }, select: { stripeCustomerId: true } });
+
+  const attributedRequests = await client.request.findMany({
+    where: { requesterEmail: { equals: user.email, mode: "insensitive" } },
+    select: {
+      id: true, status: true, files: { select: { storageKey: true, cadPreviewUrn: true } },
+      supplierQuoteFiles: { select: { storageKey: true } },
+      supplierDocuments: { select: { storageKey: true } },
+      customerPurchaseOrderAttachment: { select: { storageKey: true } },
+      lineItems: { select: { manufacturingDetails: true } },
+    },
+  });
+  const removableRequestIds = attributedRequests.filter((request) => request.status !== "PURCHASED").map((request) => request.id);
+  const storageKeys = attributedRequests
+    .filter((request) => request.status !== "PURCHASED")
+    .flatMap((request) => [
+      ...request.files.map((file) => file.storageKey),
+      ...request.supplierQuoteFiles.map((file) => file.storageKey),
+      ...request.supplierDocuments.map((file) => file.storageKey),
+      request.customerPurchaseOrderAttachment?.storageKey ?? null,
+      ...request.lineItems.flatMap((item) => {
+        const details = item.manufacturingDetails;
+        if (!details || typeof details !== "object" || Array.isArray(details) || !("fileHistory" in details) || !Array.isArray(details.fileHistory)) return [];
+        return details.fileHistory.flatMap((entry) => entry && typeof entry === "object" && "storageKey" in entry && typeof entry.storageKey === "string" ? [entry.storageKey] : []);
+      }),
+    ])
+    .filter((key): key is string => typeof key === "string" && Boolean(key));
+  const cadPreviewUrns = attributedRequests
+    .filter((request) => request.status !== "PURCHASED")
+    .flatMap((request) => request.files.map((file) => file.cadPreviewUrn))
+    .filter((urn): urn is string => typeof urn === "string" && Boolean(urn));
+
+  await client.$transaction(async (tx) => {
+    if (user.role === WorkspaceRole.LATTICE_ADMIN) {
+      const remainingAdmins = await tx.user.count({ where: { role: WorkspaceRole.LATTICE_ADMIN, id: { not: user.id } } });
+      if (!remainingAdmins) throw new Error("The last Lattice Admin cannot be deleted.");
+    }
+    if (user.role === WorkspaceRole.CUSTOMER_ADMIN && user.companyId) {
+      const remainingCustomerAdmins = await tx.user.count({ where: { companyId: user.companyId, role: WorkspaceRole.CUSTOMER_ADMIN, id: { not: user.id } } });
+      if (!remainingCustomerAdmins) throw new Error("The last Customer Admin for this company cannot be deleted.");
+    }
+    if (removableRequestIds.length) {
+      const invoices = await tx.invoice.findMany({ where: { requestId: { in: removableRequestIds } }, select: { id: true } });
+      if (invoices.length) await tx.invoice.updateMany({
+        where: { id: { in: invoices.map((invoice) => invoice.id) } },
+        data: { customerContact: "", billToSnapshot: Prisma.DbNull, shipToSnapshot: Prisma.DbNull },
+      });
+      await tx.request.deleteMany({ where: { id: { in: removableRequestIds } } });
+    }
+    if (user.companyId) {
+      const company = await tx.company.findUnique({ where: { id: user.companyId }, select: { primaryContactEmail: true, billingEmail: true } });
+      const clearCompanyContact = company?.primaryContactEmail.toLowerCase() === user.email.toLowerCase();
+      const clearBillingEmail = company?.billingEmail.toLowerCase() === user.email.toLowerCase();
+      if (clearCompanyContact || clearBillingEmail) await tx.company.update({
+        where: { id: user.companyId },
+        data: {
+          ...(clearCompanyContact ? { primaryContactName: "", primaryContactEmail: "" } : {}),
+          ...(clearBillingEmail ? { billingEmail: "" } : {}),
+        },
+      });
+    }
+    await tx.customerOnboardingProgress.deleteMany({ where: { userId } });
+    await tx.customerSupportRequest.deleteMany({ where: { userId } });
+    await tx.roadmapInterest.deleteMany({ where: { userEmail: { equals: user.email, mode: "insensitive" } } });
+    await tx.waitingListEntry.deleteMany({ where: { email: { equals: user.email, mode: "insensitive" } } });
+    await tx.materialInquiry.deleteMany({ where: { requesterEmail: { equals: user.email, mode: "insensitive" } } });
+    await tx.customerEmailEvent.deleteMany({ where: { recipient: { equals: user.email, mode: "insensitive" } } });
+    if (attributedRequests.length) await tx.customerEmailEvent.deleteMany({ where: { requestId: { in: attributedRequests.map((request) => request.id) } } });
+    await tx.accountDefaults.deleteMany({ where: { id: `user:${user.id}` } });
+    await tx.user.delete({ where: { id: user.id } });
+    const retainedPurchased = attributedRequests.filter((request) => request.status === "PURCHASED");
+    if (retainedPurchased.length) {
+      await tx.request.updateMany({
+        where: { id: { in: retainedPurchased.map((request) => request.id) } },
+        data: { requesterName: "Deleted user", requesterEmail: "", requesterPhone: "", shipToName: "", shipToPhone: "", accountsPayableEmail: "", billingSnapshot: Prisma.DbNull, checkoutDetails: Prisma.DbNull },
+      });
+      await tx.customerQuoteVersion.updateMany({
+        where: { requestId: { in: retainedPurchased.map((request) => request.id) } },
+        data: { customerContact: "" },
+      });
+      await tx.invoice.updateMany({
+        where: { requestId: { in: retainedPurchased.map((request) => request.id) } },
+        data: { customerContact: "", billToSnapshot: Prisma.DbNull, shipToSnapshot: Prisma.DbNull },
+      });
+    }
+  });
+
+  const cleanupWarnings: string[] = [];
+  if (user.clerkUserId) {
+    try { await (await clerkClient()).users.deleteUser(user.clerkUserId); }
+    catch { cleanupWarnings.push("The Lattice account was deleted, but its external sign-in identity needs cleanup."); }
+  }
+  const storageFailures = await deleteStoredUploads(storageKeys);
+  if (storageFailures.length) cleanupWarnings.push(`${storageFailures.length} uploaded file(s) could not be removed from storage.`);
+  try {
+    const previewFailures = await deleteCadPreviewAssets(cadPreviewUrns);
+    if (previewFailures.length) cleanupWarnings.push(`${previewFailures.length} Autodesk CAD preview(s) could not be removed.`);
+  } catch {
+    if (cadPreviewUrns.length) cleanupWarnings.push("Autodesk CAD previews could not be removed.");
+  }
+  if (accountDefaults?.stripeCustomerId) {
+    if (isStripeConfigured()) {
+      try { await getStripeClient().customers.del(accountDefaults.stripeCustomerId); }
+      catch { cleanupWarnings.push("The Lattice account was deleted, but its saved payment customer needs cleanup."); }
+    } else cleanupWarnings.push("The Lattice account was deleted, but its saved payment customer needs cleanup.");
+  }
+  return { deletedRfqs: removableRequestIds.length, cleanupWarnings };
 }

@@ -1,4 +1,6 @@
 export type AccountAddress = {
+  /** Separate address contact; optional for addresses saved before this field existed. */
+  phone?: string;
   address1: string;
   address2: string;
   city: string;
@@ -43,6 +45,7 @@ export type AccountSettingsSnapshot = {
   addressOnboardingDeferred: boolean;
   billing: BillingContact;
   billingAddress: AccountAddress;
+  billingSameAsShipping?: boolean;
   cards: PaymentCard[];
   companyName: string;
   email: string;
@@ -58,6 +61,8 @@ export type AccountSettingsSnapshot = {
   /** Display-only identity fields sourced from Clerk/workspace membership. */
   canCompleteInitialAddressOnboarding?: boolean;
   canManageCompany?: boolean;
+  canManageCompanyDefaults?: boolean;
+  canEditPersonalProfile?: boolean;
   profileImageUrl?: string;
   avatarPreset?: { colorId: string; presetId: string } | null;
   roleLabel?: string;
@@ -81,6 +86,7 @@ export function defaultAccountSettings(): AccountSettingsSnapshot {
     addressOnboardingDeferred: false,
     billing: initialBillingContact,
     billingAddress: initialBillingAddress,
+    billingSameAsShipping: false,
     cards: initialCards,
     companyName: "",
     email: "",
@@ -95,3 +101,5 @@ export function defaultAccountSettings(): AccountSettingsSnapshot {
     teamMembers: initialTeamMembers,
   };
 }
+
+export type AccountSettingsField = "name" | "phone" | "companyName" | "shipping" | "billingAddress" | "billing";

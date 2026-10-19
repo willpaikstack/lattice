@@ -13,9 +13,36 @@ export function quoteValidUntil(issuedOn: string) {
   return date.toISOString().slice(0, 10);
 }
 
+/** Keep the calculated default while allowing an explicit operator-selected expiry. */
+export function resolveQuoteValidUntil(issuedOn: string, selectedDate?: string) {
+  const defaultDate = quoteValidUntil(issuedOn);
+  if (!selectedDate) return defaultDate;
+  try { quoteValidUntil(selectedDate); }
+  catch { throw new Error("Select a valid quote expiration date."); }
+  if (selectedDate < issuedOn) throw new Error("Quote expiration cannot be before the quote issue date.");
+  return selectedDate;
+}
+
 export function quoteHasExpired(request: LatticeRequest, now = new Date()) {
   const expiry = request.customerQuotes.at(-1)?.validUntil || request.quote.quoteValidUntil;
   return !expiry || expiry < now.toISOString().slice(0, 10);
+}
+
+/** Move an issued delivery estimate forward by the calendar days between issue and purchase. */
+export function carryForwardDeliveryEstimate(estimatedDeliveryDate: string, quoteIssueDate: string, purchasedAt: string) {
+  const dateOnly = (value: string) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (!match) return null;
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    return date.toISOString().slice(0, 10) === value.slice(0, 10) ? date : null;
+  };
+  const estimated = dateOnly(estimatedDeliveryDate);
+  const issued = dateOnly(quoteIssueDate);
+  const purchased = dateOnly(purchasedAt);
+  if (!estimated || !issued || !purchased) return estimatedDeliveryDate;
+  const elapsedDays = Math.max(0, Math.floor((purchased.getTime() - issued.getTime()) / 86_400_000));
+  estimated.setUTCDate(estimated.getUTCDate() + elapsedDays);
+  return estimated.toISOString().slice(0, 10);
 }
 
 export function assertQuoteCanBePurchased(request: LatticeRequest) {

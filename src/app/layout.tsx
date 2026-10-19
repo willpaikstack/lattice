@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Lattice OS",
   description: "Owned-code manufacturing RFQ and procurement workflow platform",
+  icons: {
+    icon: "/brand/lattice-tab-icon.svg",
+  },
 };
 
 /**

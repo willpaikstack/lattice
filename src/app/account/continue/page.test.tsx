@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   defaultHomeForRole: vi.fn(() => "/dashboard"),
   getAccountSettings: vi.fn(),
+  getCustomerOnboarding: vi.fn(),
   hasCompletedAddressOnboarding: vi.fn(),
   getCurrentSession: vi.fn(),
   getPasswordSetupState: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("@/lib/account-settings", () => ({
   getAccountSettings: mocks.getAccountSettings,
   hasCompletedAddressOnboarding: mocks.hasCompletedAddressOnboarding,
 }));
+vi.mock("@/lib/customer-onboarding", () => ({ getCustomerOnboarding: mocks.getCustomerOnboarding }));
 vi.mock("@/lib/session", () => ({
   getCurrentSession: mocks.getCurrentSession,
   getPasswordSetupState: mocks.getPasswordSetupState,
@@ -25,6 +27,10 @@ vi.mock("@/lib/session", () => ({
 import AccountContinuePage from "./page";
 
 describe("AccountContinuePage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getCustomerOnboarding.mockResolvedValue(null);
+  });
   it("sends a newly provisioned account directly to password setup before a workspace route renders", async () => {
     mocks.getPasswordSetupState.mockResolvedValue({ session: { user: { mustChangePassword: true } }, status: "ready" });
 
@@ -42,13 +48,13 @@ describe("AccountContinuePage", () => {
     expect(mocks.defaultHomeForRole).toHaveBeenCalledWith("customer");
   });
 
-  it("sends a new customer without operational addresses to setup before the workspace", async () => {
+  it("lets a new customer enter the workspace before choosing address setup after the tour", async () => {
     mocks.getPasswordSetupState.mockResolvedValue({ status: "already-complete" });
     mocks.getCurrentSession.mockResolvedValue({ user: { role: "customer" } });
     mocks.getAccountSettings.mockResolvedValue({});
     mocks.hasCompletedAddressOnboarding.mockReturnValue(false);
 
-    await expect(AccountContinuePage()).rejects.toThrow("redirect:/account/settings?onboarding=addresses");
+    await expect(AccountContinuePage()).rejects.toThrow("redirect:/dashboard");
   });
 
   it("lets a customer who deferred initial addresses reach their workspace", async () => {

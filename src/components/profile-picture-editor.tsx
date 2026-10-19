@@ -4,64 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 
-type AvatarPreset = {
-  id: string;
-  label: string;
-} & (
-  | {
-      kind: "emoji";
-      value: string;
-    }
-  | {
-      kind: "vector";
-      value: "cube" | "spark" | "wave" | "bolt" | "gauge" | "part";
-    }
-);
-
-type AvatarColor = {
-  background: string;
-  foreground: string;
-  id: string;
-  label: string;
-};
-
-type AvatarState =
-  | { type: "initials" }
-  | { colorId: string; presetId: string; type: "preset" }
-  | { file?: File; type: "upload"; url: string };
-
-const avatarPresets: AvatarPreset[] = [
-  { id: "gear", kind: "emoji", label: "Gear", value: "⚙️" },
-  { id: "lab", kind: "emoji", label: "Lab", value: "🧪" },
-  { id: "rocket", kind: "emoji", label: "Rocket", value: "🚀" },
-  { id: "package", kind: "emoji", label: "Package", value: "📦" },
-  { id: "cube", kind: "vector", label: "Cube mark", value: "cube" },
-  { id: "spark", kind: "vector", label: "Spark mark", value: "spark" },
-  { id: "wave", kind: "vector", label: "Wave mark", value: "wave" },
-  { id: "bolt", kind: "vector", label: "Bolt mark", value: "bolt" },
-  { id: "gauge", kind: "vector", label: "Gauge mark", value: "gauge" },
-  { id: "part", kind: "vector", label: "Part mark", value: "part" },
-];
-
-const avatarColors: AvatarColor[] = [
-  { background: "#f8fafc", foreground: "#334155", id: "slate", label: "Slate" },
-  { background: "#ecfeff", foreground: "#155e75", id: "cyan", label: "Cyan" },
-  { background: "#f0fdf4", foreground: "#166534", id: "green", label: "Green" },
-  { background: "#fff7ed", foreground: "#9a3412", id: "orange", label: "Orange" },
-  { background: "#fff1f2", foreground: "#be123c", id: "rose", label: "Rose" },
-  { background: "#eef2ff", foreground: "#3730a3", id: "indigo", label: "Indigo" },
-];
-
-const defaultPresetId = "cube";
-const defaultColorId = "slate";
-
-function getPreset(id: string) {
-  return avatarPresets.find((preset) => preset.id === id) ?? avatarPresets[0];
-}
-
-function getAvatarColor(id: string) {
-  return avatarColors.find((color) => color.id === id) ?? avatarColors[0];
-}
+import { avatarColors, avatarPresets, defaultColorId, defaultPresetId, PresetPreview, ProfileAvatar as AvatarPreview, type AvatarState } from "./profile-avatar";
 
 function revokeUpload(avatar: AvatarState) {
   if (avatar.type === "upload" && avatar.url.startsWith("blob:")) {
@@ -69,105 +12,10 @@ function revokeUpload(avatar: AvatarState) {
   }
 }
 
-function VectorAvatar({ value }: { value: Extract<AvatarPreset, { kind: "vector" }>["value"] }) {
-  if (value === "cube") {
-    return (
-      <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 48 48">
-        <path d="m24 5 16 9.2v19.6L24 43 8 33.8V14.2L24 5Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-        <path d="M8.5 14.5 24 23.8l15.5-9.3M24 24v18" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
-      </svg>
-    );
-  }
-
-  if (value === "spark") {
-    return (
-      <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 48 48">
-        <path d="M24 5.5 28.7 19 42.5 24 28.7 29 24 42.5 19.3 29 5.5 24 19.3 19 24 5.5Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-        <path d="M36 8v8M40 12h-8M10 34v6M13 37H7" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-      </svg>
-    );
-  }
-
-  if (value === "wave") {
-    return (
-      <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 48 48">
-        <path d="M7 19c6.7-8.2 13.3-8.2 20 0s13.3 8.2 20 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-        <path d="M7 29c6.7-8.2 13.3-8.2 20 0s13.3 8.2 20 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-      </svg>
-    );
-  }
-
-  if (value === "bolt") {
-    return (
-      <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 48 48">
-        <path d="M27 4 10 27h13l-2 17 17-23H25l2-17Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-      </svg>
-    );
-  }
-
-  if (value === "gauge") {
-    return (
-      <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 48 48">
-        <path d="M10 31a14 14 0 1 1 28 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-        <path d="m24 31 8-11" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-        <path d="M15 35h18" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="3" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" className="h-9 w-9" viewBox="0 0 48 48">
-      <path d="M13 11h22l5 8-16 18L8 19l5-8Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-      <path d="M13 19h27M19 11l-3 8 8 18 8-18-3-8" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="3" />
-    </svg>
-  );
-}
-
-function PresetPreview({ colorId, presetId, size = "large" }: { colorId: string; presetId: string; size?: "large" | "small" }) {
-  const color = getAvatarColor(colorId);
-  const preset = getPreset(presetId);
-  const emojiSize = size === "large" ? "text-[38px]" : "text-[26px]";
-
-  return (
-    <div
-      className="flex h-full w-full items-center justify-center"
-      style={{
-        backgroundColor: color.background,
-        color: color.foreground,
-      }}
-    >
-      {preset.kind === "emoji" ? (
-        <span aria-hidden="true" className={`${emojiSize} leading-none`}>
-          {preset.value}
-        </span>
-      ) : (
-        <VectorAvatar value={preset.value} />
-      )}
-    </div>
-  );
-}
-
-function AvatarPreview({ avatar, initials = "WP", size = "large" }: { avatar: AvatarState; initials?: string; size?: "large" | "small" }) {
-  const sizeClass = size === "large" ? "h-24 w-24 text-[24px]" : "h-20 w-20 text-[20px]";
-
-  return (
-    <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#2f3237] font-semibold text-white ${sizeClass}`}>
-      {avatar.type === "upload" ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img alt="Profile preview" className="h-full w-full object-cover" src={avatar.url} />
-      ) : avatar.type === "preset" ? (
-        <PresetPreview colorId={avatar.colorId} presetId={avatar.presetId} size={size} />
-      ) : (
-        initials
-      )}
-    </div>
-  );
-}
-
 export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", initialPreset = null }: { initials?: string; initialImageUrl?: string; initialPreset?: { colorId: string; presetId: string } | null }) {
   const { user } = useUser();
   const router = useRouter();
-  const startingAvatar: AvatarState = initialImageUrl ? { type: "upload", url: initialImageUrl } : initialPreset ? { ...initialPreset, type: "preset" } : { type: "initials" };
+  const startingAvatar: AvatarState = initialPreset ? { ...initialPreset, type: "preset" } : initialImageUrl ? { type: "upload", url: initialImageUrl } : { type: "initials" };
   const [avatar, setAvatar] = useState<AvatarState>(startingAvatar);
   const [draftAvatar, setDraftAvatar] = useState<AvatarState>(startingAvatar);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -200,13 +48,15 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
   }, []);
 
   function openEditor() {
+    setSaveError("");
     setDraftAvatar(avatar);
-    setMode(avatar.type === "upload" ? "upload" : "preset");
+    setMode("preset");
     setIsPhotoMenuOpen(false);
     setIsEditorOpen(true);
   }
 
   function openUploadPicker() {
+    setSaveError("");
     setDraftAvatar(avatar);
     setMode("upload");
     setIsPhotoMenuOpen(false);
@@ -214,6 +64,7 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
   }
 
   function closeEditor() {
+    if (saving) return;
     if (draftAvatar.type === "upload" && (avatar.type !== "upload" || draftAvatar.url !== avatar.url)) {
       revokeUpload(draftAvatar);
     }
@@ -229,13 +80,17 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
     if (!file) {
       return;
     }
+    setIsEditorOpen(true);
+    setSaveError("");
 
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setSaveError("Choose a PNG, JPG, or WebP image.");
       event.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (!file.size || file.size > 5 * 1024 * 1024) {
+      setSaveError("Choose a nonempty image up to 5 MB.");
       event.target.value = "";
       return;
     }
@@ -281,9 +136,11 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
     setSaving(true);
     setSaveError("");
     try {
-      if (draftAvatar.type === "upload" && draftAvatar.file) {
-        await user.setProfileImage({ file: draftAvatar.file });
-        await user.updateMetadata({ unsafeMetadata: { latticeAvatarPreset: null } });
+      if (draftAvatar.type === "upload") {
+        if (draftAvatar.file) {
+          await user.setProfileImage({ file: draftAvatar.file });
+          await user.updateMetadata({ unsafeMetadata: { latticeAvatarPreset: null } });
+        }
       } else if (draftAvatar.type === "preset") {
         if (user.hasImage) await user.setProfileImage({ file: null });
         await user.updateMetadata({ unsafeMetadata: { latticeAvatarPreset: { colorId: draftAvatar.colorId, presetId: draftAvatar.presetId } } });
@@ -301,7 +158,13 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
       revokeUpload(avatar);
     }
 
-    setAvatar(draftAvatar);
+    const savedAvatar: AvatarState = draftAvatar.type === "upload"
+      ? { type: "upload", url: user.imageUrl }
+      : draftAvatar;
+    revokeUpload(draftAvatar);
+    setAvatar(savedAvatar);
+    setDraftAvatar(savedAvatar);
+    if (inputRef.current) inputRef.current.value = "";
     setIsEditorOpen(false);
     setSaving(false);
     router.refresh();
@@ -364,7 +227,7 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
               </button>
             </div>
 
-            <div className="grid gap-5 p-5 md:grid-cols-[0.45fr_1fr]">
+            <fieldset disabled={saving} className="grid min-w-0 gap-5 border-0 p-5 md:grid-cols-[0.45fr_1fr]">
               <div className="rounded-md border border-[#e5e8ec] bg-[#f8fafc] p-4">
                 <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7782]">Preview</p>
                 <div className="mt-4 flex justify-center">
@@ -396,7 +259,7 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
                 {mode === "preset" ? (
                   <div className="mt-4 space-y-5">
                     <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7782]">Preset avatars</p>
+                      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[#6f7782]">Preset avatars</p><button className="mt-2 text-[13px] font-semibold text-[#3b5bdb]" onClick={() => { if (draftAvatar.type === "upload" && (avatar.type !== "upload" || draftAvatar.url !== avatar.url)) revokeUpload(draftAvatar); setDraftAvatar({ type: "initials" }); }} type="button">Use initials</button>
                       <div className="mt-3 grid grid-cols-5 gap-2">
                         {avatarPresets.map((preset) => {
                           const colorId = draftAvatar.type === "preset" ? draftAvatar.colorId : defaultColorId;
@@ -453,7 +316,7 @@ export function ProfilePictureEditor({ initials = "A", initialImageUrl = "", ini
                   </div>
                 )}
               </div>
-            </div>
+            </fieldset>
 
             <div className="flex flex-col-reverse gap-2 border-t border-[#e5e8ec] px-5 py-4 sm:flex-row sm:justify-end">
               <button className="rounded-md border border-[#d7d7d7] bg-white px-4 py-2 text-sm font-semibold text-[#262626]" onClick={closeEditor} type="button">

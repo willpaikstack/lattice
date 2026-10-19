@@ -73,7 +73,6 @@ function WorkflowRow({ workflow }: { workflow: CustomerActionWorkflow }) {
           <p className="mt-1 text-xs font-semibold text-blue-700">{workflow.ctaLabel}</p>
         </div>
       </div>
-      <ArrowUpRight aria-hidden="true" className={`hidden h-4 w-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:block ${isMonitoring ? "text-stone-400" : "text-stone-700"}`} strokeWidth={1.8} />
     </Link>
   );
 }

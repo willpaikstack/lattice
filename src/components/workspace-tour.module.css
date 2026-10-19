@@ -1,0 +1,58 @@
+.layer{position:fixed;inset:0;z-index:1000;pointer-events:none;font-family:var(--font-geist-sans),Arial,sans-serif;color:#25362d}
+.layer *,.welcome *,.helpDialog *{box-sizing:border-box}
+.backdrop{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.backdropCutout{transition:x .42s cubic-bezier(.22,1,.36,1),y .42s cubic-bezier(.22,1,.36,1),width .4s ease,height .4s ease,opacity .16s ease}
+.backdropCutout[data-ready="false"]{opacity:0}
+.spotlight{--tour-halo:255,195,66;position:fixed;border:2px solid rgba(var(--tour-halo),.82);border-radius:9px;box-shadow:0 0 0 3px rgba(var(--tour-halo),.2);pointer-events:none;transition:top .42s cubic-bezier(.22,1,.36,1),left .42s cubic-bezier(.22,1,.36,1),width .4s ease,height .4s ease,opacity .16s ease}
+.spotlight[data-ready="false"]{opacity:0}
+/* Animate a separate halo so the steady outline and page veil never pulse. */
+.spotlight::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;animation:highlightHalo 2s cubic-bezier(.2,.65,.35,1) infinite}
+@keyframes highlightHalo{0%{box-shadow:0 0 0 2px rgba(var(--tour-halo),.56)}75%,100%{box-shadow:0 0 0 16px rgba(var(--tour-halo),0)}}
+.coach{position:fixed;pointer-events:auto;width:340px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:auto;border:1px solid #ccdae6;border-radius:14px;box-shadow:0 15px 50px #1b342d28;background:#fff;padding:18px 22px 9px;animation:reveal .18s ease;transition:top .42s cubic-bezier(.22,1,.36,1),left .42s cubic-bezier(.22,1,.36,1)}
+.coachTop{display:flex;align-items:center;justify-content:space-between;gap:12px;color:#6b8072;font-size:12px}
+.close{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;padding:6px;border:0;border-radius:5px;background:transparent;color:#778678;cursor:pointer}
+.close:hover{background:#f0f4ef}
+.chapters{display:flex;gap:4px;margin:10px -4px 18px;flex-wrap:wrap}
+.chapters button{background:none;border:0;border-bottom:2px solid #e7ece5;border-radius:0;padding:6px 4px;min-height:32px;color:#819079;font-family:inherit;font-size:12px;cursor:pointer}
+.chapters button[aria-current="step"]{color:#3e658e;border-color:#769bc4;font-weight:600}
+.coach h2{margin:0 0 12px;font-size:34px;font-weight:550;line-height:1.2;letter-spacing:-.04em;color:#2d4233}
+.coach h2:focus{outline:none}
+.coach p{font-size:13px;line-height:1.7;color:#687861;margin:0}
+.coach .location{padding:10px 12px;margin-top:14px;border-radius:6px;background:#f5f7f2;font-size:13px;color:#74816c}
+.actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px}
+.primary,.finish{display:flex;align-items:center;justify-content:center;gap:10px;background:#2e3a31;color:#fff;border:1px solid #2e3a31;border-radius:7px;min-height:43px;padding:11px 14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.primary:hover,.finish:hover{background:#1f2d22}
+.back{display:flex;align-items:center;gap:5px;border:0;background:none;color:#6b7f60;font:inherit;font-size:12px;min-height:40px;padding:7px 0;cursor:pointer}
+.footer{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #e5ebe1;padding-top:5px;margin-top:14px;color:#77876d;font-size:12px}
+.footer button{font:inherit;font-size:12px;border:0;background:none;min-height:34px;color:#6c7c63;padding:7px 0;cursor:pointer}
+.layer button:disabled,.welcome button:disabled,.helpDialog button:disabled{opacity:.6;cursor:wait}
+.layer button:focus-visible,.welcome button:focus-visible,.helpDialog button:focus-visible,.helpDialog a:focus-visible{outline:3px solid #6c93c1;outline-offset:3px}
+.welcome,.helpDialog{font-family:var(--font-geist-sans),Arial,sans-serif;position:fixed;inset:0;margin:auto;width:min(500px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);overflow:auto;border:1px solid #dce4d6;border-radius:18px;background:#fff;padding:29px 32px 23px;color:#34442e;box-shadow:0 25px 90px #1a2b2033}
+.welcome::backdrop,.helpDialog::backdrop{background:#25342640;backdrop-filter:blur(1px)}
+.welcomeHeader{display:flex;align-items:center;justify-content:space-between;gap:25px;margin-bottom:30px}
+.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:9px;font-weight:600;color:#7d8d72;margin:0 0 12px!important}
+.welcome h2,.helpDialog h2{font-size:34px;line-height:1.12;letter-spacing:-.05em;font-weight:500;margin:0 0 18px;color:#2f3d29}
+.welcome>p:not(.eyebrow),.helpDialog>p:not(.eyebrow){font-size:13px;color:#708066;line-height:1.8;margin:0}
+.time{display:flex;align-items:center;gap:8px;font-size:11px;color:#7d8c73;margin:26px 0}
+.welcome>.primary{width:100%}
+.skip{display:block;border:0;background:none;font:inherit;font-size:11px;color:#7c8b72;cursor:pointer;min-height:40px;margin:8px auto 0}
+.helpDialog{width:min(470px,calc(100vw - 32px))}
+.helpDialog .welcomeHeader{margin-bottom:25px}
+.helpDialog h2{font-size:30px}
+.helpDialog>p:not(.eyebrow){margin-bottom:23px}
+.helpAction{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e1e7db;padding:16px;width:100%;text-align:left;border-radius:9px;margin-top:12px;color:#697f59;text-decoration:none;cursor:pointer;font-family:inherit}
+.helpAction strong,.helpAction small{display:block}
+.helpAction strong{font-size:12px;font-weight:600}
+.helpAction small{font-size:10px;color:#788a69;margin-top:4px}
+.helpAction>svg:last-child{margin-left:auto}
+.helpAction:hover{background:#f5f8f2}
+.finish{margin-top:23px;width:100%}
+.error{margin:15px 0;padding:12px;border:1px solid #e6c3b5;background:#fff6f0;border-radius:7px;color:#8e5944;font-size:11px}
+.error p{font-size:11px;color:#8e5944;line-height:1.6;margin:0}
+.error button{display:block;background:none;border:0;text-decoration:underline;padding:10px 0 0;font:inherit;font-size:10px;color:#8e5944;cursor:pointer}
+@keyframes reveal{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media(max-width:1023px){.coach{width:calc(100vw - 32px);max-height:45dvh;padding:16px 20px 7px}.coachTop{font-size:12px}.chapters{margin:4px -4px 12px}.coach h2{font-size:30px;margin-bottom:9px}.coach p{font-size:13px;line-height:1.6}.actions{margin-top:15px}.footer{margin-top:10px}.spotlight{max-height:45dvh}}
+@media(max-width:480px){.welcome,.helpDialog{padding:25px}.welcome h2{font-size:30px}.time{align-items:flex-start;line-height:1.5}.time svg{flex:none}.coach{padding:12px 17px 6px;max-height:48dvh}.chapters button{font-size:12px;min-height:28px}.coach h2{font-size:28px}.coach p{font-size:13px}.coachTop{font-size:12px}.coach .primary{font-size:14px}.footer{font-size:12px}.helpAction{padding:14px}}
+@media(prefers-reduced-motion:reduce){.layer *{animation:none!important;transition:none!important;scroll-behavior:auto!important}.spotlight::after{animation:none;box-shadow:none}}
+
+:global([data-workspace-tour-upload-locked]){cursor:not-allowed!important;opacity:.55}

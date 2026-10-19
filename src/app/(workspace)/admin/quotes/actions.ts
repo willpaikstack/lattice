@@ -1,6 +1,7 @@
 "use server";
+import { calculatedQuoteDeliveryDate, quotePreparationErrors } from "@/lib/quote-preparation-validation";
 import { processLabel } from "@/lib/rfq-manufacturing";
-import { quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
+import { resolveQuoteValidUntil, quoteValidUntil as calculateQuoteValidUntil } from "@/lib/quote-validity";
 
 import { revalidatePath } from "next/cache";
 
@@ -96,20 +97,26 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
     }
     if (!current.lineItems.length) throw new QuoteValidationError("This RFQ has no parts to quote.");
 
+    const quoteCreatedDate = getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10);
+    const estimatedDeliveryDate = calculatedQuoteDeliveryDate(quoteCreatedDate, current.lineItems.map(item => getString(formData, `leadTimeDays:${item.id}`)), getString(formData, "shippingMethod")) ?? "";
+    const preparationErrors = quotePreparationErrors({
+      lineItems: current.lineItems.map((item) => ({ partName: item.partName, unitPrice: getString(formData, `unitPrice:${item.id}`), leadTimeDays: getString(formData, `leadTimeDays:${item.id}`) })),
+      shippingCost: getString(formData, "shippingCost"), shippingMethod: getString(formData, "shippingMethod"), shippingTerms: getString(formData, "shippingTerms"),
+      estimatedDeliveryDate,
+      quoteCreatedDate,
+      quoteValidUntil: getString(formData, "quoteValidUntil"), customerNote: getString(formData, "quoteSummary"),
+    });
+    if (preparationErrors.length) throw new QuoteValidationError(preparationErrors.join(" "));
     const shippingCostCents = getPriceCents(formData, "shippingCost");
     const shippingMethod = getString(formData, "shippingMethod");
     const shippingTerms = getString(formData, "shippingTerms");
     if (!["Domestic", "International"].includes(shippingMethod)) throw new QuoteValidationError("Select a valid shipping speed.");
     if (!["", "EXW", "DDP", "Determined at Checkout", "DAP", "FOB"].includes(shippingTerms)) throw new QuoteValidationError("Select valid shipping terms.");
-    const quoteCreatedDate = getString(formData, "quoteCreatedDate") || new Date().toISOString().slice(0, 10);
     let quoteValidUntil: string;
-    try { quoteValidUntil = calculateQuoteValidUntil(quoteCreatedDate); }
+    try { calculateQuoteValidUntil(quoteCreatedDate); }
     catch { throw new QuoteValidationError("Select a valid quote issue date."); }
-    const estimatedDeliveryDate = getString(formData, "estimatedDeliveryDate");
-    if (estimatedDeliveryDate) {
-      try { calculateQuoteValidUntil(estimatedDeliveryDate); }
-      catch { throw new QuoteValidationError("Select a valid estimated delivery date."); }
-    }
+    try { quoteValidUntil = resolveQuoteValidUntil(quoteCreatedDate, getString(formData, "quoteValidUntil")); }
+    catch (error) { throw new QuoteValidationError(error instanceof Error ? error.message : "Select a valid quote expiration date."); }
     const quoteSummary = getString(formData, "quoteSummary").trim();
     const lineItems = current.lineItems.map((item) => ({
       description: item.partName,
@@ -146,7 +153,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
       lineItems: supplierLineItems,
       notes: "",
       priceCents: supplierLineTotalCents + (shippingCostCents ?? 0),
-      shopName: getString(formData, "supplierQuoteShop").trim() || current.supplierOrder.shopName || "China supplier team",
+      shopName: getString(formData, "supplierQuoteShop").trim() || "China supplier team",
     };
     const lineLeadTimes = lineItems
       .map((item) => item.leadTimeDays)
@@ -169,7 +176,7 @@ export async function updateAdminQuoteStatusAction(formData: FormData) {
       filesReviewed: current.files.map((file) => file.name).join("\n"),
       leadTime: leadTimeDays ? `${leadTimeDays} business days` : "",
       lineItems,
-      notes: quoteSummary || "Pricing includes manufacturing coordination, production, and standard inspection for the listed line items.",
+      notes: quoteSummary,
       preparedBy: "Lattice",
       projectName: current.title,
       quoteDate: quoteCreatedDate,

@@ -30,7 +30,7 @@ export function DrawingPdfPreview({ url, name }: { url: string; name: string }) 
       return loading.promise.then(pdf => {
         if (active) setDocument(pdf);
       });
-    }).catch(() => { if (active) { setError("The drawing could not be previewed. Download the original file below to review it."); setBusy(false); } });
+    }).catch(caught => { if (active) { console.error("Drawing preview could not load", caught instanceof Error ? caught.message : "Unknown PDF loading error"); setError("The drawing could not be previewed. Download the original file below to review it."); setBusy(false); } });
     return () => { active = false; controller.abort(); void loading?.destroy(); };
   }, [url]);
 

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { signedInRecoveryEmail } from "@/lib/password-reset-identity";
 import { requestPasswordReset } from "@/lib/password-reset-email";
 
 function getString(formData: FormData, key: string) {
@@ -10,6 +11,6 @@ function getString(formData: FormData, key: string) {
 }
 
 export async function forgotPasswordAction(formData: FormData) {
-  await requestPasswordReset(getString(formData, "email"));
+  await requestPasswordReset(await signedInRecoveryEmail() ?? getString(formData, "email"));
   redirect("/forgot-password?status=sent");
 }

@@ -1,5 +1,6 @@
+import type { PrismaClient, Prisma } from "@prisma/client";
 import { queueCustomerLifecycleEmail } from "./customer-lifecycle-email";
-import { quoteValidUntil, assertQuoteCanBePurchased } from "./quote-validity";
+import { carryForwardDeliveryEstimate, resolveQuoteValidUntil, assertQuoteCanBePurchased } from "./quote-validity";
 import { deleteLocalRequest, getLocalRequestById, listLocalRequests, saveLocalRequest } from "./local-request-store";
 import { getPrismaClient } from "./prisma";
 import { isMockDataMode } from "./data-mode";
@@ -16,8 +17,12 @@ import type {
 import { applySupplierOrderUpdate, buildDraftRequest, submitDraftRequest } from "./request-model";
 import { buildSubmittedRequestCreateInput, mapStoredRequest, storedRequestInclude, type StoredRequest } from "./request-persistence";
 import { getOperatorQueueRequests, sortRequestsNewestFirst } from "./request-queue";
+import type { RequestBillingSnapshot } from "./request-billing";
 
 export type PurchaseQuoteDeliveryInput = {
+  billingSnapshot?: RequestBillingSnapshot;
+  addressDefaultsCompanyId?: string;
+  billingSameAsShipping?: boolean;
   checkoutDetails?: Record<string, string>;
   customerPoNumber?: string;
   shipToAddress1?: string;
@@ -31,6 +36,7 @@ export type PurchaseQuoteDeliveryInput = {
 };
 
 export type RequestShippingAddressInput = {
+  shipToPhone?: string;
   shipToAddress1: string;
   shipToAddress2: string;
   shipToCity: string;
@@ -171,6 +177,7 @@ export async function updateRequestShippingAddress(id: string, input: RequestShi
   }
 
   const delivery = {
+    ...(input.shipToPhone !== undefined ? { shipToPhone: cleanText(input.shipToPhone) } : {}),
     shipToAddress1: cleanText(input.shipToAddress1),
     shipToAddress2: cleanText(input.shipToAddress2),
     shipToCity: cleanText(input.shipToCity),
@@ -379,7 +386,7 @@ export async function saveCustomerQuoteForRequest(
     throw new Error("Only active RFQs can receive customer quotes");
   }
 
-  input = { ...input, validUntil: quoteValidUntil(input.quoteDate), notes: current.requiresQualityApproval && !input.notes.includes("Customer Admin quality approval is required before shipment.") ? `${input.notes.trim()}\nCustomer Admin quality approval is required before shipment.`.trim() : input.notes };
+  input = { ...input, validUntil: resolveQuoteValidUntil(input.quoteDate, input.validUntil), notes: current.requiresQualityApproval && !input.notes.includes("Customer Admin quality approval is required before shipment.") ? `${input.notes.trim()}\nCustomer Admin quality approval is required before shipment.`.trim() : input.notes };
 
   const nextStatus = "QUOTED" as const;
 
@@ -836,6 +843,9 @@ export async function purchaseQuote(id: string, input: PurchaseQuoteInput = {}) 
       paymentIntentId: "",
     },
   };
+  const purchasedAt = new Date().toISOString();
+  const adjustedDeliveryDate = carryForwardDeliveryEstimate(current.quote.estimatedDeliveryDate, current.quote.quoteCreatedDate || current.customerQuotes.at(-1)?.quoteDate || "", purchasedAt);
+  const estimatedDeliveryDateUpdate = adjustedDeliveryDate ? new Date(`${adjustedDeliveryDate}T00:00:00.000Z`) : undefined;
 
   try {
     const client = await prisma();
@@ -843,6 +853,7 @@ export async function purchaseQuote(id: string, input: PurchaseQuoteInput = {}) 
       where: { id },
       data: {
         ...delivery,
+        estimatedDeliveryDate: estimatedDeliveryDateUpdate,
         status: "PURCHASED",
         purchasePaymentMethod: purchasePayment.method,
         purchasePaymentStatus: purchasePayment.status,
@@ -881,11 +892,12 @@ export async function purchaseQuote(id: string, input: PurchaseQuoteInput = {}) 
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn("Prisma purchase is unavailable; saving purchased request locally.", error);
-      const timestamp = new Date().toISOString();
+      const timestamp = purchasedAt;
       return saveLocalRequest({
         ...current,
         ...delivery,
         status: "PURCHASED",
+        quote: { ...current.quote, estimatedDeliveryDate: adjustedDeliveryDate },
         purchasePayment,
         customerPurchaseOrderAttachment: paymentMethod === "PURCHASE_ORDER" && input.poAttachment
           ? {
@@ -953,7 +965,7 @@ export async function recordStripeCheckoutSession(
     shipToCity: cleanText(input.shipToCity) || current.shipToCity,
     shipToCompany: cleanText(input.shipToCompany) || current.shipToCompany || current.buyerCompany,
     shipToName: cleanText(input.shipToName) || current.shipToName || current.requesterName,
-    shipToPhone: cleanText(input.shipToPhone) || current.shipToPhone || current.requesterPhone,
+    shipToPhone: input.shipToPhone === undefined ? current.shipToPhone || current.requesterPhone : cleanText(input.shipToPhone),
     shipToState: cleanText(input.shipToState) || current.shipToState,
     shipToZipCode: cleanText(input.shipToZipCode) || current.shipToZipCode,
   };
@@ -965,10 +977,11 @@ export async function recordStripeCheckoutSession(
   try {
     await requireStoredMockStripeRequest(id);
     const client = await prisma();
-    const stored = await client.request.update({
+    const update = {
       where: { id, ...(input.expectedUpdatedAt ? { updatedAt: new Date(input.expectedUpdatedAt), status: "QUOTED" } : {}) },
       data: {
         ...delivery,
+        ...(input.billingSnapshot ? { billingSnapshot: input.billingSnapshot } : {}),
         customerPoNumber,
         purchasePaymentMethod: "CARD",
         purchasePaymentStatus: "PAYMENT_PENDING",
@@ -978,7 +991,22 @@ export async function recordStripeCheckoutSession(
         stripeCurrency: input.currency,
       },
       include: storedRequestInclude,
-    });
+    };
+    const stored = input.addressDefaultsCompanyId ? await (await getPrismaClient() as PrismaClient).$transaction(async (tx) => {
+      if (input.addressDefaultsCompanyId !== current.buyerCompanyId || !input.billingSnapshot) throw new Error("Account address defaults must belong to the quote’s company.");
+      await tx.$queryRaw`SELECT id FROM "Company" WHERE id = ${input.addressDefaultsCompanyId} FOR UPDATE`;
+      const billing = input.billingSnapshot.address;
+      await tx.company.update({ where: { id: input.addressDefaultsCompanyId }, data: {
+        shippingName: delivery.shipToName, shippingCompany: delivery.shipToCompany, shippingPhone: delivery.shipToPhone,
+        shippingAddress1: delivery.shipToAddress1, shippingAddress2: delivery.shipToAddress2,
+        shippingCity: delivery.shipToCity, shippingState: delivery.shipToState, shippingZipCode: delivery.shipToZipCode,
+        billingName: billing.name, billingCompany: billing.company, billingPhone: billing.phone ?? "",
+        billingAddress1: billing.address1, billingAddress2: billing.address2,
+        billingCity: billing.city, billingState: billing.state, billingZipCode: billing.zipCode,
+        billingSameAsShipping: Boolean(input.billingSameAsShipping), addressOnboardingDeferredAt: null,
+      } });
+      return tx.request.update(update as Prisma.RequestUpdateArgs) as unknown as Promise<StoredRequest>;
+    }) : await client.request.update(update);
 
     return mapStoredRequest(stored);
   } catch (error) {
@@ -987,11 +1015,12 @@ export async function recordStripeCheckoutSession(
       if (latest?.purchasePayment.stripe.checkoutSessionId === input.checkoutSessionId) return latest;
       throw new Error("This quote changed while checkout was starting. Refresh and try again.");
     }
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === "development" && !input.addressDefaultsCompanyId) {
       console.warn("Prisma Stripe checkout session save is unavailable; saving locally.", error);
       return saveLocalRequest({
         ...current,
         ...delivery,
+        ...(input.billingSnapshot ? { billingSnapshot: input.billingSnapshot } : {}),
         checkoutDetails: input.checkoutDetails ?? current.checkoutDetails,
         complianceReviewRequired: input.checkoutDetails?.exportControlStatus === "needs-review" || current.complianceReviewRequired,
         purchasePayment: {
@@ -1059,6 +1088,8 @@ export async function finalizeStripePaidQuote(input: {
   }
 
   const timestamp = input.paidAt || new Date().toISOString();
+  const adjustedDeliveryDate = carryForwardDeliveryEstimate(current.quote.estimatedDeliveryDate, current.quote.quoteCreatedDate || current.customerQuotes.at(-1)?.quoteDate || "", timestamp);
+  const estimatedDeliveryDateUpdate = adjustedDeliveryDate ? new Date(`${adjustedDeliveryDate}T00:00:00.000Z`) : undefined;
   const card = input.card;
   const purchasePayment = {
     method: "CARD" as const,
@@ -1082,6 +1113,7 @@ export async function finalizeStripePaidQuote(input: {
     const stored = await client.request.update({
       where: { id: input.requestId, status: "QUOTED", stripeCheckoutSessionId: input.checkoutSessionId, updatedAt: new Date(current.updatedAt) },
       data: {
+        estimatedDeliveryDate: estimatedDeliveryDateUpdate,
         status: "PURCHASED",
         checkoutDetails,
         purchasePaymentMethod: "CARD",
@@ -1120,6 +1152,7 @@ export async function finalizeStripePaidQuote(input: {
       return saveLocalRequest({
         ...current,
         status: "PURCHASED",
+        quote: { ...current.quote, estimatedDeliveryDate: adjustedDeliveryDate },
         checkoutDetails,
         purchasePayment,
         statusEvents: [

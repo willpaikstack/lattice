@@ -1,4 +1,5 @@
 import { cncMaterialLibrary } from "./cnc-material-library";
+import { resolveMaterialName } from "./material-identity-registry";
 
 type BubbleTranslationTarget = "prisma-enum" | "lookup" | "seed-record" | "future-table" | "do-not-migrate";
 
@@ -69,7 +70,16 @@ export const processOptions: RfqOption[] = [
   option("fdm", "Fused Deposition Modeling (FDM)", "fused_deposition_modeling__fdm_"),
 ];
 
+// Inches control; metric values are exact equivalents. These are RFQ requirements,
+// confirmed during quote review, not interchangeable ISO tolerance classes.
+export const absoluteToleranceOptions: RfqOption[] = [
+  option("linear_pm_010_in", '±0.010″ (±0.254 mm)'),
+  option("linear_pm_005_in", '±0.005″ (±0.127 mm)'),
+  option("linear_tighter_005_in", 'Tighter than ±0.005″ (±0.127 mm)', undefined, { requiresDrawing: true }),
+];
+
 export const generalToleranceOptions: RfqOption[] = [
+  ...absoluteToleranceOptions,
   option("iso_2768_medium_m", "ISO 2768 Medium (m)", "iso_2768_medium__m_"),
   option("iso_2768_fine_f", "ISO 2768 Fine (f)", "iso_2768_fine__f_"),
 ];
@@ -118,7 +128,7 @@ function uniqueOptionsByValue(options: RfqOption[]) {
   });
 }
 
-export const rfqMaterialOptions: RfqOption[] = uniqueOptionsByValue(
+const rawRfqMaterialOptions: RfqOption[] = uniqueOptionsByValue(
   cncMaterialLibrary.map((entry) =>
     option(entry.value, entry.label, entry.value, {
       family: entry.family,
@@ -129,6 +139,35 @@ export const rfqMaterialOptions: RfqOption[] = uniqueOptionsByValue(
     }),
   ),
 );
+
+export const rfqMaterialOptions: RfqOption[] = rawRfqMaterialOptions.map((material) => {
+  const canonicalLabel = resolveMaterialName("rfq", material.label);
+  const sourceLabelsByCanonicalLabel: Record<string, string[]> = {
+    "Brass 360 (UNS C36000)": ["Brass 360", "Brass C360"],
+    "Copper 110 (UNS C11000)": ["Copper 110", "Copper C110"],
+    "Bronze 932 (UNS C93200)": ["Bronze 932", "Bronze C932"],
+    "Invar 36": ["Invar", "Invar 36"],
+  };
+  const label = canonicalLabel;
+  const description = label === "304/304L Stainless Steel"
+    ? "Supplier must provide certification covering both 304 and 304L requirements."
+    : label === "316/316L Stainless Steel"
+      ? "Supplier must provide certification covering both 316 and 316L requirements."
+      : undefined;
+  const sourceLabels = sourceLabelsByCanonicalLabel[canonicalLabel];
+  const mergedSources = sourceLabels
+    ? [...new Set(rawRfqMaterialOptions
+        .filter((entry) => sourceLabels.includes(entry.label))
+        .flatMap((entry) => String(entry.metadata?.sources ?? "").split(", ").filter(Boolean)))].join(", ")
+    : undefined;
+
+  return {
+    ...material,
+    label,
+    ...(description ? { description } : {}),
+    ...(mergedSources ? { metadata: { ...material.metadata, sources: mergedSources } } : {}),
+  };
+});
 
 const companySeedOptions: RfqOption[] = [option("amogy", "Amogy Inc.")];
 

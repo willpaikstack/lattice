@@ -1,5 +1,9 @@
 # Autodesk APS CAD Preview Setup
 
+## Hybrid rendering — 2026-10-15
+
+RFQs now use the shared local CAD viewer for STEP/STP, IGES/IGS, STL, OBJ and self-contained glTF/GLB. These files do not start APS translations, including when reopening older RFQs. Local errors keep the original attached and show a preview error; there is no Autodesk fallback. The following APS setup applies to accepted native formats SLDPRT, SAT, X_T, X_B and IPT. CAD uploads and local processing share a 200 MiB per-file cap (displayed as 200 MB). Private saved originals are read through the existing authenticated file route; customer/company authorization still applies.
+
 Lattice uses Autodesk Platform Services (APS) to translate native CAD files into browser-viewable models for the RFQ upload preview.
 
 ## Account Ownership

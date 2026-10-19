@@ -9,6 +9,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { CustomerOnboarding, type CustomerOnboardingState } from "./customer-onboarding";
 import adminStyles from "./admin-workspace.module.css";
 import { LatticeMarkIcon } from "@/components/lattice-brand";
+import { ProfileAvatar, type AvatarState } from "./profile-avatar";
 import { initialsForName } from "@/lib/current-user";
 import type { LatticeRole } from "@/lib/auth-crypto";
 import { pageTransition } from "@/lib/page-transition";
@@ -67,12 +68,11 @@ const customerNavSections: NavSection[] = [
   {
     title: "Your Resources",
     items: [
-      { href: "/materials", label: "Materials", icon: "analytics" },
+      { href: "/how-it-works", label: "How Lattice works", icon: "resources" },
       { href: "/capabilities", label: "Capabilities", icon: "queue" },
+      { href: "/materials", label: "Materials", icon: "analytics" },
       { href: "/equipment", label: "Equipment", icon: "factory" },
       { href: "/quality-documentation", label: "Inspection & Certificates", icon: "quality" },
-      { href: "/how-it-works", label: "How Lattice works", icon: "resources" },
-      { href: "/equipment-explorer", label: "Equipment explorer", icon: "factory" },
     ],
   },
 ];
@@ -82,12 +82,14 @@ const adminNavSections: NavSection[] = [
     title: "Admin",
     items: [
       { href: "/admin/quotes", label: "Quote Submissions", icon: "money" },
-      { href: "/admin/customers", label: "Customers", icon: "user" },
+      { href: "/admin/customers", label: "Companies", icon: "factory" },
+      { href: "/admin/users", label: "Users", icon: "user" },
       { href: "/admin/vendors", label: "Overseas Vendors", icon: "factory" },
       { href: "/admin/orders", label: "Placed Orders", icon: "factory" },
       { href: "/admin/support", label: "Customer Support", icon: "resources" },
       { href: "/admin/material-inquiries", label: "Material Inquiries", icon: "analytics" },
       { href: "/admin/resources", label: "Resources", icon: "resources" },
+      { href: "/admin/cad-viewer", label: "CAD viewer demo", icon: "analytics" },
     ],
   },
 ];
@@ -146,22 +148,17 @@ function applyStoredOrder(section: NavSection, orderedHrefs: string[] | undefine
   const orderedHrefSet = new Set(orderedItems.map((item) => item.href));
   const remainingItems = section.items.filter((item) => !orderedHrefSet.has(item.href));
 
-  // Introduce the explorer beside its requested neighbor for existing saved
-  // sidebars too, while preserving any later explicit user reordering.
   const combinedItems = [...orderedItems, ...remainingItems];
-  if (!orderedHrefSet.has("/equipment-explorer")) {
-    const explorerIndex = combinedItems.findIndex(item => item.href === "/equipment-explorer");
-    if (explorerIndex !== -1) {
-      const [explorer] = combinedItems.splice(explorerIndex, 1);
-      const guideIndex = combinedItems.findIndex(item => item.href === "/how-it-works");
-      combinedItems.splice(guideIndex === -1 ? combinedItems.length : guideIndex + 1, 0, explorer);
-    }
-  }
 
   return {
     ...section,
     items: combinedItems,
   };
+}
+
+// Use the revised resource order once; later drag-and-drop preferences still persist.
+function navOrderSectionKey(title: string) {
+  return title === "Your Resources" ? "Your Resources:v2" : title;
 }
 
 function navOrderStorageKey(email: string, tone: "customer" | "admin") {
@@ -387,7 +384,7 @@ function DesktopNavSection({
   tone: "customer" | "admin";
 }) {
   return (
-    <section className="space-y-2">
+    <section className="space-y-2" data-workspace-tour={section.title === "Your Resources" && tone === "customer" ? "resources" : undefined}>
       <p className={`px-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${tone === "admin" ? "text-[#767676]" : "text-[#8c8f94]"}`}>{section.title}</p>
       <div className="space-y-1.5">
         {section.items.map((item) => {
@@ -488,10 +485,13 @@ function UtilityLink({ href, icon, label, detail, onNavigate, tone = "customer" 
   );
 }
 
-function ProfileMenu({ user }: { user: { email: string; name: string } }) {
+type ShellProfile = { email: string; name: string; profileImageUrl?: string; avatarPreset?: { colorId: string; presetId: string } | null };
+
+function ProfileMenu({ user }: { user: ShellProfile }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const initials = initialsForName(user.name);
+  const avatar: AvatarState = user.avatarPreset ? { type: "preset", ...user.avatarPreset } : user.profileImageUrl ? { type: "upload", url: user.profileImageUrl } : { type: "initials" };
 
   useEffect(() => {
     if (!isOpen) {
@@ -542,9 +542,7 @@ function ProfileMenu({ user }: { user: { email: string; name: string } }) {
           href="/account/settings"
           onClick={() => setIsOpen(false)}
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#171717] text-[12px] font-semibold text-[#ffffff]">
-            {initials}
-          </span>
+          <ProfileAvatar avatar={avatar} initials={initials} size="menu" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[14px] font-semibold leading-5 text-[#303036]">{user.name}</span>
             <span className="block truncate text-[12px] font-medium leading-4 text-[#85858c]">{user.email}</span>
@@ -588,7 +586,7 @@ function PageTransition({
   );
 }
 
-export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onboarding, onboardingPreview = false }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: { email: string; name: string }; supportAdmin?: { name: string }; onboardingPreview?: boolean; onboarding?: CustomerOnboardingState | null }) {
+export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onboarding, onboardingPreview = false }: { children: React.ReactNode; sessionRole?: LatticeRole; sessionUser?: ShellProfile; supportAdmin?: { name: string }; onboardingPreview?: boolean; onboarding?: CustomerOnboardingState | null }) {
   const currentPathname = usePathname();
   const pathname = onboardingPreview ? "/dashboard" : currentPathname;
   const router = useRouter();
@@ -615,7 +613,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
   const isRequestQuoteRoute = activeNavPathname === "/requests/new" || activeNavPathname.startsWith("/requests/new/");
   const baseNavSections = inAdminExperience ? adminNavSections : customerNavSections;
   const storedNavOrders = storedNavOrdersByTone[navTone];
-  const navSections = baseNavSections.map((section) => applyStoredOrder(section, storedNavOrders[section.title]));
+  const navSections = baseNavSections.map((section) => applyStoredOrder(section, storedNavOrders[navOrderSectionKey(section.title)]));
 
   useEffect(() => {
     if (onboardingPreview) return;
@@ -699,7 +697,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
     const nextSectionOrder = moveItem(currentOrder, fromIndex, toIndex);
     const nextStoredOrders = {
       ...storedNavOrders,
-      [sectionTitle]: nextSectionOrder,
+      [navOrderSectionKey(sectionTitle)]: nextSectionOrder,
     };
 
     setStoredNavOrdersByTone((currentOrders) => ({
@@ -811,7 +809,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
           )}
 
           {!isNotificationsPanelOpen ? <div className="mt-auto space-y-4 pt-4">
-            {onboardingPreview || onboarding ? <button data-onboarding-help type="button" className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-[14px] font-medium text-stone-600 hover:bg-stone-200/50" onClick={() => window.dispatchEvent(new Event(onboardingPreview ? "lattice-preview-help" : "lattice-customer-help"))}><CircleHelp size={16} aria-hidden="true" />Help</button> : null}
+            {onboardingPreview || onboarding || canUseAdminWorkspace ? <button data-onboarding-help type="button" className="flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-[14px] font-medium text-stone-600 hover:bg-stone-200/50" onClick={() => window.dispatchEvent(new Event(onboardingPreview ? "lattice-preview-help" : "lattice-customer-help"))}><CircleHelp size={16} aria-hidden="true" />Help</button> : null}
             {supportAdmin ? (
               <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-950">
                 <p className="font-semibold">Support view</p>
@@ -864,7 +862,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
             <div className="flex items-center justify-between gap-4">
               <LatticeMark onNavigate={handleNavigate} tone={inAdminExperience ? "admin" : "customer"} />
               <div className="flex items-center gap-2">
-                {onboardingPreview || onboarding ? <button data-onboarding-help type="button" className="rounded-lg px-3 py-2 text-sm text-stone-600" onClick={() => window.dispatchEvent(new Event(onboardingPreview ? "lattice-preview-help" : "lattice-customer-help"))}>Help</button> : null}
+                {onboardingPreview || onboarding || canUseAdminWorkspace ? <button data-onboarding-help type="button" className="rounded-lg px-3 py-2 text-sm text-stone-600" onClick={() => window.dispatchEvent(new Event(onboardingPreview ? "lattice-preview-help" : "lattice-customer-help"))}>Help</button> : null}
                 {!inAdminExperience ? <NotificationButton isOpen={isNotificationsPanelOpen} onClick={() => setIsNotificationsPanelOpen((current) => !current)} pathname={activeNavPathname} /> : null}
                 {!inAdminExperience && canUseAdminWorkspace ? (
                   <Link
@@ -882,6 +880,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
               </div>
             </div>
             <nav aria-label="Compact navigation" className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {!inAdminExperience ? <Link className="flex min-h-10 shrink-0 items-center gap-2 rounded-lg bg-[#505050] px-3 text-[13px] font-semibold text-white" href="/requests/new" onClick={(event) => handleNavigate(event, "/requests/new")}><Plus size={14} aria-hidden="true" />Request Quote</Link> : null}
               {navSections.flatMap((section) => section.items).map((item) => (
                 <CompactNavItem
                   item={item}
@@ -901,7 +900,7 @@ export function AppShell({ children, sessionRole, sessionUser, supportAdmin, onb
             </div>
           ) : null}
 
-          {onboarding && !inAdminExperience ? <CustomerOnboarding initial={onboarding} /> : null}
+          {!inAdminExperience && (onboarding || (canUseAdminWorkspace && !onboardingPreview)) ? <CustomerOnboarding preview={!onboarding} initial={onboarding ?? { step: 0, completed: true, name: sessionUser?.name ?? "there", company: "Customer workspace" }} /> : null}
 
           <main aria-busy={isNavigating} className="relative w-full overflow-x-hidden" onClick={handleMainClick}>
             <PageTransition

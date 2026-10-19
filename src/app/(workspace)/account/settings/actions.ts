@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
 import { deferInitialAddressOnboarding, saveAccountSettings } from "@/lib/account-settings";
-import type { AccountSettingsSnapshot } from "@/lib/account-settings-shared";
+import type { AccountSettingsField, AccountSettingsSnapshot } from "@/lib/account-settings-shared";
+import { getCurrentSession } from "@/lib/session";
 import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
 import { findWorkspaceUserByClerkUserId, syncWorkspaceUserName } from "@/lib/workspace-user";
 
@@ -24,6 +25,8 @@ export async function updateAccountDisplayNameAction(value: string) {
     throw new Error("Authentication required.");
   }
 
+  const session = await getCurrentSession();
+  if (session?.user.supportAdmin) throw new Error("Personal profiles cannot be edited in a support session.");
   const client = await clerkClient();
   const clerkUser = await client.users.updateUser(userId, profileNameParts(value));
   const name = clerkUserDisplayName(clerkUser);
@@ -31,18 +34,20 @@ export async function updateAccountDisplayNameAction(value: string) {
     throw new Error("Clerk did not return an updated display name.");
   }
 
-  const workspaceUser = await findWorkspaceUserByClerkUserId(userId);
+  const workspaceUser = session?.user ?? await findWorkspaceUserByClerkUserId(userId);
   if (workspaceUser) {
     await syncWorkspaceUserName(workspaceUser.id, name);
   }
 
-  revalidatePath("/account/settings");
-  revalidatePath("/dashboard");
+  revalidatePath("/", "layout");
   return { name };
 }
 
-export async function saveAccountSettingsAction(settings: AccountSettingsSnapshot) {
-  return saveAccountSettings(settings);
+export async function saveAccountSettingsAction(settings: AccountSettingsSnapshot, field: AccountSettingsField) {
+  if (!["phone", "companyName", "shipping", "billingAddress", "billing"].includes(field)) throw new Error("Choose a valid setting to update.");
+  const saved = await saveAccountSettings(settings, field);
+  revalidatePath("/", "layout");
+  return saved;
 }
 
 export async function deferInitialAddressOnboardingAction() {

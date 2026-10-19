@@ -17,6 +17,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     ".tmp-*",
     "scripts/**/*.cjs",
+    // Versioned third-party runtime copied by prepare-cad-demo-assets.mjs.
+    "public/cad-demo/occt-*/**",
   ]),
 ]);
 

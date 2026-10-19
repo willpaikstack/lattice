@@ -1,0 +1,28 @@
+/* One typography scale throughout the account-setup overlay, including menus. */
+.dialog,
+.dialog.dialog :where(p, label, span, input, button, address, li, a, div[role="option"]) {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.dialog.dialog input:not([type="checkbox"]),
+.dialog.dialog button[aria-haspopup="listbox"] {
+  height: 40px;
+  min-height: 40px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  box-shadow: none;
+}
+
+/* Explicit exception to the uniform form typography: requested 30 pt heading. */
+.dialog .title {
+  font-size: 30pt;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: #182231;
+}

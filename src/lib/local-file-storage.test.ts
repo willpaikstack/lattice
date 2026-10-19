@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { copyLocalUpload, isDraftUploadStorageKey, readLocalUpload, saveLocalUpload } from "./local-file-storage";
+import { cadThumbnailStorageKey, saveCadThumbnail, copyLocalUpload, isDraftUploadStorageKey, readLocalUpload, saveLocalUpload } from "./local-file-storage";
 
 const uploadsRoot = path.join(process.cwd(), ".data", "uploads");
 const storedKeys: string[] = [];
@@ -42,5 +42,16 @@ describe("local file storage", () => {
     expect(isDraftUploadStorageKey("rfq-drafts/2026-06-18/part.step")).toBe(true);
     expect(isDraftUploadStorageKey("rfq/2026-06-18/part.step")).toBe(false);
     expect(isDraftUploadStorageKey("supplier-quotes/2026-06-18/shop.pdf")).toBe(false);
+  });
+
+  it("carries a private screenshot through promotion without changing original bytes", async () => {
+    const draft = await saveLocalUpload(new File(["original CAD"], "part.step"), "qc-tests");
+    storedKeys.push(draft.storageKey!, cadThumbnailStorageKey(draft.storageKey!));
+    await saveCadThumbnail(draft.storageKey!, Buffer.from("thumbnail image"));
+    const permanent = await copyLocalUpload(draft.storageKey!, { name: "part.step", type: "model/step" }, "qc-tests");
+    storedKeys.push(permanent.storageKey!, cadThumbnailStorageKey(permanent.storageKey!));
+    expect((await readLocalUpload(permanent.storageKey!)).contents.toString()).toBe("original CAD");
+    expect((await readLocalUpload(cadThumbnailStorageKey(permanent.storageKey!))).contents.toString()).toBe("thumbnail image");
+    expect(cadThumbnailStorageKey(permanent.storageKey!)).not.toBe(cadThumbnailStorageKey(draft.storageKey!));
   });
 });

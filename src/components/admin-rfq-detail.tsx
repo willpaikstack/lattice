@@ -7,8 +7,10 @@ import { ArrowLeft, Download, FileText, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { LatticeRequest, UploadedFile } from "@/lib/request-model";
 import { groupAdminRfqFiles, rfqFileHref, rfqFileKind } from "@/lib/admin-rfq-package";
-import { processLabel } from "@/lib/rfq-manufacturing";
+import { processLabel, readTargetDeliveryDate } from "@/lib/rfq-manufacturing";
 import type { CadUploadPreviewState } from "./cad-upload-preview";
+import { cadDemoFormat } from "@/lib/cad-demo";
+import { SavedLocalCadPreview } from "./saved-local-cad-preview";
 import { refreshCadPreviewState } from "@/lib/cad-preview-status";
 
 const PdfViewer = dynamic(() => import("./drawing-pdf-preview").then(module => module.DrawingPdfPreview), { ssr: false, loading: () => <p>Loading drawing…</p> });
@@ -31,12 +33,26 @@ function FileLink({ file }: { file: UploadedFile }) {
   return href ? <a href={href} download={file.name}><Download size={14} aria-hidden="true" />{file.name}</a> : <span>{file.name} · File unavailable</span>;
 }
 function SavedCadPreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
+  const [retrying, setRetrying] = useState(false);
   const [state, setState] = useState<CadUploadPreviewState>(() => file.cadPreviewUrn
     ? { status: "processing", urn: file.cadPreviewUrn, fileName: file.name, progress: "Checking saved model" }
     : { status: "reference_only", fileName: file.name, message: "No translated preview was saved with this CAD file. Download the original for review." });
   const urn = state.status === "processing" ? state.urn : null;
   const restrictionStatus = request.intakeDeclaration?.restrictionStatus;
   const restrictionPolicyVersion = request.intakeDeclaration?.policyVersion;
+  async function retry() {
+    if (retrying || !file.storageKey) return;
+    setRetrying(true);
+    try {
+      const response = await fetch("/api/cad-previews", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storageKey: file.storageKey, restrictionStatus, restrictionPolicyVersion, reuseExisting: state.status === "reference_only" }) });
+      const payload = await response.json();
+      if (!response.ok || !payload.preview?.urn) throw new Error(payload.error || payload.preview?.message || "Unable to prepare the CAD preview. Try again later.");
+      setState({ status: "processing", fileName: file.name, urn: payload.preview.urn, progress: "Preparing CAD preview" });
+    } catch (caught) {
+      setState({ status: "failed", fileName: file.name, message: caught instanceof Error ? caught.message : "Unable to prepare CAD preview." });
+    } finally { setRetrying(false); }
+  }
   useEffect(() => {
     if (!urn) return;
     let active = true;
@@ -54,11 +70,13 @@ function SavedCadPreview({ file, request }: { file: UploadedFile; request: Latti
     return () => { active = false; window.clearInterval(interval); };
   }, [urn, file.name, file.storageKey, restrictionStatus, restrictionPolicyVersion]);
   if (state.status === "ready") return <ModelViewer urn={state.urn} />;
-  return <div className={styles.noPreview} role="status"><FileText size={28} aria-hidden="true" /><p>{state.status === "processing" ? "Checking the saved CAD preview… The original file is available to download below." : "message" in state ? state.message : "Loading CAD preview…"}</p></div>;
+  return <div className={styles.noPreview} role="status"><FileText size={28} aria-hidden="true" /><p>{state.status === "processing" ? "Checking the saved CAD preview… The original file is available to download below." : "message" in state ? state.message : "Loading CAD preview…"}</p>
+    {state.status !== "processing" && file.storageKey ? <button type="button" disabled={retrying || restrictionStatus !== "unrestricted"} onClick={() => void retry()}>{retrying ? "Preparing preview…" : "Retry CAD preview"}</button> : null}
+  </div>;
 }
 function SavedFilePreview({ file, request }: { file: UploadedFile; request: LatticeRequest }) {
   const href = rfqFileHref(file, true);
-  if (rfqFileKind(file) === "cad") return <SavedCadPreview file={file} request={request} />;
+  if (rfqFileKind(file) === "cad") return cadDemoFormat(file.name) ? <SavedLocalCadPreview file={file} /> : <SavedCadPreview file={file} request={request} />;
   if (href && /\.pdf$/i.test(file.name)) return <PdfViewer url={href} name={file.name} />;
   if (href && /\.(png|jpg|jpeg|webp)$/i.test(file.name)) {
     // The authorized local-file endpoint supplies the stored drawing bytes.
@@ -119,7 +137,7 @@ export function AdminRfqDetail({ request }: { request: LatticeRequest }) {
           <div className={styles.specs}><h3>Manufacturing requirements</h3><dl>
             <Field label="Process" value={processLabel(details?.process || request.process)} /><Field label="Material" value={part.lineItem.material} />
             <Field label="Surface finish" value={part.lineItem.surfaceFinish} /><Field label="General tolerance" value={part.lineItem.generalTolerance} />
-            <Field label="Quality documentation" value={part.lineItem.qualityDocumentation?.join(", ")} /><Field label="Target ship date (customer preference)" value={details?.targetShipDate} />
+            <Field label="Quality documentation" value={part.lineItem.qualityDocumentation?.join(", ")} /><Field label="Target delivery date (customer preference)" value={readTargetDeliveryDate(details)} />
             {details?.cadMetadata ? <><Field label="CAD envelope (mm)" value={details.cadMetadata.dimensionsMm.map(value => value.toFixed(2)).join(" × ")} /><Field label="Original model units" value={details.cadMetadata.sourceUnit} /></> : null}
             {details?.customerPartNumber ? <Field label="Customer part number (legacy)" value={details.customerPartNumber} /> : null}
             {details?.cadRevision ? <Field label="CAD revision (legacy)" value={details.cadRevision} /> : null}
@@ -129,7 +147,7 @@ export function AdminRfqDetail({ request }: { request: LatticeRequest }) {
       </section> : <p>No parts were saved with this RFQ.</p>}
     </div>
     {unassignedFiles.length ? <section className={styles.shared}><h2>Shared RFQ files</h2><p>These files have no valid saved part association. Review the package before assigning them to a part.</p><div>{unassignedFiles.map(item => <FileLink key={item.id} file={item} />)}</div></section> : null}
-    <section className={styles.operations} aria-label="RFQ operations"><div><h2>Operator review</h2><dl><Field label="Assigned owner" value={request.operatorReview.assignedOwner || "Unassigned"} /><Field label="Review status" value={request.operatorReview.completeness.replaceAll("_", " ")} /></dl>
+    <section className={styles.operations} aria-label="RFQ operations"><div><h2>Operator review</h2><dl><Field label="Review status" value={request.operatorReview.completeness.replaceAll("_", " ")} /></dl>
       {request.operatorReview.internalNotes ? <p className={styles.notes}>{request.operatorReview.internalNotes}</p> : null}{request.operatorReview.supplierPackageNotes ? <p className={styles.notes}>{request.operatorReview.supplierPackageNotes}</p> : null}
       {canQuote ? <div className={styles.actions}><Link href={`${base}&decision=NEEDS_INFO`}>Request information</Link><Link href={`${base}&decision=CLOSED`}>No quote</Link></div> : null}
     </div><div><h2>Supplier evidence</h2>{request.supplierQuoteFiles.length ? <div className={styles.fileList}>{request.supplierQuoteFiles.map(item => <FileLink key={item.id} file={item} />)}</div> : <p>No supplier quote files attached.</p>}

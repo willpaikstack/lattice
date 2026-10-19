@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SignIn } from "@clerk/nextjs";
+import { LatticeSignIn } from "@/components/lattice-sign-in";
 
 import { PublicHeader, TechnicalBackground } from "@/components/public-entry";
 
@@ -13,7 +13,7 @@ export default function LoginPage() {
       <PublicHeader />
       <section className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 px-6 py-20 pt-40 lg:px-8">
         <div className="relative z-10 w-full max-w-md">
-          <SignIn forceRedirectUrl="/account/continue" oidcPrompt="select_account" path="/login" routing="path" signUpUrl="/sign-up" />
+          <LatticeSignIn />
         </div>
         <TechnicalBackground />
       </section>

@@ -1,5 +1,19 @@
 # TODO
 
+- Test repair complete locally (2026-10-19): 733 passed, no failures; the explicitly enabled PostgreSQL audit remains skipped. Shared-registry intake compatibility and admin queue filtering are verified. Browser/hosted verification and deployment remain separate follow-up work.
+
+- This Production-derived repo is now the primary local working copy, with the synthetic Design C preview on port 3000. Configure remote synchronization when requested; it currently has no remote. Recovery of superseded local work is documented in `LOCAL_PREVIEW.md`.
+
+- Review local Design C at `/design-preview/timing-c`; implementation and rollback are in `LOCAL_PREVIEW.md`. Before any requested rollout, confirm shipping-day units/holiday handling and align checkout, purchased order dates and PDFs with the new viewing-date calculation. No deployment is authorized for this experiment.
+
+- Account settings usability follow-up (2026-10-15): phone formatting, billing email validation, signed-in recovery identity binding, persistent same-as-shipping and U.S. city/state/ZIP/manual-entry controls implemented. Development/Production additive schema applied and released as dpl_Bz8CdC7v4JduhdfPQZZ7uoRbRmir (source 1d5877c). Hosted Member phone-format/reset-binding/address-suggestion/manual-entry checks pass. Genuine Admin billing-checkbox save/reload/restoration and invalid/valid email controls now pass. All 17 pre-check RFQs and original shared address/contact values remain unchanged. No remaining handoff. No automated tests run for this follow-up.
+
+- Account settings released (2026-10-15) as dpl_G4gNx6XcserXJMyV5rEheNFan6en. Production migration and genuine Apple Customer Admin settings/photo/emoji/new-RFQ snapshot checks pass; original settings restored and 15 existing RFQs preserved. All 677 tests pass (one opt-in DB test skipped; explicit PostgreSQL audit already passed). Genuine Apple Member personal-save/shared-read-only/RFQ snapshot checks now pass. William confirmed reset email receipt/completion; Production token consumption, credential timestamp and completion audit confirm success after Clerk accepted the update. A separate new-password login was not independently exercised. See docs/audits/account-settings-2026-10-15.md.
+
+- Quote configuration repairs released 2026-10-15 as dpl_83fU1hTTyKAg29PuKtavqy6Q4dkq: Enter cannot submit RFQs; explicit Request Quote clicks work; mismatched-use warning reassures draft preservation; targetDeliveryDate is canonical and 28 legacy Production part rows were migrated with values verified unchanged. All 638 tests pass.
+
+- Hybrid local-first RFQ CAD rendering is released as dpl_9ifRDmjCSFqabD7AVpEMDEs1i6rY at a shared 200 MiB cap. Browser/build verification passes (633 tests); test representative large/complex models on lower-memory devices. Local failures preserve originals and do not fall back to Autodesk. Restore APS account capacity for unsupported native types.
+
 ## Hosted release blockers — 2026-10-13
 
 The [hosted readiness report](docs/audits/hosted-readiness-2026-10-13.md) supersedes older pending hosted-check notes where it provides fresh proof. Do not enable Live checkout or call the app completed yet.
@@ -19,7 +33,7 @@ Shared next-actions list for AI agents across computers. Keep this focused on th
 
 - RFQ hidden-requirement audit (2026-10-13): resolve trusted buyer company and explicit admin customer context, align backend drawing/document validation, and verify remaining inactive local browser profiles apply the development cleanup on their next app load. The authorized development database/local JSON/active-browser purge is completed. Hidden requester/PO/due-date/part-name state and redundant process readiness are now removed; filename labels are derived. See `docs/audits/rfq-hidden-requirements-2026-10-13.md`; findings only, not implemented.
 
-- Equipment explorer (2026-10-12): new `/equipment-explorer` implemented below How Lattice works; original `/equipment` preserved. Review the new directory/card layouts in the app. Continue the complete source-basis audit beyond the sampled corrections; see `docs/audits/equipment-explorer-implementation-2026-10-12.md`.
+- Equipment explorer archived locally at William’s request (2026-10-18): navigation/tour entry removed and route redirects to `/equipment`. Implementation/data retained. Resume its source-basis audit only if the page is restored; see `docs/audits/equipment-explorer-implementation-2026-10-12.md`.
 
 - Confirm the APS offering, remaining capacity and renewal/refresh date with the billing administrator for Autodesk team William paik - 3614. The work account owns Lattice CAD Preview but Autodesk Account shows its team role as User, without billing entitlement visibility. Current published Free limits are only 60 simple CAD conversions/month, 20 complex conversions/month and 300,000 basic calls/month. See `docs/audits/autodesk-upload-limits-2026-10-12.md`; hub usage for October 5–12 is not a full monthly balance.
 
@@ -215,7 +229,7 @@ npm run build
 
 - Competitor audit (2026-10-12): review `docs/audits/quote-configuration-competitors-2026-10-12.md` before selecting the next intake changes. Proposed priorities are a pre-upload export/restricted-data gate, explicit prototype/commercial/mixed end use, visible per-part process and requested delivery, then part/revision identity, inserts, CoC/traceability and compatibility. These are recommendations, not approved implementation. The existing three-step flow and exclusions for source inspection/build-and-hold remain in place.
 - Per-part process is implemented locally (2026-10-12) with Milling/Turning/Sheet Metal and Milling default. Requested-delivery date remains hidden metadata; approve a visible date control separately.
-- Material/process/finish compatibility filtering is implemented locally (2026-10-12), backed by a conservative researched matrix and server enforcement. Supplier-specific availability and material catalog alias cleanup remain follow-ups.
+- Material/process/finish compatibility filtering is implemented locally (2026-10-12), backed by a conservative researched matrix and server enforcement. Supplier-specific availability remains a follow-up. Shared material alias resolution is implemented; review any reported family-scoped alias conflicts before adding further merges.
 - Before deployment, apply `scripts/rfq-manufacturing-schema-2026-10-12.sql` to the deployment database and regenerate Prisma. Production was not changed. Review the policy and finish scope in `docs/rfq-intake-requirements-2026-10-12.md`; customer declarations do not replace operator eligibility review.
 
 - CAD popup latency (live local check, 2026-10-12): A10201.SLDPRT translation starts during step 1, but two sampled APS jobs finished around 40–42 seconds, followed by browser model loading after Continue. See `docs/cad-popup-timing-verification-2026-10-12.md`. Converted-model preload/reuse is now implemented locally and verified with a stable viewer/canvas handoff. Company-scoped identical-content translation reuse remains proposed. Verify this handoff on deployed browsers and representative larger models; the local warm-model sample was visible about 0.3 seconds after Continue.
@@ -229,3 +243,24 @@ npm run build
 ## P1 release — 2026-10-14
 
 All six confirmed P1 repairs are released and verified. See docs/audits/p1-remediation-2026-10-14.md and its sanitized evidence. Keep Live checkout disabled. Continue the original P2 and operational/commercial gates; monitor the upstream development-only braces advisory. Extend supplier quote/revised-drawing uploads beyond their current 3 MB form limit if needed. Previously lost ephemeral vendor edits need a recoverable archive; none was present locally.
+
+## Urgent customer payload isolation — 2026-10-14
+
+Remove internal supplier quotes/costs/nested notes and quote attachment metadata from all customer browser/API payloads using an explicit approved field contract. Customer Quotes currently receives full records; customerSafeRequest used for Orders retains internal fields. Add serialization regression tests and authenticated hosted Customer Admin/Member payload checks. See `docs/audits/admin-customer-separation-2026-10-14.md`; passing role/company tests alone does not certify separation.
+
+## Operator audit reset follow-through — 2026-10-14
+
+Local and Production workflow databases are cleared; accounts/company setup preserved. Production R2 cleanup and removal of known APS previews/sources are complete and verified. Other browser profiles/devices must clear workflow draft caches before visiting Quotes/Request Quote to prevent stale draft synchronization. See `docs/audits/workflow-reset-2026-10-14.md`.
+
+## Production invitation delivery restored — 2026-10-14
+
+Resolved: updated the existing Resend secret and redeployed the same current Production source as dpl_AgLKLPVpd66MFuzmRMLux8yBJhYE. Apple Customer Member paik.e.william@gmail.com remains Clerk-linked; replacement invite is SENT and Resend confirms delivered. First sign-in/password setup remains the user’s normal onboarding action; temporary setup expires October 17. Historical provider-rejected attempt remains recorded, not duplicated.
+
+## Production RFQ account audit completed with findings — 2026-10-14
+
+Twelve genuine-customer Production RFQs across four accounts are submitted and admin-reviewed: 24 parts, 39 byte-identical original downloads, 840 matching requirement/metadata comparisons. Exact durable record: `docs/audits/rfq-account-submissions-2026-10-14.json`; findings/report: `docs/audits/rfq-account-audit-2026-10-14.md`. Customer process display, hosted PDF preview and negated-note validation are now repaired/released; see `docs/audits/rfq-audit-repairs-2026-10-14.md`. Autodesk returns `ProductAccessRequiresCapacity`; William confirmed the refill was Codex credits. William must restore Autodesk APS/Flex capacity for the app/team. Admin saved-original retry is implemented and its capacity message is verified. After capacity is restored, verify the six AH previews and add/verify persisted original-file URN plus derived-dimension backfill. Preserve all twelve QA records and the three earlier user RFQs. The audit was read-only apart from its authorized submissions; the subsequent repair release is documented separately.
+
+
+## 2026-10-16 — Address lookup activation
+
+- Completed 2026-10-16: Lattice Geoapify Free-plan project created with owner approval; server-only key connected as a Vercel Secret for Production/Preview and deployment promoted. Genuine Admin shipping/billing suggestions, keyboard/mouse autofill, manual entry and native state dropdown verified. Original address values preserved. See docs/address-autocomplete-setup.md and the completed-work log.
