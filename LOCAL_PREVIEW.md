@@ -2,7 +2,7 @@
 
 ## Current handoff status — October 19, 2026
 
-Use `docs/cross-device-handoff-2026-10-19.md` for current Git synchronization and other-device setup. The GitHub remote is now configured. PR #1 was merged as `cb90b13` and deployed; the newer material catalog/condition changes are being pushed separately on `codex/materials-catalog-handoff`. The experiment notes below describe the original October 18 setup and its historical verification, not current release readiness. The latest full source suite has 758 passes and one opt-in database skip; TypeScript/ESLint pass.
+Use `docs/cross-device-handoff-2026-10-19.md` for current Git synchronization and other-device setup. The GitHub remote is now configured. PR #1 was merged as `cb90b13` and deployed; the newer material catalog/condition changes are published separately on `codex/materials-catalog-handoff`. The experiment notes below describe the original October 18 setup and its historical verification, not current release readiness. The latest full source suite has 758 passes and one opt-in database skip; TypeScript/ESLint pass.
 
 ## Original experiment record
 

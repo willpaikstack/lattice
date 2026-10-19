@@ -146,4 +146,3 @@ export function materialSelectionDetails(value: string) {
   const offering = materialOfferingFor(value);
   return offering ? { materialGrade: offering.grade, materialCondition: materialConditionFor(value)?.label ?? "" } : {};
 }
-
