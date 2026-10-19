@@ -1,10 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { CopyObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { cadDemoFormat } from "./cad-demo";
 
 export type StoredLocalUpload = {
   name: string;
@@ -306,6 +307,35 @@ export function isDraftUploadStorageKey(storageKey: string) {
   return storageKey.startsWith("rfq-drafts/");
 }
 
+export async function deleteStoredUploads(storageKeys: string[]) {
+  const failures: string[] = [];
+  if (!storageKeys.length) return failures;
+  const keys = [...new Set(storageKeys.flatMap((key) => {
+    try { return [assertSafeStorageKey(key)]; }
+    catch { failures.push(key); return []; }
+  }))];
+  let remote: ReturnType<typeof remoteStorage>;
+  try { remote = remoteStorage(); }
+  catch { return [...failures, ...keys.flatMap((key) => [key, cadThumbnailStorageKey(key), uploadRecordKey(key)])]; }
+  for (const key of keys) {
+    const related = [key, cadThumbnailStorageKey(key), uploadRecordKey(key)];
+    for (const relatedKey of related) {
+      try {
+        if (remote) {
+          await remote.client.send(new DeleteObjectCommand({ Bucket: remote.config.bucket, Key: relatedKey }));
+        } else {
+          await unlink(localUploadPath(relatedKey)).catch((error: unknown) => {
+            if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT")) throw error;
+          });
+        }
+      } catch {
+        failures.push(relatedKey);
+      }
+    }
+  }
+  return failures;
+}
+
 export async function copyLocalUpload(
   storageKey: string,
   metadata: Pick<StoredLocalUpload, "name" | "type">,
@@ -335,6 +365,7 @@ export async function copyLocalUpload(
       }),
     );
 
+    await copyCadThumbnail(safeKey, destinationKey);
     return {
       name: metadata.name,
       sizeBytes: sourceMetadata.ContentLength ?? 0,
@@ -345,7 +376,7 @@ export async function copyLocalUpload(
 
   const { contents, sizeBytes } = await readLocalUpload(safeKey);
 
-  return saveLocalUploadBytes(
+  const stored = await saveLocalUploadBytes(
     {
       name: metadata.name,
       sizeBytes,
@@ -354,4 +385,34 @@ export async function copyLocalUpload(
     contents,
     folder,
   );
+  if (stored.storageKey) await copyCadThumbnail(safeKey, stored.storageKey);
+  return stored;
+}
+
+/** Derived screenshots live in the same private store, keyed by original bytes' location. */
+export function cadThumbnailStorageKey(sourceStorageKey: string) {
+  return `cad-thumbnails/v1/${createHash("sha256").update(assertSafeStorageKey(sourceStorageKey)).digest("hex")}.png`;
+}
+
+export async function saveCadThumbnail(sourceStorageKey: string, contents: Buffer) {
+  const key = cadThumbnailStorageKey(sourceStorageKey);
+  const remote = remoteStorage();
+  if (remote) {
+    await remote.client.send(new PutObjectCommand({ Bucket: remote.config.bucket, Key: key, Body: contents, ContentLength: contents.length, ContentType: "image/png" }));
+  } else {
+    const destination = localUploadPath(key);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, contents);
+  }
+}
+
+async function copyCadThumbnail(sourceStorageKey: string, destinationStorageKey: string) {
+  if (!cadDemoFormat(sourceStorageKey)) return;
+  try {
+    const { contents } = await readLocalUpload(cadThumbnailStorageKey(sourceStorageKey));
+    await saveCadThumbnail(destinationStorageKey, contents);
+  } catch {
+    // A missing/failed derivative must never prevent saving the original RFQ.
+    // The list regenerates missing thumbnails from the authorized original.
+  }
 }

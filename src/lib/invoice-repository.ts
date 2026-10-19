@@ -1,3 +1,4 @@
+import { requestBillToLines } from "./request-billing";
 import type { PrismaClient } from "@prisma/client";
 import { getPrismaClient } from "./prisma";
 import type { LatticeRequest } from "./request-model";
@@ -159,7 +160,7 @@ function invoiceSnapshotForRequest(request: LatticeRequest) {
   return {
     amountDueCents,
     amountPaidCents,
-    billToSnapshot: [request.requesterName, request.buyerCompany, request.requesterEmail, request.requesterPhone].filter(Boolean),
+    billToSnapshot: requestBillToLines(request),
     customerCompany: request.buyerCompany,
     customerContact: request.requesterName,
     quoteNumber: latestQuote?.quoteNumber ?? "",

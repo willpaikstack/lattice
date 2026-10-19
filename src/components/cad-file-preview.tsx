@@ -2,8 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 
+import { cadDemoFormat } from "@/lib/cad-demo";
 import type { UploadedFile } from "@/lib/request-model";
+import { localCadThumbnailUrl } from "@/lib/local-cad-thumbnail";
+
+const ThumbnailGenerator = dynamic(() => import("./local-cad-thumbnail-generator"), { ssr: false });
 
 function fileExtension(name: string) {
   const extension = name.split(".").pop();
@@ -20,7 +25,7 @@ export function CadRenderThumbnail({
   label,
 }: {
   className?: string;
-  file?: Pick<UploadedFile, "cadPreviewUrn" | "name" | "type">;
+  file?: Pick<UploadedFile, "cadPreviewUrn" | "name" | "type" | "storageKey">;
   label: string;
 }) {
   const seed = hashText(`${file?.name ?? ""}:${label}`);
@@ -28,11 +33,15 @@ export function CadRenderThumbnail({
   const accent = seed % 3 === 0 ? "#2563eb" : seed % 3 === 1 ? "#0f9d68" : "#7c3aed";
   const notchX = 56 + (seed % 8);
   const bossX = 94 + (seed % 10);
-  const thumbnailHref = file?.cadPreviewUrn
+  const localSource = file?.storageKey && cadDemoFormat(file.name) ? file.storageKey : null;
+  const thumbnailHref = localSource ? localCadThumbnailUrl(localSource) : file?.cadPreviewUrn && !cadDemoFormat(file.name)
     ? `/api/cad-previews/thumbnail?urn=${encodeURIComponent(file.cadPreviewUrn)}&size=320`
     : null;
   const [failedThumbnailHref, setFailedThumbnailHref] = useState<string | null>(null);
-  const thumbnailFailed = thumbnailHref !== null && failedThumbnailHref === thumbnailHref;
+  const [attemptedThumbnailHref, setAttemptedThumbnailHref] = useState<string | null>(null);
+  const [revision, setRevision] = useState(0);
+  const imageHref = thumbnailHref ? `${thumbnailHref}&v=${revision}` : null;
+  const thumbnailFailed = imageHref !== null && failedThumbnailHref === imageHref;
 
   return (
     <div
@@ -41,14 +50,14 @@ export function CadRenderThumbnail({
       role="img"
     >
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(100,116,139,0.12)_1px,transparent_1px),linear-gradient(0deg,rgba(100,116,139,0.12)_1px,transparent_1px)] bg-[size:12px_12px]" />
-      {thumbnailHref && !thumbnailFailed ? (
+      {imageHref && !thumbnailFailed ? (
         <Image
           alt=""
           className="absolute inset-0 h-full w-full object-contain p-1.5"
           fill
-          onError={() => setFailedThumbnailHref(thumbnailHref)}
+          onError={() => setFailedThumbnailHref(imageHref)}
           sizes="72px"
-          src={thumbnailHref}
+          src={imageHref}
           unoptimized
         />
       ) : (
@@ -75,6 +84,8 @@ export function CadRenderThumbnail({
         {extension}
       </span>
       {file ? <span className="sr-only">{file.name}</span> : null}
+      {localSource && thumbnailFailed && attemptedThumbnailHref !== thumbnailHref ? <ThumbnailGenerator key={localSource} name={file!.name} storageKey={localSource}
+        onComplete={saved => { setAttemptedThumbnailHref(thumbnailHref); if (saved) setRevision(value => value + 1); }} /> : null}
     </div>
   );
 }

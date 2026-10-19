@@ -218,6 +218,10 @@ async function startTranslation(urn: string, token: string) {
   });
 
   if (!response.ok && response.status !== 409) {
+    const detail = await response.text();
+    if (response.status === 403 && detail.includes("ProductAccessRequiresCapacity")) {
+      throw new Error("Autodesk conversion capacity is unavailable. Lattice must restore its Autodesk APS capacity before CAD previews can be generated. The original file remains available.");
+    }
     throw new Error(`Unable to start Autodesk translation (${response.status})`);
   }
 }
@@ -250,6 +254,42 @@ export async function startCadPreviewFromSource(file: CadTranslationSource): Pro
     objectId: uploaded.objectId,
     provider: "autodesk-platform-services",
   };
+}
+
+export async function deleteCadPreviewAssets(urns: string[]) {
+  const credentials = apsCredentials();
+  if (!urns.length) return [];
+  if (!credentials) return urns;
+  const token = await getApsToken(["data:read", "data:write", "bucket:read"]);
+  if (!token) return urns;
+  const failures: string[] = [];
+  for (const urn of [...new Set(urns)]) {
+    const sourceObjectId = Buffer.from(urn, "base64").toString("utf8");
+    const prefix = `urn:adsk.objects:os.object:${credentials.bucketKey}/`;
+    if (!sourceObjectId.startsWith(prefix)) {
+      failures.push(urn);
+      continue;
+    }
+    const objectKey = sourceObjectId.slice(prefix.length);
+    try {
+      const manifest = await fetch(`${APS_BASE_URL}/modelderivative/v2/designdata/${encodeURIComponent(urn)}/manifest`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token.access_token}` },
+      });
+      if (!manifest.ok && manifest.status !== 404) {
+        failures.push(urn);
+        continue;
+      }
+      const source = await fetch(`${APS_BASE_URL}/oss/v2/buckets/${encodeURIComponent(credentials.bucketKey)}/objects/${encodeURIComponent(objectKey)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token.access_token}` },
+      });
+      if (!source.ok && source.status !== 404) failures.push(urn);
+    } catch {
+      failures.push(urn);
+    }
+  }
+  return failures;
 }
 
 export async function checkCadPreviewConfiguration(): Promise<CadPreviewConfigurationStatus> {

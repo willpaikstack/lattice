@@ -1,5 +1,83 @@
 # Decisions
 
+## 2026-10-18 — Reversible, drawing-aware tolerance choices
+
+Use Standard tolerances / Drawing-specific tolerances as the primary controls. Preserve ISO Medium/Fine profiles and independent threads/fits/features. Specific drawing callouts take precedence over general tolerances; conflicting requirements require Lattice review before quoting. Drawing-specific choice is a structured drawing requirement enforced at submission. Retain the previous controls behind the toleranceDesign URL parameter and LATTICE_TOLERANCE_DESIGN environment switch, preserving saved values when switching. No schema migration; local only until deployment is requested.
+
+## 2026-10-18 — Archive Equipment explorer for now
+
+Remove Equipment explorer from customer navigation and tour copy and redirect its URL to Equipment. Preserve its components, styles, data and reference documentation for restoration. Pause its active review/audit priority until requested again. Local only.
+
+## 2026-10-18 — Calculate delivery at quote issuance
+
+The administrative quote delivery date is derived from quote issue date plus the longest part production duration plus the existing shipping presets (Domestic 2 / International 5 business days). Show the date read-only and recompute it on the server rather than accepting an operator override. Every part needs valid production timing. Customer note is optional for issuance; customer clarification/no-quote messages remain required. Remove supplier shop/country/overall-lead-time fields from the attachment section while retaining saved supplier metadata. Local implementation only.
+
+## 2026-10-18 — Address setup is an explicit first-tour choice
+
+The initial workspace tour completion popup offers address setup now or later when addresses are incomplete. Only an explicit Add now opens the address dialog. Add later and skip/close persist deferral and finish the tour. Help replays and subsequent visits never automatically launch address onboarding. Customers can add addresses later in Account Settings. This supersedes automatically handing every first-tour completion or completed return visit into missing-address onboarding.
+
+## 2026-10-18 — Display saved defaults for missing quote addresses
+
+For unpurchased quotes, display complete current company shipping/billing defaults when the corresponding request snapshot is incomplete. Only supply defaults from the authenticated request company. Preserve complete request snapshots and all purchased snapshots; this display fallback does not rewrite requests. Linked billing must open prefilled editable fields; a field edit disables the link, while explicitly checking Same as shipping recopies shipping and retains future linkage.
+
+## 2026-10-18 — Replace Design A with Design C
+
+William rejected inline Design A and selected the sidebar delivery card. Put one delivery estimate above the purchase summary, show production and shipping as stages, and retain per-part production lead time with a longest-part indicator. Preserve the viewing-date calculation and legacy switch. Keep the change local. This supersedes the earlier Design A selection.
+
+## 2026-10-18 — Retain the Production-derived workspace
+
+William requested deletion of the original working repo and continued development in `Lattice OS 2 - Timing A`. Preserve the superseded repo in a private recovery archive, relocate shared installed dependencies into the retained repo, and keep Design A undeployed. This supersedes the earlier instruction to preserve the original as an active working folder.
+
+## 2026-10-18 — Design A as a local reversible experiment
+
+William selected inline production/shipping timing and one longest-part-plus-shipping delivery footer for an isolated Production-source copy. Keep it local, provide the legacy rendering switch, and preserve the original working repo. Use the existing 2/5-day Domestic/International presets as business days for preview; holidays and purchase/order integration remain rollout decisions.
+
+## 2026-10-15 - Operational Company Defaults and Request Billing Snapshots
+
+William approved Customer Admins and Lattice Admins as editors of shared company shipping, billing-address and billing-contact defaults. Customer Members retain personal editing; company renaming remains Lattice Admin-only. This supersedes the earlier restriction allowing Customer Admin address writes only during initial onboarding.
+
+Persist only the edited field group and derive ownership/permissions on the server. Refresh the shared layout after saves. New RFQ submissions use current server-resolved defaults, including when submitted from an old draft; preserve submitted/issued/purchased request snapshots through display, checkout and invoice creation. Add Request.billingSnapshot JSONB for billing address, AP email and routing notes. Before release, freeze current company billing for existing requests lacking a snapshot; unknown earlier historical values cannot be recovered. Do not alter existing Invoice records.
+
+Clerk remains authoritative for profile images, emoji metadata and credentials. Display the saved avatar in settings and the sidebar; treat Clerk's default image separately from a user upload. Replace in-settings password editing with the existing recovery entry point, and synchronize recovery completion to Clerk and local credentials/audit with atomic one-time token claiming. Account Summary labels the company Company and omits currency. Local verification and release limitations are in docs/audits/account-settings-2026-10-15.md.
+
+## 2026-10-15 - Preserve the CAD Viewer Presentation Across Renderer Changes
+
+A rendering-engine change must preserve the established compact product viewer instead of bringing the admin demo interface into RFQ workflows. Restore the 320px frame, orientation cube and bottom inspection controls while retaining the local renderer and private screenshot thumbnails. William explicitly requested local equivalents of Measure, Explode and Section. Measure supports approximate surface point-to-point distances with honest physical/model-unit labels; Explode separates independent rendered meshes and is unavailable for a single body; Section clips a chosen X/Y/Z half-space and supports position/reversal. These tools do not reproduce Autodesk CAD feature snapping, geometric entity measurements or capped solid sections.
+
+## 2026-10-15 - Persist Local CAD Screenshots
+
+Capture an isometric screenshot from the local viewer and use it as the part thumbnail. Store normalized 384px PNG derivatives privately in the same storage system as the originals, keyed by the original storage key. Authenticate and authorize against the original file for every image read and write. Copy available derivatives when promoting draft files; regenerate missing older images in a serial browser queue. Keep geometry out of the Quotes list after capture and preserve the no-APS-fallback policy. No new database fields are required.
+
+## 2026-10-15 - Explicit RFQ Submission and Customer Delivery Preferences
+
+Request Quote is a button with an explicit click handler; form submit events never create RFQs and Enter cannot activate submission. Preserve keyboard selection within fields and newlines in notes. Mismatched Prototype/Commercial additions require a separate quote and explain draft preservation/new-tab behavior. Rename the optional per-part date preference to `targetDeliveryDate` throughout the ManufacturingDetails JSON schema and UI; it means preferred arrival, subject to confirmation in the quote. Preserve historical date values through legacy-key read compatibility, draft normalization and an idempotent submitted-part JSON backfill. Do not change shipping transit calculations or issue delivery guarantees.
+
+## 2026-10-15 - Use Local CAD Rendering First at the Shared 200 MiB Limit
+
+Decision: STEP/STP, IGES/IGS, STL, OBJ, embedded glTF and self-contained GLB use OpenCascade/Three.js throughout customer intake, draft reopening and customer/admin RFQ review. Other accepted native types continue through Autodesk. User explicitly selected “Keep the original; show a preview error” for local failures, with no Autodesk retry or automatic fallback. Increase the demo/local processing cap to match the existing RFQ 200 MiB per-file cap (UI says 200 MB); this supersedes the earlier 50 MiB cap decision.
+
+Implementation: share parser/scene code, parse in abortable workers with a two-minute timeout, serialize conversions and transfer compact geometry buffers. Retrieve saved originals only through the existing role/company-authorized app route (read=1 streams privately). Preserve independent original-file storage/submission regardless of preview success. Local previews do not expose admin data or read an admin route. Do not assign physical millimeter measurements to unitless STL/OBJ; only save trustworthy normalized bounding-box metadata. Use View 3D to load saved customer models on demand; no replacement APS thumbnails are generated for local-supported files. No database migration is required.
+
+## 2026-10-15 - Expand Customer CAD Intake Formats
+
+Decision: accept STL, OBJ, glTF and GLB in customer CAD intake. Intended preview routing is browser-side local rendering for formats supported by the CAD demo and Autodesk only for unsupported formats. The extension allowlist is implemented; customer preview routing remains follow-up work. Keep the separate 50 MiB local processing cap until representative browser memory/performance testing supports a change; customer uploads remain capped at 200 MiB.
+
+Reason: let customers submit common mesh and glTF deliverables while avoiding Autodesk conversion for formats Lattice can inspect in the browser.
+
+Implications: `.gltf` preview requires embedded buffers/textures, otherwise sidecar assets cannot be resolved through the current single-file flow. A local parse failure for a supported extension should preserve the original file and report an unavailable preview rather than silently send that type to Autodesk. Files above the local processing limit need an explicit no-preview state unless browser performance is validated at a higher limit.
+
+## 2026-10-15 - Isolate an OpenCascade CAD Viewer Demo
+
+Decision: add a separate, admin-only `/admin/cad-viewer` demo using locally hosted `occt-import-js` WebAssembly and Three.js. Restrict its initial format support to STEP/IGES, keep file parsing and geometry in the browser, and leave the production RFQ viewer on Autodesk Platform Services while comparing coverage and reliability.
+
+Reason: explore a lower marginal-cost rendering path while the APS account is out of conversion capacity, without disrupting existing customer RFQ experiences.
+
+Implications:
+
+- User-selected CAD files are not uploaded, saved, or retained by this page; a small synthetic STEP cube is available for a safe first run.
+- The output is triangulated preview geometry and bounding-box size, not an engineering/manufacturing inspection result.
+- Keep the pinned upstream licenses/source notices available and reassess browser performance, assemblies, units, and large files before any production workflow migration.
+
 ## 2026-10-12 - Upload RFQ Files Directly and Reveal CAD Geometry Earlier
 
 Decision: stage 1 of CAD preview performance work preloads Autodesk Viewer assets during upload/translation, reveals fitted geometry before optional toolbar tools, and uploads RFQ files directly to private R2/S3 storage. Autodesk reads the saved CAD object through an ownership-checked streaming path; RFQ submission sends file references after saves complete. Private remote downloads use short-lived signed redirects after authorization.
@@ -289,7 +367,7 @@ Reason: duplicate naming makes the catalog look less credible, inflates availabi
 Implications:
 
 - The raw vendor and marketplace datasets remain unchanged and retain their original labels.
-- `customer-material-catalog.ts` owns explicit, auditable alias mappings used only by the customer catalog.
+- Material aliases are defined in the shared material identity registry and resolved by the catalog, RFQ option flow, and property directory with context-specific scopes.
 - Customer-facing counts, search, and family headers derive from the normalized directory—not source-record totals or display-only common-grade lists.
 - An Aluminum offering can show its supplier-supported conditions, but condition-specific properties must remain tied to the selected condition.
 - Equivalence mappings must be explicit. Do not collapse a different temper, a dual-certified designation, or a near-equivalent grade without a documented technical basis.
@@ -1561,3 +1639,68 @@ Use the existing private R2/local file store for small server-written upload int
 - Editable vendor fields and detail rows belong in Postgres, with an additive table and explicit archive importer; application filesystem writes are not a Production persistence mechanism.
 - Quality documents use order/admin-scoped direct private storage, capped at 25 MB, followed by transactional attachment and approval invalidation. Legacy supplier/clarification form attachments have an explicit 3 MB supported limit.
 - npm is the repository package-manager contract (Node 24); keep one npm lockfile. Unpatched development-only lint glob advisories are tracked separately from runtime dependency exposure.
+
+## 2026-10-14 — Table-only admin RFQ queue
+
+The operator queue uses the full content width and opens the dedicated RFQ detail page from the entire row. Remove the duplicate side inspector; preserve the independent company shortcut and existing quote-pricing workflow. This is the user’s explicit navigation preference.
+
+## 2026-10-14 — Operator RFQ submission provenance
+
+Admin queue displays submission date/time in America/New_York with seasonal timezone and the submitting user’s name. New account RFQs save authenticated identity in existing requester fields; no extra customer-entered requester control. Legacy missing names may resolve by company-scoped stored email in the admin view, with unknown names stated explicitly and saved names preserved.
+
+## 2026-10-14 — Keep drawing requirements structured and PDF previews authenticated
+
+Persist selected drawing-dependent feature flags in manufacturing JSON metadata and enforce these plus selected inspection requirements. Treat customer notes as prose; only exact legacy generated requirement lines remain a compatibility fallback when structured flags are absent. Restore saved flags when reopening an RFQ. Stream authorized PDF previews through the app origin so browser storage redirects cannot prevent PDF.js from reading bytes; retain signed redirects for original downloads.
+
+## 2026-10-15 — Quote preparation controls and editable expiration
+
+Reuse the customer intake calendar and custom dropdown components in Prepare customer quote. Quote expiration defaults to the existing 15-weekday calculation, but an operator can select a different valid date on/after the issue date. The issuance action and repository preserve that selection in both the quote snapshot and version; omitted dates retain the calculated default. Explicit reissue still starts with a fresh calculated default. This supersedes the mandatory fixed 15-weekday rule for operator-prepared quotes.
+
+## 2026-10-15 — Require complete customer quotes before issuance
+
+Operators must provide a unit price and positive whole-day lead time for every part, explicit shipping cost (0 allowed when included), shipping speed, shipping terms, estimated delivery date, valid expiration and customer note before initial issuance or reissue. Disable issuance with a visible completion list and enforce the same contract server-side. Do not silently convert missing shipping into bill-at-actual or synthesize a note. Existing issued records remain readable. Supplier attachment uploads remain optional; this request does not change supplier-document requirements.
+
+## 2026-10-15 — Signed-in recovery and linked company billing
+
+Account settings recovery is bound to the signed-in Clerk identity's verified primary email, including server-side request and token-completion checks. Public signed-out recovery remains available through mailbox-controlled single-use tokens. Same-as-shipping is an explicit persisted preference: copy authoritative shared shipping on enablement and subsequent shipping saves, serialize address writes, and preserve existing request/invoice snapshots. Billing contact is independent. City/state/ZIP suggestions use bundled U.S. postal data with manual entry always available; full street-search/provider validation is not connected.
+
+## 2026-10-16 — Keep quote preparation focused on one RFQ
+
+Remove the embedded Active RFQs list from quote preparation, keeping global navigation and Review queue. Supplier shop selection is optional and starts blank when unassigned; do not implicitly select the first vendor or restore an older named vendor when the operator explicitly leaves the choice blank. Existing supplier-order placeholder metadata remains available for the downstream workflow.
+
+## 2026-10-16 — Separate unquoted RFQs from issued customer quotes
+
+The admin Active queue contains two visible tables: Submitted RFQs includes received/information-needed/supplier-ready RFQs awaiting customer quote issuance; Customer quotes issued includes QUOTED requests awaiting a buyer decision. Archived/closed requests and drafts retain their separate views. Apply the existing filters to both tables and keep the Submitted RFQs metric exclusive of issued quotes.
+
+## 2026-10-16 — Separate Companies and Users in admin navigation
+
+Companies names the existing /admin/customers company directory; keep those URLs to preserve saved links. Users at /admin/users lists all provisioned platform User records across roles and company assignment, including Lattice Admins. It is read-only and Lattice Admin-only, with authorization inside both page and server-only data access and explicit display-field selection. Waiting-list entries without a platform account remain in the Companies waiting-list tab.
+
+
+### 2026-10-16 — U.S. street lookup and address phones
+
+Use Geoapify Address Autocomplete, restricted to U.S. results, via a signed-in server route and a server-only GEOAPIFY_API_KEY. Keep manual entry and existing bundled city/state/ZIP lookup usable when the provider is absent or unavailable. Provider suggestions assist entry and are not a deliverability guarantee. Store separate optional shippingPhone/billingPhone values on Company and standalone AccountDefaults. Same-as-shipping links the contact phone as well. New requests freeze these address contacts; existing snapshots are unchanged. Blank legacy shipping phones retain the existing account-phone fallback for new RFQ contact construction.
+
+
+## 2026-10-16 — Require explicit Google account choice at login
+
+Signing out of Lattice does not end the browser’s Google session. Continue with Google must offer account selection on every fresh login. Create the Clerk social attempt directly because Clerk JS 6.39.0 omits oidcPrompt for social OAuth; explicitly add select_account to the returned Google authorization URL, remove a stale login hint and preserve OAuth state, PKCE, callbacks and any consent prompt. Keep Clerk responsible for credentials, authorization verification, callbacks and further challenges.
+
+## 2026-10-18 — Absolute dimensional tolerance requests
+
+Default numeric cards request ±0.010″ (±0.254 mm), ±0.005″ (±0.127 mm), or tighter than ±0.005″. Inches control; tighter requires drawing and review. Drawing callouts prevail; angular tolerances, fits and GD&T remain separate. Quote review confirms supplier commitments. Preserve saved ISO classes without conversion and retain legacy layout rollback. New parts default to the ±0.005″ request.
+
+## 2026-10-18 — Customer-selected tolerance card wording
+
+At William’s explicit request, use the supplied Xometry screenshot headings/descriptions verbatim for the three absolute options. This supersedes the card-level drawing-precedence helper copy. Preserve stored option identifiers/labels, existing validation and reversible layout. This change is presentation only; inspection and manufacturing policy enforcement are not changed.
+
+## 2026-10-18 — Earliest requested arrival
+
+Use today (America/New_York), rather than an older draft creation date, as the basis for the earliest RFQ target delivery date. Allow dates on/after eight business days after today; skip weekends without a holiday calendar. The field remains optional. Preserve earlier saved draft dates for correction and reject them on submission rather than silently shifting them. Enforce both in configuration UI and submission validation.
+
+
+## 2026-10-19 - Share Material Alias Resolution Across Catalog, RFQ, And Properties
+
+Decision: the Materials catalog, RFQ selection and prefill, and material-property lookups use `src/lib/material-identity-registry.ts` for name resolution. Aliases are scoped by use/family so a search alias or combined customer-facing choice cannot accidentally select properties for one constituent grade. Combined 304/304L and 316/316L choices remain distinct from single-grade property records; suppliers must certify the combined requirements.
+
+Reason: separate alias tables drift and can map the same label differently. Explicit scopes preserve technical distinctions while keeping customer-facing names consistent.

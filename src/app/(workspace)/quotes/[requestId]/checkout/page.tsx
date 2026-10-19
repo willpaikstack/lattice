@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { getCurrentSession } from "@/lib/session";
+import { getAccountSettings } from "@/lib/account-settings";
 import { quoteHasExpired } from "@/lib/quote-validity";
 import { notFound } from "next/navigation";
 
 import { BuyerQuoteCheckout } from "@/components/buyer-quote-checkout";
-import { getAccountSettings } from "@/lib/account-settings";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 
 
@@ -27,15 +28,16 @@ export default async function BuyerQuoteCheckoutPage({ params, searchParams }: B
 
   if (quoteHasExpired(request)) return <section className="rounded-xl bg-white p-8"><h1 className="text-xl font-semibold">This quote has expired</h1><p className="my-4">Lattice needs to confirm current pricing and lead time before you can purchase.</p><Link className="inline-flex min-h-11 items-center rounded-md bg-stone-950 px-4 font-semibold text-white" href={`/quotes/${request.id}#quote-renewal`}>Request renewed quote</Link></section>;
 
-  const accountSettings = await getAccountSettings();
+  const [settings, session] = await Promise.all([getAccountSettings(), getCurrentSession()]);
+
   return (
     <BuyerQuoteCheckout
+      addressDefaults={{ shipping: settings.shipping, billing: settings.billingAddress, billingSameAsShipping: Boolean(settings.billingSameAsShipping), canSave: Boolean(settings.canManageCompanyDefaults && session?.user.companyId && session.user.companyId === request.buyerCompanyId) }}
       placeOrderAction={purchaseQuoteAction.bind(null, request.id)}
-      accountsPayableEmail={accountSettings.billing.email}
+      accountsPayableEmail={request.billingSnapshot?.contact.email ?? request.purchasePayment.accountsPayableEmail}
       paymentNotice={payment}
-      receivingPhone={accountSettings.phone}
+      receivingPhone={request.shipToPhone || request.requesterPhone}
       request={request}
-      shippingAddress={accountSettings.shipping}
       hostedCheckout
       checkoutAvailable={process.env.STRIPE_CHECKOUT_ENABLED === "true" && Boolean(process.env.STRIPE_SECRET_KEY)}
     />

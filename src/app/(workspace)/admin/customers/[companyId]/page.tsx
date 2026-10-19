@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { AdminCustomerProfileDetail } from "@/components/admin-customer-profile-detail";
 import { getCustomerProfile } from "@/lib/customer-profiles";
 
-import { updateCustomerProfileAction } from "./actions";
+import { deleteCustomerCompanyAction, updateCustomerProfileAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,5 +21,5 @@ export default async function AdminCustomerProfilePage({ params }: AdminCustomer
     notFound();
   }
 
-  return <AdminCustomerProfileDetail profile={profile} updateAction={updateCustomerProfileAction.bind(null, profile.id)} />;
+  return <AdminCustomerProfileDetail deleteAction={deleteCustomerCompanyAction.bind(null, profile.id)} profile={profile} updateAction={updateCustomerProfileAction.bind(null, profile.id)} />;
 }

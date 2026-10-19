@@ -1,6 +1,8 @@
 "use client";
 import type { CadMetadata } from "@/lib/rfq-manufacturing";
 import { ReusableCadViewer } from "./prepared-cad-viewer";
+import { cadDemoFormat, localCadFileUrl } from "@/lib/cad-demo";
+import { LocalCadPreview } from "./local-cad-preview";
 import { cadAccept } from "@/lib/cad-upload-policy";
 
 import { useEffect, useRef } from "react";
@@ -23,23 +25,28 @@ export function CadUploadPreview({
   state,
   onStatus,
   recovery,
+  file,
+  sizeBytes,
 }: {
   onMetadata?: (metadata: CadMetadata) => void;
   onReplacementFileSelected?: (file: File | null) => void;
   state: CadUploadPreviewState;
   onStatus: (state: CadUploadPreviewState) => void;
   recovery?: CadPreviewRecovery;
+  file?: File;
+  sizeBytes?: number;
 }) {
   const previewStatus = state.status;
+  const local = state.status !== "empty" && Boolean(cadDemoFormat(state.fileName));
   useEffect(() => {
-    if (previewStatus === "uploading" || previewStatus === "processing") {
+    if (!local && (previewStatus === "uploading" || previewStatus === "processing")) {
       void preloadAutodeskViewerAssets().catch(() => { /* The viewer retries when the model is ready. */ });
     }
-  }, [previewStatus]);
+  }, [previewStatus, local]);
 
   const onStatusRef = useRef(onStatus);
   useEffect(() => { onStatusRef.current = onStatus; }, [onStatus]);
-  const processingUrn = state.status === "processing" ? state.urn : "";
+  const processingUrn = !local && state.status === "processing" ? state.urn : "";
   const processingFileName = state.status === "processing" ? state.fileName : "";
   const recoveryRef = useRef(recovery);
   useEffect(() => { recoveryRef.current = recovery; }, [recovery]);
@@ -64,7 +71,12 @@ export function CadUploadPreview({
     return null;
   }
 
-  if (state.status === "ready") {
+  if (local && (file || recovery?.storageKey)) {
+    return <div className="mt-4 min-w-0 text-left"><LocalCadPreview file={file} name={state.fileName} sizeBytes={sizeBytes}
+      storageKey={recovery?.storageKey} url={!file && recovery?.storageKey ? localCadFileUrl(recovery.storageKey, state.fileName) : undefined} onMetadata={onMetadata} /></div>;
+  }
+
+  if (state.status === "ready" && !local) {
     return (
       <div className="mt-4 text-left">
         <ReusableCadViewer urn={state.urn} onMetadata={onMetadata} />
@@ -81,7 +93,7 @@ export function CadUploadPreview({
         ? state.message
         : state.status === "processing"
           ? `Autodesk is translating the model in the background. You can keep building and submit the RFQ while this finishes. Progress: ${state.progress}.`
-          : state.message;
+          : "message" in state ? state.message : "The saved original is unavailable for local preview.";
 
   const tone = state.status === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-blue-100 bg-blue-50 text-blue-900";
   const title =

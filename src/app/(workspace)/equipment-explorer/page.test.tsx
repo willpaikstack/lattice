@@ -13,8 +13,8 @@ describe("EquipmentExplorerPage access", () => {
     mocks.session.mockResolvedValue({ user: { role: "supplier" } });
     await expect(EquipmentExplorerPage()).rejects.toThrow("redirect:/supplier/orders");
   });
-  it.each(["admin", "customer"])("allows %s to browse", async role => {
+  it.each(["admin", "customer"])("redirects %s to the active Equipment page", async role => {
     mocks.session.mockResolvedValue({ user: { role } });
-    expect((await EquipmentExplorerPage()).props.equipment).toHaveLength(150);
+    await expect(EquipmentExplorerPage()).rejects.toThrow("redirect:/equipment");
   });
 });

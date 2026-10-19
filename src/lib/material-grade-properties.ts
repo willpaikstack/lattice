@@ -1,3 +1,5 @@
+import { registerMaterialAliases, resolveMaterialName } from "./material-identity-registry";
+
 export type MaterialMechanicalProperties = {
   condition: string;
   density: string;
@@ -65,11 +67,21 @@ export const materialMechanicalProperties: Record<string, MaterialMechanicalProp
   "UHMW-PE": { condition: "Natural, unfilled", yieldStrength: "21 MPa", tensileStrength: "40 MPa", elongation: "350%", hardness: "65 Shore D", density: "0.93 g/cm³", sourceLabel: "MatWeb reference data", sourceUrl: matweb("UHMW PE natural") },
 };
 
+registerMaterialAliases("properties:values", "304", ["304 Stainless Steel", "SS 304"]);
+registerMaterialAliases("properties:values", "316", ["316 Stainless Steel", "SS 316"]);
+registerMaterialAliases("properties:values", "Invar 36", ["Invar", "Invar36", "Invar36 Alloy"]);
+registerMaterialAliases("properties:values", "C360", ["Brass 360", "Brass C360", "Brass 360 (UNS C36000)"]);
+registerMaterialAliases("properties:values", "C110", ["Copper 110", "Copper C110", "Copper 110 (UNS C11000)"]);
+
+export function getMaterialMechanicalProperties(name: string) {
+  const canonical = resolveMaterialName("properties:values", name);
+  return materialMechanicalProperties[canonical];
+}
+
 // The directory lists supplier-facing aliases alongside canonical grades. Keep
 // those aliases here instead of copying values into every displayed row: a
 // single stated condition and source then applies wherever that grade appears.
 const directoryMechanicalProperties: Record<string, MaterialMechanicalProperties> = {};
-const directoryAliases: Record<string, string> = {};
 
 function directoryKey(family: string, grade: string) {
   return `${family}:${grade.toLowerCase().replace(/[^a-z0-9]+/g, "")}`;
@@ -83,9 +95,7 @@ function addDirectoryRecord(
 ) {
   const key = directoryKey(family, canonicalGrade);
   directoryMechanicalProperties[key] = properties;
-  [canonicalGrade, ...aliases].forEach((alias) => {
-    directoryAliases[directoryKey(family, alias)] = key;
-  });
+  registerMaterialAliases(`properties:${family}`, canonicalGrade, [canonicalGrade, ...aliases]);
 }
 
 const matwebSteel = (grade: string) => matweb(`${grade} material properties`);
@@ -101,11 +111,11 @@ const outokumpu316: MaterialMechanicalProperties = {
 };
 
 addDirectoryRecord("Stainless steel", "304", ["304 Stainless Steel", "18-8", "18-8 Stainless Steel", "SS 18-8", "SS 304", "SS 304 / 1.4301"], outokumpu304);
-addDirectoryRecord("Stainless steel", "304L", ["304L Stainless Steel", "304/304L Stainless Steel", "SS 304L", "304LVM"], { ...outokumpu304, condition: "ASTM A240 annealed sheet / plate (304L)" });
+addDirectoryRecord("Stainless steel", "304L", ["304L Stainless Steel", "SS 304L", "304LVM"], { ...outokumpu304, condition: "ASTM A240 annealed sheet / plate (304L)" });
 addDirectoryRecord("Stainless steel", "301", ["301 Stainless Steel"], { condition: "ASTM A240 annealed sheet / plate", yieldStrength: "205 MPa", tensileStrength: "515 MPa", elongation: "40%", hardness: "≤ 217 HB", density: "7.90 g/cm³", sourceLabel: "Outokumpu Core range data sheet", sourceUrl: outokumpuCore });
 addDirectoryRecord("Stainless steel", "303", ["303 Stainless Steel", "SS 303", "303Se", "303Sulf", "SS 1.4305"], { condition: "Annealed bar", yieldStrength: "240 MPa", tensileStrength: "620 MPa", elongation: "50%", hardness: "183 HB", density: "8.03 g/cm³", sourceLabel: "ASM / MatWeb reference data", sourceUrl: matwebSteel("AISI 303 annealed bar") });
 addDirectoryRecord("Stainless steel", "316", ["316 Stainless Steel", "SS 316"], outokumpu316);
-addDirectoryRecord("Stainless steel", "316L", ["316L Stainless Steel", "316/316L Stainless Steel", "SS 316L", "SS 316 / 1.4404", "316LVM"], { ...outokumpu316, condition: "ASTM A240 annealed sheet / plate (316L)" });
+addDirectoryRecord("Stainless steel", "316L", ["316L Stainless Steel", "SS 316L", "SS 316 / 1.4404", "316LVM"], { ...outokumpu316, condition: "ASTM A240 annealed sheet / plate (316L)" });
 addDirectoryRecord("Stainless steel", "316Ti", ["316Ti Stainless Steel"], { ...outokumpu316, condition: "Annealed sheet / plate (316Ti)" });
 addDirectoryRecord("Stainless steel", "321", [], { ...outokumpu304, condition: "ASTM A240 annealed sheet / plate (321)" });
 addDirectoryRecord("Stainless steel", "347", ["347H"], { ...outokumpu304, condition: "ASTM A240 annealed sheet / plate (347)" });
@@ -164,13 +174,13 @@ addDirectoryRecord("Mild steel", "S355", ["S355J2", "Steel S355JR", "FE510 Steel
 addDirectoryRecord("Mild steel", "A514 Steel", [], { condition: "Quenched and tempered plate", yieldStrength: "690 MPa", tensileStrength: "760–895 MPa", elongation: "18%", hardness: "235 HB", density: "7.85 g/cm³", sourceLabel: "ASM / MatWeb reference data", sourceUrl: matwebSteel("ASTM A514 plate") });
 addDirectoryRecord("Mild steel", "44W Steel", [], { condition: "CSA 44WT plate, 2.54–63.5 mm", yieldStrength: "≥303 MPa", tensileStrength: "441–621 MPa", elongation: "≥21%", hardness: "Not published", density: "Not published", sourceLabel: "SSAB CSA 44WT product data", sourceUrl: "https://www.ssab.com/en-us/brands-and-products/commercial-steel/structural-steel/csa-g40-21-13/44wt" });
 
-addDirectoryRecord("Brass", "Brass 360", ["Brass C360", "Brass C3600", "CuZn39Pb3"], materialMechanicalProperties.C360);
+addDirectoryRecord("Brass", "Brass 360", ["Brass C360", "Brass C3600", "CuZn39Pb3", "Brass 360 (UNS C36000)"], materialMechanicalProperties.C360);
 addDirectoryRecord("Brass", "Brass 260", [], materialMechanicalProperties.C260);
 addDirectoryRecord("Brass", "Brass C464", [], materialMechanicalProperties.C464);
 addDirectoryRecord("Brass", "Brass C385", [], materialMechanicalProperties.C385);
-addDirectoryRecord("Copper", "Copper C110", ["Copper 110", "Red Copper C110", "Red Copper T2"], materialMechanicalProperties.C110);
+addDirectoryRecord("Copper", "Copper C110", ["Copper 110", "Red Copper C110", "Red Copper T2", "Copper 110 (UNS C11000)"], materialMechanicalProperties.C110);
 addDirectoryRecord("Copper", "Copper 101", ["Copper C101", "Red Copper C101"], materialMechanicalProperties.C101);
-addDirectoryRecord("Copper", "Bronze 932", ["Bronze C932"], { condition: "As-cast bearing bronze", yieldStrength: "145 MPa", tensileStrength: "240 MPa", elongation: "10%", hardness: "65 HB", density: "8.83 g/cm³", sourceLabel: "Copper Development Association C93200", sourceUrl: copperAlloys("C93200") });
+addDirectoryRecord("Copper", "Bronze 932", ["Bronze C932", "Bronze 932 (UNS C93200)"], { condition: "As-cast bearing bronze", yieldStrength: "145 MPa", tensileStrength: "240 MPa", elongation: "10%", hardness: "65 HB", density: "8.83 g/cm³", sourceLabel: "Copper Development Association C93200", sourceUrl: copperAlloys("C93200") });
 
 addDirectoryRecord("Alloy steel", "4130", ["4130 Steel", "Steel 4130"], materialMechanicalProperties["4130"]);
 addDirectoryRecord("Alloy steel", "4140 Annealed", ["4140", "4140 Steel", "Steel 4140", "42CD4", "1.7227 / 42CrMoS4 Alloy Steel"], materialMechanicalProperties["4140"]);
@@ -186,7 +196,6 @@ addDirectoryRecord("Alloy steel", "40CrNiMo", [], { condition: "Quenched and tem
 addDirectoryRecord("Alloy steel", "1.0737", [], { condition: "Cold-drawn, 40–63 mm", yieldStrength: "≥305 MPa", tensileStrength: "400–650 MPa", elongation: "≥9%", hardness: "Not published", density: "Not published", sourceLabel: "Kanat 11SMnPb37 / 1.0737 data sheet", sourceUrl: "https://www.kanatcelik.com/_files/ugd/f21b16_622ee01f358d442a9fab068415ae326b.pdf?index=true" });
 addDirectoryRecord("Alloy steel", "1.6580 / 30CrNiMo8 Alloy Steel", [], { condition: "Quenched and tempered, ≤16 mm", yieldStrength: "≥1,050 MPa", tensileStrength: "1,250–1,450 MPa", elongation: "≥9%", hardness: "Not published", density: "Not published", sourceLabel: "Hillfoot 30CrNiMo8 / 1.6580 data sheet", sourceUrl: "https://www.hillfoot.com/files/30crnimo8-1.6580.pdf" });
 addDirectoryRecord("Alloy steel", "1.6582 / 34CrNiMo6 Alloy Steel", [], { condition: "Quenched and tempered, ≤16 mm", yieldStrength: "≥1,000 MPa", tensileStrength: "1,200–1,400 MPa", elongation: "≥9%", hardness: "Not published", density: "Not published", sourceLabel: "Hillfoot 34CrNiMo6 / 1.6582 data sheet", sourceUrl: "https://www.hillfoot.com/files/34crnimo6-1.6582.pdf" });
-addDirectoryRecord("Alloy steel", "17-4PH H900 Steel", [], materialMechanicalProperties["17-4 PH"]);
 addDirectoryRecord("Alloy steel", "Toolox 33", [], { condition: "Delivered plate, 6–130 mm", yieldStrength: "≥700 MPa", tensileStrength: "≥800 MPa", elongation: "≥10%", hardness: "275–325 HBW", density: "Not published", sourceLabel: "SSAB Toolox 33 product data", sourceUrl: "https://www.ssab.com/en/brands-and-products/toolox/product-offer/toolox-33" });
 
 addDirectoryRecord("Tool steel", "A2 Steel", [], materialMechanicalProperties["A2"]);
@@ -198,7 +207,6 @@ addDirectoryRecord("Tool steel", "Steel 12L14", ["12L14"], { condition: "Cold-dr
 addDirectoryRecord("Tool steel", "1.2085", ["Steel 1.2085"], { condition: "Prehardened plate", yieldStrength: "750–950 MPa", tensileStrength: "950–1,100 MPa", elongation: "≥5%", hardness: "280–325 HB", density: "7.85 g/cm³", sourceLabel: "HABA 1.2085 product data", sourceUrl: "https://www.haba-gmbh.at/en/cuts/steel/haba-2316-s" });
 addDirectoryRecord("Tool steel", "Toolox 33", [], { condition: "Delivered plate, 6–130 mm", yieldStrength: "≥700 MPa", tensileStrength: "≥800 MPa", elongation: "≥10%", hardness: "275–325 HBW", density: "Not published", sourceLabel: "SSAB Toolox 33 product data", sourceUrl: "https://www.ssab.com/en/brands-and-products/toolox/product-offer/toolox-33" });
 
-addDirectoryRecord("Stainless steel", "1.2085", [], { condition: "Prehardened plate", yieldStrength: "750–950 MPa", tensileStrength: "950–1,100 MPa", elongation: "≥5%", hardness: "280–325 HB", density: "7.85 g/cm³", sourceLabel: "HABA 1.2085 product data", sourceUrl: "https://www.haba-gmbh.at/en/cuts/steel/haba-2316-s" });
 addDirectoryRecord("Titanium", "Grade 1", [], { condition: "Annealed", yieldStrength: "170 MPa", tensileStrength: "240 MPa", elongation: "24%", hardness: "120 HB", density: "4.51 g/cm³", sourceLabel: "TIMET CP titanium data", sourceUrl: timetGrade2 });
 addDirectoryRecord("Titanium", "Grade 2", ["Titanium Grade 2"], materialMechanicalProperties["Grade 2"]);
 addDirectoryRecord("Titanium", "Grade 3", [], { condition: "Annealed", yieldStrength: "380 MPa", tensileStrength: "450 MPa", elongation: "18%", hardness: "200 HB", density: "4.51 g/cm³", sourceLabel: "TIMET CP titanium data", sourceUrl: timetGrade2 });
@@ -267,8 +275,6 @@ addDirectoryRecord("Inconel/Incoloy", "Alloy X-750", ["Inconel X-750"], material
 addDirectoryRecord("Inconel/Incoloy", "Alloy 800", ["Incoloy 800", "Alloy 800H", "Incoloy 800H", "Alloy 800HT", "Incoloy 800HT"], materialMechanicalProperties["Incoloy 800H"]);
 addDirectoryRecord("Inconel/Incoloy", "Alloy 80A", [], { condition: "Annealed sheet, 0.75–1.65 mm", yieldStrength: "374 MPa", tensileStrength: "802 MPa", elongation: "52%", hardness: "211 HV", density: "8.19 g/cm³", sourceLabel: "Special Metals NIMONIC 80A bulletin", sourceUrl: "https://www.specialmetals.com/documents/technical-bulletins/nimonic-alloy-80a.pdf" });
 addDirectoryRecord("Inconel/Incoloy", "Alloy 20", [], { condition: "Annealed", yieldStrength: "240 MPa", tensileStrength: "550 MPa", elongation: "35%", hardness: "≤217 HB", density: "8.05 g/cm³", sourceLabel: "ASM / MatWeb reference data", sourceUrl: matweb("Alloy 20 annealed") });
-addDirectoryRecord("Inconel/Incoloy", "Invar", ["Invar 36"], materialMechanicalProperties["Invar 36"]);
-addDirectoryRecord("Inconel/Incoloy", "Kovar", [], materialMechanicalProperties.Kovar);
 addDirectoryRecord("Inconel/Incoloy", "Incoloy 825", [], { condition: "Annealed", yieldStrength: "240 MPa", tensileStrength: "585 MPa", elongation: "30%", hardness: "160 HB", density: "8.14 g/cm³", sourceLabel: "Special Metals technical bulletin", sourceUrl: specialMetals });
 addDirectoryRecord("Inconel/Incoloy", "Incoloy 925", ["Alloy 925"], { condition: "Age-hardened", yieldStrength: "760 MPa", tensileStrength: "1,035 MPa", elongation: "20%", hardness: "300 HB", density: "8.14 g/cm³", sourceLabel: "Special Metals technical bulletin", sourceUrl: specialMetals });
 addDirectoryRecord("Inconel/Incoloy", "Hastelloy C-276", ["Alloy C-276", "Inconel C-276"], { condition: "Annealed", yieldStrength: "355 MPa", tensileStrength: "790 MPa", elongation: "40%", hardness: "200 HB", density: "8.89 g/cm³", sourceLabel: "Special Metals technical bulletin", sourceUrl: specialMetals });
@@ -286,6 +292,6 @@ addDirectoryRecord("Inconel/Incoloy", "Alloy 282", [], { condition: "Age-hardene
 
 export function getDirectoryMechanicalProperties(family: string, grade: string) {
   const direct = directoryMechanicalProperties[directoryKey(family, grade)];
-  const alias = directoryAliases[directoryKey(family, grade)];
-  return direct ?? (alias ? directoryMechanicalProperties[alias] : undefined);
+  const canonical = resolveMaterialName(`properties:${family}`, grade);
+  return direct ?? directoryMechanicalProperties[directoryKey(family, canonical)];
 }

@@ -1,3 +1,4 @@
+import { billingSnapshotFromAccountSettings } from "@/lib/request-billing";
 import { validateSubmissionShape } from "@/lib/rfq-submission-validation";
 import { validateManufacturingIntake } from "@/lib/rfq-manufacturing";
 import { canCurrentSessionAccessStorageKey } from "@/lib/request-access-policy";
@@ -58,9 +59,11 @@ export async function POST(request: Request) {
     const companyName = session.user.role === "customer" ? session.user.companyName?.trim() || submittedInput.buyerCompany || "" : "";
     const input = {
       ...submittedInput,
+      requesterName: session.user.name,
       buyerCompany: companyName,
       contact: {
         ...(submittedInput.contact ?? {}),
+        requesterEmail: session.user.email,
         shipToCompany: submittedInput.contact?.shipToCompany || companyName,
       },
     };
@@ -84,9 +87,10 @@ async function withAccountDefaults(input: DraftRequestInput): Promise<DraftReque
     ...input,
     // Resolve the display name on the server; ownership comes from the session company ID.
     buyerCompany: settings.companyName,
+    billingSnapshot: billingSnapshotFromAccountSettings(settings),
     contact: {
-      ...defaults,
       ...(input.contact ?? {}),
+      ...defaults,
     },
   };
 }

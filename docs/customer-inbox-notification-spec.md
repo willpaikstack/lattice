@@ -38,7 +38,7 @@ V1 does not use separate workflow/notification tables, read/unread persistence, 
 - The Actions KPI counts grouped workflows, not raw notifications.
 - Copy must not use `Unread` until read-state is persisted.
 - Dashboard RFQ status rows should include `RFQ submitted` and action-required `Quote ready for review`.
-- Do not create customer notification rows for `Supplier pricing started`; supplier-pricing movement remains internal/admin or quote-activity context.
+- Do not show `Supplier pricing started` in customer quote activity or create a customer notification for it. After submission, customer-facing copy can say Lattice is reviewing the request and collecting supplier pricing without presenting an intermediate step.
 - Shipping should use one `Order shipped` notification. Do not create a separate `Tracking available` notification unless tracking is added later as a separate operational event in a future version.
 
 ## Current Implementation

@@ -1,3 +1,5 @@
+import { targetDeliveryDateError } from "./target-delivery-date";
+import { readTargetDeliveryDate } from "./rfq-manufacturing";
 import type { DraftRequestInput } from './request-model';
 import { isCadFileName, manufacturingUploadError } from './cad-upload-policy';
 import { qualityDocumentationOptions, generalToleranceOptions } from './rfq-options';
@@ -10,6 +12,8 @@ export function validateSubmissionShape(value: unknown): asserts value is DraftR
   input.lineItems.forEach((part, index) => {
     if (!part || typeof part !== 'object' || typeof part.material !== 'string' || !Number.isSafeInteger(part.quantity) || part.quantity < 1 || part.quantity > 1000000) throw new Error(`Part ${index + 1}: enter a whole quantity between 1 and 1,000,000.`);
     for (const field of ['surfaceFinish', 'generalTolerance', 'notes', 'partName'] as const) if (part[field] !== undefined && (typeof part[field] !== 'string' || part[field]!.length > 20000)) throw new Error(`Part ${index + 1}: invalid specifications.`);
+    const deliveryError = targetDeliveryDateError(readTargetDeliveryDate(part.manufacturingDetails));
+    if (deliveryError) throw new Error(`Part ${index + 1}: ${deliveryError}`);
     if (part.generalTolerance && !generalToleranceOptions.some(o => o.value === part.generalTolerance || o.label === part.generalTolerance)) throw new Error(`Part ${index + 1}: select a supported tolerance.`);
     if (part.qualityDocumentation !== undefined && (!Array.isArray(part.qualityDocumentation) || part.qualityDocumentation.some(v => typeof v !== 'string' || !qualityDocumentationOptions.some(o => o.value === v || o.label === v)))) throw new Error(`Part ${index + 1}: select supported quality documentation.`);
   });
@@ -23,7 +27,13 @@ export function validateSubmissionShape(value: unknown): asserts value is DraftR
   input.lineItems.forEach((part,index) => {
     const files = input.files.filter(f => f.lineItemIndex === index);
     if (files.filter(f => isCadFileName(f.name)).length !== 1) throw new Error(`Part ${index + 1}: upload exactly one CAD file.`);
-    const required = part.qualityDocumentation?.some(v => qualityDocumentationOptions.some(o => (o.value === v || o.label === v) && o.metadata?.requiresDrawing)) || /drawing required/i.test(part.notes ?? '');
+    // Older clients encoded selected feature flags as exact generated note lines.
+    // Never treat arbitrary prose (including "no drawing required") as a flag.
+    const legacyFeature = /^(?:Drawing-specific tolerances|Part markings|Linear tolerance tighter than general tolerance|Threads|Engineering fits|Sharp internal corners) requested; drawing required\.$/im.test(part.notes ?? '');
+    const requirements = part.manufacturingDetails?.drawingRequirements;
+    const required = generalToleranceOptions.some(o => (o.value === part.generalTolerance || o.label === part.generalTolerance) && o.metadata?.requiresDrawing)
+      || part.qualityDocumentation?.some(v => qualityDocumentationOptions.some(o => (o.value === v || o.label === v) && o.metadata?.requiresDrawing))
+      || Object.values(requirements ?? {}).some(value => value === true) || (requirements === undefined && legacyFeature);
     if (required && !files.some(f => !isCadFileName(f.name))) throw new Error(`Part ${index + 1}: upload a drawing for the selected specifications.`);
   });
 }

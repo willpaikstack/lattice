@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -22,7 +22,16 @@ const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 const months = Array.from({ length: 12 }, (_, i) => new Date(2026, i, 1).toLocaleDateString("en-US", { month: "long" }));
 const controlClass = "rounded-md p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400";
 
-export function TargetDatePicker({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function TargetDatePicker({ value, onChange, label = "Target delivery date (optional)", description = "Your preferred arrival date. We’ll confirm the delivery schedule in your quote.", name, allowClear = true, required = false, minDate }: {
+  value: string;
+  onChange: (value: string) => void;
+  label?: string;
+  description?: ReactNode;
+  name?: string;
+  allowClear?: boolean;
+  required?: boolean;
+  minDate?: string;
+}) {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -32,6 +41,8 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
   const [position, setPosition] = useState<{ left: number; width: number; top?: number; bottom?: number; maxHeight: number } | null>(null);
   const hasPosition = position !== null;
   const selected = parseDate(value);
+  const invalid = Boolean(value && minDate && (!selected || value < minDate));
+  const clamp = (key: string) => minDate && key < minDate ? minDate : key;
   const current = parseDate(active) ?? new Date();
   const first = new Date(current.getFullYear(), current.getMonth(), 1, 12);
   const days = Array.from({ length: 42 }, (_, i) => new Date(first.getFullYear(), first.getMonth(), i - first.getDay() + 1, 12));
@@ -41,6 +52,7 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
     if (restoreFocus) triggerRef.current?.focus();
   }
   function choose(date: string) {
+    if (date && minDate && date < minDate) return;
     onChange(date);
     close(true);
   }
@@ -91,29 +103,31 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
       default: return;
     }
     event.preventDefault();
-    setActive(dateKey(next));
+    setActive(clamp(dateKey(next)));
   }
   const today = dateKey(new Date());
   return <div ref={rootRef} className="min-w-0">
-    <label id={`${id}-label`} className="mb-2 block text-sm font-medium text-slate-700">Target ship date (optional)</label>
-    <button ref={triggerRef} type="button" aria-labelledby={`${id}-label ${id}-value`} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-calendar` : undefined}
-      onClick={() => { setActive(dateKey(selected ?? new Date())); setOpen(!open); }}
-      onKeyDown={event => { if (event.key === "Escape") close(true); if (event.key === "ArrowDown") { event.preventDefault(); setActive(dateKey(selected ?? new Date())); setOpen(true); } }}
+    {name ? <input type="hidden" name={name} value={value} /> : null}
+    <label id={`${id}-label`} className="mb-2 block text-sm font-medium text-slate-700">{label}{required ? <span aria-hidden="true" className="ml-1 text-red-600">*</span> : null}</label>
+    <button ref={triggerRef} type="button" aria-labelledby={`${id}-label ${id}-value`} aria-describedby={invalid ? `${id}-error` : undefined} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? `${id}-calendar` : undefined}
+      onClick={() => { setActive(clamp(dateKey(selected ?? new Date()))); setOpen(!open); }}
+      onKeyDown={event => { if (event.key === "Escape") close(true); if (event.key === "ArrowDown") { event.preventDefault(); setActive(clamp(dateKey(selected ?? new Date()))); setOpen(true); } }}
       className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-slate-400 focus-visible:border-slate-500 focus-visible:ring-2 focus-visible:ring-slate-200">
       <span id={`${id}-value`} className={selected ? "text-slate-950" : "text-slate-400"}>{selected ? selected.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Select a date"}</span>
       <CalendarDays aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-500" />
     </button>
-    <p className="mt-2 text-xs leading-5 text-slate-500">Your preferred shipment date. We’ll confirm availability in your quote; transit time is additional.</p>
-    {open && position ? createPortal(<div ref={popupRef} id={`${id}-calendar`} role="dialog" aria-label="Choose target ship date" style={position}
+    {invalid ? <p id={`${id}-error`} role="alert" className="mt-2 text-xs leading-5 text-red-600">Choose a date on or after {minDate}, or clear the optional date.</p> : null}
+    {description ? <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p> : null}
+    {open && position ? createPortal(<div ref={popupRef} id={`${id}-calendar`} role="dialog" aria-label={`Choose ${label.toLowerCase().replace(" (optional)", "")}`} style={position}
       onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(true); } }}
       className="fixed z-[110] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-[0_12px_36px_rgba(15,23,42,0.14)] sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-1">
-        <button type="button" aria-label="Previous month" className={controlClass} onClick={() => setActive(dateKey(shiftMonth(current, -1)))}><ChevronLeft className="h-4 w-4" /></button>
+        <button type="button" aria-label="Previous month" className={controlClass} onClick={() => setActive(clamp(dateKey(shiftMonth(current, -1))))}><ChevronLeft className="h-4 w-4" /></button>
         <div className="flex min-w-0 items-center gap-1">
-          <select aria-label="Month" value={current.getMonth()} onChange={event => setActive(dateKey(new Date(current.getFullYear(), Number(event.target.value), 1, 12)))} className="min-w-0 rounded-md bg-white py-2 text-sm font-semibold text-slate-950 focus-visible:outline-2 focus-visible:outline-slate-400">{months.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
-          <select aria-label="Year" value={current.getFullYear()} onChange={event => setActive(dateKey(new Date(Number(event.target.value), current.getMonth(), 1, 12)))} className="rounded-md bg-white py-2 text-sm font-semibold text-slate-950 focus-visible:outline-2 focus-visible:outline-slate-400">{Array.from({ length: 21 }, (_, i) => current.getFullYear() - 10 + i).map(year => <option key={year}>{year}</option>)}</select>
+          <select aria-label="Month" value={current.getMonth()} onChange={event => setActive(clamp(dateKey(new Date(current.getFullYear(), Number(event.target.value), 1, 12))))} className="min-w-0 rounded-md bg-white py-2 text-sm font-semibold text-slate-950 focus-visible:outline-2 focus-visible:outline-slate-400">{months.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
+          <select aria-label="Year" value={current.getFullYear()} onChange={event => setActive(clamp(dateKey(new Date(Number(event.target.value), current.getMonth(), 1, 12))))} className="rounded-md bg-white py-2 text-sm font-semibold text-slate-950 focus-visible:outline-2 focus-visible:outline-slate-400">{Array.from({ length: 21 }, (_, i) => current.getFullYear() - 10 + i).map(year => <option key={year}>{year}</option>)}</select>
         </div>
-        <button type="button" aria-label="Next month" className={controlClass} onClick={() => setActive(dateKey(shiftMonth(current, 1)))}><ChevronRight className="h-4 w-4" /></button>
+        <button type="button" aria-label="Next month" className={controlClass} onClick={() => setActive(clamp(dateKey(shiftMonth(current, 1))))}><ChevronRight className="h-4 w-4" /></button>
       </div>
       <div role="grid" aria-label={current.toLocaleDateString("en-US", { month: "long", year: "numeric" })}>
         <div role="row" className="mb-1 grid grid-cols-7">{weekdays.map(day => <span key={day} role="columnheader" className="py-2 text-center text-xs font-medium text-slate-400">{day}</span>)}</div>
@@ -121,15 +135,15 @@ export function TargetDatePicker({ value, onChange }: { value: string; onChange:
           const key = dateKey(date);
           const chosen = key === value;
           return <button key={key} type="button" role="gridcell" aria-selected={chosen} aria-current={key === today ? "date" : undefined} aria-label={date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
-            data-date={key} tabIndex={key === active ? 0 : -1} onKeyDown={event => move(event, date)} onClick={() => choose(key)}
-            className={`my-0.5 flex min-h-9 items-center justify-center rounded-full py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 ${chosen ? "bg-[#171717] font-semibold text-white" : `${date.getMonth() === current.getMonth() ? "text-slate-800" : "text-slate-300"} hover:bg-slate-100 ${key === today ? "font-semibold ring-1 ring-inset ring-slate-300" : ""}`}`}>
+            disabled={Boolean(minDate && key < minDate)} data-date={key} tabIndex={key === active ? 0 : -1} onKeyDown={event => move(event, date)} onClick={() => choose(key)}
+            className={`disabled:cursor-not-allowed disabled:opacity-30 my-0.5 flex min-h-9 items-center justify-center rounded-full py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 ${chosen ? "bg-[#171717] font-semibold text-white" : `${date.getMonth() === current.getMonth() ? "text-slate-800" : "text-slate-300"} hover:bg-slate-100 ${key === today ? "font-semibold ring-1 ring-inset ring-slate-300" : ""}`}`}>
             {date.getDate()}
           </button>;
         })}</div>)}
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-        <button type="button" onClick={() => choose("")} className={`${controlClass} text-sm`}>Clear date</button>
-        <button type="button" onClick={() => choose(today)} className="rounded-lg bg-[#171717] px-3 py-2 text-sm font-medium text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">Today</button>
+        {allowClear ? <button type="button" onClick={() => choose("")} className={`${controlClass} text-sm`}>Clear date</button> : <span />}
+        <button type="button" disabled={Boolean(minDate && today < minDate)} onClick={() => choose(today)} className="disabled:cursor-not-allowed disabled:opacity-30 rounded-lg bg-[#171717] px-3 py-2 text-sm font-medium text-white hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">Today</button>
       </div>
     </div>, document.body) : null}
   </div>;

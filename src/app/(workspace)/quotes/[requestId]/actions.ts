@@ -1,5 +1,8 @@
 "use server";
 
+import { getAccountSettings } from "@/lib/account-settings";
+import { checkoutAddressFromForm } from "@/lib/checkout-addresses";
+import type { LatticeRequest } from "@/lib/request-model";
 import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import { assertQuoteCanBePurchased } from "@/lib/quote-validity";
 import { revalidatePath } from "next/cache";
@@ -10,6 +13,7 @@ import type { AccountAddress } from "@/lib/account-settings-shared";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { quoteCheckoutAmountCents, recordStripeCheckoutSession, updateRequestShippingAddress } from "@/lib/request-repository";
 import { getCurrentSession } from "@/lib/session";
+import { formatPhoneNumber, isValidPhoneNumber } from "@/lib/contact-format";
 import { assertStripeMerchantReady, getAppBaseUrl, getStripeClient } from "@/lib/stripe";
 import { assertCardCheckoutEnabled, finalizeStripePaymentIntent } from "@/lib/stripe-checkout";
 
@@ -25,24 +29,36 @@ function customerPoNumberFromForm(formData: FormData) {
   return value;
 }
 
-function purchaseDeliveryInputFromForm(formData: FormData) {
+async function purchaseDeliveryInputFromForm(formData: FormData, request: LatticeRequest) {
   if (formData.get("termsAccepted") !== "on" || formData.get("complianceCertification") !== "on") throw new Error("Accept the purchasing terms and compliance certification before payment.");
   if (formText(formData, "shippingMethod") !== "lattice-managed") throw new Error("Company shipping accounts are not available yet.");
   if (formText(formData, "taxStatus") !== "taxable") throw new Error("Tax-exempt purchasing is not enabled for this company.");
-  for (const key of ["shipToName", "shipToAddress1", "shipToCity", "shipToState", "shipToZipCode"]) if (!formText(formData, key)) throw new Error("Complete the delivery address before payment.");
+  const shipping = checkoutAddressFromForm(formData, "shipTo");
+  const billingSameAsShipping = formData.get("billingSameAsShipping") === "on";
+  const billing = billingSameAsShipping ? { ...shipping } : checkoutAddressFromForm(formData, "billTo");
+  const saveDefaults = formData.get("saveAddressDefaults") === "on";
+  let addressDefaultsCompanyId: string | undefined;
+  if (saveDefaults) {
+    const session = await getCurrentSession();
+    const settings = await getAccountSettings();
+    if (!settings.canManageCompanyDefaults || !session?.user.companyId || session.user.companyId !== request.buyerCompanyId) throw new Error("Only your company’s Customer Admin can update its saved addresses. Uncheck Save these addresses to continue with order-only addresses.");
+    addressDefaultsCompanyId = session.user.companyId;
+  }
   return {
+    billingSnapshot: { address: billing, contact: request.billingSnapshot?.contact ?? { email: request.requesterEmail, invoiceRoutingNotes: "" } },
+    ...(addressDefaultsCompanyId ? { addressDefaultsCompanyId, billingSameAsShipping } : {}),
     checkoutDetails: {
       shippingMethod: formText(formData, "shippingMethod"), requiredDeliveryDate: formText(formData, "requiredDeliveryDate"), shippingInstructions: formText(formData, "shippingInstructions"), endUse: formText(formData, "endUse"), exportControlStatus: formText(formData, "exportControlStatus"), buyerNotes: formText(formData, "buyerNotes"), termsAcceptedAt: new Date().toISOString(), complianceCertifiedAt: new Date().toISOString(), taxStatus: "taxable",
     },
     customerPoNumber: customerPoNumberFromForm(formData),
-    shipToAddress1: formText(formData, "shipToAddress1"),
-    shipToAddress2: formText(formData, "shipToAddress2"),
-    shipToCity: formText(formData, "shipToCity"),
-    shipToCompany: formText(formData, "shipToCompany"),
-    shipToName: formText(formData, "shipToName"),
-    shipToPhone: formText(formData, "shipToPhone"),
-    shipToState: formText(formData, "shipToState"),
-    shipToZipCode: formText(formData, "shipToZipCode"),
+    shipToAddress1: shipping.address1,
+    shipToAddress2: shipping.address2,
+    shipToCity: shipping.city,
+    shipToCompany: shipping.company,
+    shipToName: shipping.name,
+    shipToPhone: shipping.phone,
+    shipToState: shipping.state,
+    shipToZipCode: shipping.zipCode,
   };
 }
 
@@ -77,7 +93,9 @@ export async function updateRequestShippingAddressAction(requestId: string, addr
     throw new Error("This RFQ is not available to your account.");
   }
 
+  if (address.phone !== undefined && (typeof address.phone !== "string" || !isValidPhoneNumber(address.phone))) throw new Error("Enter a complete address phone number.");
   await updateRequestShippingAddress(requestId, {
+    ...(address.phone !== undefined ? { shipToPhone: formatPhoneNumber(address.phone) } : {}),
     shipToAddress1: address.address1,
     shipToAddress2: address.address2,
     shipToCity: address.city,
@@ -96,7 +114,7 @@ export async function updateStripeElementsCheckoutSessionAction(requestId: strin
 
   if (request.purchasePayment.stripe.checkoutSessionId !== checkoutSessionId) throw new Error("Checkout session does not belong to this quote.");
 
-  const delivery = purchaseDeliveryInputFromForm(formData);
+  const delivery = await purchaseDeliveryInputFromForm(formData, request);
   await recordStripeCheckoutSession(requestId, {
     ...delivery,
     amountCents: quoteCheckoutAmountCents(request),
@@ -114,7 +132,7 @@ export async function finalizeStripeCardPaymentAction(requestId: string, payment
   if (request.purchasePayment.stripe.checkoutSessionId !== paymentIntentId) throw new Error("Payment does not belong to this quote.");
 
   await recordStripeCheckoutSession(requestId, {
-    ...purchaseDeliveryInputFromForm(formData),
+    ...await purchaseDeliveryInputFromForm(formData, request),
     amountCents: quoteCheckoutAmountCents(request),
     checkoutSessionId: paymentIntentId,
     currency: "usd",
@@ -146,7 +164,7 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
   if (paymentMethod !== "card") throw new Error("Purchase-order payment is not available. Purchase your quote by credit card.");
 
   assertCardCheckoutEnabled();
-  const delivery = purchaseDeliveryInputFromForm(formData);
+  const delivery = await purchaseDeliveryInputFromForm(formData, request);
   await assertStripeMerchantReady();
   if (paymentMethod === "card") {
     const amountCents = quoteCheckoutAmountCents(request);
@@ -165,7 +183,10 @@ export async function purchaseQuoteAction(requestId: string, formData: FormData)
     })).digest("hex");
     const customer = await stripe.customers.create({
       email: request.requesterEmail || undefined,
-      name: delivery.shipToCompany || delivery.shipToName,
+      name: delivery.billingSnapshot.address.company || delivery.billingSnapshot.address.name,
+      address: { line1: delivery.billingSnapshot.address.address1, line2: delivery.billingSnapshot.address.address2,
+        city: delivery.billingSnapshot.address.city, state: delivery.billingSnapshot.address.state,
+        postal_code: delivery.billingSnapshot.address.zipCode, country: "US" },
       shipping: {
         name: delivery.shipToName,
         phone: delivery.shipToPhone || undefined,

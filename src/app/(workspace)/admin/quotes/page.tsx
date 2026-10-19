@@ -5,6 +5,7 @@ import { listCustomerProfiles } from "@/lib/customer-profiles";
 import { buildOverseasVendors } from "@/lib/admin-vendors";
 import { applyOverseasVendorOverrides } from "@/lib/admin-vendor-overrides";
 import { listAdminRequests } from "@/lib/request-repository";
+import { withAdminSubmitterNames } from "@/lib/admin-rfq-submission";
 
 import { updateAdminQuoteStatusAction, updateAdminRfqDecisionAction } from "./actions";
 
@@ -37,7 +38,7 @@ export default async function AdminQuotesPage({ searchParams }: { searchParams: 
       <AdminQuoteManagement
         customerProfileHrefs={customerProfileHrefs}
         overseasVendors={overseasVendors}
-        requests={requests}
+        requests={withAdminSubmitterNames(requests, customerProfiles)}
         updateDecisionAction={updateAdminRfqDecisionAction}
         updateStatusAction={updateAdminQuoteStatusAction}
       />

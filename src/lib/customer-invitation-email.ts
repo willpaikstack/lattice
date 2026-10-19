@@ -46,7 +46,7 @@ export function buildCustomerInvitationEmail(input: CustomerInvitationEmailInput
   const safeIntroduction = escapeHtml(introduction);
   const credentialRows = hasTemporaryPassword
     ? `<tr>
-                    <td style="padding:16px 20px 8px;border-top:1px solid #e4e4df;color:#6a6a64;font-size:11px;font-weight:700;letter-spacing:1.1px;line-height:16px;text-transform:uppercase;">Temporary password</td>
+                    <td style="padding:16px 20px 8px;border-top:1px solid #e4e4df;color:#6a6a64;font-size:11px;font-weight:700;letter-spacing:1.1px;line-height:16px;text-transform:uppercase;">Temporary password <span style="color:#777770;font-size:10px;font-weight:400;letter-spacing:0;text-transform:none;">· Expires 72 hours after issue</span></td>
                   </tr>
                   <tr>
                     <td style="padding:0 20px 18px;color:#171717;font-family:'Courier New',Courier,monospace;font-size:14px;font-weight:700;line-height:21px;word-break:break-word;">${safePassword}</td>
@@ -66,6 +66,7 @@ export function buildCustomerInvitationEmail(input: CustomerInvitationEmailInput
       ...(hasTemporaryPassword ? [
         "Temporary password:",
         input.temporaryPassword!,
+        "Expires 72 hours after issue.",
         "",
       ] : []),
       "Get started with Lattice:",
@@ -92,9 +93,9 @@ export function buildCustomerInvitationEmail(input: CustomerInvitationEmailInput
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f4f2;border-collapse:collapse;">
       <tr>
         <td align="center" style="padding:40px 20px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;border-collapse:separate;border-spacing:0;">
             <tr>
-              <td style="background:#ffffff;border:1px solid #deded9;border-radius:12px;padding:40px 36px;">
+              <td style="background:#ffffff;border:1px solid #deded9;border-radius:12px;overflow:hidden;padding:40px 36px;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;margin:0 0 36px;">
                   <tr>
                     <td style="color:#171717;font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:700;letter-spacing:1.5px;line-height:26px;">LATTICE</td>
@@ -105,7 +106,7 @@ export function buildCustomerInvitationEmail(input: CustomerInvitationEmailInput
                 <h1 style="margin:0;color:#171717;font-size:28px;font-weight:700;letter-spacing:-0.5px;line-height:34px;">Welcome to Lattice, ${safeRecipient}.</h1>
                 <p style="margin:16px 0 0;color:#4d586a;font-size:15px;line-height:24px;">${safeIntroduction}</p>
                 <img src="${safeBannerUrl}" alt="Illustration of a modern manufacturing campus" width="600" style="display:block;width:100%;max-width:600px;height:auto;margin:24px 0 24px;border:0;border-radius:8px;" />
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;background:#f7f7f5;border:1px solid #e4e4df;border-radius:8px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:separate;border-spacing:0;background:#f7f7f5;border:1px solid #e4e4df;border-radius:8px;overflow:hidden;">
                   <tr>
                     <td style="padding:18px 20px 8px;color:#6a6a64;font-size:11px;font-weight:700;letter-spacing:1.1px;line-height:16px;text-transform:uppercase;">Sign-in email</td>
                   </tr>
@@ -116,8 +117,8 @@ export function buildCustomerInvitationEmail(input: CustomerInvitationEmailInput
                 </table>
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;margin-top:26px;">
                   <tr>
-                    <td align="center" style="background:#232a30;border:1px solid #171a1d;border-radius:8px;box-shadow:0 2px 0 #d9d6cf;">
-                      <a href="${safeLoginUrl}" style="display:block;padding:16px 22px;color:#ffffff;font-size:16px;font-weight:700;line-height:22px;text-align:center;text-decoration:none;">Get started with Lattice &rarr;</a>
+                    <td align="center">
+                      <a href="${safeLoginUrl}" style="display:block;padding:16px 22px;background:#232a30;border:1px solid #171a1d;border-radius:8px;color:#ffffff;font-size:16px;font-weight:700;line-height:22px;text-align:center;text-decoration:none;">Get started with Lattice &rarr;</a>
                     </td>
                   </tr>
                 </table>

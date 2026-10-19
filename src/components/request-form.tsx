@@ -1,4 +1,5 @@
 "use client";
+import { ToleranceRequirements, type ToleranceDesign } from "./tolerance-requirements";
 import { normalizePersistedDraft } from "@/lib/persisted-draft-validation";
 import { purgeLegacyRfqValues } from "@/lib/purge-legacy-rfq-values";
 import { customerDraftStorageKey, useCustomerWorkspaceScope } from "./customer-workspace-scope";
@@ -7,21 +8,22 @@ import { WorkspaceContentReveal } from "./workspace-content-reveal";
 import { cadAccept, cadFileTypes, cadUploadError, drawingAccept, isCadFileName, manufacturingUploadError } from "@/lib/cad-upload-policy";
 import { canonicalMaterialValue, selectableRfqMaterials, searchRfqMaterials } from "@/lib/rfq-material-search";
 import { draftInitialState } from "@/lib/request-form-prefill";
-import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, offeredProcessOptions, processLabel, readIntakeDeclaration, restrictionPolicyVersion, type CadMetadata, type ManufacturingDetails, type PartFileHistory } from "@/lib/rfq-manufacturing";
+import { compatibleFinishOptions, finishCompatibilityError, intakeUploadError, offeredProcessOptions, processLabel, readIntakeDeclaration, readTargetDeliveryDate, restrictionPolicyVersion, type CadMetadata, type ManufacturingDetails, type PartFileHistory } from "@/lib/rfq-manufacturing";
 import { useDialogFocus } from "./use-dialog-focus";
 import { PreparedCadModelHost, PreparedCadViewerContext } from "./prepared-cad-viewer";
 import { createPortal } from "react-dom";
 import { SearchFirstMaterialSelect } from "./search-first-material-select";
 import { CadMetadataSummary } from "./cad-metadata-summary";
+import { earliestTargetDeliveryDate, targetDeliveryDateError } from "@/lib/target-delivery-date";
 import { TargetDatePicker } from "./target-date-picker";
 import { ExportRestrictionsDialog } from "./export-restrictions-dialog";
 import { type UploadDeclaration, uploadRequestDraftFile } from "@/lib/request-draft-upload";
+import { cadDemoFormat } from "@/lib/cad-demo";
 import { refreshCadPreviewState } from "@/lib/cad-preview-status";
 import { preloadAutodeskViewerAssets } from "./autodesk-model-viewer";
 
 import {
   DragEvent,
-  FormEvent,
   type KeyboardEvent,
   useCallback,
   useEffect,
@@ -85,7 +87,7 @@ type LineItemState = {
   customerPartNumber: string;
   cadRevision: string;
   drawingRevision: string;
-  targetShipDate: string;
+  targetDeliveryDate: string;
   fileHistory: PartFileHistory[];
   cadMetadata?: CadMetadata;
   id: string;
@@ -108,6 +110,7 @@ type LineItemState = {
   technicalDrawingType: string;
   partMarkings: boolean;
   tightLinearTolerance: boolean;
+  drawingSpecificTolerances: boolean;
   threads: boolean;
   engineeringFits: boolean;
   sharpInternalCorners: boolean;
@@ -123,6 +126,8 @@ type InitialLineItemState = Partial<
   >
 > & {
   cadPreview?: CadUploadPreviewState;
+  /** Compatibility for saved drafts from before delivery-date terminology. */
+  targetShipDate?: string;
 };
 
 function cleanIntakeState(state: RequestFormInitialState | undefined): RequestFormInitialState | undefined {
@@ -140,6 +145,7 @@ type LegacyInitialState = Partial<ProjectFormState & InitialLineItemState> & {
 export type RequestFormInitialState = LegacyInitialState;
 
 type RequestFormProps = {
+  toleranceDesign?: ToleranceDesign;
   initialState?: RequestFormInitialState;
   localDraftId?: string;
   prefillNotice?: string;
@@ -156,6 +162,7 @@ type LineItemField = keyof Omit<
 type LineItemFlag =
   | "partMarkings"
   | "tightLinearTolerance"
+  | "drawingSpecificTolerances"
   | "threads"
   | "engineeringFits"
   | "sharpInternalCorners";
@@ -190,12 +197,12 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   customerPartNumber: "",
   cadRevision: "",
   drawingRevision: "",
-  targetShipDate: "",
+  targetDeliveryDate: "",
   fileHistory: [],
   id,
   quantity: "1",
   material: "",
-  generalTolerance: "iso_2768_medium_m",
+  generalTolerance: "linear_pm_005_in",
   surfaceFinish: "as_machined_ra_3_2",
   surfaceFinishColor: defaultSurfaceFinishColor("as_machined_ra_3_2"),
   surfaceFinishCosmeticRequirement: defaultSurfaceFinishCosmeticRequirement("as_machined_ra_3_2"),
@@ -212,6 +219,7 @@ const makeLineItemInitialState = (id: string): LineItemState => ({
   technicalDrawingType: "",
   partMarkings: false,
   tightLinearTolerance: false,
+  drawingSpecificTolerances: false,
   threads: false,
   engineeringFits: false,
   sharpInternalCorners: false,
@@ -442,6 +450,8 @@ function lineItemRequiresDrawing(lineItem: LineItemState) {
   return (
     lineItem.partMarkings ||
     lineItem.tightLinearTolerance ||
+    lineItem.generalTolerance === "linear_tighter_005_in" ||
+    lineItem.drawingSpecificTolerances ||
     lineItem.threads ||
     lineItem.engineeringFits ||
     lineItem.sharpInternalCorners ||
@@ -484,7 +494,7 @@ function formatResumeLastEdited(value: string) {
   }).format(date);
 }
 
-type ConfigurationField = "cad" | "material" | "quantity" | "finish" | "tolerance" | "drawing" | "process";
+type ConfigurationField = "cad" | "material" | "quantity" | "finish" | "tolerance" | "drawing" | "process" | "targetDate";
 
 function configurationFieldId(lineId: string, field: ConfigurationField) {
   return `configure-${lineId}-${field}`;
@@ -497,6 +507,8 @@ function missingLineItemFields(item: LineItemState): Array<{ field: Configuratio
   if (item.material && finishCompatibilityError(item.material, item.surfaceFinish, item.process)) missing.push({ field: "finish", label: "Choose a compatible surface finish" });
   if (!item.material.trim()) missing.push({ field: "material", label: "Select a material" });
   if (!(Number(item.quantity) > 0)) missing.push({ field: "quantity", label: "Enter a quantity greater than zero" });
+  const deliveryError = targetDeliveryDateError(item.targetDeliveryDate);
+  if (deliveryError) missing.push({ field: "targetDate", label: deliveryError });
   if (!item.generalTolerance.trim()) missing.push({ field: "tolerance", label: "Select general tolerances" });
   if (!item.surfaceFinish.trim() || !lineItemHasSurfaceFinishDetails(item)) missing.push({ field: "finish", label: "Complete the surface finish details" });
   if (!lineItemHasDrawingBytes(item) || !lineItemHasRequiredDrawing(item)) missing.push({ field: "drawing", label: lineItemRequiresDrawing(item) ? "Upload the required technical drawing" : "Upload the selected drawing again" });
@@ -505,8 +517,10 @@ function missingLineItemFields(item: LineItemState): Array<{ field: Configuratio
 
 function manufacturingDetailsFor(item: LineItemState): ManufacturingDetails {
   return { process: item.process, customerPartNumber: item.customerPartNumber, cadRevision: item.cadRevision,
-    drawingRevision: item.drawingRevision, targetShipDate: item.targetShipDate, materialKey: item.material, finishKey: item.surfaceFinish,
-    fileHistory: [], ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
+    drawingRevision: item.drawingRevision, targetDeliveryDate: item.targetDeliveryDate, materialKey: item.material, finishKey: item.surfaceFinish,
+    fileHistory: [], drawingRequirements: { partMarkings: item.partMarkings, tightLinearTolerance: item.tightLinearTolerance, drawingSpecificTolerances: item.drawingSpecificTolerances || item.generalTolerance === "linear_tighter_005_in",
+      threads: item.threads, engineeringFits: item.engineeringFits, sharpInternalCorners: item.sharpInternalCorners },
+    ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
 }
 
 function intakeDeclarationFor(project: ProjectFormState) {
@@ -526,6 +540,7 @@ function formCompletionPercent(project: ProjectFormState, items: LineItemState[]
       Boolean(item.generalTolerance.trim()),
       Boolean(item.surfaceFinish.trim()) && lineItemHasSurfaceFinishDetails(item),
       Number(item.quantity) > 0,
+      !targetDeliveryDateError(item.targetDeliveryDate),
     );
     if (lineItemRequiresDrawing(item) || item.technicalDrawingName.trim()) {
       checks.push(lineItemHasDrawingBytes(item) && lineItemHasRequiredDrawing(item));
@@ -758,6 +773,8 @@ function initialCadPreview(
     return { status: "empty" };
   }
 
+  if (cadDemoFormat(initialState.fileName)) return { status: "reference_only", fileName: initialState.fileName, message: initialState.fileStorageKey ? "The original CAD file is available for local preview." : "This saved request only has the CAD filename. Upload the CAD file again to generate a live 3D preview." };
+
   const persistedPreview = initialState.cadPreview;
   if (persistedPreview?.status === "processing") {
     return persistedPreview.fileName === initialState.fileName
@@ -808,12 +825,12 @@ function lineItemFromInitialLineItem(
     customerPartNumber: initialState?.customerPartNumber ?? "",
     cadRevision: initialState?.cadRevision ?? "",
     drawingRevision: initialState?.drawingRevision ?? "",
-    targetShipDate: initialState?.targetShipDate ?? "",
+    targetDeliveryDate: readTargetDeliveryDate(initialState),
     fileHistory: [],
     cadMetadata: initialState?.cadMetadata,
     quantity: initialState?.quantity ?? "1",
-    material: initialState?.material ?? "",
-    generalTolerance: initialState?.generalTolerance ?? "iso_2768_medium_m",
+    material: canonicalMaterialValue(initialState?.material ?? ""),
+    generalTolerance: initialState?.generalTolerance ?? "linear_pm_005_in",
     surfaceFinish,
     surfaceFinishColor: normalizedSurfaceFinishColor(
       surfaceFinish,
@@ -836,6 +853,7 @@ function lineItemFromInitialLineItem(
     technicalDrawingType: initialState?.technicalDrawingType ?? "",
     partMarkings: initialState?.partMarkings ?? false,
     tightLinearTolerance: initialState?.tightLinearTolerance ?? false,
+    drawingSpecificTolerances: initialState?.drawingSpecificTolerances ?? false,
     threads: initialState?.threads ?? false,
     engineeringFits: initialState?.engineeringFits ?? false,
     sharpInternalCorners: initialState?.sharpInternalCorners ?? false,
@@ -908,6 +926,7 @@ function makeLocalDraftId() {
 }
 
 function TechnicalDrawingReviewModal({
+  toleranceDesign,
   lineItem,
   drawingPreviewUrl,
   onClose,
@@ -916,6 +935,7 @@ function TechnicalDrawingReviewModal({
   updateLineItem,
   updateLineItemFlag,
 }: {
+  toleranceDesign: ToleranceDesign;
   lineItem: LineItemState;
   drawingPreviewUrl: string | null;
   onClose: () => void;
@@ -1039,6 +1059,7 @@ function TechnicalDrawingReviewModal({
           </div>
 
           <div className="flex-1 space-y-6 overflow-y-auto p-6">
+            {toleranceDesign === "cards" ? <ToleranceRequirements generalTolerance={lineItem.generalTolerance} drawingSpecific={lineItem.drawingSpecificTolerances || lineItem.tightLinearTolerance} onGeneralChange={value => updateLineItem(lineItem.id, "generalTolerance", value)} /> : <>
             <CustomSelect
               label="General Tolerance"
               value={lineItem.generalTolerance}
@@ -1053,7 +1074,7 @@ function TechnicalDrawingReviewModal({
               <span>Linear tolerances tighter than the general tolerance</span>
               <span className="flex items-center gap-2 font-normal text-slate-700">
                 <input
-                  checked={lineItem.tightLinearTolerance}
+                  checked={lineItem.tightLinearTolerance || lineItem.drawingSpecificTolerances}
                   onChange={(event) =>
                     updateLineItemFlag(
                       lineItem.id,
@@ -1067,6 +1088,8 @@ function TechnicalDrawingReviewModal({
                 <span className="text-slate-500">(drawing required)</span>
               </span>
             </label>
+
+            </>}
 
             <label className="grid gap-2 text-sm font-semibold text-slate-800">
               <span>Engineering Fits</span>
@@ -1180,6 +1203,7 @@ function UploadCadDropZone({
   return (
     <section
       aria-label={compact ? "Additional CAD upload drop zone" : "CAD upload drop zone"}
+      data-workspace-tour={compact ? undefined : "request-files"}
       className={[
         "rounded-lg border border-dashed px-6 text-center transition-all duration-150",
         compact ? "py-16" : "py-24",
@@ -1553,8 +1577,8 @@ function RequestQuoteProgress({ currentStep }: { currentStep: 1 | 2 | 3 }) {
   const steps = ["Upload", "Configure", "Submit"];
 
   return (
-    <nav aria-label="Request quote progress" className="mt-7 overflow-x-auto pb-1">
-      <ol className="grid grid-cols-3 gap-2">
+    <nav aria-label="Request quote progress" className="-mx-1 mt-7 overflow-x-auto pb-1">
+      <ol className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2">
         {steps.map((step, index) => {
           const stepNumber = index + 1;
           const isCurrent = stepNumber === currentStep;
@@ -2022,6 +2046,11 @@ function LegacyMaterialSelect({
                 {materialOptionDetails(selectedOption)}
               </span>
             ) : null}
+            {selectedOption?.description ? (
+              <span className="mt-1 block text-[12px] font-normal leading-4 text-[#64748b]">
+                {selectedOption.description}
+              </span>
+            ) : null}
           </span>
           <span className="ml-4 flex shrink-0 items-center gap-2">
             {selectedOption ? (
@@ -2336,6 +2365,11 @@ function MaterialOptionButton({
       <span className="mt-1 block text-[12px] font-medium leading-4 text-[#64748b]">
         {materialOptionDetails(option)}
       </span>
+      {option.description ? (
+        <span className="mt-1 block text-[12px] font-normal leading-4 text-[#64748b]">
+          {option.description}
+        </span>
+      ) : null}
     </button>
   );
 }
@@ -2584,6 +2618,7 @@ function QualityDocumentationSelect({
 }
 
 function LineItemConfigurationCard({
+  toleranceDesign,
   index,
   lineItem,
   isCollapsed,
@@ -2601,6 +2636,7 @@ function LineItemConfigurationCard({
   qualityApprovalControl,
   previewDeclaration,
 }: {
+  toleranceDesign: ToleranceDesign;
   qualityApprovalControl?: React.ReactNode;
   previewDeclaration: { restrictionStatus: string; restrictionPolicyVersion: string };
   index: number;
@@ -2689,7 +2725,9 @@ function LineItemConfigurationCard({
                 </p>
                 <CadMetadataSummary metadata={lineItem.cadMetadata} />
               </div>
-              <CadUploadPreview
+              {(!isCollapsed || !cadDemoFormat(lineItem.fileName)) && <CadUploadPreview
+                file={lineItem.selectedFile ?? undefined}
+                sizeBytes={lineItem.fileSizeBytes}
                 onReplacementFileSelected={(file) =>
                   onCadFileSelected(lineItem.id, file)
                 }
@@ -2697,7 +2735,7 @@ function LineItemConfigurationCard({
                 onMetadata={(metadata) => onCadMetadata(lineItem.id, metadata)}
                 state={lineItem.cadPreview}
                 recovery={{ storageKey: lineItem.fileStorageKey ?? "", ...previewDeclaration }}
-              />
+              />}
             </div>
 
             <div className="mt-5" id={configurationFieldId(lineItem.id, "drawing")}>
@@ -2943,7 +2981,7 @@ function LineItemConfigurationCard({
               <h3 className="text-3xl font-semibold tracking-tight text-slate-950">
                 Tolerances
               </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
+              {lineItem.generalTolerance.startsWith("iso_") ? <p className="mt-2 text-sm leading-6 text-slate-500">
                 Tolerances follow{" "}
                 <button
                   className="font-semibold text-[#006ce5] underline underline-offset-2 transition hover:text-[#004eb5]"
@@ -2952,8 +2990,9 @@ function LineItemConfigurationCard({
                 >
                   ISO 2768-1 standards
                 </button>
-              </p>
+              </p> : null}
               <div className="mt-6 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+                {toleranceDesign === "cards" ? <ToleranceRequirements generalTolerance={lineItem.generalTolerance} drawingSpecific={lineItem.drawingSpecificTolerances || lineItem.tightLinearTolerance} onGeneralChange={value => updateLineItem(lineItem.id, "generalTolerance", value)} /> : <>
                 <CustomSelect
                   label="General Tolerances"
                   value={lineItem.generalTolerance}
@@ -2963,11 +3002,13 @@ function LineItemConfigurationCard({
                   options={generalToleranceOptions}
                   required
                 />
+                </>}
+                {toleranceDesign === "cards" ? <p className="text-sm font-semibold text-slate-800">Additional manufacturing features</p> : null}
                 {[
                   [
                     "tightLinearTolerance",
                     "Linear Tolerance Tighter Than General Tolerance",
-                    lineItem.tightLinearTolerance,
+                    lineItem.tightLinearTolerance || lineItem.drawingSpecificTolerances,
                   ],
                   ["threads", "Threads", lineItem.threads],
                   [
@@ -2980,7 +3021,7 @@ function LineItemConfigurationCard({
                     "Sharp Internal Corners",
                     lineItem.sharpInternalCorners,
                   ],
-                ].map(([field, label, checked]) => (
+                ].filter(([field]) => toleranceDesign === "legacy" || field !== "tightLinearTolerance").map(([field, label, checked]) => (
                   <label
                     className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700"
                     key={String(field)}
@@ -3021,15 +3062,15 @@ function LineItemConfigurationCard({
                 <span>Manufacturing notes</span>
                 <textarea
                   className={`${inputClass} min-h-32`}
-                  placeholder="Tolerances, finish, deburr, inspection notes..."
+                  placeholder="Share any details that will help us manufacture this part."
                   value={lineItem.notes}
                   onChange={(event) =>
                     updateLineItem(lineItem.id, "notes", event.target.value)
                   }
                 />
               </label>
-              <div className="mt-5">
-                <TargetDatePicker value={lineItem.targetShipDate} onChange={value => updateLineItem(lineItem.id, "targetShipDate", value)} />
+              <div className="mt-5" id={configurationFieldId(lineItem.id, "targetDate")}>
+                <TargetDatePicker minDate={earliestTargetDeliveryDate()} description="Choose a date at least 8 business days from today (excluding weekends). We’ll confirm the delivery schedule in your quote." value={lineItem.targetDeliveryDate} onChange={value => updateLineItem(lineItem.id, "targetDeliveryDate", value)} />
               </div>
             </section>
           </div>
@@ -3075,6 +3116,7 @@ function useDrawingPreviewUrl(activeDrawingFile: File | null | undefined, active
 }
 
 export function RequestForm({
+  toleranceDesign = "cards",
   initialState,
   localDraftId,
   prefillNotice,
@@ -3298,7 +3340,7 @@ export function RequestForm({
             surfaceFinishCustomColor: "",
           }
         : lineItem.id === id
-          ? { ...lineItem, [field]: value }
+          ? { ...lineItem, [field]: value, ...(field === "generalTolerance" && typeof value === "string" && value.startsWith("linear_") ? { drawingSpecificTolerances: value === "linear_tighter_005_in", tightLinearTolerance: false } : {}) }
           : lineItem,
     );
     if (!lineItemsHaveMissingRequiredDrawing(nextLineItems)) {
@@ -3312,7 +3354,7 @@ export function RequestForm({
 
   function updateLineItemFlag(id: string, field: LineItemFlag, value: boolean) {
     const nextLineItems = lineItems.map((lineItem) =>
-      lineItem.id === id ? { ...lineItem, [field]: value } : lineItem,
+      lineItem.id === id ? { ...lineItem, [field]: value, ...(field === "drawingSpecificTolerances" && !value ? { tightLinearTolerance: false } : {}), ...(field === "tightLinearTolerance" ? { drawingSpecificTolerances: false } : {}) } : lineItem,
     );
 
     if (!lineItemsHaveMissingRequiredDrawing(nextLineItems)) {
@@ -3369,7 +3411,7 @@ export function RequestForm({
       customerPartNumber: lineItem.customerPartNumber,
       cadRevision: lineItem.cadRevision,
       drawingRevision: lineItem.drawingRevision,
-      targetShipDate: lineItem.targetShipDate,
+      targetDeliveryDate: lineItem.targetDeliveryDate,
       fileHistory: [],
       cadMetadata: lineItem.cadMetadata,
       fileName: lineItem.fileName,
@@ -3394,6 +3436,7 @@ export function RequestForm({
       technicalDrawingType: lineItem.selectedDrawingFile?.type || lineItem.technicalDrawingType,
       threads: lineItem.threads,
       tightLinearTolerance: lineItem.tightLinearTolerance,
+      drawingSpecificTolerances: lineItem.drawingSpecificTolerances,
       cadPreview: persistedCadPreview(lineItem.cadPreview),
     }));
     const initialStateForResume: RequestFormInitialState = {
@@ -3447,7 +3490,7 @@ export function RequestForm({
         partName: displayNameFromFile(lineItem.fileName) || "Part",
         quantity: Number(lineItem.quantity) || 1,
         manufacturingDetails: manufacturingDetailsFor(lineItem),
-        material: optionLabel(rfqMaterialOptions, lineItem.material),
+        material: optionLabel(rfqMaterialOptions, canonicalMaterialValue(lineItem.material)),
         generalTolerance: optionLabel(generalToleranceOptions, lineItem.generalTolerance),
         surfaceFinish: surfaceFinishDisplayValue(lineItem),
         qualityDocumentation: lineItem.qualityDocumentation.map((value) => optionLabel(qualityDocumentationOptions, value)),
@@ -3697,6 +3740,7 @@ export function RequestForm({
   }
 
   function requestCadPreview(file: File, stored: PersistedDraftFile, declaration: UploadDeclaration): Promise<CadUploadPreviewState> {
+    if (cadDemoFormat(file.name)) return Promise.resolve({ status: "reference_only", fileName: file.name, message: "The saved original will open in the local 3D viewer." });
     const pending = pendingCadPreviewsRef.current.get(file);
     if (pending) return pending;
     const operation = (async (): Promise<CadUploadPreviewState> => {
@@ -3726,7 +3770,7 @@ export function RequestForm({
   }
 
   function persistCadFileAndPreview(id: string, file: File, declaration: UploadDeclaration = { restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }) {
-    void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
+    if (!cadDemoFormat(file.name)) void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
     void persistCadDraftUpload(id, file, declaration).then((stored) => {
       if (stored) return startCadPreview(id, file, stored, declaration);
       setLineItems(current => current.map(item => item.id === id && item.selectedFile === file
@@ -3810,7 +3854,7 @@ export function RequestForm({
     setError(null);
     setPreparedModels(current => current.filter(model => model.approved && lineItems.some(item => item.selectedFile === model.file)));
     setStagedCad({ files, targetId });
-    void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
+    if (files.some(file => !cadDemoFormat(file.name))) void preloadAutodeskViewerAssets().catch(() => { /* Preview initialization retries asset loading. */ });
     // Keep advance processing separate from the customer's unanswered declaration.
     const declaration: UploadDeclaration = { restrictionStatus: "unconfirmed", restrictionPolicyVersion, processingIntent: "advance_cad_preview" };
     files.forEach(file => {
@@ -3925,6 +3969,8 @@ export function RequestForm({
   function drawingRequiredNotes(lineItem: LineItemState) {
     const requiredQualityLabels = requiredQualityDocumentationLabels(lineItem);
     const generatedNotes = [
+      lineItem.drawingSpecificTolerances ? "Drawing-specific tolerances requested; drawing required." : null,
+      lineItem.drawingSpecificTolerances ? "Specific drawing callouts take precedence over general tolerances. Lattice must review conflicting requirements before quoting." : null,
       lineItem.partMarkings ? "Part markings requested; drawing required." : null,
       lineItem.tightLinearTolerance ? "Linear tolerance tighter than general tolerance requested; drawing required." : null,
       lineItem.threads ? "Threads requested; drawing required." : null,
@@ -3938,10 +3984,16 @@ export function RequestForm({
     return generatedNotes.filter((note) => !lineItem.notes.includes(note));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit() {
     if (submittingRef.current || !isReady) return;
     setError(null);
+
+    const invalidDelivery = configuredLineItems.find(item => targetDeliveryDateError(item.targetDeliveryDate));
+    if (invalidDelivery) {
+      setError(targetDeliveryDateError(invalidDelivery.targetDeliveryDate));
+      focusConfigurationField(invalidDelivery.id, "targetDate");
+      return;
+    }
 
     const missingCadBytes = configuredLineItems.find(
       (lineItem) => !lineItemHasCadBytes(lineItem),
@@ -4011,7 +4063,7 @@ export function RequestForm({
           return {
                   quantity: Number(lineItem.quantity),
             manufacturingDetails: manufacturingDetailsFor(lineItem),
-            material: optionLabel(rfqMaterialOptions, lineItem.material),
+            material: optionLabel(rfqMaterialOptions, canonicalMaterialValue(lineItem.material)),
             generalTolerance: optionLabel(
               generalToleranceOptions,
               lineItem.generalTolerance,
@@ -4103,8 +4155,8 @@ export function RequestForm({
 
   return (
     <PreparedCadViewerContext.Provider value={preparedViewerContext}>
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
+    <div data-workspace-tour="request-form" className="space-y-6">
+      <form onSubmit={event => event.preventDefault()} className="space-y-6">
         <header className="px-1 pt-1">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <RequestFormHeading />
@@ -4125,6 +4177,7 @@ export function RequestForm({
           <section className={`space-y-6 ${separatePartContainers && hasCadFile ? "" : requestCardClass}`}>
             {uploadsAllowed && activeDrawingLineItem ? (
               <TechnicalDrawingReviewModal
+                toleranceDesign={toleranceDesign}
                 lineItem={activeDrawingLineItem}
                 drawingPreviewUrl={drawingPreviewUrl}
                 onClose={() => setDrawingReviewLineItemId(null)}
@@ -4257,6 +4310,7 @@ export function RequestForm({
 
             {uploadsAllowed && configuredLineItems.map((lineItem, index) => (
               <LineItemConfigurationCard
+                toleranceDesign={toleranceDesign}
                 key={lineItem.id}
                 previewDeclaration={{ restrictionStatus: projectForm.restrictionStatus, restrictionPolicyVersion: projectForm.restrictionPolicyVersion }}
                 index={index}
@@ -4321,7 +4375,9 @@ export function RequestForm({
                   className="cursor-pointer rounded-lg bg-[#262626] px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-[#171717] disabled:cursor-not-allowed disabled:bg-[#cfcfcf] disabled:text-white"
                   disabled={!isReady || isSubmitting}
                   aria-busy={isSubmitting}
-                  type="submit"
+                  type="button"
+                  onKeyDown={event => { if (event.key === "Enter") event.preventDefault(); }}
+                  onClick={() => { void handleSubmit(); }}
                 >
                   {isSubmitting ? "Submitting…" : "Request Quote"}
                 </button>
@@ -4347,11 +4403,6 @@ export function RequestForm({
         quoteEndUse={configuredLineItems.length && ["prototype", "commercial"].includes(projectForm.endUse) ? projectForm.endUse : undefined}
         isNewSelection={Boolean(stagedCad)}
         initialStatus={stagedCad ? "unconfirmed" : projectForm.restrictionStatus}
-        onRemoveFile={stagedCad ? (index) => {
-          const removedFile = stagedCad.files[index];
-          setPreparedModels(current => current.filter(model => model.file !== removedFile));
-          setStagedCad(current => current ? { ...current, files: current.files.filter((_, i) => i !== index) } : null);
-        } : undefined}
         onClose={() => { setPreparedModels(current => current.filter(model => model.approved)); setStagedCad(null); }}
         onConfirm={confirmExportRestrictions}
       /> : null}

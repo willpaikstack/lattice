@@ -100,10 +100,10 @@ describe("AdminCustomerManagement", () => {
   it("opens the customer-company provisioning workflow", () => {
     render(<AdminCustomerManagement customers={[]} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Create customer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create company" }));
 
     expect(
-      screen.getByRole("heading", { name: "Create customer company" }),
+      screen.getByRole("heading", { name: "Create company" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Company name")).toBeRequired();
     expect(screen.getByLabelText("Full name")).toBeRequired();
@@ -118,7 +118,7 @@ describe("AdminCustomerManagement", () => {
 
     expect(
       screen.getByRole("link", {
-        name: "Open customer profile for Apex Robotics",
+        name: "Open company profile for Apex Robotics",
       }),
     ).toHaveAttribute("href", "/admin/customers/company_123");
     expect(screen.getByText("AR")).toBeInTheDocument();
@@ -225,12 +225,12 @@ describe("AdminCustomerManagement", () => {
     fireEvent.click(screen.getByRole("button", { name: "Active" }));
     expect(
       screen.getByRole("link", {
-        name: "Open customer profile for Apex Robotics",
+        name: "Open company profile for Apex Robotics",
       }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("link", {
-        name: "Open customer profile for Inactive Company",
+        name: "Open company profile for Inactive Company",
       }),
     ).not.toBeInTheDocument();
   });

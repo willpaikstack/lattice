@@ -1,6 +1,7 @@
-import { processLabel } from "./rfq-manufacturing";
+import { processLabel, readTargetDeliveryDate, type ManufacturingDetails } from "./rfq-manufacturing";
 import type { RequestFormInitialState } from "@/components/request-form";
 import type { LatticeRequest } from "@/lib/request-model";
+import { canonicalMaterialValue } from "@/lib/rfq-material-search";
 import {
   generalToleranceOptions,
   processOptions,
@@ -17,6 +18,10 @@ function optionValueFromLabel(options: RfqOption[], label: string | undefined, f
   }
 
   const normalized = label.trim().toLowerCase();
+  // Prefer exact matches before legacy fuzzy labels: the tighter-than label
+  // contains the ±0.005 label but represents a different requirement.
+  const exact = options.find(option => [option.value, option.label, option.bubbleValue].some(value => value?.toLowerCase() === normalized));
+  if (exact) return exact.value;
   const match = options.find((option) => {
     const optionLabel = option.label.toLowerCase();
     const optionValue = option.value.toLowerCase();
@@ -56,20 +61,23 @@ function isCadFile(file: LatticeRequest["files"][number]) {
   return !isDrawingFile(file);
 }
 
-function drawingRequiredFlags(notes: string | undefined) {
-  const normalized = notes?.toLowerCase() ?? "";
-
+function drawingRequiredFlags(notes: string | undefined, saved?: ManufacturingDetails["drawingRequirements"]) {
+  const lines = new Set((notes ?? "").split(/\r?\n/).map(line => line.trim().toLowerCase()));
+  const selected = (key: keyof NonNullable<typeof saved>, label: string) => saved ? saved[key] === true : lines.has(`${label} requested; drawing required.`);
   return {
-    engineeringFits: normalized.includes("engineering fits"),
-    sharpInternalCorners: normalized.includes("sharp internal corners"),
-    partMarkings: normalized.includes("part markings"),
-    threads: normalized.includes("threads requested") || normalized.includes("threads;"),
-    tightLinearTolerance: normalized.includes("linear tolerance tighter"),
+    engineeringFits: selected("engineeringFits", "engineering fits"),
+    sharpInternalCorners: selected("sharpInternalCorners", "sharp internal corners"),
+    partMarkings: selected("partMarkings", "part markings"),
+    threads: selected("threads", "threads"),
+    drawingSpecificTolerances: selected("drawingSpecificTolerances", "drawing-specific tolerances"),
+    tightLinearTolerance: selected("tightLinearTolerance", "linear tolerance tighter than general tolerance"),
   };
 }
 
 function lineItemNotesWithoutGeneratedDrawingPrompts(notes: string | undefined) {
   const generatedPrompts = new Set([
+    "Drawing-specific tolerances requested; drawing required.",
+    "Specific drawing callouts take precedence over general tolerances. Lattice must review conflicting requirements before quoting.",
     "Part markings requested; drawing required.",
     "Linear tolerance tighter than general tolerance requested; drawing required.",
     "Threads requested; drawing required.",
@@ -115,7 +123,7 @@ function copiedRequestInitialState(
       customerPartNumber: lineItem.manufacturingDetails?.customerPartNumber ?? "",
       cadRevision: lineItem.manufacturingDetails?.cadRevision ?? "",
       drawingRevision: lineItem.manufacturingDetails?.drawingRevision ?? "",
-      targetShipDate: lineItem.manufacturingDetails?.targetShipDate ?? "",
+      targetDeliveryDate: readTargetDeliveryDate(lineItem.manufacturingDetails),
       fileHistory: [],
       cadMetadata: lineItem.manufacturingDetails?.cadMetadata,
       cadPreview: cadFile?.cadPreviewUrn
@@ -130,7 +138,7 @@ function copiedRequestInitialState(
       fileStorageKey: cadFile?.storageKey,
       fileType: cadFile?.type ?? "",
       generalTolerance: optionValueFromLabel(generalToleranceOptions, lineItem.generalTolerance, "iso_2768_medium_m"),
-      material: optionValueFromLabel(rfqMaterialOptions, lineItem.material, ""),
+      material: canonicalMaterialValue(optionValueFromLabel(rfqMaterialOptions, lineItem.material, "")),
       notes: lineItemNotesWithoutGeneratedDrawingPrompts(lineItem.notes),
       qualityDocumentation: lineItem.qualityDocumentation?.length
         ? lineItem.qualityDocumentation.map((label) => optionValueFromLabel(qualityDocumentationOptions, label, "standard_inspection"))
@@ -141,7 +149,7 @@ function copiedRequestInitialState(
       technicalDrawingSizeBytes: drawingFile?.sizeBytes ?? 0,
       technicalDrawingStorageKey: drawingFile?.storageKey,
       technicalDrawingType: drawingFile?.type ?? "",
-      ...drawingRequiredFlags(lineItem.notes),
+      ...drawingRequiredFlags(lineItem.notes, lineItem.manufacturingDetails?.drawingRequirements),
     };
   });
   const primaryInitialLineItem = lineItems[0];

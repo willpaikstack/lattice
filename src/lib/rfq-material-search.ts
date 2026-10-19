@@ -1,26 +1,31 @@
 import { rfqMaterialOptions, type RfqOption } from "./rfq-options";
+import { materialAliasesFor, resolveMaterialAlias, resolveMaterialName } from "./material-identity-registry";
 
-// Explicit name aliases only; sharing a UNS number is not sufficient to merge grades.
-const aliasLabels: Record<string, string> = {
-  "SS 304": "304 Stainless Steel",
-  "SS 316": "316 Stainless Steel",
-  "Brass C360": "Brass 360",
-  "Copper C110": "Copper 110",
-  "Bronze C932": "Bronze 932",
-};
 const canonicalByValue = new Map<string, string>();
 const aliasesByValue = new Map<string, string[]>();
-for (const [aliasLabel, canonicalLabel] of Object.entries(aliasLabels)) {
-  const alias = rfqMaterialOptions.find(option => option.label === aliasLabel);
+for (const alias of rfqMaterialOptions) {
+  const canonicalLabel = resolveMaterialName("rfq", alias.label);
+  if (canonicalLabel === alias.label) continue;
   const canonical = rfqMaterialOptions.find(option => option.label === canonicalLabel);
-  if (!alias || !canonical) continue;
+  if (!canonical) continue;
   canonicalByValue.set(alias.value, canonical.value);
   aliasesByValue.set(canonical.value, [...(aliasesByValue.get(canonical.value) ?? []), alias.label, alias.value]);
 }
 export function canonicalMaterialValue(value: string) {
-  return canonicalByValue.get(value) ?? value;
+  const direct = canonicalByValue.get(value);
+  if (direct) return direct;
+  const option = rfqMaterialOptions.find(candidate => candidate.value === value || candidate.label === value);
+  const canonicalLabel = resolveMaterialName("rfq", option?.label ?? value);
+  const canonicalOption = rfqMaterialOptions.find(candidate => candidate.label === canonicalLabel);
+  return canonicalOption?.value ?? (option ? canonicalByValue.get(option.value) ?? option.value : value);
 }
-export const selectableRfqMaterials = rfqMaterialOptions.filter(option => !canonicalByValue.has(option.value));
+const selectableMaterialValues = new Set<string>();
+export const selectableRfqMaterials = rfqMaterialOptions.filter(option => {
+  const canonicalValue = canonicalMaterialValue(option.value);
+  if (selectableMaterialValues.has(canonicalValue)) return false;
+  selectableMaterialValues.add(canonicalValue);
+  return !resolveMaterialAlias("rfq", option.label);
+});
 
 function normalized(text: string) {
   return text.normalize("NFKD").toLowerCase().replace(/([a-z])([0-9])/g, "$1 $2").replace(/([0-9])([a-z])/g, "$1 $2").replace(/[^a-z0-9]+/g, " ").trim();
@@ -33,7 +38,7 @@ export function searchRfqMaterials<T extends RfqOption & { category?: string; su
   if (!needle) return options;
   const tokens = needle.split(/\s+/);
   return options.map((option, index) => {
-    const aliases = aliasesByValue.get(option.value) ?? [];
+    const aliases = [...(aliasesByValue.get(option.value) ?? []), ...materialAliasesFor("rfq", option.label)];
     const identities = [option.label, ...aliases, String(option.metadata?.unsNumber ?? "")];
     const fields = [...identities, option.category ?? "", option.subgroup ?? "", String(option.metadata?.family ?? ""), String(option.metadata?.composition ?? ""), String(option.metadata?.compositionFormula ?? "")];
     const haystack = normalized(fields.join(" "));

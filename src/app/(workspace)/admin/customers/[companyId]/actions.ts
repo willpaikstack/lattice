@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import type { CustomerProfileInput } from "@/lib/customer-profiles";
 import { updateCustomerProfile } from "@/lib/customer-profiles";
 import { requireActionRole } from "@/lib/route-authorization";
+import { CompanyDeletionError, deleteCustomerCompany } from "@/lib/company-deletion";
 import { createSessionForUser } from "@/lib/session";
 import { customerUserForSupportSession, addCustomerUserAndSendInvitation, removeCustomerUser, requestCustomerUserEmailChange, resetCustomerUserPasswordAndSendInvitation, setCustomerUserPassword, updateCustomerUserRole } from "@/lib/workspace-user-admin";
 
@@ -120,4 +121,22 @@ export async function manageCustomerUserAction(
       status: "error",
     };
   }
+}
+
+export async function deleteCustomerCompanyAction(
+  companyId: string,
+  _previous: { message: string },
+  formData: FormData,
+): Promise<{ message: string }> {
+  const session = await requireActionRole(["admin"]);
+  let result;
+  try {
+    result = await deleteCustomerCompany(companyId, userValue(formData, "confirmationName"), session.user.id);
+  } catch (error) {
+    return { message: error instanceof CompanyDeletionError
+      ? error.message : "The company could not be deleted. Reload the page and try again." };
+  }
+  for (const path of ["/admin/customers", `/admin/customers/${companyId}`, "/admin/users", "/admin/quotes", "/admin/orders"])
+    revalidatePath(path);
+  redirect(`/admin/customers?companyDeleted=1&cleanup=${result.cleanupRequired ? "1" : "0"}`);
 }

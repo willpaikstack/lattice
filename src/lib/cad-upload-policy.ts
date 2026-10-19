@@ -1,5 +1,5 @@
 // Manufacturing part formats verified against APS GET /designdata/formats (SVF2).
-export const cadFileExtensions = [".step", ".stp", ".iges", ".igs", ".sldprt", ".sat", ".x_t", ".x_b", ".ipt"] as const;
+export const cadFileExtensions = [".step", ".stp", ".iges", ".igs", ".stl", ".obj", ".gltf", ".glb", ".sldprt", ".sat", ".x_t", ".x_b", ".ipt"] as const;
 export const cadAccept = cadFileExtensions.join(",");
 export const cadFileTypes = cadFileExtensions.map((extension) => extension.slice(1).toUpperCase()).join(", ");
 export const maxCadUploadBytes = 200 * 1024 * 1024;

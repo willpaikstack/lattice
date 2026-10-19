@@ -183,7 +183,7 @@ describe("BuyerQuotes", () => {
         process: "CNC milling",
         dueDate: "2026-06-20",
         lineItems: [{ partName: "Preview plate", quantity: 1, material: "6061-T6 Aluminum" }],
-        files: [{ name: "preview-plate.step", sizeBytes: 1024, type: "model/step", cadPreviewUrn: "translated-preview-urn" }],
+        files: [{ name: "preview-plate.sldprt", sizeBytes: 1024, type: "model/cad", cadPreviewUrn: "translated-preview-urn" }],
       }),
     );
 

@@ -1,0 +1,4 @@
+.halo{position:relative;border-radius:9px;outline:2px solid rgba(255,195,66,.82);box-shadow:0 0 0 3px rgba(255,195,66,.2);padding:6px 8px;margin:-6px -8px;scroll-margin-block:48px}
+.halo::after{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;animation:highlightHalo 2s cubic-bezier(.2,.65,.35,1) infinite}
+@keyframes highlightHalo{0%{box-shadow:0 0 0 2px rgba(255,195,66,.56)}75%,100%{box-shadow:0 0 0 16px rgba(255,195,66,0)}}
+@media(prefers-reduced-motion:reduce){.halo::after{animation:none}}

@@ -1,5 +1,6 @@
 import { materials, type CatalogEntry } from "./catalog-data";
 import { cncMaterialLibrary, type CncMaterialFamily } from "./cnc-material-library";
+import { resolveMaterialName } from "./material-identity-registry";
 import { vendorMaterialOfferings, type MaterialOfferingCategory } from "./vendor-materials";
 
 export type CustomerMaterialSubGroup = {
@@ -30,119 +31,12 @@ function marketplaceGradesFor(...families: CncMaterialFamily[]) {
   return unique(cncMaterialLibrary.filter((material) => familySet.has(material.family)).map((material) => material.label));
 }
 
-const canonicalGradeAliases: Partial<Record<MaterialOfferingCategory, Record<string, string>>> = {
-  "Carbon / Alloy Steel": {
-    "4130 steel": "4130",
-    "steel 4130": "4130",
-    "4140 steel": "4140",
-    "steel 4140": "4140",
-    "4340 steel": "4340 / E4340",
-    "steel 4340": "4340 / E4340",
-    "42cd4": "4140",
-    "1.7227 / 42crmos4 alloy steel": "4140",
-    "steel 1.2085": "1.2085",
-    "x160crmov12": "D2",
-    "z160cvd12": "D2",
-    skd11: "D2",
-    "1.2510 / 100mncrw4": "O1 Tool Steel",
-    "1215 steel": "1215",
-    "steel 1215": "1215",
-    "steel 12l14": "12L14",
-  },
-  "Copper / Brass / Bronze": {
-    "brass c360": "Brass 360",
-    "brass c3600": "Brass 360",
-    cuzn39pb3: "Brass 360",
-    "red copper": "Copper C110",
-    "red copper c110": "Copper C110",
-    "copper 110": "Copper C110",
-    "red copper c101": "Copper 101",
-    "red copper t2": "Copper 101",
-    "bronze c932": "Bronze 932",
-  },
-  "Nickel / Cobalt Alloy": {
-    "alloy 600": "Inconel 600",
-    "alloy 601": "Inconel 601",
-    "alloy 617": "Inconel 617",
-    "alloy 625": "Inconel 625",
-    "inconel 625 / alloy 625": "Inconel 625",
-    "alloy 718": "Inconel 718",
-    "alloy x-750": "Inconel X-750",
-    "alloy 800": "Incoloy 800",
-    "alloy 800h": "Incoloy 800H",
-    "alloy 800ht": "Incoloy 800HT",
-    "alloy 925": "Incoloy 925",
-    "alloy 400": "Monel 400",
-    "alloy k500": "Monel K-500",
-    "monel k500": "Monel K-500",
-    "alloy 200": "Nickel 200",
-    "alloy 201": "Nickel 201",
-    "alloy a286": "Incoloy A-286",
-    "invar36": "Invar 36",
-    "invar36 alloy": "Invar 36",
-    "kovar / 4j29": "Kovar",
-  },
-  "Stainless Steel": {
-    "18-8 stainless steel": "18-8",
-    "ss 18-8": "18-8",
-    "301 stainless steel": "301",
-    "303 stainless steel": "303",
-    "ss 303": "303",
-    "304": "304/304L Stainless Steel",
-    "304 stainless steel": "304/304L Stainless Steel",
-    "ss 304": "304/304L Stainless Steel",
-    "ss 304 / 1.4301": "304/304L Stainless Steel",
-    "304l": "304/304L Stainless Steel",
-    "304l stainless steel": "304/304L Stainless Steel",
-    "ss 304l": "304/304L Stainless Steel",
-    "316": "316/316L Stainless Steel",
-    "316 stainless steel": "316/316L Stainless Steel",
-    "ss 316": "316/316L Stainless Steel",
-    "316l": "316/316L Stainless Steel",
-    "316l stainless steel": "316/316L Stainless Steel",
-    "ss 316l": "316/316L Stainless Steel",
-    "ss 316 / 1.4404": "316/316L Stainless Steel",
-    "ss 304h": "304H",
-    "ss 316h": "316H",
-    "316ti stainless steel": "316Ti",
-    "410 stainless steel": "410",
-    "416 stainless steel": "416",
-    "ss 416": "416",
-    "ss 1.4305": "303",
-    "420 stainless steel": "420",
-    "ss 420": "420",
-    "430 stainless steel": "430",
-    "ss 430": "430",
-    "440c stainless steel": "440C",
-    "ss 440c": "440C",
-    "15-5 stainless steel": "15-5 PH",
-    "15-5ph": "15-5 PH",
-    "17-4 ph stainless steel": "17-4 PH",
-    "17-4ph": "17-4 PH",
-    "ss 17-4ph": "17-4 PH",
-    "ss 630": "17-4 PH",
-    "nitronic 60 stainless steel": "Nitronic 60",
-  },
-  Titanium: {
-    "titanium grade 2": "Grade 2",
-    "titanium grade 5": "Grade 5 / 6Al-4V",
-    "6al4v": "Grade 5 / 6Al-4V",
-    "ta6v": "Grade 5 / 6Al-4V",
-    tc4: "Grade 5 / 6Al-4V",
-  },
-  "Controlled Expansion / Precision Alloy": {
-    invar36: "Invar 36",
-    "invar36 alloy": "Invar 36",
-    "kovar / 4j29": "Kovar",
-  },
-};
-
 // The supplier and marketplace datasets retain their original labels for
 // provenance. The customer catalog, however, should show one canonical grade
 // per equivalent designation rather than a vendor-prefixed duplicate.
 function customerGradeLabel(category: MaterialOfferingCategory, grade: string) {
-  const alias = canonicalGradeAliases[category]?.[grade.toLowerCase()];
-  if (alias) return alias;
+  const alias = resolveMaterialName(`catalog:${category}`, grade);
+  if (alias !== grade) return alias;
 
   if (category !== "Aluminum") return grade;
 
@@ -223,8 +117,13 @@ const aluminumSourceGrades = combinedGrades("Aluminum", "Aluminum");
 const aluminumOfferings = buildAluminumOfferings(aluminumSourceGrades);
 const aluminumGrades = aluminumOfferings.grades;
 const steelGrades = combinedGrades("Carbon / Alloy Steel", "Steel", "Tool steel");
-const stainlessGrades = combinedGrades("Stainless Steel", "Stainless steel");
-const nickelGrades = combinedGrades("Nickel / Cobalt Alloy", "Nickel / precision alloy");
+const stainlessGrades = combinedGrades("Stainless Steel", "Stainless steel")
+  .filter((grade) => !/^(?:SS\s*)?1\.2085$/i.test(grade));
+// Controlled-expansion grades have their own family in the customer catalog.
+// Keep the source labels and aliases intact, but avoid listing them again in
+// the broader Inconel/Incoloy family.
+const nickelGrades = combinedGrades("Nickel / Cobalt Alloy", "Nickel / precision alloy")
+  .filter((grade) => !/^(?:Invar(?:\s*36)?|Kovar)$/i.test(grade));
 const precisionGrades = combinedGrades("Controlled Expansion / Precision Alloy", "Nickel / precision alloy")
   .filter((grade) => /Invar|Kovar|4J|1J/i.test(grade));
 const titaniumGrades = combinedGrades("Titanium", "Titanium");
@@ -233,7 +132,7 @@ const magnesiumZincGrades = combinedGrades("Magnesium / Zinc", "Magnesium / zinc
 const plasticGrades = combinedGrades("Plastics / Polymers", "Plastic / polymer", "Composite");
 
 const mildSteelNames = /(1010|1018|1018S|1020|1045|20#|45#|Q235|S355|S355J2|S355JR|SS400|FE510|44W|A36|A514|AISI 1010|S15C|SPCC|SPHC|SGCC|SECC|SPTE|C22|1\.033)/i;
-const alloySteelNames = /(4130|4140|4140PH|4340|42CD4|40Cr|16Mn|18Cr|EN19|300M|4330|52100|6150|9310|E9310|E4340|Toolox|17-4PH H900|1\.0737|1\.7131|1\.7139|1\.7227|1\.6580|1\.6582)/i;
+const alloySteelNames = /(4130|4140|4140PH|4340|42CD4|40Cr|16Mn|18Cr|EN19|300M|4330|52100|6150|9310|E9310|E4340|Toolox|1\.0737|1\.7131|1\.7139|1\.7227|1\.6580|1\.6582)/i;
 const toolSteelNames = /(A2 Steel|O1 Tool|SKD11|ST TOOL M2|X160CrMoV12|Z160CVD12|1\.2085|1\.2510|100MnCrW4|1\.0718|12L14|1215|Steel 12L14)/i;
 
 const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
@@ -302,7 +201,7 @@ const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
         ...gradesFor("Carbon / Alloy Steel")
           .filter((grade) => /4130|4140|4340|52100|6150|9310|300M|E4340|4330/i.test(grade))
           .map((grade) => customerGradeLabel("Carbon / Alloy Steel", grade)),
-      ]),
+      ]).filter((grade) => !/^17-4PH H900 Steel$/i.test(grade)),
       [
         { name: "Chromium-molybdenum steels", matches: (grade) => /4130|4140|42CD4|40Cr|40CrMn|40CrNiMo/i.test(grade) },
         { name: "High-strength alloy steels", matches: (grade) => /4340|4330|300M|E4340|EN19|18CrNiMo7-6/i.test(grade) },

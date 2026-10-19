@@ -85,7 +85,8 @@ function checkoutForm(paymentMethod = "purchase-order") {
   formData.set("shipToCity", "Pittsburgh");
   formData.set("shipToCompany", "Acme");
   formData.set("shipToName", "Buyer");
-  formData.set("shipToPhone", "555-0100");
+  formData.set("shipToPhone", "(412) 555-0100");
+  formData.set("billingSameAsShipping", "on");
   formData.set("shipToState", "PA");
   formData.set("shipToZipCode", "15222");
   formData.set("apEmail", "ap@acme.com");
@@ -132,14 +133,15 @@ describe("checkout server action ownership", () => {
   });
 
   it("saves the PO reference before confirming an inline Stripe payment", async () => {
-    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ customerQuotes: [{ id: "quote_v1", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "pi_owned" } }, id: "req_owned", status: "QUOTED" });
+    const contact = { email: "saved-ap@acme.com", invoiceRoutingNotes: "Original PO routing" };
+    mocks.getCustomerRequestByIdForCurrentSession.mockResolvedValue({ billingSnapshot: { contact }, customerQuotes: [{ id: "quote_v1", validUntil: "2099-01-01" }], quote: { shippingTerms: "DDP", shippingCostCents: 2000 }, purchasePayment: { stripe: { checkoutSessionId: "pi_owned" } }, id: "req_owned", status: "QUOTED" });
     const updateIntent = vi.fn().mockResolvedValue({});
     mocks.getStripeClient.mockReturnValue({ paymentIntents: { update: updateIntent } });
     mocks.quoteCheckoutAmountCents.mockReturnValue(12000);
 
     await updateStripeElementsCheckoutSessionAction("req_owned", "pi_owned", checkoutForm("card"));
 
-    expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ customerPoNumber: "QA-PO-1047", checkoutSessionId: "pi_owned" }));
+    expect(mocks.recordStripeCheckoutSession).toHaveBeenCalledWith("req_owned", expect.objectContaining({ customerPoNumber: "QA-PO-1047", checkoutSessionId: "pi_owned", billingSnapshot: expect.objectContaining({ contact }) }));
     expect(updateIntent).toHaveBeenCalledWith("pi_owned", { metadata: { customerPoNumber: "QA-PO-1047" } });
   });
 

@@ -14,7 +14,7 @@ export default async function OrdersPage() {
   const documentReadyCount = orders.filter((order) => order.supplierOrder.status === "DOCUMENTS_UPLOADED").length;
 
   return (
-    <div className="mx-auto max-w-[1180px] space-y-5">
+    <div data-workspace-tour="orders" className="mx-auto max-w-[1180px] space-y-5">
       <WorkspaceListHeader kind="orders" />
       <WorkspaceContentReveal>
         <section aria-label="Order summary" className="grid gap-3 md:grid-cols-3">

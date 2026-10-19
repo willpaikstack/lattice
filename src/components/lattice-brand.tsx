@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type LatticeMarkIconProps = {
   className?: string;
 };
@@ -5,14 +7,7 @@ type LatticeMarkIconProps = {
 export function LatticeMarkIcon({ className }: LatticeMarkIconProps) {
   return (
     <span aria-hidden="true" className={`flex h-7 w-7 items-center justify-center text-stone-950 ${className ?? ""}`}>
-      <svg fill="none" height="25" viewBox="0 0 28 28" width="25" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M14 1.75 26.25 14 14 26.25 1.75 14 14 1.75ZM14 4.25l5.5 5.5-5.5 5.5-5.5-5.5 5.5-5.5ZM4.25 14l5.5-5.5 5.5 5.5-5.5 5.5-5.5-5.5ZM14 12.75l5.5 5.5-5.5 5.5-5.5-5.5 5.5-5.5ZM12.75 14l5.5-5.5 5.5 5.5-5.5 5.5-5.5-5.5Z"
-          stroke="currentColor"
-          strokeLinejoin="round"
-          strokeWidth="1.25"
-        />
-      </svg>
+      <Image alt="" className="brightness-0" height={25} src="/brand/lattice-mark.svg" width={25} />
     </span>
   );
 }

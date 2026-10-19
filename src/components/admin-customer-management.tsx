@@ -55,11 +55,11 @@ function CreateCustomerCompany() {
         type="button"
       >
         <Plus size={16} aria-hidden="true" />
-        Create customer
+        Create company
       </button>
       {isOpen ? (
         <CustomerDialog
-          title="Create customer company"
+          title="Create company"
           onClose={() => setIsOpen(false)}
         >
           <p className="mb-5 text-[13px] leading-5 text-slate-500">
@@ -318,7 +318,7 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
       <div className="border-b border-[#eeeeee] p-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <label className="relative block xl:w-[360px]">
-            <span className="sr-only">Search customers</span>
+            <span className="sr-only">Search companies</span>
             <AdminSearchIcon />
             <input
               className="h-10 w-full rounded-md border border-[#dddddd] bg-[#fbfbfb] pl-9 pr-3 text-[14px] text-[#202020] outline-none transition placeholder:text-[#9a9fa8] focus:border-[#9b9b9b] focus:bg-white"
@@ -329,7 +329,7 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
             />
           </label>
           <div
-            aria-label="Customer filters"
+            aria-label="Company filters"
             className="flex gap-2 overflow-x-auto pb-1"
           >
             {customerFilters.map((item) => {
@@ -367,7 +367,7 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
       <div className="divide-y divide-[#eeeeee]">
         {filteredCustomers.map((customer) => (
           <Link
-            aria-label={`Open customer profile for ${customer.name}`}
+            aria-label={`Open company profile for ${customer.name}`}
             className={`${styles.companyRow} group grid cursor-pointer gap-4 px-4 py-4 transition hover:bg-[#fafafa] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#FF5A5F] xl:grid-cols-[1.6fr_1fr_0.5fr_0.5fr_0.5fr_0.6fr] xl:items-center`}
             href={`/admin/customers/${customer.id}`}
             key={customer.id}
@@ -458,15 +458,15 @@ function CustomerCompanyTable({ customers }: { customers: CustomerProfile[] }) {
 
         {filteredCustomers.length === 0 ? (
           <EmptyState
-            detail="Clear the search or choose a different customer filter."
-            title="No customers match this view."
+            detail="Clear the search or choose a different company filter."
+            title="No companies match this view."
           />
         ) : null}
       </div>
 
       <div className="flex items-center justify-between border-t border-[#eeeeee] bg-[#fafafa] px-4 py-3 text-[12px] text-[#777d86]">
         <span>
-          Showing {filteredCustomers.length} of {customers.length} customers
+          Showing {filteredCustomers.length} of {customers.length} companies
         </span>
         <span className="hidden sm:inline">
           Select a company to open its profile
@@ -611,7 +611,7 @@ export function AdminCustomerManagement({
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <div>
-          <h1>Customers</h1>
+          <h1>Companies</h1>
           <p>
             Manage manufacturing companies, their users, and request history.
           </p>
@@ -620,7 +620,7 @@ export function AdminCustomerManagement({
       </div>
       <CustomerTabs
         id="customer-directory"
-        label="Customer directory"
+        label="Company directory"
         value={tab}
         onChange={setTab}
         tabs={[

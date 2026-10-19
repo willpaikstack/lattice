@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { ClerkPasswordEditor } from "@/components/clerk-password-editor";
+import Link from "next/link";
+import { AccountAddressSettingsButton } from "./account-address-settings-button";
+import styles from "./address-onboarding.module.css";
+import { AccountAddressFields } from "@/components/account-address-fields";
+import { formatPhoneNumber, isValidBillingEmail, isValidPhoneNumber } from "@/lib/contact-format";
 import { ProfilePictureEditor } from "@/components/profile-picture-editor";
 import {
   defaultAccountSettings,
   type AccountAddress,
   type AccountSettingsSnapshot,
+  type AccountSettingsField,
   type BillingContact,
   type EmailVerificationStatus,
 } from "@/lib/account-settings-shared";
@@ -23,6 +28,7 @@ function fillMissingAddressFields(address: AccountAddress, fallback: AccountAddr
   const valueOrFallback = (value: string, fallbackValue: string) => value.trim() ? value : fallbackValue;
 
   return {
+    phone: valueOrFallback(address.phone ?? "", fallback.phone ?? ""),
     address1: valueOrFallback(address.address1, fallback.address1),
     address2: valueOrFallback(address.address2, fallback.address2),
     city: valueOrFallback(address.city, fallback.city),
@@ -55,26 +61,25 @@ function Notice({ children, error = false }: { children: React.ReactNode; error?
 
 function verification(status: EmailVerificationStatus, date: string) {
   if (status === "verified" && date) return `Verified on ${date}`;
-  if (status === "verified") return "Email verified.";
+  if (status === "verified" || status === "verification-date-unavailable") return "Email verified.";
   if (status === "not-verified") return "Email is not verified.";
   return "Verification status is temporarily unavailable.";
 }
 
 function Input({ label, value, setValue, type = "text" }: { label: string; value: string; setValue: (value: string) => void; type?: string }) {
-  return <label className="block text-[13px] font-semibold text-[#303846]">{label}<input className="mt-2 w-full rounded-md border border-[#cfd5dd] px-3 py-2 text-[14px]" onChange={(event) => setValue(event.target.value)} type={type} value={value} /></label>;
+  return <label className="block text-[13px] font-semibold text-[#303846]">{label}<input autoComplete={type === "tel" ? "tel" : type === "email" ? "email" : undefined} placeholder={type === "tel" ? "(555) 123-4567" : undefined} className="mt-2 w-full rounded-md border border-[#cfd5dd] px-3 py-2 text-[14px]" onChange={(event) => setValue(event.target.value)} type={type} value={value} /></label>;
 }
 
-function SaveCancel({ save, cancel, error, cancelLabel = "Cancel" }: { save: () => void; cancel?: () => void; error: string; cancelLabel?: string }) {
-  return <div className="space-y-3">{error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}<div className="flex gap-2"><button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white" onClick={save} type="button">Save changes</button>{cancel ? <button className="rounded-md border px-4 py-2 text-sm font-semibold" onClick={cancel} type="button">{cancelLabel}</button> : null}</div></div>;
+function SaveCancel({ save, cancel, error, cancelLabel = "Cancel", saveLabel = "Save changes", disabled = false }: { save: () => void; cancel?: () => void; error: string; cancelLabel?: string; saveLabel?: string; disabled?: boolean }) {
+  return <div className="space-y-3">{error ? <p role="alert" className="text-sm font-medium text-red-700">{error}</p> : null}<div className="flex gap-2"><button className="rounded-md bg-[#171717] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" disabled={disabled} onClick={save} type="button">{saveLabel}</button>{cancel ? <button className="rounded-md border px-4 py-2 text-sm font-semibold" onClick={cancel} type="button">{cancelLabel}</button> : null}</div></div>;
 }
 
-function AddressEditor({ value, setValue, save, cancel, error, cancelLabel }: { value: AccountAddress; setValue: (next: AccountAddress) => void; save: () => void; cancel?: () => void; error: string; cancelLabel?: string }) {
-  const set = (key: keyof AccountAddress) => (next: string) => setValue({ ...value, [key]: next });
-  return <div className="space-y-3"><div className="grid gap-3 sm:grid-cols-2"><Input label="Name" value={value.name} setValue={set("name")} /><Input label="Company" value={value.company} setValue={set("company")} /></div><Input label="Address line 1" value={value.address1} setValue={set("address1")} /><Input label="Address line 2" value={value.address2} setValue={set("address2")} /><div className="grid gap-3 sm:grid-cols-3"><Input label="City" value={value.city} setValue={set("city")} /><Input label="State" value={value.state} setValue={set("state")} /><Input label="ZIP code" value={value.zipCode} setValue={set("zipCode")} /></div><SaveCancel save={save} cancel={cancel} cancelLabel={cancelLabel} error={error} /></div>;
+function AddressEditor({ value, setValue, save, cancel, error, cancelLabel, saveLabel, hideSuggestionsHelp, nameLabel }: { value: AccountAddress; setValue: (next: AccountAddress) => void; save: () => void; cancel?: () => void; error: string; cancelLabel?: string; saveLabel?: string; hideSuggestionsHelp?: boolean; nameLabel?: string }) {
+  return <div className="space-y-3"><AccountAddressFields value={value} setValue={setValue} hideSuggestionsHelp={hideSuggestionsHelp} nameLabel={nameLabel} /><SaveCancel save={save} cancel={cancel} cancelLabel={cancelLabel} saveLabel={saveLabel} error={error} /></div>;
 }
 
 function AddressValue({ value }: { value: AccountAddress }) {
-  return completeAddress(value) ? <address className="not-italic">{value.name}<br />{value.company}<br />{value.address1}{value.address2 ? <><br />{value.address2}</> : null}<br />{value.city}, {value.state} {value.zipCode}</address> : <p className="text-[#737b86]">Not configured.</p>;
+  return completeAddress(value) ? <address className="not-italic">{value.name}<br />{value.company}<br />{value.address1}{value.address2 ? <><br />{value.address2}</> : null}<br />{value.city}, {value.state} {value.zipCode}{value.phone ? <><br />{formatPhoneNumber(value.phone)}</> : null}</address> : <p className="text-[#737b86]">Not configured.</p>;
 }
 
 function AddressOnboardingDialog({
@@ -84,7 +89,13 @@ function AddressOnboardingDialog({
   save,
   skip,
   error,
+  sameAsShipping,
+  setSameAsShipping,
+  shipping,
 }: {
+  sameAsShipping: boolean;
+  setSameAsShipping: (value: boolean) => void;
+  shipping: AccountAddress;
   field: "shipping" | "billingAddress";
   value: AccountAddress;
   setValue: (next: AccountAddress) => void;
@@ -92,21 +103,43 @@ function AddressOnboardingDialog({
   skip: () => void;
   error: string;
 }) {
+  const dialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialog.current?.focus();
+    function keepFocus(event: KeyboardEvent) {
+      if (event.key !== "Tab") return;
+      const controls = [...(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href], [tabindex="0"]') ?? [])].filter((element) => element.getClientRects().length);
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (!first) { event.preventDefault(); return; }
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !dialog.current?.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", keepFocus);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", keepFocus); if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus(); };
+  }, []);
   const isShipping = field === "shipping";
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 px-4 py-8 sm:flex sm:items-center sm:justify-center" role="presentation"><section aria-describedby="address-onboarding-description" aria-labelledby="address-onboarding-title" aria-modal="true" className="mx-auto w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl sm:p-8" role="dialog"><div className="flex items-start justify-between gap-6"><div><p className="text-xs font-semibold uppercase tracking-[.16em] text-[#3b5bdb]">Account setup</p><h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#182231]" id="address-onboarding-title">{isShipping ? "Where should we ship your parts?" : "What’s your billing address?"}</h1><p className="mt-2 text-sm leading-6 text-[#5f6673]" id="address-onboarding-description">{isShipping ? "Add the shared company shipping address used for RFQs, quotes, and orders." : "Review the billing address. It starts with your shipping address so you only need to change what differs."}</p></div><p className="shrink-0 rounded-full bg-[#edf2ff] px-3 py-1 text-xs font-semibold text-[#3b5bdb]">{isShipping ? "1 of 2" : "2 of 2"}</p></div><div className="mt-6"><AddressEditor error={error} save={save} setValue={setValue} value={value} /></div><button className="mt-5 text-xs font-medium text-[#667085] underline hover:text-[#253040]" onClick={skip} type="button">Skip for now — you can add these addresses later in Account settings</button></section></div>;
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 px-4 py-8 sm:flex sm:items-center sm:justify-center" role="presentation"><section aria-labelledby="address-onboarding-title" aria-modal="true" ref={dialog} tabIndex={-1} className={`${styles.dialog} mx-auto w-full max-w-2xl rounded-xl bg-white p-6 shadow-2xl sm:p-8`} role="dialog"><div className="flex items-start justify-between gap-6"><div><h1 className={styles.title} id="address-onboarding-title">{isShipping ? "Shipping Address" : "Billing Address"}</h1></div><p className="shrink-0 rounded-full bg-[#edf2ff] px-3 py-1 text-xs font-semibold text-[#3b5bdb]">{isShipping ? "1 of 2" : "2 of 2"}</p></div><div className="mt-6 space-y-3">{!isShipping ? <label className="flex gap-2 text-sm font-medium"><input checked={sameAsShipping} onChange={(event) => setSameAsShipping(event.target.checked)} type="checkbox" />Billing address is the same as shipping</label> : null}{!isShipping && sameAsShipping ? <><AddressValue value={shipping} /><SaveCancel save={save} error={error} saveLabel="Done" /></> : <AddressEditor error={error} hideSuggestionsHelp nameLabel={isShipping ? "Delivery Attn:" : undefined} save={save} saveLabel={isShipping ? "Done - Add Billing Address" : "Done"} setValue={setValue} value={value} />}</div><button className="mt-5 text-xs font-medium text-[#667085] underline hover:text-[#253040]" onClick={skip} type="button">I&apos;ll add this later in Account Settings</button></section></div>;
 }
 
 export function AccountSettingsWorkspace({
   initialSettings: provided,
+  onboardingOnly = false,
+  onOnboardingComplete,
   cardCheckoutAvailable = false,
   saveSettingsAction = async (settings) => settings,
   deferInitialAddressOnboardingAction,
   updateRequestShippingAddressAction,
   updateDisplayNameAction,
 }: {
+  onboardingOnly?: boolean;
+  onOnboardingComplete?: () => void;
   cardCheckoutAvailable?: boolean;
   initialSettings?: AccountSettingsSnapshot;
-  saveSettingsAction?: (settings: AccountSettingsSnapshot) => Promise<AccountSettingsSnapshot>;
+  saveSettingsAction?: (settings: AccountSettingsSnapshot, field: AccountSettingsField) => Promise<AccountSettingsSnapshot>;
   deferInitialAddressOnboardingAction?: () => Promise<void>;
   updateRequestShippingAddressAction?: (requestId: string, address: AccountAddress) => Promise<void>;
   updateDisplayNameAction?: (name: string) => Promise<{ name: string }>;
@@ -114,17 +147,20 @@ export function AccountSettingsWorkspace({
   const router = useRouter();
   const search = useSearchParams();
   const [settings, setSettings] = useState(() => provided ?? defaultAccountSettings());
-  const onboarding = search.get("onboarding") === "addresses";
-  const requestId = search.get("request");
+  const onboarding = onboardingOnly || search.get("onboarding") === "addresses";
+  const requestId = onboardingOnly ? null : search.get("request");
   const [editing, setEditing] = useState<Editable>(() => onboarding || search.get("edit") === "shipping" ? "shipping" : null);
   const [draft, setDraft] = useState("");
-  const [addressDraft, setAddressDraft] = useState<AccountAddress>(settings.shipping);
+  const [addressDraft, setAddressDraft] = useState<AccountAddress>(() => ({ ...settings.shipping, name: settings.shipping.name.trim() ? settings.shipping.name : settings.name.trim(), company: settings.shipping.company.trim() ? settings.shipping.company : settings.companyName.trim() }));
+  const [sameAsShipping, setSameAsShipping] = useState(Boolean(settings.billingSameAsShipping));
   const [billingDraft, setBillingDraft] = useState<BillingContact>(settings.billing);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [skipping, setSkipping] = useState(false);
+  const [saving, setSaving] = useState(false);
   const canManage = Boolean(settings.canManageCompany);
-  const canSetup = canManage || Boolean(settings.canCompleteInitialAddressOnboarding);
+  const canSetup = canManage || Boolean(settings.canManageCompanyDefaults) || Boolean(settings.canCompleteInitialAddressOnboarding);
+  const canEditPersonal = settings.canEditPersonalProfile !== false;
   const initials = settings.name.split(/\s+/).filter(Boolean).map((name) => name[0]).join("").slice(0, 2).toUpperCase() || "A";
   const showOnboardingDialog = onboarding && canSetup && (editing === "shipping" || editing === "billingAddress");
 
@@ -133,19 +169,24 @@ export function AccountSettingsWorkspace({
     setDraft(value);
     setError("");
     setMessage("");
-    if (field === "shipping") setAddressDraft(settings.shipping);
-    if (field === "billingAddress") setAddressDraft(settings.billingAddress);
+    if (field === "shipping") setAddressDraft({ ...settings.shipping, name: settings.shipping.name.trim() ? settings.shipping.name : settings.name.trim(), company: settings.shipping.company.trim() ? settings.shipping.company : settings.companyName.trim() });
+    if (field === "billingAddress") { setAddressDraft({ ...(settings.billingSameAsShipping ? settings.shipping : settings.billingAddress) }); setSameAsShipping(Boolean(settings.billingSameAsShipping)); }
     if (field === "billing") setBillingDraft(settings.billing);
   };
   const cancel = () => { setEditing(null); setError(""); };
-  async function persist(next: AccountSettingsSnapshot) { const saved = await saveSettingsAction(next); setSettings(saved); return saved; }
+  async function persist(next: AccountSettingsSnapshot, field: AccountSettingsField) {
+    setSaving(true);
+    setError("");
+    try { const saved = await saveSettingsAction(next, field); setSettings(saved); router.refresh(); return saved; }
+    finally { setSaving(false); }
+  }
   async function skipOnboarding() {
-    if (!deferInitialAddressOnboardingAction) return router.replace("/dashboard");
+    if (!deferInitialAddressOnboardingAction) { if (onOnboardingComplete) onOnboardingComplete(); else router.replace("/dashboard"); return; }
     setSkipping(true);
     setError("");
     try {
       await deferInitialAddressOnboardingAction();
-      router.replace("/dashboard");
+      if (onOnboardingComplete) onOnboardingComplete(); else router.replace("/dashboard");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to defer address setup. Please try again.");
       setSkipping(false);
@@ -153,27 +194,33 @@ export function AccountSettingsWorkspace({
   }
   async function saveText(field: "name" | "phone" | "company") {
     const value = draft.trim();
-    if (!value) return setError("This field cannot be blank.");
+    if (field === "phone" && !isValidPhoneNumber(value)) return setError("Enter a complete phone number. Use + and a country code for international numbers.");
+    if (!value && field !== "phone") return setError("This field cannot be blank.");
     try {
       if (field === "name" && updateDisplayNameAction) {
+        setSaving(true);
         const updated = await updateDisplayNameAction(value);
-        await persist({ ...settings, name: updated.name });
-      } else await persist({ ...settings, [field === "company" ? "companyName" : field]: value });
+        setSettings({ ...settings, name: updated.name });
+        router.refresh();
+      } else await persist({ ...settings, [field === "company" ? "companyName" : field]: value }, field === "company" ? "companyName" : field);
       setEditing(null);
       setMessage("Saved.");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this change."); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this change."); } finally { setSaving(false); }
   }
   async function saveAddress(field: "shipping" | "billingAddress") {
-    const next = Object.fromEntries(Object.entries(addressDraft).map(([key, value]) => [key, value.trim()])) as AccountAddress;
+    const next = Object.fromEntries(Object.entries(field === "billingAddress" && sameAsShipping ? settings.shipping : addressDraft).map(([key, value]) => [key, value.trim()])) as AccountAddress;
+    if (!isValidPhoneNumber(next.phone ?? "")) return setError("Enter a complete phone number for this address.");
     if (!completeAddress(next)) return setError("Name, company, address, city, state, and ZIP code are required.");
     try {
+      setSaving(true);
+      setError("");
       if (field === "shipping" && requestId && updateRequestShippingAddressAction) {
         await updateRequestShippingAddressAction(requestId, next);
         setSettings({ ...settings, shipping: next });
         router.replace(`/quotes/${encodeURIComponent(requestId)}`);
         return;
       }
-      const saved = await persist({ ...settings, [field]: next });
+      const saved = await persist({ ...settings, [field]: next, billingSameAsShipping: field === "billingAddress" ? sameAsShipping : settings.billingSameAsShipping }, field);
       if (onboarding && field === "shipping") {
         setAddressDraft(fillMissingAddressFields(saved.billingAddress, saved.shipping));
         setEditing("billingAddress");
@@ -182,13 +229,15 @@ export function AccountSettingsWorkspace({
       }
       setEditing(null);
       setMessage(onboarding ? "Addresses saved. Taking you to your workspace." : "Company address saved.");
-      if (onboarding) router.replace("/dashboard");
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this address."); }
+      if (onboarding) { if (onOnboardingComplete) onOnboardingComplete(); else router.replace("/dashboard"); }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save this address."); } finally { setSaving(false); }
   }
   async function saveBilling() {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingDraft.email)) return setError("Enter a valid billing email address.");
-    try { await persist({ ...settings, billing: billingDraft }); setEditing(null); setMessage("Billing contact saved."); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save billing contact."); }
+    if (!isValidBillingEmail(billingDraft.email.trim())) return setError("Enter a valid billing email address.");
+    try { await persist({ ...settings, billing: billingDraft }, "billing"); setEditing(null); setMessage("Billing contact saved."); } catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to save billing contact."); }
   }
 
-  return <><div aria-hidden={showOnboardingDialog} className="mx-auto max-w-[1040px] space-y-5"><header><h1 className="text-[28px] font-semibold tracking-tight text-[#182231]">Account settings</h1><p className="mt-1 text-[14px] leading-6 text-[#5f6673]">Manage your profile and operational company defaults.</p></header>{message ? <Notice>{message}</Notice> : null}<div className="grid gap-5 xl:grid-cols-[.72fr_1.28fr]"><aside className="space-y-5"><ProfilePictureEditor initials={initials} initialImageUrl={settings.profileImageUrl} initialPreset={settings.avatarPreset} /><Card><CardTitle title="Account Summary" detail="Current workspace access." /><div className="space-y-4 p-6"><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Role</p><p className="mt-1 font-semibold">{settings.roleLabel || "Customer Member"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Account</p><p className="mt-1 font-semibold">{settings.companyName || "No company assigned"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Currency</p><p className="mt-1 font-semibold">USD</p></div></div></Card></aside><div className="space-y-5"><Card><CardTitle title="Personal Information" detail="Contact details shown on RFQs, quotes, and order communication." /><Row label="Name" action={<Button onClick={() => start("name", settings.name)}>Edit name</Button>}>{editing === "name" ? <div className="space-y-3"><Input label="Name" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("name")} cancel={cancel} error={error} /></div> : <><p>{settings.name}</p><p className="text-[#737b86]">{settings.accountCreatedAt ? `Account created on ${settings.accountCreatedAt}` : "Account creation date unavailable."}</p></>}</Row><Row label="Phone" action={<Button onClick={() => start("phone", settings.phone)}>Edit phone</Button>}>{editing === "phone" ? <div className="space-y-3"><Input label="Phone number" value={draft} setValue={setDraft} type="tel" /><SaveCancel save={() => saveText("phone")} cancel={cancel} error={error} /></div> : <p>{settings.phone || "Not provided."}</p>}</Row></Card><Card><CardTitle title="Account Security" detail="Sign-in details are sourced from Clerk." /><Row label="Email"><p>{settings.email}</p><p className="mt-1 text-[12px] font-medium text-[#008f72]">{verification(settings.emailVerificationStatus, settings.emailVerifiedAt)}</p><p className="mt-2 text-[12px] text-[#737b86]">To change your sign-in email, contact <a className="font-semibold text-[#3b5bdb]" href="mailto:support@latticeos.co?subject=Email%20address%20change%20request">Lattice support</a>.</p></Row><Row label="Password"><ClerkPasswordEditor /></Row><Row label="Buyer company" action={canManage ? <Button onClick={() => start("company", settings.companyName)}>Edit company</Button> : undefined}>{editing === "company" ? <div className="space-y-3"><Input label="Buyer company" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("company")} cancel={cancel} error={error} /></div> : <><p>{settings.companyName || "Not configured."}</p><p className="text-[#737b86]">Company details are managed by Lattice Admin.</p></>}</Row><Row label="Payments"><p className="font-semibold">{cardCheckoutAvailable ? "Card payments available for eligible quotes" : "Card checkout is currently unavailable"}</p><p className="text-[#737b86]">{cardCheckoutAvailable ? "Pay for an issued quote by card through Stripe’s secure checkout. Saved-card management is not enabled." : "Lattice is completing payment setup. Contact support@latticeos.co about purchasing; saved-card management is not enabled."}</p></Row></Card><Card><CardTitle title="Manufacturing Account Defaults" detail="Shared company shipping and billing defaults." />{!canSetup ? <p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">Lattice Admin manages company defaults. You can update shipping for an individual quote from that quote’s shipping panel.</p> : null}<Row label="Shipping" action={canSetup || requestId ? <Button onClick={() => start("shipping")}>Edit shipping</Button> : undefined}>{editing === "shipping" && !showOnboardingDialog ? <AddressEditor value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("shipping")} cancel={cancel} error={error} /> : <AddressValue value={settings.shipping} />}</Row><Row label="Billing address" action={canSetup ? <Button onClick={() => start("billingAddress")}>Edit billing address</Button> : undefined}>{editing === "billingAddress" && !showOnboardingDialog ? <AddressEditor value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("billingAddress")} cancel={cancel} error={error} /> : <AddressValue value={settings.billingAddress} />}</Row><Row label="Billing contact" action={canSetup ? <Button onClick={() => start("billing")}>Edit billing</Button> : undefined}>{editing === "billing" ? <div className="space-y-3"><Input label="Billing email" value={billingDraft.email} setValue={(email) => setBillingDraft({ ...billingDraft, email })} type="email" /><label className="block text-[13px] font-semibold">Invoice notes<textarea className="mt-2 w-full rounded-md border p-3" onChange={(event) => setBillingDraft({ ...billingDraft, invoiceRoutingNotes: event.target.value })} value={billingDraft.invoiceRoutingNotes} /></label><SaveCancel save={saveBilling} cancel={cancel} error={error} /></div> : <>{settings.billing.email ? <p>{settings.billing.email}</p> : <p className="text-[#737b86]">Not configured.</p>}{settings.billing.invoiceRoutingNotes ? <p className="mt-1 text-[#737b86]">{settings.billing.invoiceRoutingNotes}</p> : null}</>}</Row></Card><Card><CardTitle title="Team access" detail="Company users are managed by Lattice Admin." /><p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">For access changes, contact Lattice support. Customer-admin team management is planned for a future release.</p></Card></div></div></div>{showOnboardingDialog ? <AddressOnboardingDialog error={error} field={editing} save={() => saveAddress(editing)} setValue={setAddressDraft} skip={skipOnboarding} value={addressDraft} /> : null}{skipping ? <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45"><p className="rounded-md bg-white px-4 py-3 text-sm font-medium shadow">Skipping address setup…</p></div> : null}</>;
+  if (onboardingOnly) return <fieldset aria-busy={saving || skipping} className="min-w-0 border-0 p-0" disabled={saving || skipping}>{showOnboardingDialog ? <AddressOnboardingDialog sameAsShipping={sameAsShipping} setSameAsShipping={setSameAsShipping} shipping={settings.shipping} error={error} field={editing} save={() => saveAddress(editing)} setValue={setAddressDraft} skip={skipOnboarding} value={addressDraft} /> : null}</fieldset>;
+
+  return <fieldset aria-busy={saving} className="min-w-0 border-0 p-0" disabled={saving}><div aria-hidden={showOnboardingDialog} className="mx-auto max-w-[1040px] space-y-5"><header><h1 className="text-[28px] font-semibold tracking-tight text-[#182231]">Account settings</h1><p className="mt-1 text-[14px] leading-6 text-[#5f6673]">Manage your profile and operational company defaults.</p></header>{saving ? <p role="status" className="text-sm text-[#5f6673]">Saving changes…</p> : null}{message ? <Notice>{message}</Notice> : null}<div className="grid gap-5 xl:grid-cols-[.72fr_1.28fr]"><aside className="space-y-5">{canEditPersonal ? <ProfilePictureEditor initials={initials} initialImageUrl={settings.profileImageUrl} initialPreset={settings.avatarPreset} /> : <Notice>Personal profile editing is unavailable in a support session.</Notice>}<Card><CardTitle title="Account Summary" detail="Current workspace access." /><div className="space-y-4 p-6"><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Role</p><p className="mt-1 font-semibold">{settings.roleLabel || "Customer Member"}</p></div><div><p className="text-[11px] font-semibold uppercase tracking-[.12em] text-[#6f7782]">Company</p><p className="mt-1 font-semibold">{settings.companyName || "No company assigned"}</p></div></div></Card></aside><div className="space-y-5"><Card><CardTitle title="Personal Information" detail="Contact details shown on RFQs, quotes, and order communication." /><Row label="Name" action={canEditPersonal ? <Button onClick={() => start("name", settings.name)}>Edit name</Button> : undefined}>{editing === "name" ? <div className="space-y-3"><Input label="Name" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("name")} cancel={cancel} error={error} /></div> : <><p>{settings.name}</p><p className="text-[#737b86]">{settings.accountCreatedAt ? `Account created on ${settings.accountCreatedAt}` : "Account creation date unavailable."}</p></>}</Row><Row label="Phone" action={canEditPersonal ? <Button onClick={() => start("phone", settings.phone)}>Edit phone</Button> : undefined}>{editing === "phone" ? <div className="space-y-3"><Input label="Phone number" value={formatPhoneNumber(draft)} setValue={(value) => setDraft(formatPhoneNumber(value))} type="tel" /><SaveCancel save={() => saveText("phone")} cancel={cancel} error={error} /></div> : <p>{formatPhoneNumber(settings.phone) || "Not provided."}</p>}</Row></Card><Card><CardTitle title="Account Security" detail="Sign-in details are sourced from Clerk." /><Row label="Email"><p>{settings.email}</p><p className="mt-1 text-[12px] font-medium text-[#008f72]">{verification(settings.emailVerificationStatus, settings.emailVerifiedAt)}</p><p className="mt-2 text-[12px] text-[#737b86]">To change your sign-in email, contact <a className="font-semibold text-[#3b5bdb]" href="mailto:support@latticeos.co?subject=Email%20address%20change%20request">Lattice support</a>.</p></Row><Row label="Password"><p className="text-[#737b86]">Use a secure reset link to choose a new password.</p>{canEditPersonal ? <Link className="mt-2 inline-flex rounded-md border border-[#cfd5dd] px-3 py-2 text-[13px] font-semibold text-[#3b5bdb]" href={`/forgot-password?email=${encodeURIComponent(settings.email)}`}>Reset password</Link> : null}</Row><Row label="Buyer company" action={canManage ? <Button onClick={() => start("company", settings.companyName)}>Edit company</Button> : undefined}>{editing === "company" ? <div className="space-y-3"><Input label="Buyer company" value={draft} setValue={setDraft} /><SaveCancel save={() => saveText("company")} cancel={cancel} error={error} /></div> : <><p>{settings.companyName || "Not configured."}</p><p className="text-[#737b86]">Company details are managed by Lattice Admin.</p></>}</Row><Row label="Payments"><p className="font-semibold">{cardCheckoutAvailable ? "Card payments available for eligible quotes" : "Card checkout is currently unavailable"}</p><p className="text-[#737b86]">{cardCheckoutAvailable ? "Pay for an issued quote by card through Stripe’s secure checkout. Saved-card management is not enabled." : "Lattice is completing payment setup. Contact support@latticeos.co about purchasing; saved-card management is not enabled."}</p></Row></Card><Card><CardTitle title="Manufacturing Account Defaults" detail="Shared company defaults for new quote requests. Existing quotes and orders keep their saved addresses and billing contact." />{!canSetup ? <p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">Customer Admins and Lattice Admins manage company defaults. You can update shipping for an individual quote from that quote’s shipping panel.</p> : null}<Row label="Shipping Address" action={canSetup || requestId ? <AccountAddressSettingsButton target="shipping" onClick={() => start("shipping")}>Edit shipping</AccountAddressSettingsButton> : undefined}>{editing === "shipping" && !showOnboardingDialog ? <AddressEditor nameLabel="Delivery Attn:" value={addressDraft} setValue={setAddressDraft} save={() => saveAddress("shipping")} cancel={cancel} error={error} /> : <AddressValue value={settings.shipping} />}</Row><Row label="Billing address" action={canSetup ? <AccountAddressSettingsButton target="billing-address" onClick={() => start("billingAddress")}>Edit billing address</AccountAddressSettingsButton> : undefined}>{editing === "billingAddress" && !showOnboardingDialog ? <div className="space-y-3"><label className="flex items-start gap-2 text-sm font-medium"><input checked={sameAsShipping} className="mt-1" onChange={(event) => { setSameAsShipping(event.target.checked); if (event.target.checked) setAddressDraft({ ...settings.shipping }); }} type="checkbox" />Billing address is the same as shipping</label>{sameAsShipping ? <p className="text-xs text-[#737b86]">Editing a field will save a separate billing address.</p> : null}<AddressEditor value={addressDraft} setValue={(value) => { setAddressDraft(value); setSameAsShipping(false); }} save={() => saveAddress("billingAddress")} cancel={cancel} error={error} /></div> : <><AddressValue value={settings.billingAddress} />{settings.billingSameAsShipping ? <p className="mt-1 text-xs text-[#737b86]">Same as shipping</p> : null}</>}</Row><Row label="Billing contact" action={canSetup ? <AccountAddressSettingsButton target="billing-contact" onClick={() => start("billing")}>Edit billing</AccountAddressSettingsButton> : undefined}>{editing === "billing" ? <div className="space-y-3"><Input label="Billing email" value={billingDraft.email} setValue={(email) => setBillingDraft({ ...billingDraft, email })} type="email" /><label className="block text-[13px] font-semibold">Invoice notes<textarea className="mt-2 w-full rounded-md border p-3" onChange={(event) => setBillingDraft({ ...billingDraft, invoiceRoutingNotes: event.target.value })} value={billingDraft.invoiceRoutingNotes} /></label><SaveCancel save={saveBilling} cancel={cancel} error={error || (billingDraft.email && !isValidBillingEmail(billingDraft.email.trim()) ? "Enter a valid billing email address, such as billing@company.com." : "")} disabled={!isValidBillingEmail(billingDraft.email.trim())} /></div> : <>{settings.billing.email ? <p>{settings.billing.email}</p> : <p className="text-[#737b86]">Not configured.</p>}{settings.billing.invoiceRoutingNotes ? <p className="mt-1 text-[#737b86]">{settings.billing.invoiceRoutingNotes}</p> : null}</>}</Row></Card><Card><CardTitle title="Team access" detail="Company users are managed by Lattice Admin." /><p className="px-6 py-5 text-[13px] leading-5 text-[#737b86]">For access changes, contact Lattice support. Customer-admin team management is planned for a future release.</p></Card></div></div></div>{showOnboardingDialog ? <AddressOnboardingDialog sameAsShipping={sameAsShipping} setSameAsShipping={setSameAsShipping} shipping={settings.shipping} error={error} field={editing} save={() => saveAddress(editing)} setValue={setAddressDraft} skip={skipOnboarding} value={addressDraft} /> : null}{skipping ? <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/45"><p className="rounded-md bg-white px-4 py-3 text-sm font-medium shadow">Skipping address setup…</p></div> : null}</fieldset>;
 }

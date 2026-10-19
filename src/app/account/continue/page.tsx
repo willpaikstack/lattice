@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getAccountSettings, hasCompletedAddressOnboarding } from "@/lib/account-settings";
 import { defaultHomeForRole } from "@/lib/auth-crypto";
 import { getCurrentSession, getPasswordSetupState } from "@/lib/session";
+import { getCustomerOnboarding } from "@/lib/customer-onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +29,13 @@ export default async function AccountContinuePage() {
   }
 
   if (session.user.role === "customer") {
+    // Introduce the real workspace immediately after personal-password setup.
+    // Eligible admins finish their existing address setup after the tour.
+    const onboarding = await getCustomerOnboarding();
+    if (onboarding && !onboarding.completed) redirect("/dashboard");
     const settings = await getAccountSettings();
     if (!hasCompletedAddressOnboarding(settings) && !settings.addressOnboardingDeferred) {
-      redirect("/account/settings?onboarding=addresses");
+      redirect("/dashboard");
     }
   }
 

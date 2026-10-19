@@ -18,6 +18,7 @@ beforeEach(() => {
     lineItems: [{ partName: "Bracket", quantity: 3, material: "6061-T6 Aluminum" }],
     files: [{ name: "bracket.step", sizeBytes: 2048, type: "model/step" }],
   })), id: "req_test" };
+  request.quote = { ...request.quote, shippingCostCents: 1250, shippingTerms: "DDP", estimatedDeliveryDate: "2026-11-10", leadTimeDays: 7, summary: "Manufacture to the supplied drawing." };
   mocks.params = new URLSearchParams("requestId=req_test&view=quote");
 });
 async function prepare(action = vi.fn()) {
@@ -65,6 +66,27 @@ describe("quote workbench saves", () => {
     render(<AdminQuoteManagement requests={[request]} updateStatusAction={vi.fn()} />);
     expect(await screen.findByRole("region", { name: "Archived RFQ details" })).toHaveTextContent("cannot receive a customer quote");
     expect(screen.queryByRole("button", { name: "Issue customer quote" })).not.toBeInTheDocument();
+  });
+  it("calculates delivery from lead times, permits a blank note and removes supplier metadata fields", async () => {
+    request.quote.summary = "";
+    const action = vi.fn().mockResolvedValue({ success: true });
+    await prepare(action);
+    const delivery = screen.getByLabelText("Estimated delivery date (calculated)") as HTMLInputElement;
+    expect(delivery).toHaveAttribute("readonly");
+    const before = delivery.value;
+    fireEvent.change(screen.getByLabelText("Lead time days - Bracket"), { target: { value: "15" } });
+    expect(delivery.value).not.toBe(before);
+    const note = screen.getByLabelText("Customer note (optional)");
+    expect(note).not.toBeRequired();
+    expect(screen.queryByLabelText("Shop name (optional)")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Country")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Overall lead time days")).not.toBeInTheDocument();
+    expect(screen.getByRole("spinbutton", { name: "Shipping cost" }).closest("label")).toHaveTextContent("*");
+    expect(screen.getByRole("button", { name: /Quote valid until/ }).previousElementSibling).toHaveTextContent("*");
+    expect(screen.getByRole("button", { name: "Issue customer quote" })).toBeEnabled();
+    submitQuote();
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(action.mock.calls[0][0].get("quoteSummary")).toBe("");
   });
   it("retains a customer clarification note when its save fails", async () => {
     mocks.params = new URLSearchParams("requestId=req_test&decision=NEEDS_INFO");

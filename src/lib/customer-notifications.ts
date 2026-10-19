@@ -54,28 +54,21 @@ function orderReference(order: LatticeRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {
-  const labels: Record<LatticeRequest["statusEvents"][number]["actor"], string> = {
-    buyer: "Buyer",
-    operator: "Lattice",
-    supplier: "Supplier",
-    system: "System",
-  };
-
-  return labels[actor];
+function quoteReference(request: LatticeRequest) {
+  return `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function quoteEventTitle(event: LatticeRequest["statusEvents"][number]) {
+function quoteEventTitle(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null && event.to === "DRAFT") {
     return "Draft created";
   }
 
   if (event.from === "DRAFT" && event.to === "SUBMITTED") {
-    return "RFQ submitted";
+    return "Request submitted";
   }
 
   if (event.to === "NEEDS_INFO") {
-    return "More information requested";
+    return "More information needed";
   }
 
   if (event.to === "QUOTED") {
@@ -87,7 +80,7 @@ function quoteEventTitle(event: LatticeRequest["statusEvents"][number]) {
   }
 
   if (event.to === "CLOSED") {
-    return "No quote";
+    return request.operatorReview.internalNotes ? "Unable to quote" : "Quote closed";
   }
 
   return quoteStatusLabels[event.to];
@@ -95,26 +88,36 @@ function quoteEventTitle(event: LatticeRequest["statusEvents"][number]) {
 
 function quoteEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null) {
-    return `${actorLabel(event.actor)} opened the RFQ workspace.`;
+    const createdMessage = `${quoteReference(request)} was created.`;
+    const hasBeenSubmitted = request.status !== "DRAFT" || request.statusEvents.some((statusEvent) => statusEvent.to === "SUBMITTED");
+    return hasBeenSubmitted ? createdMessage : `${createdMessage} Add any remaining details and submit when ready.`;
   }
 
-  if ((event.to === "NEEDS_INFO" || event.to === "CLOSED") && request.operatorReview.internalNotes) {
+  if (event.to === "NEEDS_INFO") {
+    return request.operatorReview.internalNotes || "Lattice needs a little more information before pricing can continue.";
+  }
+
+  if (event.to === "CLOSED" && request.operatorReview.internalNotes) {
     return request.operatorReview.internalNotes;
   }
 
   if (event.to === "SUBMITTED") {
-    return "Lattice received your RFQ and is reviewing the files and requirements.";
+    return "The request was submitted. Lattice is reviewing the files and requirements and collecting supplier pricing.";
   }
 
   if (event.to === "QUOTED") {
-    return "Your quote is ready to review.";
+    return "The quote is ready for review, including price, lead time, and assumptions.";
   }
 
   if (event.to === "CLOSED") {
-    return "This RFQ has been closed and archived.";
+    return "Lattice closed this quote request.";
   }
 
-  return `${actorLabel(event.actor)} moved the quote from ${quoteStatusLabels[event.from]} to ${quoteStatusLabels[event.to]}.`;
+  if (event.to === "PURCHASED") {
+    return "The quote was accepted, and the order is ready to track.";
+  }
+
+  return `Lattice moved the request to ${quoteStatusLabels[event.to].toLowerCase()}.`;
 }
 
 function quoteEventMeta(event: LatticeRequest["statusEvents"][number]) {
@@ -152,7 +155,7 @@ function quoteStatusEventItems(request: LatticeRequest) {
       meta: quoteEventMeta(event),
       occurredAt: event.at,
       time: formatActivityTime(event.at),
-      title: quoteEventTitle(event),
+      title: quoteEventTitle(request, event),
       tone: event.to === "NEEDS_INFO" || event.to === "QUOTED" ? "attention" : "status",
     }));
   const latestQuote = request.customerQuotes.at(-1);

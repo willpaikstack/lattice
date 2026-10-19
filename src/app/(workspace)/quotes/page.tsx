@@ -10,7 +10,7 @@ export default async function QuotesPage() {
   const quotes = await filterCustomerVisibleRequestsForCurrentSession(await listBuyerQuotes());
 
   return (
-    <div className="mx-auto max-w-[1180px] space-y-6">
+    <div data-workspace-tour="quotes" className="mx-auto max-w-[1180px] space-y-6">
       <WorkspaceListHeader kind="quotes" />
       <WorkspaceContentReveal>
         <BuyerQuotes requests={quotes} />

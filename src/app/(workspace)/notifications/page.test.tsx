@@ -137,7 +137,7 @@ describe("NotificationsPage", () => {
     render(await NotificationsPage());
 
     expect(screen.getByText("Draft created")).toBeInTheDocument();
-    expect(screen.getByText("RFQ submitted")).toBeInTheDocument();
+    expect(screen.getByText("Request submitted")).toBeInTheDocument();
     expect(screen.queryByText("Supplier pricing started")).not.toBeInTheDocument();
   });
 
@@ -168,9 +168,9 @@ describe("NotificationsPage", () => {
 
     render(await NotificationsPage());
 
-    expect(screen.getByText("No quote")).toBeInTheDocument();
+    expect(screen.getByText("Unable to quote")).toBeInTheDocument();
     expect(screen.getByText("We are unable to quote this RFQ because the required process is outside our supplier network.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /No quote/ })).toHaveAttribute("href", "/quotes/req_no_quote");
+    expect(screen.getByRole("link", { name: /Unable to quote/ })).toHaveAttribute("href", "/quotes/req_no_quote");
   });
 
   it("renders an empty state when no derived activity exists", async () => {

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import type { CustomerMaterialCondition, CustomerMaterialSubGroup } from "@/lib/customer-material-catalog";
 import { PlasticFunctionalProfile } from "@/components/plastic-functional-profile";
-import { getDirectoryMechanicalProperties, materialMechanicalProperties, type MaterialMechanicalProperties } from "@/lib/material-grade-properties";
+import { getDirectoryMechanicalProperties, getMaterialMechanicalProperties, type MaterialMechanicalProperties } from "@/lib/material-grade-properties";
 
 type GradeProfile = {
   applications: string;
@@ -39,7 +39,7 @@ function mechanicalPropertiesForGrade(familyName: string, grade: string, conditi
   const propertyGrade = condition?.grade ?? grade;
 
   return getDirectoryMechanicalProperties(familyName, propertyGrade)
-    ?? materialMechanicalProperties[displayGradeName(propertyGrade)]
+    ?? getMaterialMechanicalProperties(displayGradeName(propertyGrade))
     ?? unavailableMechanicalProperties;
 }
 

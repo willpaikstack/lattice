@@ -4,6 +4,8 @@ const mocks = vi.hoisted(() => ({
   canCurrentSessionAccessStorageKey: vi.fn(),
   readLocalUpload: vi.fn(),
   storedUploadDownloadUrl: vi.fn(),
+  inspectStoredUpload: vi.fn(),
+  openStoredUploadStream: vi.fn(),
 }));
 
 vi.mock("@/lib/request-access-policy", () => ({
@@ -13,6 +15,8 @@ vi.mock("@/lib/request-access-policy", () => ({
 vi.mock("@/lib/local-file-storage", () => ({
   readLocalUpload: mocks.readLocalUpload,
   storedUploadDownloadUrl: mocks.storedUploadDownloadUrl,
+  inspectStoredUpload: mocks.inspectStoredUpload,
+  openStoredUploadStream: mocks.openStoredUploadStream,
 }));
 
 import { GET } from "./route";
@@ -32,6 +36,8 @@ describe("local file route authorization", () => {
     mocks.canCurrentSessionAccessStorageKey.mockReset();
     mocks.readLocalUpload.mockReset();
     mocks.storedUploadDownloadUrl.mockReset().mockResolvedValue(null);
+    mocks.inspectStoredUpload.mockReset().mockResolvedValue({ sizeBytes: 9 });
+    mocks.openStoredUploadStream.mockReset().mockImplementation(async () => new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode("%PDF-test")); controller.close(); } }));
   });
 
   it("returns 401 when there is no authenticated session", async () => {
@@ -70,6 +76,25 @@ describe("local file route authorization", () => {
     expect(mocks.readLocalUpload).toHaveBeenCalledWith("rfq/2026-06-18/part.step");
   });
 
+  it("streams authorized CAD reads on the app origin instead of redirecting the viewer", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: true });
+    const response = await GET(new Request("http://localhost/api/local-files/rfq/test/part.glb?name=part.glb&read=1"), paramsFor("rfq/test/part.glb"));
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/octet-stream");
+    expect(response.headers.get("content-disposition")).toContain("attachment;");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(mocks.storedUploadDownloadUrl).not.toHaveBeenCalled();
+    expect(mocks.openStoredUploadStream).toHaveBeenCalledWith("rfq/test/part.glb");
+  });
+
+  it("denies CAD reads for another company before touching private storage", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: false });
+    const response = await GET(new Request("http://localhost/api/local-files/rfq/test/part.glb?read=1"), paramsFor("rfq/test/part.glb"));
+    expect(response.status).toBe(404);
+    expect(mocks.inspectStoredUpload).not.toHaveBeenCalled();
+    expect(mocks.openStoredUploadStream).not.toHaveBeenCalled();
+  });
+
   it("serves authorized PDF drawing bytes with private caching and sandbox protection", async () => {
     mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: true });
     mocks.readLocalUpload.mockResolvedValue({ contents: Buffer.from("%PDF-test"), sizeBytes: 9 });
@@ -79,6 +104,18 @@ describe("local file route authorization", () => {
     expect(response.headers.get("content-security-policy")).toBe("sandbox");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.status).toBe(200);
+    await expect(response.text()).resolves.toBe("%PDF-test");
+    expect(mocks.storedUploadDownloadUrl).not.toHaveBeenCalled();
+    expect(mocks.openStoredUploadStream).toHaveBeenCalledWith("rfq/test/drawing.pdf");
+  });
+
+  it("never opens the PDF stream for a foreign company", async () => {
+    mocks.canCurrentSessionAccessStorageKey.mockResolvedValue({ authenticated: true, authorized: false });
+    const response = await GET(new Request("http://localhost/api/local-files/rfq/test/drawing.pdf?preview=1"), paramsFor("rfq/test/drawing.pdf"));
+    expect(response.status).toBe(404);
+    expect(mocks.inspectStoredUpload).not.toHaveBeenCalled();
+    expect(mocks.openStoredUploadStream).not.toHaveBeenCalled();
   });
 
   it("redirects authorized large-file downloads to private storage without reading bytes", async () => {

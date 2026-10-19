@@ -1,5 +1,14 @@
 # Completed Work Log
 
+## 2026-10-15 — Add model removal to the OpenCascade demo
+
+- Added an admin-only demo control that clears the current CAD model, filename, geometry metrics, and conversion time so another local STEP/IGES file can be opened cleanly.
+- Verification: targeted typecheck/lint and live viewer QA confirmed the remove-and-reload flow; deployed with the admin demo.
+
+## 2026-10-15 — Add browser-based OpenCascade CAD viewer demo
+
+Added `/admin/cad-viewer`, linked from the admin sidebar and gated through both the admin workspace and page-role authorization. The demo provides local STEP/STP and IGES/IGS selection, a synthetic 20 mm STEP cube, an OpenCascade WebAssembly import worker, and a Three.js viewer with fit/standard views/wireframe, orbit controls, triangle count, and millimeter bounding-box output. Files stay in the browser; the page does not read or attach RFQ data and does not call Autodesk. Runtime assets are copied from pinned `occt-import-js` 0.0.23 on install/build and its LGPL and OCCT license texts are linked in the UI. Targeted typecheck and lint passed; direct STEP importer check produced 1 mesh, 140 triangles and 20 × 20 × 20 mm bounds; local admin page loaded the sample and rendered controls. This remains a demo, not an APS viewer replacement.
+
 ## 2026-10-10 — Material dropdown design and UX review
 
 Reviewed the live material dropdown in the in-app browser at `/requests/new`, including family browsing, searches for 304 and 6061, and no-results behavior; supplemented with source review. The selected material remained SS 304. Feedback: require an intentional material choice for new parts instead of silently defaulting SS 304; consolidate equivalent aliases into searchable canonical choices; retain distinct conditions such as T6/T651; reduce always-visible reference-code density; improve family access when reopening the menu auto-scrolls deep into an expanded group; add an unlisted-material recovery action; and label the search field/restore focus after Escape. The current typography, selected-value hierarchy, pinned search, and family grouping provide a strong base. Desktop review only; no application implementation or submitted RFQ changes.
@@ -2369,3 +2378,464 @@ Implemented strict RFQ file/part/drawing validation; versioned shared-draft repa
 - Vendor edit persisted across independent Preview deployments; restored the synthetic baseline. The additive vendor schema was verified in the Production staged build.
 - Promoted `dpl_LKRxRX56KSzo6DE1vZmomPPFqezZ` to latticeos.co after Production smoke checks. Application commits `a96a704`/`e3d8d39`; npm/Node24 contract, runtime audit zero advisories, unpatched development-only glob advisory documented. Live checkout disabled; P2/operational rollout gates remain.
 - Updated shared memory, feature map and sanitized P1 audit/evidence.
+
+## 2026-10-14 — Admin/customer separation review
+
+Reviewed server role guards, company/file ownership and customer browser payloads; 45 focused tests pass. Found remaining internal supplier data serialization in customer Quotes and Orders despite deployed P0 admin-page guards. Recorded evidence and remediation requirements in `docs/audits/admin-customer-separation-2026-10-14.md`. No application or deployment changes; complete isolation is not certified.
+
+## 2026-10-14 — Materials footer notes
+
+Moved the catalog-coverage/RFQ availability note from the top banner to the footer directly above the reference-properties note. Both paragraphs inherit the existing footer font, 13px size, 20px line height and muted color; removed the banner icon/background. Local browser accessibility confirms both notes follow the family cards; targeted ESLint passes. Updated the feature map. No deployment.
+
+## 2026-10-14 — Authorized workflow reset for operator audit
+
+Cleared local/deployed workflow tables and verified preserved accounts/setup unchanged; removed 9 development and 3 Production RFQs, 23/1 drafts, local invoices/quotes/history and 48 active local uploads. Empty fallback JSON prevents demo reseeding. Cleared old local Chrome draft/deleted-quote caches; confirmed local/Production admin and customer Quotes empty and databases still zero after navigation. Restricted recovery artifacts are ignored outside app storage. Completed physical cleanup through the existing Cloudflare session (four Production R2 objects; verified bucket empty) and APS API (14 unique manifests/six sources; all known models 404; local APS source bucket empty). Cleared one Production waiting-list lead. Accounts/setup/configuration preserved. No action pending in the current browser profile; other profiles/devices need draft-cache cleanup before use. See `docs/audits/workflow-reset-2026-10-14.md`. No code deployment, external payment or email.
+
+## 2026-10-14 — Apple Production Customer Member provisioned; invitation failed
+
+At the user’s explicit request, added William Paik (paik.e.william@gmail.com) as CUSTOMER_MEMBER under Apple using the Production admin workflow. User explicitly authorized the standard invitation email. Verified durable membership, Clerk linkage and correct company/role; Apple now has two users and Production six total. Invitation was rejected by the email provider and persisted FAILED/provider-rejected with no sentAt; password setup remains required, temporary credentials expire October 17. Resend’s Lattice account shows the sender domain verified but no current accepted email/log entry for this attempt. Do not claim delivered or repeat Add user. Diagnose Production email authorization/configuration/limits and use reset-and-resend after remediation. No password or secret recorded; local accounts unchanged.
+
+## 2026-10-14 — Production invitation delivery restored and Apple member invite delivered
+
+Verified the existing local Resend key authenticates and latticeos.co is verified. Updated the existing shared Preview/Production RESEND_API_KEY secret via Vercel’s stdin-based update; branch-scoped Preview configuration was retained. Redeployed the exact currently running Production source dpl_BXe3TNJrxeQuwkrdRatoBL3JbedJ as dpl_AgLKLPVpd66MFuzmRMLux8yBJhYE; remote build Ready and latticeos.co alias verified. No workspace source upload or app code change. Through the live admin workflow issued a replacement temporary credential/invitation for the existing Apple Customer Member paik.e.william@gmail.com, under explicit user authorization. Database confirms SENT with provider message ID; Resend API confirms delivered to that address, subject You’re invited to Lattice. The old failed invitation was revoked by the normal workflow. No duplicate account, other-user reset or password/secret output. User only needs normal first sign-in/password setup from the delivered invitation; temporary setup expires October 17. Sanitized evidence and screenshot under ignored output/qa.
+
+## 2026-10-14 — Entire admin RFQ row opens detail page
+
+Expanded the existing RFQ title link across its table row using a native anchor overlay and full-row keyboard focus outline. Company-profile shortcut remains independent. Five quote workflow tests, changed-component lint, typecheck and staged Production build passed. Released isolated HEAD-based checkout with only the two row-link source files changed, excluding the unrelated local Materials edit. Staged login/auth checks returned 200/307 using existing Vercel access; promoted dpl_4RjyCrfQcSjmNetykwiFPgqz5sm3 to latticeos.co. Live browser verified middle-of-row navigation to Impeller RFQ detail, Apple company shortcut and Enter activation to A4589 1 detail. No RFQ/customer mutation or email.
+
+## 2026-10-14 — Removed admin quote side inspector
+
+Removed the queue’s duplicate RFQ inspector component, selection highlight and responsive two-column layout; retained full-row RFQ links and pricing/detail workflows. Five quote tests, changed-component lint, typecheck and remote Production build passed. Promoted isolated release dpl_8fsneoxWEbvWYqsYnoQ5WGT2suhC after authenticated staged route check (anonymous app user redirects 307). Live browser confirms no RFQ inspector, full-width table (2688/2688 px at sampled viewport), and full-row Impeller navigation. Updated feature map/decision/context; screenshot in ignored output/qa/admin-quotes-table-only.png. No RFQ mutation or email.
+
+## 2026-10-14 — Admin RFQ submission date and user columns
+
+Replaced Due/owner and Customer quote with Eastern submission date/time including EST/EDT and the submitting user’s name. Added deterministic date formatting and company-scoped legacy name resolution for the admin view; new submissions now save authenticated session name/email rather than user-supplied identity. No form fields/schema migration or historical database mutation. All 37 targeted tests in five suites, lint, typecheck and remote build pass, including DST/submit-event/name isolation and identity-spoofing regression checks. Promoted isolated release dpl_53DPonoVfbvRSs1kMc6sYp4Cbcsy. Live browser shows A4140 4:32 PM EDT / Will Testpaik, A4589 4:20 PM EDT / Will ClawPaik, Impeller 4:16 PM EDT / Will ClawPaik; click on new date cell opens correct detail. Screenshot output/qa/admin-submission-columns.png is ignored. No live test RFQ or email created.
+
+### 2026-10-14 — Production RFQ account audit, first account completed
+
+Authorized synthetic Production audit started through genuine customer Google sessions. Submitted PW-1/PW-2/PW-3 as paik.e.william@gmail.com and reviewed all six parts as will@latticeos.co. Independent 210 comparisons pass for saved/admin requirements and indexed file metadata. Found customer per-part process presentation using the aggregate request process and an admin PDF preview failure despite a byte-identical, parseable original. Remaining nine submissions/three customer sign-ins and broader access/file checks pending; no repair or deployment claimed. See `docs/audits/rfq-account-audit-2026-10-14.md` and ignored QA evidence. Existing user RFQs were preserved.
+
+### 2026-10-14 — Production RFQ audit, second account completed
+
+User completed Google sign-in as willclawpaik@gmail.com. Submitted WC-1/WC-2/WC-3 through genuine customer UI, then verified all six parts as will@latticeos.co. WC 216 independent comparisons pass (426 combined with PW); all nine WC original CAD/PDF downloads match source bytes/hashes. Genuine Apple admin company sharing, foreign Greno RFQ 404 and admin-queue redirect pass. PDF preview failure reproduced. Found server drawing validation misreading “no drawing required” in free-text notes; recorded rejected attempt and successfully retried after an equivalent CAD-only phrase. Six of twelve RFQs now submitted/admin-reviewed. Two Greno sign-ins/six submissions and broader file/access checks remain; no app repair/deployment performed. Updated durable audit and TODO.
+
+### 2026-10-14 — Production RFQ audit, third account completed
+
+User completed Google sign-in as willpaik99@gmail.com. Submitted W99-1/W99-2/W99-3 through genuine customer UI, then reviewed all six parts as will@latticeos.co. W99 220 independent comparisons pass (646 combined across three accounts); all eleven W99 original CAD/PDF downloads match source bytes/hashes. Genuine Greno customer admin is denied the Apple RFQ, its directly addressed CAD original, and the admin queue. Existing PDF preview failure reproduces; no new submitted-data mismatch. Nine of twelve RFQs/18 parts now submitted/admin-reviewed. Final ahoyyer member login/three RFQs, broader member/file checks, and eight remaining PW original hashes remain. No app repair/deployment performed. Updated durable audit/TODO; explicit final-account plan is saved separately from evidence.
+
+
+### 2026-10-14 — Four-account Production RFQ audit completed with findings
+
+Completed the authorized twelve submissions through genuine customer Google sessions (three each from both Apple accounts and both Greno accounts), then reviewed all 24 parts as will@latticeos.co. All selected requirements/part associations match across 840 comparisons; all 39 original CAD/PDF downloads are byte-identical. The final six models lack previews/derived metadata after Autodesk 403; staged retries after user-reported credits still failed (24 derived checks unresolved). Three confirmed app defects and provider failure are documented without source repair/deployment. Member company-sharing/file access and cross-company/admin denials pass for the recorded paths; no complete security certification. Existing three user RFQs preserved, twelve QA records retained, final admin tab filtered to QA. Exact cross-computer field/note/file/hash ledger is saved in `docs/audits/rfq-account-submissions-2026-10-14.json`; full report in `docs/audits/rfq-account-audit-2026-10-14.md`.
+
+## 2026-10-14 — Repair RFQ audit findings and identify Autodesk capacity blocker
+
+Repaired and released per-part customer process display, PDF preview reads through the authenticated app origin, and false drawing validation from negated/free-text notes. Added structured drawing flags and correct flag restoration, legacy exact-line support, a saved-original admin CAD retry, and a clear APS capacity refusal. Production browser verification confirms correct mixed processes, working test PDFs and the provider refusal while originals remain available. Full suite passed at 588 tests before the final narrow prefill change; final focused regressions, lint/typecheck and hosted build pass. The provider body identifies `ProductAccessRequiresCapacity`; William confirmed added credits were Codex credits. Autodesk APS/Flex capacity restoration is required from the account owner; six models and persisted URN/dimension backfill remain outstanding. Release `dpl_FboVWTNXMVUuxkBmZ1oLvk9ijLDN`. Details: `docs/audits/rfq-audit-repairs-2026-10-14.md`.
+
+## 2026-10-15 — RFQ export declaration advances on selection
+
+Updated the CAD-selection popup so choosing the unrestricted option immediately advances to the Prototype/Commercial question; the export page no longer asks for a separate Continue click. Prototype/Commercial remains an explicit choice and Continue action before Configure. Choosing the restricted option stays on the refusal message. Updated the operator-facing feature map and the existing RFQ workflow test. Release check passed: all 31 request-form tests, typecheck, changed-file lint, `git diff --check`, and the production build. Deployment was not part of this check.
+
+## 2026-10-15 — CAD demo adds common mesh and glTF previews
+
+Extended the admin-only browser CAD demo to preview STL, OBJ, glTF, and GLB alongside STEP/IGES using Three.js loaders. Files remain local to the browser; STL/OBJ show unitless model dimensions, glTF/GLB meter dimensions are converted to millimeters, and unsupported external glTF sidecar assets produce an actionable error. Updated supported-format UI, validation, feature map and focused importer tests. Twelve focused tests pass; typecheck, changed-file lint, whitespace check and production build pass. Smoke-parsed STL, OBJ, embedded glTF and GLB triangle fixtures. Deployed to Production as `dpl_GsCiXoaDVpAMdknHWQf4kS6mDqUy` with aliases `latticeos.co` and `www.latticeos.co`. Live browser QA confirmed STL, OBJ, embedded glTF and GLB files render; glTF/GLB meter dimensions convert to millimeters. External glTF companion assets remain intentionally unsupported with a clear prompt to use a self-contained GLB. Screenshot: `/tmp/lattice-cad-viewer-formats.png`.
+
+
+## 2026-10-15 — CAD demo lists accepted upload formats in the viewer
+
+Added an always-visible accepted-file-types line directly below the CAD viewer controls, listing STEP/STP, IGES/IGS, STL, OBJ, glTF and GLB, plus the 50 MB per-model limit. Updated the operator feature map.
+
+The final Production deployment `dpl_Fj6qCsSZR8nGjVVkaffQ8muYSEgS` was built from commit `3f03b97` with the current Vercel Production environment and promoted to `latticeos.co` on 2026-10-15. The earlier working-tree deployment was superseded by this commit-backed release. Vercel build, typecheck, all 31 request-form tests, targeted lint and diff checks passed. Browser reload confirmed the signed-in `/requests/new` route loads from the promoted deployment; no live RFQ was submitted and no customer CAD file was uploaded. The release contains the quote-request declaration flow, the admin CAD demo's additional import formats, and the materials catalog note relocation.
+## 2026-10-15 — Expand customer CAD intake formats
+
+Added STL, OBJ, glTF and GLB to the customer CAD file picker and shared server-side upload/submission validation. Existing 200 MiB upload limit remains. Automated tests cover all four accepted formats, picker extension values, and the unchanged drawing/unsupported-extension rules. Customer preview requests still use the existing Autodesk pipeline; routing the formats supported by the local demo through browser rendering remains follow-up work. The demo's 50 MiB cap is a separate browser-processing safeguard, not a Vercel or Autodesk limit; increasing it can multiply browser memory use and processing time and needs device/file-size testing.
+
+## 2026-10-15 — Hybrid RFQ CAD viewer with 200 MiB local processing
+
+Integrated the demo's shared OpenCascade/Three.js viewer into customer file selection, restored drafts, customer quote detail (on-demand View 3D), and admin RFQ review. STEP/STP, IGES/IGS, STL, OBJ and embedded glTF/GLB bypass APS translation/status/thumbnail calls, including older saved files with APS URNs. Accepted native SLDPRT/SAT/X_T/X_B/IPT remain on APS. As explicitly chosen by William, local failures keep originals and show a preview error with no Autodesk fallback. Local parsing and customer upload validation share the existing 200 MiB cap (UI label 200 MB); drawings already use the same cap. Workers serialize conversions, transfer typed geometry buffers, support cancellation/timeout, and skip costly optional edges on large meshes. Saved CAD streams through the existing authorized, private/no-store file route; cross-company access gates remain.
+
+Verification: all 633 tests in 123 files pass; typecheck, changed-file lint and production build pass. Full repository lint still reports pre-existing/generated vendored OCCT errors; changed source files are clean. Browser rendered STEP, IGES, STL, OBJ, embedded glTF and GLB and an exact-200-MiB synthetic OBJ. That large fixture has one triangle plus padding and verifies the byte boundary, not realistic complex-model memory/performance. Customer glTF upload and saved-draft reopening render correctly with mm metadata. Unitless STL/OBJ do not persist invented mm dimensions. Routing/error tests verify no APS fallback and access-control tests deny foreign saved-file reads. No Production RFQ submission or provider conversion was made during these checks. Screenshot: `/tmp/lattice-hybrid-customer-preview.png`. Native APS live conversion remains dependent on restoring account capacity; representative complex-model/lower-memory device testing remains follow-up. Release status is recorded below after deployment.
+
+Release: application commit `d84d68f` is Production Ready as `dpl_9ifRDmjCSFqabD7AVpEMDEs1i6rY` (`https://lattice-jgd38tg1e-willpaikstacks-projects.vercel.app`), promoted to `latticeos.co` on 2026-10-15. Hosted login/worker reads return 200 and the hosted OpenCascade worker bytes match the tested source. Authenticated Production verification reopened existing Impeller RFQ `rfq_1e49a08c7533f7cae2b897aeae5471ad49dc054b` from private storage in the local viewer; visible dimensions 254.08 × 254.08 × 127.00 mm match the prior saved envelope. Demo shows the new 200 MB cap. No request/customer records were edited. Production screenshot: `/tmp/lattice-hybrid-production-rfq.png`. Initial error-log scan found only three PostgreSQL SSL-mode deprecation warnings, no observed application failures; this was a short smoke-check window, not ongoing monitoring.
+
+## 2026-10-15 — Quote configuration submission guard, delivery date and draft reassurance
+
+Removed implicit RFQ form submission and moved the submit action to the explicit Request Quote click handler. Enter is blocked on that button, while dropdown selection and notes keep normal keyboard behavior. Added regression coverage for repeated Enter, implicit form submits, successful explicit clicks, payload dates and saved draft preservation. The mismatched intended-use warning now explains that current progress is saved as a draft and a new quote opens in another tab. Renamed the per-part ManufacturingDetails JSON field to targetDeliveryDate across form state, draft snapshots/restoration, server validation, persisted parts, admin review and quotation workbench. Updated label/calendar/help text to preferred arrival; legacy targetShipDate remains readable, new/blank delivery values take precedence, and old draft keys normalize on read. Added an idempotent SQL backfill and explicit-environment runner for submitted-part JSON; no new physical DB column is necessary for the existing manufacturingDetails JSON column. Local backfill found zero legacy part rows.
+
+Browser QA: a ready synthetic local glTF draft remained unsubmitted after material-picker Enter selection and repeated Enter on Request Quote. The delivery calendar and Oct 29 selection work; the different-use part warning shows saved-progress/new-tab copy and blocks Continue. No live RFQ was submitted. Screenshot: /tmp/lattice-quote-progress-warning.png. Full-suite and release results are recorded below.
+
+Release verification: all 638 tests in 123 files, typecheck, changed-file lint, whitespace checks and local/hosted builds pass. Application commit `c61b057` is Ready Production deployment `dpl_83fU1hTTyKAg29PuKtavqy6Q4dkq` (`https://lattice-p6z87kid6-willpaikstacks-projects.vercel.app`), promoted to latticeos.co on 2026-10-15. Hosted login returned 200. Production JSON backfill updated 28 part records; an independent per-record before/after deep comparison confirmed all date values and other manufacturing fields were preserved. A second migration updated zero rows, confirming idempotence. Persisted draft keys normalize lazily on read/write for browser/shared drafts. Authenticated admin verification shows Target delivery date (customer preference), retaining 2026-10-29 on existing RFQ rfq_92bed209fa39ff6aa4119880737c33ee492a6a37. Screenshot: /tmp/lattice-delivery-date-production.png. Initial deployed error-log scan returned zero records; this is a short smoke check, not an ongoing monitoring claim. No RFQs, customer records or emails were created by verification. Local synthetic draft material/date edits remain saved.
+
+## 2026-10-15 — Customer quote activity copy
+
+Updated the buyer quote activity timeline and derived customer notification feed to use conversational second-person copy, label customer actions as `You`, and name quote acceptance `Order placed`. The order detail says the accepted quote is ready to track; repository purchase handling confirms acceptance changes the request to `PURCHASED` and creates the order. Removed `Supplier pricing started` from the customer quote activity timeline and retained it as an internal lifecycle transition; submission copy now conveys review and supplier pricing collection without implying a separate wait step. Changed the activity subtitle to `Updates on your quote request` and updated the feature map and notification spec. Release verification and Vercel deployment results are recorded after completion.
+
+Release verification: typecheck, changed-file ESLint, `git diff --check`, and local/hosted production builds pass; automated tests were not run. Vercel Production deployment `dpl_3ypg7rpL6vdMnSajiiovYEcG15k5` is Ready and aliased to `https://latticeos.co`. It was deployed directly from the working tree because the Vercel API connector lacked team-scope access; the authenticated Vercel CLI succeeded. The signed-in Production quote detail rendered the new `Updates on your quote request`, `Request submitted`, `You` attribution, and second-person submission copy, with no supplier-pricing event in the activity list. No RFQ or order data was changed.
+
+## 2026-10-15 — Remove quote activity actor labels
+
+Removed the redundant `You`/actor badge beneath each quote activity entry; the conversational descriptions still identify customer actions in the sentence. Updated the buyer quote feature map. Typecheck, changed-file ESLint, `git diff --check`, and local/hosted production builds pass; automated tests were not run. Production deployment `dpl_GBa91veZUAXKRWtRWPa3xpuMejjg` is Ready and aliased to `https://latticeos.co`. Reloaded the signed-in Production quote and confirmed the activity entries no longer have actor labels. No RFQ or order data was changed.
+
+## 2026-10-15 — Make quote creation activity conditional
+
+Changed the draft-created activity description to identify the quote by its customer-facing quote ID. It includes the remaining-details/submission reminder only while the request is still an unsubmitted draft; submitted and later-stage requests show only that the quote request was created. Applied the same behavior in the customer notifications feed and updated the feature map. Typecheck, changed-file ESLint, `git diff --check`, and local/hosted builds pass; automated tests were not run. Deployment result is recorded after release.
+
+Release verification: deployment `dpl_45oPwHLd1aiUiAxc9rMMR5xppMn5` is Ready and aliased to Production at `https://latticeos.co`. Reloaded the signed-in quote detail and confirmed the submitted RFQ says `LQ-RFQ_73E7 was created.` with no submission reminder. Checks passed as listed above; no customer data was changed.
+
+Release verification: neutral activity copy is deployed as `dpl_F77GTYgbyuckznd5ZU9dUGGyX9NM`, Ready and aliased to `https://latticeos.co`. Reloaded the signed-in Production quote page and confirmed the event descriptions contain no second-person language. Typecheck, focused lint, whitespace check, and local/hosted builds passed; automated tests were not run.
+
+
+## 2026-10-15 — Local CAD viewer screenshot thumbnails
+
+Added isometric 384px PNG capture immediately after local geometry renders. Intake waits for the saved original key before persisting the screenshot; saved customer/admin viewer openings also capture images. Quote lists, draft continuation and quote detail use the shared thumbnail component. Missing legacy images are generated serially from the authorized saved originals; duplicate queued views recheck storage before parsing, and geometry is disposed after capture. Available screenshots copy with draft-to-RFQ promotion. The new API authorizes against the original, bounds request bytes and decoded pixels, re-encodes PNGs with metadata stripped and serves private/no-store images. No schema migration or Autodesk call is required.
+
+Verification: 34 targeted tests and 52 customer-access workflow tests pass, including foreign/anonymous read/write denial, invalid/oversized/origin rejection, real PNG normalization, draft promotion byte preservation and serial/cancelled thumbnail work. Local browser verification rendered the sample STEP model and its actual screenshot. Production verification and release details follow after deployment.
+
+Release: application commit `9184b6c` is pushed to `origin/codex/opencascade-admin-demo` and deployed as Production Ready `dpl_7KiJXE2nff45dJoauEuw1GRD5Cbq` at `https://latticeos.co`. Hosted build and changed-file lint pass. Signed-in Production Quotes verification generated distinct actual images for A2341.STEP, QA-PW-2-P2.step and submitted QA-AH-3-P1.step. Each image loaded as 384px; after reload all three loaded directly from their private thumbnail URLs at revision 0 with zero active model canvases, confirming durable screenshot reuse and geometry cleanup. The only Production writes were derived screenshots; no RFQ fields, original files, orders or emails changed. Other legacy thumbnails generate as their rows are viewed. The temporary synthetic local verification route was removed before deployment.
+
+
+## 2026-10-15 — Restore compact CAD viewer design and inspection tools
+
+The local-renderer integration had reused the admin demo interface (440/560px canvas, text buttons and duplicate dimension footer) instead of preserving the existing Autodesk presentation. Restored the compact 320px rounded viewport, subtle light background, orientation cube synchronized with camera orbit, Home/standard views and bottom icon toolbar. Per William’s explicit follow-up, added local surface point-to-point Measure with mm/in conversion and unitless labels, independent-mesh Explode with adjustable separation, and X/Y/Z Section with adjustable position/reversal. Tool switches and Home clear temporary inspection state. Single-body explosion is disabled. Loading/error frames use the same size, and the existing private thumbnail capture still takes an isometric model-only screenshot before interactive tools.
+
+Local browser verification used two synthetic 20mm bodies: standard views, point selection, a 15.863mm distance converting to 0.625in, body explosion and section clipping rendered correctly. A single unitless body disabled explosion and measured in model units without a physical-unit selector. The restored scene still captured a real 384px screenshot. These tools inspect tessellated surfaces; geometric feature snapping and capped solid sections are not implemented. The temporary synthetic verification page is removed before release. Final automated/release results follow below.
+
+Pre-release checks: 36 focused viewer/thumbnail/storage regressions and 52 customer-access workflow tests pass. TypeScript, changed-file ESLint, whitespace checks and the local production build pass. Browser-only temporary fixtures were removed before the build; no customer RFQ, original file or purchase data was changed by local verification.
+
+Release: application commit `1f7ddde` is pushed to `origin/codex/opencascade-admin-demo` and deployed as Ready Production `dpl_BqvyX7pr1XaBMXgcDwbrhSe5gmeB` at `https://latticeos.co`. Hosted build passes. Signed-in Production verification reopened the existing A2341 draft, measured the viewer DOM height at 320px, confirmed one model canvas and all three inspection controls, opened/reset Section, and observed no browser console errors. The single-body model correctly disables Explode. Draft configuration and its 48.26 × 35.26 × 48.26mm envelope remain visible; no RFQ was submitted. Screenshot capture continues through the existing private derived-image path. Native Autodesk previews retain their original implementation.
+
+## 2026-10-15 — Confirm quote activity applies across customer accounts
+
+Investigated the reported legacy Quote activity screenshot for willclawpaik@gmail.com. Fresh Production navigation to WC-3 (`rfq_8bf7c6a0beee28eca3c31d2629a020e4ec88f4fb`, matching the October 14 9:31 PM timestamp) shows the neutral creation/submission descriptions, updated subtitle and no actor labels. The shared buyer quote component and customer dashboard/notification helper already derive customer copy from status transitions instead of historical event descriptions, with no account-specific branch. Existing Production deployment `dpl_BqvyX7pr1XaBMXgcDwbrhSe5gmeB` includes this behavior. An older loaded page is a plausible explanation for the screenshot; the exact customer's browser session was not available for inspection.
+
+Updated stale notification test expectations and a stale CAD-thumbnail assertion. Added regression coverage for two customer email identities, including the reported address, with deliberately obsolete stored event copy; verifies neutral timeline text, no Buyer/You labels and no post-submission reminder. All 28 focused tests pass. No workflow records or customer email were changed. Release confirmation follows.
+
+Release confirmation: commit `a5b4497` pushed to Git and deployed as Ready Production `dpl_6fAL8Pazp3AzurHaUQBA4QMdJPXM`, aliased to `https://latticeos.co`. Hosted production build passes. Reloaded the reported WC-3 quote after deployment; neutral activity remains visible with no actor badges. Typecheck, focused ESLint and whitespace checks pass.
+
+## 2026-10-15 — Match quote preparation to customer controls
+
+Reused the customer TargetDatePicker for estimated delivery and quote expiration; added optional label, helper text, hidden form-field name and clear-button configuration while retaining customer-intake defaults. Replaced shipping speed/terms native selects with the shared customer CustomSelect, keeping option values, shipping lead-time calculations, dirty-state detection and named submission fields. Quote expiration retains the 15-business-day default, now editable with a calendar. Both issuance action and repository validate and preserve explicit expirations on/after the issue date instead of replacing them. Cancel-edit resets the new controlled shipping/delivery values to the saved quote. Feature map, project context and decision updated. Typecheck, focused ESLint and whitespace checks pass. Automated tests were not run. Local browser preview requires a separate development sign-in; no customer RFQ was issued or changed.
+
+Release confirmation: app commit `92125a3` pushed to Git and deployed as Ready Production `dpl_2vpPnWpK1WU8pWmJpccyUw7YoVUQ`, aliased to latticeos.co. Hosted production build passes. Reloaded the requested admin RFQ page, opened Edit quote, both date calendars and shipping terms dropdown, then canceled editing without saving or sending a quote. A quote v1 was already present on reload (created outside this agent’s actions); it was preserved. Captured local UI evidence in output/qa (untracked).
+
+## 2026-10-15 — Identify RFQ submitter in quote preparation
+
+Added Submitted by to the quote preparation header alongside Customer, Reference and Process, using the saved requesterName rather than the signed-in operator. Archived RFQ details also display the name, with Name not recorded for missing historical values. Updated the operator feature map. No request data or schema changes.
+
+Release confirmation: app commit `9f22779` pushed and deployed to latticeos.co as Ready Production `dpl_21H4wGGYoKcs9zED5juQYFxm9Rvn`. Typecheck, focused ESLint, whitespace checks and hosted production build pass; automated tests were not run. A separate read-only browser tab verified Submitted by Carmen Practice alongside Greno Industries on the requested RFQ. No quote fields or workflow data were changed.
+
+## 2026-10-15 — Include submitter email in quote preparation
+
+Added Email next to Submitted by in the admin quote preparation header and archived RFQ details, sourced from the RFQ requesterEmail. Missing legacy values display Email not recorded. Updated the feature map. User explicitly confirmed Git push and Vercel production deployment. No request data changes or emails sent.
+
+Release confirmation: app commit `cc5834b` pushed to Git and deployed as Ready Production `dpl_634MfhULZNhGfN5v9fz5bBHaM3bW` at latticeos.co. Typecheck, focused ESLint, whitespace check and hosted production build pass. Automated tests were not run. A fresh read-only browser tab verified the saved requester email beside Carmen Practice in the requested RFQ header; screenshot evidence remains untracked in output/qa. No RFQ data changed.
+
+## 2026-10-15 — Require complete quote preparation before issuance
+
+Added a shared client/server quote preparation validator covering each unit price, each positive whole-number part lead time, explicit shipping cost, allowed shipping speed/terms, real delivery and expiration dates, expiration on/after issuance, and a nonblank customer note. The workbench disables Issue/Save updated quote and lists invalid/missing fields. Explicit form submission is guarded; the authenticated server action rejects incomplete or manipulated payloads before persisting or sending email. Customer note and lead-time inputs are controlled; cancel editing resets notes to saved values. Removed the generic note fallback and updated blank-shipping copy. Numeric amounts retain existing nonnegative/two-decimal/integer-storage limits. Typecheck, focused ESLint and whitespace checks pass; automated tests were not run. Feature map and decision updated.
+
+Release confirmation: app commit `80a96ba` pushed and deployed as Ready Production `dpl_4X6bGuHxeqKpm5LA3tq6okaPmc58` at latticeos.co; hosted build passes. A separate browser tab verified the requested AH-2 RFQ starts with issuance disabled and a completion list. With all fields filled using transient verification values, issuance enables; clearing either part price, either part lead time, shipping cost or customer note disables it again. A whitespace-only note and expiration before the issue date are blocked. Missing terms/delivery were also shown as blockers while filling. Explicit shipping 0 is accepted. Closed the temporary tab without issuing, saving or emailing a quote; the user’s original tab and saved RFQ remain untouched. Screenshot evidence is untracked in output/qa.
+
+## 2026-10-15 — Make account settings operational and audit propagation
+
+Repaired direct profile-photo selection so it opens the preview/save dialog; added visible invalid/oversized-file feedback and durable image URLs, fixed unchanged-photo saves that could delete the image, and added initials restoration. Extracted shared photo/emoji/initials rendering for settings and the sidebar. Clerk's generated default image no longer masks an explicit preset. Real local browser upload/save/reload showed two loaded durable images; an emoji save/reload also appeared in both locations. The original slate/wave avatar was restored and verified through Clerk.
+
+Account actions validate and save only the edited column group, resolve identity/company/permissions on the server, and refresh the shared layout. Personal names update Clerk and the linked User; phones remain user-scoped. William approved shared shipping/billing/AP default editing for Customer Admins and Lattice Admins, with company renaming remaining Lattice Admin-only. Members retain personal editing. Legacy user-owned company defaults are cleared after adoption. Support sessions cannot edit the operator's personal profile under a customer name or attribute the operator's avatar/identity dates to the customer. Fixed verified-without-timestamp display. Account Summary uses Company and omits currency.
+
+Added Request.billingSnapshot JSONB and an explicit idempotent migration. New submissions, including old draft submissions, resolve current shipping and billing defaults on the server. Quote, checkout, order and invoice paths retain request-owned billing/contact/shipping snapshots; even blank legacy shipping fields no longer borrow later defaults. An in-review RFQ's explicit shipping editor starts from that RFQ and updates only its snapshot. Issued quotes no longer link a Change action to shared defaults. Existing Invoice snapshots remain unchanged. Historical billing was not previously recorded on RFQs; migration can only freeze current company billing for missing snapshots. Local database migration ran twice and found zero existing billing snapshots to backfill. Production migration/deployment remain pending.
+
+Replaced direct password editing with an email-prefilled Reset password link. Repaired existing recovery to atomically claim the single-use token, update linked Clerk credentials/sign out other sessions, then synchronize local credentials/audit. Added policy/service error states. The browser reaches the recovery page with the correct visible email; no reset email was sent and no real password changed.
+
+Verification: 121 focused tests in 13 files pass, including authenticated name writes/failures, stale-save protection, permissions/company boundaries, avatar persistence/failures, request API/persistence, quote/checkout/order snapshots, invoice billing, password policy/provider failures and token contention. The opt-in real PostgreSQL audit passes and confirms personal/shared persistence, another member's shared defaults, cross-company isolation, a completely unchanged old RFQ after all edits, fresh new RFQ snapshots, one-time legacy billing backfill/repeat-run preservation and full rollback; a post-transaction query confirms zero audit companies remain. Actual local phone form/action/database/reload also passes; original blank phone was restored and independently verified in PostgreSQL. Typecheck, changed-file ESLint, whitespace checks and final local production build pass. A driver concurrency-deprecation warning occurred in Prisma's relation reads during the database audit; assertions and rollback pass.
+
+Full-suite checkpoint: 655 pass, 11 fail, 1 opt-in test skipped. All 11 failures reproduce against a clean starting-commit archive: seven admin quote-action expectations, two quote-workbench tests and two notification-copy tests reflect earlier unrelated changes. Final settings refinements are covered by the later focused run. No Production changes, customer RFQ/order edits or emails were made. Source and release limits: docs/audits/account-settings-2026-10-15.md. Browser evidence: /tmp/lattice-settings-photo-verified.jpg and /tmp/lattice-settings-final.jpg. Updated PROJECT_CONTEXT, DECISIONS, TODO and the feature map.
+
+## 2026-10-15 — Release account settings and repair baseline tests
+
+William authorized Production migration/deployment, hosted Apple Admin/Member verification, recovery for willclawpaik@gmail.com and repair of the 11 baseline failures. Reconciled commercial-input fixtures and required-field/zero-price/expiration/notification assertions; full suite now passes 677 tests with one opt-in DB test skipped. The earlier explicit PostgreSQL rollback audit passed. Typecheck and focused lint pass.
+
+Production additive migration backfilled 15 billing snapshots; repeat run updated zero. Independent deep comparisons preserved every other Request field and all existing invoices (zero rows). Pushed source 6f05bfd and packaging 2cdac4f; hosted build passed and dpl_G4gNx6XcserXJMyV5rEheNFan6en was promoted to latticeos.co. Deployment uploads now exclude local audit/design outputs.
+
+Genuine Apple Customer Admin UI plus Production reads verified personal/shared settings persistence, provider-backed photo reloads, emoji rendering in settings/sidebar and fresh RFQ snapshots. Submitted identifiable synthetic RFQ rfq_f18ce944786a6fcd3439d5c24ce09744b9cd3bb0 using the repository demo cube, with explicit no-manufacturing/no-outreach notes. Restored all original account/company settings and initials avatar. The new RFQ retains its audit snapshots after restoration; all 15 earlier RFQs remain unchanged except the authorized additive backfill. No quote issuance or purchase. Short-window deployment logs show zero HTTP 500+ responses; stderr contains only observed pg/Node deprecation warnings.
+
+Requested authorized recovery email and confirmed persisted unconsumed token; inbox receipt and user-driven password completion remain unconfirmed. Credential-change browser policy requires user handoff. Genuine Member verification also awaits user sign-in as paik.e.william@gmail.com in the retained login tab. Updated audit report, project context, TODO and feature map to distinguish released behavior from those remaining checks. Local screenshots are /tmp/lattice-settings-production-photo.jpg, /tmp/lattice-settings-production-restored.jpg and /tmp/lattice-settings-production-rfq.jpg. Private baselines/proof remain ignored in .vercel.
+
+## 2026-10-15 — Complete Member and password recovery handoffs
+
+William confirmed signing into paik.e.william@gmail.com and receiving/completing the reset for willclawpaik@gmail.com. Genuine Production Member settings show Apple defaults with no shared-edit controls and enabled personal controls. A temporary phone save survives reload; original blank phone restored through the UI and independently confirmed in Production. The Member also sees the QA RFQ's preserved shipping/billing/AP snapshots after company-default restoration. Screenshot: /tmp/lattice-settings-production-member.jpg.
+
+Production confirms the recovery token consumed at 8:28:19 PM Eastern before expiry, updated passwordChangedAt, mustChangePassword=false and PASSWORD_RESET_COMPLETED after Clerk accepted the credential update. William performed password entry/submission. A separate new-password sign-in was not independently exercised. Updated current audit/project/TODO/feature-map status to close the user handoffs. No application code changed or tests rerun; previous 677 passing tests remain the release checkpoint.
+
+## 2026-10-15 — Improve account settings entry and recovery ownership
+
+Implemented formatted phone input/read view with complete-number validation, stricter shared client/server billing-email syntax validation and disabled invalid saves. Bound signed-in recovery to the verified Clerk primary email; arbitrary query/form emails cannot choose another account and token completion checks signed-in ownership. Public signed-out mailbox-token recovery remains available. No recovery email sent or credential changed.
+
+Added persisted Company/AccountDefaults billingSameAsShipping choice with matching checkbox in settings/onboarding. Enabling copies server-owned shipping; subsequent shared shipping edits update linked billing under serialized company transactions. Unchecking allows independent billing, and historical request/invoice snapshots remain unchanged. Added an explicit idempotent additive migration and applied to Development/Production without changing existing address values.
+
+Added reusable shipping/billing fields with U.S. state/territory suggestions, authenticated city/ZIP lookup from bundled zipcodes data and explicit manual fallback. Selection fills city/state/ZIP together; street fields use browser address autofill, with no external street-search provider. Typecheck, focused lint and local build pass. Automated tests were not added or run. Release/hosted evidence follows.
+
+## 2026-10-16 — Release account settings usability follow-up
+
+Source 1d5877c pushed and deployed as Ready Production dpl_Bz8CdC7v4JduhdfPQZZ7uoRbRmir, promoted to latticeos.co. Hosted build passes. Genuine Member browser confirms formatted synthetic phone input, fixed signed-in recovery email despite a different URL email, postal suggestion retrieval/selection and unrestricted manual address entry. All transient edits canceled; no account/RFQ field, credential or email was changed. Evidence: /tmp/lattice-settings-phone-format.jpg, /tmp/lattice-settings-reset-bound.jpg and /tmp/lattice-settings-address-suggestions.jpg. Admin sign-in was pending at this checkpoint; completion is recorded below. No automated tests were run for this follow-up.
+
+### Account settings Admin verification complete — 2026-10-16
+
+Genuine willclawpaik@gmail.com Customer Admin checks pass. Preserved the user's current Erin Paik profile, picture, phone and company details. Invalid billing email disables Save; a valid plus-address enables it; all email drafts canceled. Saved same-as-shipping, confirmed its true Company flag and matching address fields in Production, and reloaded to see Same as shipping. Existing addresses already matched. Restored the original false preference through the UI and confirmed in database and after reload. Billing fields also show live postal suggestions. No distinct shipping value was changed to exercise the follow-on copy in Production; that remains implemented in the serialized server path.
+
+Independent deep comparison preserves all 17 pre-check Request rows and every original shared address/AP contact/routing-note field; preference restored. Private proof stays ignored in .vercel. Zero HTTP 500+ records in the short observed deployment window. Evidence: /tmp/lattice-settings-invalid-email.jpg and /tmp/lattice-settings-linked-billing.jpg. No recovery message sent or credential changed. No automated tests run for this follow-up. Final settings inspection draft canceled; user can enable linked billing when desired. No remaining user handoff.
+
+## 2026-10-16 — Remove embedded RFQ sidebar and make shop optional
+
+Removed the Active RFQs navigation panel inside the quote preparation workbench and its layout column, obsolete styles and switch helper. Preserved global navigation, Review queue and the customer quote summary. Shop name now states optional and offers No shop selected instead of implicitly choosing the first vendor. Generic unassigned supplier metadata renders blank, and server issuance does not silently restore an earlier shop after a blank selection. No quote was issued, saved or emailed. Focused lint and typecheck pass; automated tests were not run. Release verification follows.
+
+Release confirmation (2026-10-16): source a17ffd6/9a3b1fd pushed and released as Ready Production dpl_8SsFm13ehsEEd6BffUjSdNCCPhMo at latticeos.co. Final hosted check on A7476 confirms shop value empty, required=false, first option No shop selected, zero embedded RFQ queue nodes, and preserved global navigation/quote summary. Focused lint, typecheck and hosted build pass; automated tests were not run. No quote saved, issued or emailed. Screenshot: /tmp/lattice-quote-prep-final.jpg. Browser review caught and removed a second first-vendor fallback before final completion. An initial unpromoted workspace deployment was discarded; the release was built from a verified committed-source archive excluding unrelated uncommitted address-editor work. Those local changes and their memory-file updates remain intact.
+
+## 2026-10-16 — Split submitted RFQs and issued customer quotes
+
+Separated the admin Active queue into Submitted RFQs and Customer quotes issued tables with independent headings/counts/empty states. Both retain the existing RFQ/customer links, package/provenance columns and shared filters. Submitted/information-needed/supplier-ready statuses remain in the first table; QUOTED records move to the second. Updated the first summary metric to count only RFQs awaiting issuance; Drafts/Archive retain their views. No request records/statuses changed. Focused lint and typecheck pass; automated tests were not run. Release verification follows.
+
+Release confirmation (2026-10-16): source 7cf4ad8 pushed, hosted build passed, and dpl_BxaCczsSFJSQ1jYSbCThyiv3BMFG promoted to latticeos.co. Built from a clean committed-source archive, excluding unrelated uncommitted address-editor changes. Genuine Admin browser confirms two Active tables: 15 Submitted RFQs (all currently SUBMITTED) and 2 Customer quotes issued (all QUOTED), with 17 unique RFQ detail links. Search WC-2 yields 0 submitted/1 issued; QUOTED stage yields 0/2. Archive and Drafts views render correctly; restored unfiltered Active. No requests/statuses changed, quotes issued or emails sent. Screenshot: /tmp/lattice-quote-tables-final.jpg. Typecheck, focused lint and hosted build pass; automated tests were not run.
+
+## 2026-10-16 — Remove quote operations summary cards
+
+Removed the top metric-card section from Quote submissions, its unused card definitions and icon imports. Queue controls and separate submitted/issued tables retain their counts. Shared metric styles used elsewhere are preserved. Focused lint/typecheck and release evidence follow; automated tests were not run. No request data changed.
+
+Release confirmation (2026-10-16): source 4388798 pushed and deployed from a clean committed-source archive as Ready Production dpl_4LeAnUKpDHdxCMUbfgqoiisjfSZj, promoted to latticeos.co. Genuine Admin browser confirms zero Quote operations summary sections, retained filters/view tabs, and separate tables with 15 submitted and 2 issued records. Focused lint, typecheck and hosted build pass; automated tests were not run. No request data changed. Screenshot: /tmp/lattice-quote-no-cards.jpg. Unrelated address-editor changes remain local and untouched.
+
+## 2026-10-16 — Add admin Users and rename Customers to Companies
+
+Added the Lattice Admin-only /admin/users sidebar page, backed by all provisioned User rows without company/role exclusion. Includes searchable/filterable read-only name/email, role, company links, sign-in setup and creation dates. Server-only data access and page guards authorize before querying; explicit select/mapping excludes credentials/tokens/provider IDs from client data. Renamed existing Customers directory navigation, heading, create/search/filter/empty/footer labels, browser title and company-profile breadcrumb to Companies, retaining existing URLs. Production read-only baseline confirms six accounts across all three roles, including one unassigned admin. Typecheck and focused lint pass; React accessibility/data-flow checklist reviewed. Automated tests were not added or run. No user/company records changed or invitations sent. Release evidence follows.
+
+Release confirmation (2026-10-16): source b6c8a9a pushed and deployed from a clean committed-source archive as Ready Production dpl_Hy9864p5ChTfLEqxviRUy8VdqpDH at latticeos.co. Hosted Admin view shows all six provisioned accounts, matching Production counts (1 Lattice Admin, 3 Customer Admins, 2 Customer Members). Verified email search, role filter (2 members), unassigned-company filter (1 Lattice Admin), empty search, Clear filters and restored full list. Sidebar clicks correctly open Companies/Users; Companies title, heading, breadcrumb and Create company copy are updated. Genuine Customer Admin willclawpaik@gmail.com direct /admin/users navigation redirects to its dashboard without rendering the directory. No invitations sent or account/company records changed. Typecheck, focused lint and hosted build pass; automated tests were not run. Screenshots: /tmp/lattice-admin-users-final.jpg and /tmp/lattice-admin-companies-final.jpg. Unrelated in-progress address-editor work is excluded and remains local.
+
+
+## 2026-10-16 — Simplify quote queue and RFQ review
+
+Removed the quote queue search box, stage filter and owner filter, including their state, filtering logic, unused styles and stale empty-state instructions. Active/Drafts/Archive tabs, sorting and separate submitted/issued tables remain. Removed Assigned owner from RFQ operator review and its unused hidden workbench input; server quote saves already preserve historical owner data. Updated intake next-action copy. Typecheck and focused lint pass; React component checklist reviewed. Automated tests were not added or run. Release evidence follows.
+
+
+Release confirmation (2026-10-16): source 7e8be39 pushed and deployed from a clean committed-source archive as Ready Production dpl_6ZyaUqg3fftx5dGY78otbs7mVY5M, promoted to latticeos.co. Fresh genuine Admin browser confirms zero queue search/stage/owner controls, 15 submitted and 2 issued rows, working Drafts/Archive/Active tabs, and no Assigned owner in the RFQ operator review (Review status remains). Typecheck, focused lint and hosted build pass; automated tests were not run. Screenshots: /tmp/lattice-quote-queue-simplified.jpg and /tmp/lattice-rfq-review-no-owner.jpg. No RFQ data changed; unrelated address-editor work remains local and excluded.
+
+
+## 2026-10-16 — U.S. street autocomplete and address contact phones
+
+User chose U.S.-only address lookup and a separate phone per shipping/billing address. Implemented Geoapify through an authenticated same-origin POST route with a server-only key, fixed U.S. filter, five-result whitelist, timeout/no-store responses and key-safe failure handling. Shared account/onboarding address forms provide debounced keyboard-accessible street suggestions, selection autofill, separate unit/suite, full manual entry and bundled city/state/ZIP fallback. Added independently validated/formatted address phones to Company and standalone AccountDefaults; same-as-shipping copies phone atomically. New RFQs use the shipping contact phone and freeze the billing phone in their billing snapshot; explicit request shipping edits preserve/edit their own phone. Existing request/invoice snapshots are not backfilled. Applied four-column additive migration to Development and Production; hash baselines confirm every existing Request, Company and AccountDefaults field unchanged (Production: 17 requests, 3 companies). Geoapify key setup and deployment activation remain pending; source checks/release evidence follow. No automated tests added or run.
+
+
+Release confirmation (2026-10-16): source 4076add pushed and released from an isolated committed-source archive as Ready Production dpl_GeUJbYyocdEVBPZRxkZuex57DKBV at latticeos.co. Typecheck, focused lint and hosted build pass; no automated tests run. Genuine Member in-review RFQ address editor shows separate formatted phone, Street address and Unit or suite fields. Public-address draft confirms missing-provider fallback, Enter address manually/Escape, and ZIP 10001 selection fills New York/NY without reopening the suggestions. Review draft canceled; original request values visibly restored and no address saves performed. Shared defaults remain read-only for the Member. Customer Admin billing-editor save/reload and real provider suggestion/keyboard selection checks remain pending; shared component/server paths are implemented but those hosted flows are not claimed verified. Production GEOAPIFY_API_KEY is not configured, so street-level suggestions are not activated. Setup instructions and activation follow-up are recorded in docs/address-autocomplete-setup.md and TODO.md. Short-window HTTP 500+ log scan returned zero records. Screenshot /tmp/lattice-us-address-entry.jpg shows the canceled review draft. Unrelated address-editor changes remain local and excluded.
+
+
+## 2026-10-16 — Amazon-style state selector and lookup diagnosis
+
+Inspected the live Amazon add-address state control: native select, Select placeholder and full state names. Replaced the Lattice state datalist/text input with a styled native dropdown, alphabetized full names, stored abbreviations, preserved legacy region options and wider state layout. Applies to shared shipping/billing/onboarding fields. Confirmed via Vercel environment metadata that GEOAPIFY_API_KEY remains absent in both Production and Preview; lookup cannot search any address until activation. Added explicit missing-configuration, credential, quota and temporary-failure reason codes/messages, distinct from successful no-match results. Provider diagnostics record HTTP status/reason only, never search data, key, response or URL. Manual entry stays available. Typecheck/focused lint and release evidence follow; no automated tests run. User asked to add the missing key; activation remains pending. No address data changed.
+
+
+Release status (2026-10-16): source b5284a9 pushed and deployed from an isolated committed-source archive as Ready Production dpl_EbSTedh1nAxiAouQNDCJD9b8AYnc at latticeos.co. Typecheck, focused lint and hosted build pass; no automated tests run. User requested help provisioning the missing provider key. Opened Geoapify registration in the in-app browser for the owner to complete password creation, terms acceptance and any verification; retained it as a handoff. Provider activation and full hosted shipping/billing checks remain pending account setup. User’s existing settings draft was preserved. No account/request data changed.
+
+
+## 2026-10-16 — Repair Google account choice after logout
+
+Reproduced the reported Production behavior in the user’s Chrome tab: Continue with Google returned directly to the will@latticeos.co admin workspace. Confirmed the deployed page already passes oidcPrompt=select_account; inspected the live Clerk JS 6.39.0 bundle and found its social authenticateWithRedirect helper drops that value when creating the attempt. Replaced initial social buttons with direct Clerk attempt creation; Google’s returned authorization URL explicitly requests selection without a previous login hint and preserves state, PKCE, callback, scopes and consent. Microsoft uses its Clerk-provided redirect. Clerk’s built-in password UI, callback, recovery and MFA screens remain in use. Errors offer retry/password sign-in; duplicate social starts are blocked. Local Chrome confirms Choose an account and Use another account; six focused tests, typecheck and focused lint pass. React accessibility/hooks checklist reviewed. Production release verification follows.
+
+
+Release confirmation (2026-10-16): source 0477bc6 pushed; the committed-source archive built successfully and Ready Production dpl_4JEVqWpwTsDC8VNKU5CYKtJ69Roa was promoted to latticeos.co. Live Chrome verified Account menu > Sign Out > /login > Continue with Google > Google Choose an account with Use another account and prompt=select_account on the Production client/callback. Selecting will@latticeos.co completed sign-in back to its admin workspace; a browser snapshot stall required refresh before the completed workspace was observed. Repeated logout and Google entry showed the chooser again; left that chooser open for the user. Screenshot: /tmp/lattice-google-chooser-live.png. Six focused tests, typecheck, focused lint and hosted build pass. No RFQ/company/profile values changed. Other in-progress address-editor changes remain local and excluded from the release.
+
+
+## 2026-10-16 — Activate Geoapify and verify live address entry
+
+Owner completed Geoapify signup and explicitly approved creating the Lattice Free-plan project and connecting its generated key to Vercel Production/Preview. Confirmed project Free plan ($0, 3,000 credits/day). Stored GEOAPIFY_API_KEY as a Secret for both environments without exposing its value; removed the ignored temporary transfer file. Rebuilt current committed source 0477bc6 (preserving the separately released fresh-Google-account chooser) from an isolated archive, excluding local unfinished RFQ address-editor changes. Ready Production dpl_HzqFTvZTj4BadEp4PmkMgP7cCFhL is promoted to latticeos.co. Hosted build/typecheck pass; no automated tests were run.
+
+Genuine Apple Customer Admin checks pass: shipping lookup returns 350 5th Avenue, New York, NY 10001; ArrowDown/Enter selects it and fills street/city/NY/ZIP together. Billing mouse selection of the directional 1600 Pennsylvania Avenue Northwest match fills Washington/DC/20500. Both forms show the Amazon-style native state dropdown with full names; choosing New York yields stored selection NY. Manual entry closes lookup and retains the typed street. Missing-key message was verified before activation; after activation both real provider responses succeed with attribution. All form drafts canceled and original addresses visibly restored; no address or RFQ records were saved. Short-window HTTP 500+ scan returned zero records. Evidence: /tmp/lattice-street-suggestions-live.jpg, /tmp/lattice-billing-autofill-live.jpg, /tmp/lattice-geoapify-free-plan.jpg. Provider key activation is complete; local Development key setup is optional and was not changed.
+
+## 2026-10-16 — Reliable street address suggestions
+
+Diagnosed the live settings flow with public U.S. addresses. Geoapify returned valid results in about 5.5 seconds, exceeding the prior 5-second API cutoff; focusing/clicking an existing street also left the menu closed. Raised the server timeout to 15 seconds with safe timeout-specific logging, added slow-search progress/retry guidance, reopened suggestions on focus/click, and made number-only input prompt for a street name without spending provider credits. A valid existing ZIP softly biases results. Names and phones remain excluded from provider requests. Typecheck and focused ESLint pass; no automated tests run. Released from commit 642142e as production deployment dpl_HtLzd5EExnY2YvepN3VbjTsXsSZU and promoted to latticeos.co. Fresh signed-in Customer Admin production check returned five valid matches for `350 Fifth Avenue` without a city after the slower provider response, and a click away/back refetched matches for the unchanged query. Number-only `286` showed the street-name prompt. The verification editor was canceled and saved shipping/billing defaults remained unchanged. Screenshot: /tmp/lattice-address-reliability-live.jpg. No automated tests run.
+
+## 2026-10-16 — Searchable state picker
+
+Replaced the browser-native state menu on account shipping and billing forms with a Lattice-styled searchable picker. It shows full state/territory names and two-letter codes, supports keyboard navigation and selection, and preserves an existing legacy region until the user picks a U.S. state. Deployed from commit bd9d2ac as production deployment dpl_Fff9ABuwpi7mDoDJw4rDUGHgLZ8V and promoted to latticeos.co. In a fresh Customer Admin settings editor, verified the styled popover, filtering to New York, keyboard ArrowDown/Enter selection, and postal-abbreviation-backed value. Canceled the editor and confirmed saved address remained unchanged. Screenshot: /tmp/lattice-state-picker-live.jpg. Typecheck and focused ESLint pass; no automated tests run.
+
+
+## 2026-10-18 — Quote checkout and billing-address copy (local only)
+
+Renamed the customer quote action from “Accept quote” to “Begin checkout.” Simplified the billing summary label and missing-address prompt to refer only to the billing address, while retaining a configured billing email in the saved request summary. The settings link still focuses the billing-address section. No deployment or verification run.
+
+
+## 2026-10-18 — Reversible Design A in an isolated Production copy
+
+Reconstructed and checksum-verified all 997 source files from current Production `dpl_2PVFWrjYurFom1vhiEb9xeVgQtQ6`. Committed the independent baseline as de73b9b / production-baseline-20261018. Implemented A as commit 79d8aae: separate Production and Shipping timing per part, one quote-level footer using viewer date + maximum part production + shipping, live local-date rollover, responsive wrapping and Pending handling. Kept the prior layout behind the legacy switch. Added a synthetic dev-only preview with single/two-part, missing shipping, legacy and 390px mobile views; normal customer data and persistence are not used.
+
+Thirteen focused checks, TypeScript and scoped lint pass. Browser and local HTTP checks pass; two old quote/checkout assertions fail identically in legacy mode and are documented as inherited drift. The local dev harness uses Turbopack and avoids development Clerk dependencies for the exact synthetic preview route. No deployment occurred. See LOCAL_PREVIEW.md for preview commands, limits and rollback instructions.
+
+
+## 2026-10-18 — Consolidate local working copies
+
+At William’s request, retained the Production-derived Timing A repo as the continuing local workspace. Preserved the original repo’s Git history, uncommitted work and local configuration in a private recovery tar archive (excluding regenerable `.next` and installed dependencies), checked the archive can be listed, relocated installed dependencies into the retained repo, and removed the superseded working folder. No application feature changes, tests or deployment were performed.
+
+
+## 2026-10-18 — Primary local copy on port 3000
+
+At William’s request, changed both Design A preview scripts from port 3001 to port 3000 and documented this Production-derived repository as the primary local working copy. The local preview was restarted on 127.0.0.1:3000. No deployment was made.
+
+
+## 2026-10-18 — Replace Design A with sidebar Design C
+
+Implemented William’s selected Design C using the generated sidebar-card reference: delivery estimate card above Summary, production/shipping stages, combined duration, and a date that refreshes with the viewing day. Part rows retain production lead time and identify the longest part. Removed A’s timing footer and duplicated per-part shipping. Added the timing-c preview URL while preserving timing-a bookmarks and the legacy rollback switch. Updated both preview scripts to select sidebar by default. All 13 focused timing/layout checks, TypeScript and scoped ESLint pass. Browser automation was blocked by the URL policy when claiming the old preview tab, so no Design C visual verification is claimed. No deployment.
+
+
+## 2026-10-18 — Consistent quote address sections
+
+Removed quote-status conditions from the shared customer quote shipping and billing presentation so submitted/review and issued quotes display the same missing-address copy and settings links. Removed the pre-issuance-only shipping Change link to match the issued template. Existing snapshot data and the earlier billing-label/Begin checkout edits are retained. TypeScript, scoped ESLint and git diff whitespace checks pass. No automated tests or browser verification run; not deployed.
+
+
+## 2026-10-18 — Release quote address and checkout copy
+
+William requested publishing the quote changes to Vercel. Confirmed latticeos.co still used baseline dpl_2PVFWrjYurFom1vhiEb9xeVgQtQ6. Created an isolated two-component release from that exact Production baseline, including consistent shipping/billing sections across quote states, the Billing address label and prompt, and Begin checkout. Preserved release source a849911 on local branch codex/quote-address-release. The Design C experiment and development configuration are excluded from this release.
+
+TypeScript and scoped ESLint pass. Vercel Production build passed and was staged, with HTTP 200 for application login and 307 to login for protected quotes. Promoted Ready deployment dpl_7LGEZLXbndJoQEWSD8EZbR19pxRh to latticeos.co; domain lookup confirms the new deployment. Live home/login return 200 and signed-out quotes redirect to login. Immediate deployment-scoped runtime error/fatal scan returned zero records. Authenticated quote-page browser rendering was not independently verified.
+
+
+## 2026-10-18 — Remove quote next-step panel
+
+Removed the highlighted What happens next panel from the customer quote status header across quote states at William’s request. Local change; no deployment.
+
+
+## 2026-10-18 — Move quote activity below parts
+
+Moved the quote activity card from the sidebar to the main column immediately below Parts and pricing. Matched the adjacent card header, replaced the bare count with a labeled update count, and widened the vertical timeline with dates aligned right on larger screens and stacked on small screens. Timeline uses an ordered list with decorative markers hidden from assistive technology. TypeScript, scoped ESLint and whitespace checks pass. Local change only; browser rendering was not independently verified.
+
+
+## 2026-10-18 — Delivery timeline heading
+
+Renamed the quote sidebar card heading from Delivery estimate to Delivery timeline at William’s request. Local copy edit.
+
+
+## 2026-10-18 — Remove delivery timeline footnote
+
+Removed the Based on today / Updates daily until ordered footnote from the local Delivery timeline card at William’s request. Missing-duration guidance and delivery-date calculation/daily refresh behavior are retained.
+
+
+## 2026-10-18 — Remove per-part longest label
+
+Removed Longest part beneath production lead times from desktop part rows and mobile part cards. Local copy edit; delivery timeline calculation is unchanged.
+
+
+## 2026-10-18 — Combine quote pricing columns
+
+Combined Unit price and Line total into one Line total column, with per-unit pricing as muted subtext. Applied the same hierarchy to mobile part cards, adjusted table widths and subtotal column span, and retained explicit pending unit pricing. TypeScript, scoped ESLint and whitespace checks pass. Local only.
+
+
+## 2026-10-18 — Quote address defaults and editable copied billing
+
+Completed five browser comments locally: removed the quote-activity count and remaining delivery-card Longest part label; renamed the settings row Shipping Address; linked billing opens populated editable inputs, field edits unlink it, and checking Same as shipping recopies the current shipping address. Fixed quote address display by supplying current company settings only when the authenticated company matches the request company. Complete request snapshots retain precedence; incomplete unpurchased quote addresses use complete company defaults for display without rewriting stored requests. Purchased requests do not use this fallback. Corrected duplicated billing email output by formatting address lines independently of contact lines.
+
+All 24 focused settings/address/timing checks pass, including linked-edit persistence, missing/complete/purchased snapshot precedence and immutability. TypeScript, scoped ESLint and whitespace checks pass. React review confirms server-side company scoping, narrow serialized props, local editor state, accessible existing form labels and unchanged effect cleanup. No deployment or authenticated browser verification performed.
+
+
+## 2026-10-18 — Five numbered workspace tour steps
+
+Separated the five guided steps from the final completion popup. Resources now reads 5 of 5, and the ready-to-get-started popup says Workspace tour complete without a step number. Completion, replay, close, address-setup handoff and existing stored completion codes retain their behavior. All 15 focused tour/onboarding checks, TypeScript and scoped ESLint pass. Local only.
+
+
+## 2026-10-18 — Optional address setup after the first workspace tour
+
+The first-time tour completion popup now offers Add shipping and billing addresses now or Add later when address setup is needed. Add now records tour completion and opens the existing address onboarding dialog. Add later persists the existing company deferral, records completion and dismisses the tour. Skip/close also defer rather than launching address setup. Completed users no longer automatically see address onboarding on subsequent visits. Help/replay flows suppress the address choice and setup dialog and avoid rewriting an already-completed tour.
+
+All 35 focused onboarding, tour and settings checks pass, including Add now, persistent Add later and Help replay with missing addresses. TypeScript, scoped ESLint and whitespace checks pass. Local only; authenticated browser behavior was not independently exercised.
+
+
+## 2026-10-18 — Full-width request progress timeline
+
+Changed the Upload/Configure/Submit progress grid to two flexible tracks and a content-width final track so Submit reaches the right edge of the quote configuration cards. Offset the header’s small horizontal inset for matching timeline/card edges. Local layout edit only.
+
+
+## 2026-10-18 — Anchor address suggestions to their field
+
+Replaced the shared city/ZIP suggestion chips below State/ZIP with a single-column dropdown anchored directly below the active City or ZIP input. Full-width rows show city/state plus ZIP, with a scroll limit, keyboard Arrow/Enter selection, Escape dismissal, blur cleanup and active-row scrolling. Removed duplicate native datalists. Provider requests remain debounced and aborted on field changes, with stale-response protection. All 19 focused address/settings checks pass; TypeScript and scoped ESLint pass. Local only; no live provider/browser verification.
+
+
+## 2026-10-18 — Calculated admin quote delivery and issuance fields
+
+Replaced the editable estimated-delivery calendar with a read-only date derived from issue date plus maximum per-part production lead time and shipping duration (Domestic 2 / International 5 business days). The server independently derives the persisted date from validated part durations and shipping method; posted delivery-date overrides are ignored. Missing/invalid part timing leaves the date pending and issuance blocked. Customer note is optional in the form and shared server validation; clarification/no-quote notes remain required. Removed Shop name, Country and Overall lead time days from the supplier attachment area, preserving existing supplier metadata in hidden submission values. Added red asterisks for Unit price, Lead time, Shipping cost and Quote valid until; Shipping speed/terms retain their markers.
+
+All 53 focused admin workbench, issuance, preparation and timing checks pass, including blank-note issuance and server-calculated Domestic/International dates despite posted overrides. TypeScript, scoped ESLint and whitespace checks pass. React review: derived dates use render-time calculation, no synchronization effects; read-only date has an explicit label and description; existing save guards and authorization remain intact. Local only; no real quotes issued and no browser verification/deployment performed.
+
+
+## 2026-10-18 — Archive Equipment explorer
+
+Removed Equipment explorer from customer navigation, saved-order insertion logic and tour copy. Its protected route redirects authenticated customers/admins to Equipment; anonymous and supplier handling remains intact. Explorer components, data, styles and source documentation remain available for restoration.
+
+36 checks pass across sidebar, archived route and tour. Four sidebar tests fail identically on the unchanged Production baseline (duplicate desktop/mobile Request Quote expectation and stale Customers-vs-Companies labels); no new failures. TypeScript, scoped ESLint and whitespace checks pass. Local only.
+
+
+## 2026-10-18 — Simplify request configuration tour copy
+
+Updated the second tour step description to William’s exact wording: Add your CAD files, then define the requirements for each part. Local copy edit.
+
+
+## 2026-10-18 — Shorten request tour heading
+
+Changed the second tour step heading to Build your manufacturing request and updated matching test text. Local copy edit.
+
+
+## 2026-10-18 — Simplify quote management tour heading
+
+Changed the third tour step heading to Manage your requests and updated matching test text. Local copy edit.
+
+
+## 2026-10-18 — Update step 3 tour description
+
+Updated Manage your requests to William’s exact copy describing the offering from the lattice manufacturing network, retaining the submitted-request/issued-quote and empty-list guidance. Local copy edit.
+
+
+## 2026-10-18 — Show Quotes behind tour step 3
+
+Step 3 now navigates to /quotes while retaining its tour popup and sidebar highlight. The coach waits for the real Quotes page marker before presenting Manage your requests, and Back returns to request configuration. All 16 focused tour/controller tests, TypeScript and scoped ESLint pass. Local only.
+
+
+## 2026-10-18 — Finish label on tour step 5
+
+Renamed the Your Resources step action from Next to Finish, retaining the transition to the existing unnumbered completion popup. Updated matching test labels. Local copy edit.
+
+
+## 2026-10-18 — Reorder Your Resources
+
+Set the resource navigation order to How Lattice works, Capabilities, Materials, Equipment, Inspection & Certificates on desktop and mobile, and matched the tour listing. Versioned only the resource section’s saved order so legacy preferences do not restore the old order while subsequent personal drag-and-drop ordering still persists. Local change.
+
+
+## 2026-10-18 — Reversible tolerance radio-card design
+
+Implemented William’s approved two-choice presentation: Standard tolerances and Drawing-specific tolerances. Both the part card and technical drawing review use the shared radio-card component. Existing Medium/Fine ISO profile is retained in an expandable general-standard control; threads, fits and other features stay separate. Drawing callouts take precedence, with conflicts referred for review. Added a structured drawingSpecificTolerances requirement to the existing JSON drawingRequirements object and carried it through local drafts, saved request parsing/restoration and submission packaging. Existing server drawing enforcement covers the new flag, including exact legacy-note compatibility. No database migration.
+
+Kept the previous dropdown/checkbox JSX available via toleranceDesign=legacy and the server LATTICE_TOLERANCE_DESIGN=legacy default switch. Switching presentation preserves part state, legacy tight-linear flags and ISO Fine; explicit Standard selection clears only the corresponding tolerance flags. Rollback and comparison URLs are documented in docs/tolerance-design-preview.md.
+
+All 66 focused form/manufacturing/draft/submission checks, TypeScript and scoped ESLint pass. React review confirms accessible native radio grouping, shared controlled values, no state-reset effects and unchanged independent feature flags. Local only; browser visual review and deployment not performed.
+
+## 2026-10-18 — Numeric tolerance selection
+
+Replaced ISO-profile cards with three absolute linear tolerance choices in part configuration and drawing review. Added accepted numeric RFQ values and exact-first saved-label restoration; enforced tighter-option drawings independently on the server. Saved ISO selections remain visible without conversion; existing layout switch retains rollback. Numeric selection atomically updates drawing flags. Removed the ISO-only introduction for numeric selections and documented units, review scope and rollback in tolerance-design-preview.md. Local only; TypeScript, scoped ESLint and git diff --check pass. No tests or browser verification performed.
+
+## 2026-10-18 — Exact screenshot tolerance copy
+
+Replaced all three absolute-tolerance card headings and descriptions with the supplied Xometry screenshot wording, including rounded displayed metric values, drawing-override language, reamed-hole exceptions and Standard inspection text. Removed the prior contradictory drawing-precedence helper text. Persisted numeric option labels/values and legacy rollback remain intact. Copy change only; no inspection-selection or submission-policy changes. Local only, no tests run.
+
+## 2026-10-18 — Minimum requested delivery date
+
+RFQ configuration now permits optional target arrival dates only on/after eight weekdays from today in America/New_York. Weekends are excluded; no holiday calendar is applied. Added reusable calendar minimum support with disabled dates/Today, bounded keyboard and month navigation, and an accessible error for saved dates that are too early. Draft dates remain saved, but readiness/submission requires changing or clearing invalid dates. Shared server submission validation enforces the same policy; other calendar usages are unchanged. TypeScript, scoped ESLint and diff whitespace checks pass. No tests or browser verification performed. Local only.
+## 2026-10-19 — Shared material alias registry
+
+Added `src/lib/material-identity-registry.ts` and routed the Materials catalog, RFQ options/draft normalization/search, and material-property lookups through scoped alias resolution. Catalog and RFQ display names now align for the approved 304/304L, 316/316L, Invar 36, Brass 360, Copper 110, and Bronze 932 choices. Property lookup aliases are registered by family; the combined stainless selections no longer resolve to only the 304 or 316 property record. Supplier source labels remain attached as provenance. Updated the feature map and material naming decision. TypeScript and `git diff --check` pass; tests and browser verification were not run. Local only.
+
+## 2026-10-19 — Shared material alias registry
+
+Added `src/lib/material-identity-registry.ts` and routed the Materials catalog, RFQ options/draft normalization/search, and material-property lookups through scoped alias resolution. Catalog and RFQ display names now align for the approved 304/304L, 316/316L, Invar 36, Brass 360, Copper 110, and Bronze 932 choices. Property lookup aliases are registered by family; combined stainless selections do not resolve to a single-grade property record. Supplier source labels remain attached as provenance. Conflicting family-scoped property aliases fail closed and are available through a conflict inspection helper for review. Updated feature map, project context, and material naming decision. TypeScript and `git diff --check` pass; tests and browser verification were not run. Local only.
+
+
+## 2026-10-19 — Resolve automated test failures after material and workflow updates
+
+- Original full run: 691 passed, 37 failed, one skipped. A separate temporary HEAD checkout reproduced 29 failures among the ten affected files, establishing that most were already present in the checked-in baseline.
+- Repaired manufacturing intake validation to resolve approved legacy material labels before comparing them to keyed RFQ choices; retained the compatibility regression test. Updated request-form expectations for absolute tolerance choices, preserved ISO values, and combined stainless labels.
+- Updated incomplete Clerk/database mocks and valid phone/billing fixtures. Aligned navigation and quote-detail tests with approved Companies/Users labels, responsive CTAs, first-tour address choice, combined pricing, neutral activity and missing-address display fallback. Checkout asserts editable saved-address values and preserves the saved AP contact at the server action.
+- Restored missing shared search/stage/owner controls in the admin quote queue in accordance with the existing documented workflow. Added search/reset, cross-table filters and archive coverage. Added signed-in password-reset ownership and authoritative linked-billing checks.
+- Excluded only the versioned third-party OCCT public runtime from source linting; application sources remain linted.
+- Final full suite: 137 test files passed, one opt-in PostgreSQL audit file skipped; 733 tests passed, zero failed, one skipped. TypeScript, full ESLint and git diff whitespace checks pass. The live database audit and browser/hosted verification were not run; no deployment or customer data changes.

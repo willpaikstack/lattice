@@ -9,12 +9,15 @@ import { getCurrentSession } from "@/lib/session";
 /** Keeps private identity lookups and application chrome out of public routes. */
 export default async function WorkspaceLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getCurrentSession({ allowPasswordChange: true });
-  const clerkUser = session ? null : await currentUser();
+  const clerkUser = await currentUser();
+  const preset = clerkUser?.unsafeMetadata?.latticeAvatarPreset;
+  const avatarPreset = preset && typeof preset === "object" && "colorId" in preset && "presetId" in preset && typeof preset.colorId === "string" && typeof preset.presetId === "string" ? { colorId: preset.colorId, presetId: preset.presetId } : null;
+  const profile = session?.user.supportAdmin ? {} : { avatarPreset, profileImageUrl: clerkUser?.hasImage ? clerkUser.imageUrl : "" };
   const clerkEmail = clerkUser?.primaryEmailAddress?.emailAddress?.trim() ?? "";
   const shellUser = session?.user
-    ? { email: session.user.email, name: session.user.name }
+    ? { email: session.user.email, name: session.user.name, ...profile }
     : clerkUser
-      ? { email: clerkEmail, name: clerkUserDisplayName(clerkUser) || "Account" }
+      ? { email: clerkEmail, name: clerkUserDisplayName(clerkUser) || "Account", ...profile }
       : undefined;
 
   if (session?.user.mustChangePassword) {

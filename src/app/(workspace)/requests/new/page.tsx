@@ -34,6 +34,7 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
   return (
     <RequestForm
       key={draftId ?? reorderId ?? "new-request"}
+      toleranceDesign={firstParam(params.toleranceDesign) === "legacy" ? "legacy" : firstParam(params.toleranceDesign) === "cards" ? "cards" : process.env.LATTICE_TOLERANCE_DESIGN === "legacy" ? "legacy" : "cards"}
       initialState={initialState}
       localDraftId={draftId}
       prefillNotice={

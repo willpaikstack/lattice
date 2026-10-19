@@ -1,11 +1,17 @@
+import { quoteWithDisplayAddresses } from "@/lib/quote-address-display";
+import type { RequestBillingSnapshot } from "@/lib/request-billing";
+import { localDateKey, partProductionDays, quoteDeliveryTiming } from "@/lib/quote-delivery-timing";
+import { QuoteDeliveryTimingCard } from "./quote-delivery-timing-card";
+import { RequestBillingAddress } from "./request-billing-address";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, CircleDot, Download, Mail, Phone, User } from "lucide-react";
 
 import type { AccountAddress } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 import { quoteHasExpired } from "@/lib/quote-validity";
+import { CadRenderThumbnail } from "./cad-file-preview";
+import { processLabel } from "@/lib/rfq-manufacturing";
 
 const quoteStatusCopy: Record<RequestStatus, { label?: string; tone?: string; buyerAction: string; requestTitle: string; requestCopy: string }> = {
   DRAFT: {
@@ -125,44 +131,29 @@ function fileExtension(fileName: string | undefined) {
   return extension ? extension.toUpperCase() : "CAD";
 }
 
-function actorLabel(actor: LatticeRequest["statusEvents"][number]["actor"]) {
-  const labels: Record<LatticeRequest["statusEvents"][number]["actor"], string> = {
-    buyer: "Buyer",
-    operator: "Lattice",
-    supplier: "Supplier",
-    system: "System",
-  };
-
-  return labels[actor];
-}
-
-function activityEventTitle(event: LatticeRequest["statusEvents"][number]) {
+function activityEventTitle(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null && event.to === "DRAFT") {
     return "Draft created";
   }
 
   if (event.from === "DRAFT" && event.to === "SUBMITTED") {
-    return "RFQ submitted for review";
+    return "Request submitted";
   }
 
   if (event.to === "NEEDS_INFO") {
-    return "More information requested";
-  }
-
-  if (event.to === "READY_FOR_SUPPLIER_RFQ") {
-    return "Supplier pricing started";
+    return "More information needed";
   }
 
   if (event.to === "QUOTED") {
-    return "Quote issued";
+    return "Quote ready for review";
   }
 
   if (event.to === "PURCHASED") {
-    return "Quote accepted";
+    return "Order placed";
   }
 
   if (event.to === "CLOSED") {
-    return "No quote";
+    return request.operatorReview.internalNotes ? "Unable to quote" : "Quote closed";
   }
 
   return quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle;
@@ -170,14 +161,36 @@ function activityEventTitle(event: LatticeRequest["statusEvents"][number]) {
 
 function activityEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
   if (event.from === null) {
-    return `${actorLabel(event.actor)} opened the RFQ workspace.`;
+    const createdMessage = `${quoteReference(request)} was created.`;
+    const hasBeenSubmitted = request.status !== "DRAFT" || request.statusEvents.some((statusEvent) => statusEvent.to === "SUBMITTED");
+    return hasBeenSubmitted ? createdMessage : `${createdMessage} Add any remaining details and submit when ready.`;
   }
 
-  if ((event.to === "NEEDS_INFO" || event.to === "CLOSED") && request.operatorReview.internalNotes) {
+  if (event.to === "NEEDS_INFO") {
+    return request.operatorReview.internalNotes || "Lattice needs a little more information before pricing can continue.";
+  }
+
+  if (event.to === "CLOSED" && request.operatorReview.internalNotes) {
     return request.operatorReview.internalNotes;
   }
 
-  return `${actorLabel(event.actor)} moved the quote from ${quoteStatusCopy[event.from].label ?? quoteStatusCopy[event.from].requestTitle} to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle}.`;
+  if (event.to === "SUBMITTED") {
+    return "The request was submitted. Lattice is reviewing the files and requirements and collecting supplier pricing.";
+  }
+
+  if (event.to === "QUOTED") {
+    return "The quote is ready for review, including price, lead time, and assumptions.";
+  }
+
+  if (event.to === "PURCHASED") {
+    return "The quote was accepted, and the order is ready to track.";
+  }
+
+  if (event.to === "CLOSED") {
+    return "Lattice closed this quote request.";
+  }
+
+  return `Lattice moved the request to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle.toLowerCase()}.`;
 }
 
 function quoteReference(request: LatticeRequest) {
@@ -224,35 +237,10 @@ function lineItemLeadTime(item: RequestLineItem, request: LatticeRequest) {
   return request.customerQuotes.at(-1)?.leadTime || "Pending";
 }
 
-function CadRenderPreview({ file, index }: { file: LatticeRequest["files"][number] | undefined; index: number }) {
-  const faceTone = index % 2 === 0 ? "bg-[#d8e5f3]" : "bg-[#dfe7dd]";
-  const sideTone = index % 2 === 0 ? "bg-[#b8cbe1]" : "bg-[#c2d1bf]";
-  const topTone = index % 2 === 0 ? "bg-[#edf3fa]" : "bg-[#eef4ec]";
-  const thumbnailHref = file?.cadPreviewUrn
-    ? `/api/cad-previews/thumbnail?urn=${encodeURIComponent(file.cadPreviewUrn)}&size=320`
-    : null;
-
+function CadRenderPreview({ file }: { file: LatticeRequest["files"][number] | undefined }) {
   return (
-    <div className="w-20 shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.75)]">
-      <div className="relative h-16 bg-[linear-gradient(90deg,rgba(17,24,39,0.06)_1px,transparent_1px),linear-gradient(0deg,rgba(17,24,39,0.06)_1px,transparent_1px)] bg-[size:10px_10px]">
-        {thumbnailHref ? (
-          <Image
-            alt={file?.name ? `CAD preview for ${file.name}` : "CAD preview"}
-            className="h-full w-full object-cover"
-            height={64}
-            src={thumbnailHref}
-            unoptimized
-            width={80}
-          />
-        ) : (
-          <>
-            <div className={`absolute left-5 top-7 h-7 w-10 -skew-y-6 rounded-sm border border-[#8f9ba8] ${faceTone}`} />
-            <div className={`absolute left-7 top-4 h-8 w-10 skew-y-[20deg] rounded-sm border border-[#9aa6b2] ${topTone}`} />
-            <div className={`absolute left-[3.35rem] top-7 h-8 w-6 skew-y-[20deg] rounded-sm border border-[#8f9ba8] ${sideTone}`} />
-            <span className="absolute bottom-1 left-1 rounded bg-white/85 px-1 py-0.5 text-[8px] font-semibold uppercase text-[#69717c]">Preview pending</span>
-          </>
-        )}
-      </div>
+    <div className="w-20 shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-white">
+      <CadRenderThumbnail className="h-16 w-full rounded-none border-0" file={file} label={file?.name || "Part"} />
       <p className="border-t border-[#e4e6ea] px-2 py-1 text-center text-[12px] font-semibold text-[#5f6670]">Rev 1</p>
     </div>
   );
@@ -270,7 +258,7 @@ function fileDownloadHref(file: LatticeRequest["files"][number] | undefined) {
 
 function quoteShippingAddressLines(request: LatticeRequest, savedShippingAddress?: AccountAddress) {
   const hasCompleteSnapshot = Boolean(request.shipToAddress1 && request.shipToCity && request.shipToState && request.shipToZipCode);
-  const shippingSource = hasCompleteSnapshot || !savedShippingAddress
+  const shippingSource = request.status !== "DRAFT" || hasCompleteSnapshot || !savedShippingAddress
     ? {
         shipToAddress1: request.shipToAddress1,
         shipToAddress2: request.shipToAddress2,
@@ -300,13 +288,22 @@ function quoteShippingAddressLines(request: LatticeRequest, savedShippingAddress
 
 export function BuyerQuoteDetail({
   checkoutHref,
-  request,
+  request: savedRequest,
   savedShippingAddress,
+  savedBillingSnapshot,
+  timingLayout = process.env.LATTICE_QUOTE_TIMING_LAYOUT === "legacy" ? "legacy" : "sidebar",
+  initialViewingDate = localDateKey(new Date()),
 }: {
   checkoutHref?: string;
   request: LatticeRequest;
   savedShippingAddress?: AccountAddress;
+  savedBillingSnapshot?: RequestBillingSnapshot;
+  timingLayout?: "sidebar" | "legacy";
+  initialViewingDate?: string;
 }) {
+  const request = quoteWithDisplayAddresses(savedRequest, savedShippingAddress, savedBillingSnapshot);
+  const sidebarTiming = timingLayout === "sidebar" && request.status === "QUOTED";
+  const deliveryTiming = quoteDeliveryTiming(request);
   const expired = request.status === "QUOTED" && quoteHasExpired(request);
   const canPurchase = request.status === "QUOTED" && !expired;
   const canDownloadQuote = request.status === "QUOTED" || request.status === "CLOSED";
@@ -321,7 +318,9 @@ export function BuyerQuoteDetail({
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0);
   const quoteId = latestCustomerQuote?.quoteNumber ?? quoteReference(request);
   const shippingAddressLines = quoteShippingAddressLines(request, savedShippingAddress);
+  const shippingAddressComplete = Boolean(request.shipToName && (request.shipToCompany || request.buyerCompany) && request.shipToAddress1 && request.shipToCity && request.shipToState && request.shipToZipCode);
   const lineItemFiles = bundledFilesByLineItem(request);
+  const visibleStatusEvents = request.statusEvents.filter((event) => event.to !== "READY_FOR_SUPPLIER_RFQ");
   return (
     <div className="mx-auto w-full max-w-[1600px] px-2 pb-10">
       <div className="mb-7">
@@ -337,7 +336,6 @@ export function BuyerQuoteDetail({
             ) : null}
             <span className="text-[13px] text-[#7b8088]">Last modified: {formatDate(request.updatedAt)}</span>
           </div>
-          <p className="text-[13px] text-[#7b8088]">{request.title}</p>
         </div>
       </div>
 
@@ -354,11 +352,6 @@ export function BuyerQuoteDetail({
                 <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{requestCalloutCopy}</p>
                 {expired && latestCustomerQuote?.notes ? <p className="mt-2 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{latestCustomerQuote.notes}</p> : null}
               </div>
-              <div className="shrink-0 border-t border-[#eeeeee] pt-4 lg:w-[250px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">What happens next</p>
-                <p className="mt-2 text-[13px] font-medium leading-5 text-[#30343a]">{expired ? "Request renewal below, then review the updated quote when Lattice issues it." : status.buyerAction}</p>
-                {expired || request.status === "NEEDS_INFO" ? <Link className="mt-3 inline-flex text-sm font-semibold text-blue-700 underline" href={expired ? "#quote-renewal" : "#clarification"}>{expired ? "Request renewed quote" : "Reply to Lattice"}</Link> : null}
-              </div>
             </div>
           </section>
 
@@ -372,10 +365,9 @@ export function BuyerQuoteDetail({
               <table className="hidden min-w-[880px] w-full table-fixed border-collapse xl:table">
                 <colgroup>
                   <col className="w-[39%]" />
-                  <col className="w-[20%]" />
+                  <col className="w-[24%]" />
                   <col className="w-[6%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[11%]" />
+                  <col className="w-[15%]" />
                   <col className="w-[16%]" />
                 </colgroup>
                 <thead>
@@ -383,9 +375,8 @@ export function BuyerQuoteDetail({
                     <th className="px-5 py-4 font-semibold">Part / File</th>
                     <th className="px-3 py-4 font-semibold">Specifications</th>
                     <th className="px-3 py-4 text-center font-semibold">Qty</th>
-                    <th className="whitespace-nowrap px-3 py-4 text-right font-semibold">Unit price</th>
                     <th className="whitespace-nowrap px-3 py-4 text-right font-semibold">Line total</th>
-                    <th className="whitespace-nowrap px-3 py-4 text-left font-semibold">Lead time</th>
+                    <th className="whitespace-nowrap px-3 py-4 text-left font-semibold">{sidebarTiming ? "Production lead time" : "Lead time"}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#e1e4e8]">
@@ -398,7 +389,7 @@ export function BuyerQuoteDetail({
                     const fileName = customerFacingFileName(file?.name, item.partName);
                     const downloadHref = fileDownloadHref(file);
                     const customerLine = quotedLineForItem(item, request);
-                    const process = customerLine?.process || request.process || "CNC";
+                    const process = processLabel(customerLine?.process || item.manufacturingDetails?.process || request.process || "CNC");
                     const material = customerLine?.material || item.material;
                     const finish = customerLine?.finish || item.surfaceFinish || "As machined";
                     const tolerance = item.generalTolerance || "ISO 2768-m";
@@ -409,7 +400,7 @@ export function BuyerQuoteDetail({
                       <tr className="align-top" key={item.id}>
                         <td className="px-5 py-6">
                           <div className="flex min-w-0 items-start gap-4">
-                            <CadRenderPreview file={file} index={index} />
+                            <CadRenderPreview file={file} />
                             <div className="min-w-0 pt-1">
                               {downloadHref ? (
                                 <a className="block truncate text-[14px] font-semibold text-[#3d6fe8] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
@@ -464,26 +455,27 @@ export function BuyerQuoteDetail({
                           </dl>
                         </td>
                         <td className="px-3 py-6 text-center text-[16px] font-semibold text-[#30343a]">{item.quantity}</td>
-                        <td className="px-3 py-6 text-right">
-                          <p className="text-[16px] font-semibold text-[#30343a]">{unit === null ? "Pending" : formatPrice(unit)}</p>
-                          <p className="mt-1 text-[12px] font-medium text-[#6f737a]">/ea</p>
+                        <td className="px-3 py-6 text-right tabular-nums">
+                          <p className="text-[16px] font-semibold text-[#30343a]">{formatSummaryPrice(total)}</p>
+                          <p className="mt-1 text-[12px] text-[#6f737a]">{unit === null ? "Unit price pending" : `${formatPrice(unit)} / ea`}</p>
                         </td>
-                        <td className="px-3 py-6 text-right text-[16px] font-semibold text-[#30343a]">{formatSummaryPrice(total)}</td>
                         <td className="px-3 py-6 text-[13px] leading-5">
+                          {sidebarTiming ? <div><p className="text-[12px] font-semibold text-[#30343a]">{partProductionDays(request, item) === null ? "Pending" : `${partProductionDays(request, item)} business days`}</p></div> : <>
                           <p className="whitespace-nowrap text-[12px] font-semibold text-[#30343a]">{lineItemLeadTime(item, request)}</p>
-                          <p className="mt-2 text-[#5f6670]">Est. ship by {formatDate(request.quote.estimatedDeliveryDate)}</p>
+                          <p className="mt-2 text-[#5f6670]">Estimated delivery by {formatDate(request.quote.estimatedDeliveryDate)}</p>
+                          </>}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
-                <tfoot>
+                {!sidebarTiming ? <tfoot>
                   <tr className="border-t border-[#d8dde5]">
-                    <td className="px-5 py-5" colSpan={4} />
+                    <td className="px-5 py-5" colSpan={3} />
                     <th className="px-3 py-5 text-right text-[14px] font-semibold text-[#30343a]" scope="row">Subtotal <span className="text-[12px] font-semibold text-[#6f737a]">(USD)</span></th>
                     <td className="px-5 py-5 text-right text-[18px] font-semibold text-[#202020]">{formatSummaryPrice(subtotalCents)}</td>
                   </tr>
-                </tfoot>
+                </tfoot> : null}
               </table>
 
               <div className="divide-y divide-[#e1e4e8] xl:hidden">
@@ -496,7 +488,7 @@ export function BuyerQuoteDetail({
                   const fileName = customerFacingFileName(file?.name, item.partName);
                   const downloadHref = fileDownloadHref(file);
                   const customerLine = quotedLineForItem(item, request);
-                  const process = customerLine?.process || request.process || "CNC";
+                  const process = processLabel(customerLine?.process || item.manufacturingDetails?.process || request.process || "CNC");
                   const material = customerLine?.material || item.material;
                   const finish = customerLine?.finish || item.surfaceFinish || "As machined";
                   const tolerance = item.generalTolerance || "ISO 2768-m";
@@ -506,7 +498,7 @@ export function BuyerQuoteDetail({
                   return (
                     <article className="px-5 py-5 sm:px-6" key={item.id}>
                       <div className="flex items-start gap-4">
-                        <CadRenderPreview file={file} index={index} />
+                        <CadRenderPreview file={file} />
                         <div className="min-w-0 flex-1">
                           {downloadHref ? (
                             <a className="block break-words text-[15px] font-semibold text-[#3d6fe8] transition hover:text-[#244bc7] hover:underline" download={fileName} href={downloadHref}>
@@ -547,34 +539,68 @@ export function BuyerQuoteDetail({
                             <dd className="mt-1 text-[16px] font-semibold text-[#30343a]">{item.quantity}</dd>
                           </div>
                           <div>
-                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Unit price</dt>
-                            <dd className="mt-1 text-[16px] font-semibold text-[#30343a]">{unit === null ? "Pending" : `${formatPrice(unit)}/ea`}</dd>
-                          </div>
-                          <div>
                             <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Line total</dt>
-                            <dd className="mt-1 text-[18px] font-semibold text-[#30343a]">{formatSummaryPrice(total)}</dd>
+                            <dd className="mt-1 tabular-nums">
+                              <span className="block text-[18px] font-semibold text-[#30343a]">{formatSummaryPrice(total)}</span>
+                              <span className="mt-1 block text-[12px] text-[#6f737a]">{unit === null ? "Unit price pending" : `${formatPrice(unit)} / ea`}</span>
+                            </dd>
                           </div>
                           <div>
-                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">Lead time</dt>
+                            <dt className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8a8f98]">{sidebarTiming ? "Production lead time" : "Lead time"}</dt>
+                            {sidebarTiming ? <dd className="mt-3"><div><p className="text-[12px] font-semibold text-[#30343a]">{partProductionDays(request, item) === null ? "Pending" : `${partProductionDays(request, item)} business days`}</p></div></dd> : <>
                             <dd className="mt-1 text-[13px] font-semibold text-[#30343a]">{lineItemLeadTime(item, request)}</dd>
-                            <dd className="mt-1 text-[12px] text-[#5f6670]">Est. ship by {formatDate(request.quote.estimatedDeliveryDate)}</dd>
+                            <dd className="mt-1 text-[12px] text-[#5f6670]">Estimated delivery by {formatDate(request.quote.estimatedDeliveryDate)}</dd>
+                            </>}
                           </div>
                         </div>
                       </dl>
                     </article>
                   );
                 })}
-                <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
+                {!sidebarTiming ? <div className="flex items-center justify-between gap-4 px-5 py-5 sm:px-6">
                   <p className="text-[14px] font-semibold text-[#30343a]">Subtotal <span className="text-[12px] font-semibold text-[#6f737a]">(USD)</span></p>
                   <p className="text-[18px] font-semibold text-[#202020]">{formatSummaryPrice(subtotalCents)}</p>
-                </div>
+                </div> : null}
               </div>
             </div>
+            {sidebarTiming ? <>
+              <div className="flex items-center justify-end gap-8 border-t border-[#d8dde5] px-5 py-5 sm:px-6">
+                <p className="text-[14px] font-semibold text-[#30343a]">Subtotal <span className="text-[12px] font-semibold text-[#6f737a]">(USD)</span></p>
+                <p className="text-[18px] font-semibold text-[#202020]">{formatSummaryPrice(subtotalCents)}</p>
+              </div>
+            </> : null}
           </section>
 
+          <section aria-labelledby="quote-activity-heading" className="overflow-hidden rounded-md border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="flex items-center justify-between gap-4 border-b border-[#e2e5e9] bg-[#fbfbfc] px-5 py-4 sm:px-6">
+              <h2 className="text-[15px] font-semibold text-[#262a30]" id="quote-activity-heading">Quote activity</h2>
+            </div>
+            <ol className="px-5 py-5 sm:px-6 sm:py-6">
+              {visibleStatusEvents.map((event, index) => {
+                const isLast = index === visibleStatusEvents.length - 1;
+
+                return (
+                  <li className="relative grid grid-cols-[18px_minmax(0,1fr)] gap-3 pb-6 last:pb-0 sm:gap-4" key={event.id}>
+                    {!isLast ? <span className="absolute left-[8px] top-5 h-[calc(100%-1rem)] w-px bg-[#e2e8f0]" aria-hidden="true" /> : null}
+                    <span aria-hidden="true" className="relative z-10 mt-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full border border-[#b8cbff] bg-white">
+                      <span className="h-2 w-2 rounded-full bg-[#4f7cff]" />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                        <p className="text-[13px] font-semibold text-[#202020]">{activityEventTitle(request, event)}</p>
+                        <time className="shrink-0 text-[11px] font-medium text-[#8a8f98]" dateTime={event.at}>{formatDateTime(event.at)}</time>
+                      </div>
+                      <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-[#5f6670]">{activityEventDetail(request, event)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
         </main>
 
         <aside className="space-y-5">
+          {sidebarTiming ? <QuoteDeliveryTimingCard {...deliveryTiming} initialViewingDate={initialViewingDate} /> : null}
           <section className="rounded-md border border-[#e7e7e7] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] xl:sticky xl:top-6">
             <div className="border-b border-[#eeeeee] px-6 py-5">
               <h2 className="text-[16px] font-semibold text-[#202020]">Summary</h2>
@@ -612,7 +638,7 @@ export function BuyerQuoteDetail({
               ) : canPurchase && checkoutHref ? (
                 <form action={checkoutHref} method="get">
                   <button className="min-h-11 w-full rounded-md bg-[#0f9d68] px-4 text-[14px] font-semibold text-white transition hover:bg-[#0b8558]" type="submit">
-                    Accept quote
+                    Begin checkout
                   </button>
                 </form>
               ) : null}
@@ -630,6 +656,7 @@ export function BuyerQuoteDetail({
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Shipping address</p>
+              {!shippingAddressComplete ? <p className="mt-3 text-[13px] text-[#7a5b18]">Shipping address has not been added to your account. You can add it during checkout or in account settings <Link className="font-semibold underline underline-offset-2" href="/account/settings?focus=shipping#shipping-address">here</Link></p> : <>
               <p className="mt-3 text-[13px] font-semibold text-[#202020]">{shippingAddressLines[0]}</p>
               {shippingAddressLines.length > 1 ? (
                 <p className="mt-1 text-[13px] leading-5 text-[#5f6670]">
@@ -640,15 +667,10 @@ export function BuyerQuoteDetail({
                   ))}
                 </p>
               ) : null}
-              <Link
-                className="mt-3 inline-flex text-[12px] font-semibold text-[#2f73c8] transition hover:text-[#171717]"
-                href={request.status === "SUBMITTED" || request.status === "NEEDS_INFO" || request.status === "READY_FOR_SUPPLIER_RFQ"
-                  ? `/account/settings?edit=shipping&request=${encodeURIComponent(request.id)}`
-                  : "/account/settings?edit=shipping"}
-              >
-                Change
-              </Link>
+              </>}
             </div>
+
+            <RequestBillingAddress request={request} showConfigurationPrompts />
 
             <div className="border-t border-[#eeeeee] px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9aa0a9]">Your dedicated account manager</p>
@@ -674,37 +696,6 @@ export function BuyerQuoteDetail({
             </div>
           </section>
 
-          <section className="rounded-md border border-[#e7e7e7] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8a8f98]">Quote activity</p>
-                <p className="mt-1 text-[12px] leading-5 text-[#6f737a]">Event log for this RFQ.</p>
-              </div>
-              <span className="rounded-full bg-[#f4f6f8] px-2 py-1 text-[11px] font-semibold text-[#6f737a]">{request.statusEvents.length}</span>
-            </div>
-            <div className="mt-5">
-              {request.statusEvents.map((event, index) => {
-                const isLast = index === request.statusEvents.length - 1;
-
-                return (
-                  <div className="relative grid grid-cols-[18px_minmax(0,1fr)] gap-3 pb-5 last:pb-0" key={event.id}>
-                    {!isLast ? <span className="absolute left-[8px] top-5 h-[calc(100%-1rem)] w-px bg-[#dfe3e8]" aria-hidden="true" /> : null}
-                    <span className="relative z-10 mt-1 flex h-[18px] w-[18px] items-center justify-center rounded-full border border-[#9fb8ff] bg-white">
-                      <span className="h-2 w-2 rounded-full bg-[#4f7cff]" />
-                    </span>
-                    <div>
-                      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                        <p className="text-[13px] font-semibold text-[#202020]">{activityEventTitle(event)}</p>
-                        <time className="text-[11px] font-medium text-[#8a8f98]" dateTime={event.at}>{formatDateTime(event.at)}</time>
-                      </div>
-                      <p className="mt-1 text-[12px] leading-5 text-[#5f6670]">{activityEventDetail(request, event)}</p>
-                      <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-[#9aa0a9]">{actorLabel(event.actor)}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
         </aside>
       </div>
     </div>

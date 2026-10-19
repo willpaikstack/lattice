@@ -9,3 +9,9 @@ design-exports
 
 # Local verification captures can contain customer CAD and account details.
 output/qa
+
+# Development evidence and design output are not application runtime inputs.
+.audit
+.codex
+output
+outputs

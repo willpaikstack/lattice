@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({ usePathname: () => "/login/sso-callback" }));
+
 vi.mock("@clerk/nextjs", () => ({
+  useClerk: () => ({ loaded: true }),
   SignIn: (props: { forceRedirectUrl?: string; oidcPrompt?: string; path?: string; routing?: string; signUpUrl?: string }) => (
     <div data-force-redirect-url={props.forceRedirectUrl} data-oidc-prompt={props.oidcPrompt} data-path={props.path} data-routing={props.routing} data-sign-up-url={props.signUpUrl}>
       Clerk sign-in

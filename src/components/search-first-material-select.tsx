@@ -84,6 +84,7 @@ export function SearchFirstMaterialSelect({ value, options, onChange }: { value:
       className={`flex min-h-[54px] w-full items-center justify-between gap-3 rounded-lg border bg-white px-4 py-3 text-left outline-none transition hover:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-300 ${open ? "border-slate-500" : "border-slate-200"}`}>
       <span className="min-w-0"><span className={`block break-words text-[15px] font-semibold ${selected ? "text-slate-950" : "text-slate-400"}`}>{selected?.label ?? "Select a material"}</span>
         {selected ? <span className="mt-0.5 block text-xs font-normal text-slate-500">{identity(selected)}</span> : null}
+        {selected?.description ? <span className="mt-0.5 block text-xs font-normal text-slate-500">{selected.description}</span> : null}
       </span><ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-slate-500 transition ${open ? "rotate-180" : ""}`} />
     </button>
     {open && position ? createPortal(<div ref={panelRef} id={`${id}-panel`} role="dialog" aria-label="Choose material" style={position}
@@ -117,7 +118,7 @@ export function SearchFirstMaterialSelect({ value, options, onChange }: { value:
         {results.map(option => <button key={option.value} id={`${id}-option-${option.value}`} type="button" role="option" aria-selected={option.value === selectedValue}
           onMouseEnter={() => setActiveValue(option.value)} onFocus={() => setActiveValue(option.value)} onClick={() => choose(option.value)}
           className={`flex w-full items-center justify-between gap-3 px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${option.value === selectedValue || active === option.value ? "bg-slate-50" : "hover:bg-slate-50"}`}>
-          <span className="min-w-0"><span className="block text-sm font-semibold text-slate-950">{option.label}</span><span className="mt-0.5 block text-xs text-slate-500">{identity(option)}</span></span>
+          <span className="min-w-0"><span className="block text-sm font-semibold text-slate-950">{option.label}</span><span className="mt-0.5 block text-xs text-slate-500">{identity(option)}</span>{option.description ? <span className="mt-0.5 block text-xs text-slate-500">{option.description}</span> : null}</span>
           {option.value === selectedValue ? <Check aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-950" /> : null}
         </button>)}
         {!results.length ? <div className="px-4 py-5 text-sm text-slate-500">No matching grades. <button type="button" className="underline underline-offset-2" onClick={() => { setQuery(""); setFamily("All"); setActiveValue(null); searchRef.current?.focus(); }}>Reset search</button></div> : null}

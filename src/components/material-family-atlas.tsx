@@ -1,4 +1,4 @@
-import { ArrowRight, Info } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -48,11 +48,6 @@ export function MaterialFamilyAtlas({ families }: { families: MaterialFamilyCard
         </Link>
       </header>
 
-      <div className="mt-6 flex items-start gap-3 rounded-[6px] bg-[#edf0f3] px-4 py-3 text-[14px] leading-6 text-[#505967]">
-        <Info aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-[#394554]" />
-        <p>Catalog coverage is not live inventory. Availability is confirmed during RFQ.</p>
-      </div>
-
       <section aria-label="Material families" className="mt-6 grid w-full gap-4 md:grid-cols-2 xl:grid-cols-3">
         {families.map((family) => (
           <Link
@@ -79,7 +74,10 @@ export function MaterialFamilyAtlas({ families }: { families: MaterialFamilyCard
         ))}
       </section>
 
-      <p className="mt-7 border-t border-[#d9dde2] pt-3 text-[13px] leading-5 text-[#586271]">Reference properties depend on condition and stock form.</p>
+      <div className="mt-7 border-t border-[#d9dde2] pt-3 text-[13px] leading-5 text-[#586271]">
+        <p>Catalog coverage is not live inventory. Availability is confirmed during RFQ.</p>
+        <p>Reference properties depend on condition and stock form.</p>
+      </div>
     </>
   );
 }

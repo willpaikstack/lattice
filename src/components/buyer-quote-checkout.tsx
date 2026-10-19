@@ -8,6 +8,8 @@ import { useMemo, useRef, useState } from "react";
 import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import type { AccountAddress, PaymentCard } from "@/lib/account-settings-shared";
 import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
+import { CheckoutAddresses, type CheckoutAddressDefaults } from "./checkout-addresses";
+import { checkoutAddressFromForm } from "@/lib/checkout-addresses";
 import { StripeElementsPayment } from "./stripe-elements-payment";
 
 type StripeElementsCheckoutSession = {
@@ -119,6 +121,7 @@ function CheckoutSection({
 
 export function BuyerQuoteCheckout({
   accountsPayableEmail,
+  addressDefaults,
   hostedCheckout = false,
   checkoutAvailable = true,
   cards,
@@ -133,6 +136,7 @@ export function BuyerQuoteCheckout({
 }: {
   hostedCheckout?: boolean;
   checkoutAvailable?: boolean;
+  addressDefaults?: CheckoutAddressDefaults;
   accountsPayableEmail?: string;
   cards?: PaymentCard[];
   finalizeStripeCardPaymentAction?: (paymentIntentId: string, formData: FormData) => Promise<{ redirectTo: string }>;
@@ -160,14 +164,15 @@ export function BuyerQuoteCheckout({
   const taxCents = subtotalCents === null ? null : 0;
   const totalCents = subtotalCents === null ? null : subtotalCents + (shippingCents ?? 0) + (taxCents ?? 0);
   const latestQuote = request.customerQuotes.at(-1);
-  const deliveryCompany = trimText(shippingAddress?.company) || request.shipToCompany || request.buyerCompany;
-  const deliveryContact = trimText(shippingAddress?.name) || request.shipToName || request.requesterName;
-  const deliveryAddress1 = trimText(shippingAddress?.address1) || request.shipToAddress1;
-  const deliveryAddress2 = trimText(shippingAddress?.address2) || request.shipToAddress2;
-  const deliveryCity = trimText(shippingAddress?.city) || request.shipToCity;
-  const deliveryState = trimText(shippingAddress?.state) || request.shipToState;
-  const deliveryZipCode = trimText(shippingAddress?.zipCode) || request.shipToZipCode;
-  const defaultReceivingPhone = trimText(receivingPhone) || request.shipToPhone || request.requesterPhone;
+  const draftShipping = request.status === "DRAFT" ? shippingAddress : undefined;
+  const deliveryCompany = request.shipToCompany || trimText(draftShipping?.company) || request.buyerCompany;
+  const deliveryContact = request.shipToName || trimText(draftShipping?.name) || request.requesterName;
+  const deliveryAddress1 = request.shipToAddress1 || trimText(draftShipping?.address1);
+  const deliveryAddress2 = request.shipToAddress2 || trimText(draftShipping?.address2);
+  const deliveryCity = request.shipToCity || trimText(draftShipping?.city);
+  const deliveryState = request.shipToState || trimText(draftShipping?.state);
+  const deliveryZipCode = request.shipToZipCode || trimText(draftShipping?.zipCode);
+  const defaultReceivingPhone = request.shipToPhone || request.requesterPhone || (request.status === "DRAFT" ? trimText(receivingPhone) : "");
   const noticeCopy =
     paymentNotice === "canceled"
       ? "Stripe payment was canceled. No order was placed, and you can restart card checkout when ready."
@@ -184,6 +189,15 @@ export function BuyerQuoteCheckout({
 
     event.preventDefault();
     setCardPaymentError("");
+
+    try {
+      const form = new FormData(event.currentTarget);
+      checkoutAddressFromForm(form, "shipTo");
+      checkoutAddressFromForm(form, "billTo");
+    } catch (error) {
+      setCardPaymentError(error instanceof Error ? error.message : "Complete both addresses before payment.");
+      return;
+    }
 
     if (!termsAccepted) {
       setCardPaymentError("Accept the quote terms before placing the order.");
@@ -233,51 +247,8 @@ export function BuyerQuoteCheckout({
 
         <div className="grid gap-6 xl:grid-cols-12">
           <main className="space-y-5 xl:col-span-8">
-            <CheckoutSection icon={<MapPin aria-hidden="true" className="h-4 w-4" />} kicker="Step 1" title="Delivery address">
-              <div className="rounded-md border border-[#dfe8f7] bg-[#f7fbff] p-4">
-                <label className="inline-flex items-center gap-3">
-                  <input className="accent-[#171717]" defaultChecked name="deliveryAddress" type="radio" value="primary" />
-                  <span className="text-[14px] font-semibold text-[#202020]">Use this delivery address</span>
-                </label>
-                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <FieldLabel>Company</FieldLabel>
-                    <TextInput defaultValue={deliveryCompany} name="shipToCompany" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <FieldLabel>Address line 1</FieldLabel>
-                    <TextInput defaultValue={deliveryAddress1} name="shipToAddress1" />
-                  </div>
-                  <div className="md:col-span-2">
-                    <FieldLabel>Address line 2</FieldLabel>
-                    <TextInput defaultValue={deliveryAddress2} name="shipToAddress2" placeholder="Suite, building, dock, or floor" />
-                  </div>
-                  <div>
-                    <FieldLabel>City</FieldLabel>
-                    <TextInput defaultValue={deliveryCity} name="shipToCity" />
-                  </div>
-                  <div className="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-3">
-                    <div>
-                      <FieldLabel>State</FieldLabel>
-                      <TextInput defaultValue={deliveryState} name="shipToState" />
-                    </div>
-                    <div>
-                      <FieldLabel>ZIP</FieldLabel>
-                      <TextInput defaultValue={deliveryZipCode} name="shipToZipCode" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <div>
-                  <FieldLabel>Receiving contact</FieldLabel>
-                  <TextInput defaultValue={deliveryContact} name="shipToName" />
-                </div>
-                <div>
-                  <FieldLabel>Receiving phone</FieldLabel>
-                  <TextInput defaultValue={defaultReceivingPhone} name="shipToPhone" placeholder="Phone number" type="tel" />
-                </div>
-              </div>
+            <CheckoutSection icon={<MapPin aria-hidden="true" className="h-4 w-4" />} kicker="Step 1" title="Shipping and billing addresses">
+              <CheckoutAddresses defaults={addressDefaults} initialShipping={{ name: deliveryContact, company: deliveryCompany, address1: deliveryAddress1, address2: deliveryAddress2, city: deliveryCity, state: deliveryState, zipCode: deliveryZipCode, phone: defaultReceivingPhone }} initialBilling={request.billingSnapshot?.address ?? { name: deliveryContact, company: deliveryCompany, address1: "", address2: "", city: "", state: "", zipCode: "" }} />
             </CheckoutSection>
 
             <CheckoutSection icon={<Truck aria-hidden="true" className="h-4 w-4" />} kicker="Step 2" title="Shipping and import method">
@@ -417,7 +388,7 @@ export function BuyerQuoteCheckout({
                         ? "Saved Stripe cards may appear inside the secure card field."
                         : "No saved Stripe cards are on file. Enter card details above to pay this quote."}
                     </p> : null}
-                    {cardPaymentError ? <p className="rounded-md border border-[#f1d8a5] bg-[#fff7e8] p-3 text-[13px] font-medium text-[#8a5b08]">{cardPaymentError}</p> : null}
+                    {cardPaymentError ? <p role="alert" className="rounded-md border border-[#f1d8a5] bg-[#fff7e8] p-3 text-[13px] font-medium text-[#8a5b08]">{cardPaymentError}</p> : null}
                   </div>
                 </div>
               ) : (
