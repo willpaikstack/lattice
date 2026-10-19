@@ -116,24 +116,29 @@ function existing(slug: string) {
 const aluminumSourceGrades = combinedGrades("Aluminum", "Aluminum");
 const aluminumOfferings = buildAluminumOfferings(aluminumSourceGrades);
 const aluminumGrades = aluminumOfferings.grades;
-const steelGrades = combinedGrades("Carbon / Alloy Steel", "Steel", "Tool steel");
+const steelGrades = combinedGrades("Carbon / Alloy Steel", "Steel", "Tool steel")
+  .filter((grade) => !/^(?:1\.033|1\.0718|1\.0737|12L14|Steel 12L14|817M40T)$/i.test(grade));
 const stainlessGrades = combinedGrades("Stainless Steel", "Stainless steel")
-  .filter((grade) => !/^(?:SS\s*)?1\.2085$/i.test(grade));
+  .filter((grade) => !/^(?:SS\s*)?(?:1\.2085|817M40T|Alloy 20|330\s*\/\s*RA330)$/i.test(grade));
 // Controlled-expansion grades have their own family in the customer catalog.
 // Keep the source labels and aliases intact, but avoid listing them again in
 // the broader Inconel/Incoloy family.
-const nickelGrades = combinedGrades("Nickel / Cobalt Alloy", "Nickel / precision alloy")
-  .filter((grade) => !/^(?:Invar(?:\s*36)?|Kovar)$/i.test(grade));
+const nickelGrades = unique([
+  ...combinedGrades("Nickel / Cobalt Alloy", "Nickel / precision alloy"),
+  ...combinedGrades("Stainless Steel", "Stainless steel").filter((grade) => /^330\s*\/\s*RA330$/i.test(grade)),
+]).filter((grade) => !/^(?:Invar(?:\s*36)?|Kovar|AerMet 100)$/i.test(grade));
 const precisionGrades = combinedGrades("Controlled Expansion / Precision Alloy", "Nickel / precision alloy")
   .filter((grade) => /Invar|Kovar|4J|1J/i.test(grade));
-const titaniumGrades = combinedGrades("Titanium", "Titanium");
-const copperFamilyGrades = combinedGrades("Copper / Brass / Bronze", "Copper / brass / bronze");
+const titaniumGrades = combinedGrades("Titanium", "Titanium").filter((grade) => !/^Titanium$/i.test(grade));
+const copperFamilyGrades = combinedGrades("Copper / Brass / Bronze", "Copper / brass / bronze")
+  .filter((grade) => !/^(?:Brass|Bronze)$/i.test(grade));
 const magnesiumZincGrades = combinedGrades("Magnesium / Zinc", "Magnesium / zinc");
-const plasticGrades = combinedGrades("Plastics / Polymers", "Plastic / polymer", "Composite");
+const plasticGrades = combinedGrades("Plastics / Polymers", "Plastic / polymer", "Composite")
+  .filter((grade) => !/^(?:ASTM D6100|Carbon Fibre|PC \+ PU8400 Overmolded|PX233 HT|PX521|PX527|PU8150|PU8400)$/i.test(grade));
 
 const mildSteelNames = /(1010|1018|1018S|1020|1045|20#|45#|Q235|S355|S355J2|S355JR|SS400|FE510|44W|A36|A514|AISI 1010|S15C|SPCC|SPHC|SGCC|SECC|SPTE|C22|1\.033)/i;
-const alloySteelNames = /(4130|4140|4140PH|4340|42CD4|40Cr|16Mn|18Cr|EN19|300M|4330|52100|6150|9310|E9310|E4340|Toolox|1\.0737|1\.7131|1\.7139|1\.7227|1\.6580|1\.6582)/i;
-const toolSteelNames = /(A2 Steel|O1 Tool|SKD11|ST TOOL M2|X160CrMoV12|Z160CVD12|1\.2085|1\.2510|100MnCrW4|1\.0718|12L14|1215|Steel 12L14)/i;
+const alloySteelNames = /(4130|4140|4140PH|4340|42CD4|40Cr|16Mn|18Cr|EN19|300M|4330|52100|6150|9310|E9310|E4340|Toolox|AerMet 100|1\.7131|1\.7139|1\.7227|1\.6580|1\.6582)/i;
+const toolSteelNames = /(A2 Steel|O1 Tool|SKD11|ST TOOL M2|X160CrMoV12|Z160CVD12|1\.2085|1\.2510|100MnCrW4)/i;
 
 const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
   {
@@ -162,7 +167,7 @@ const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
       { name: "400 series martensitic/ferritic", matches: (grade) => /\b40|410|416|420|430|431|440|1\.4005|1\.4305|20Cr13|40Cr13/i.test(grade) },
       { name: "Precipitation-hardened stainless steels", matches: (grade) => /13-8|15-5|17-4|630|Custom 455|PH/i.test(grade) },
       { name: "Duplex and super duplex", matches: (grade) => /Duplex|F51|F55|2205|2507|Z100|S32760|S31803|S32205/i.test(grade) },
-      { name: "Specialty stainless", matches: (grade) => /Nitronic|904L|Alloy 20|253MA|254SMO|817M40T|1\.2085/i.test(grade) },
+      { name: "Specialty stainless", matches: (grade) => /Nitronic|904L|253MA|254SMO|1\.2085/i.test(grade) },
     ]),
   },
   {
@@ -198,13 +203,14 @@ const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
     materialGroups: groupGrades(
       unique([
         ...steelGrades.filter((grade) => alloySteelNames.test(grade)),
+        "AerMet 100",
         ...gradesFor("Carbon / Alloy Steel")
           .filter((grade) => /4130|4140|4340|52100|6150|9310|300M|E4340|4330/i.test(grade))
           .map((grade) => customerGradeLabel("Carbon / Alloy Steel", grade)),
       ]).filter((grade) => !/^17-4PH H900 Steel$/i.test(grade)),
       [
         { name: "Chromium-molybdenum steels", matches: (grade) => /4130|4140|42CD4|40Cr|40CrMn|40CrNiMo/i.test(grade) },
-        { name: "High-strength alloy steels", matches: (grade) => /4340|4330|300M|E4340|EN19|18CrNiMo7-6/i.test(grade) },
+        { name: "High-strength alloy steels", matches: (grade) => /4340|4330|300M|E4340|EN19|18CrNiMo7-6|AerMet 100/i.test(grade) },
         { name: "Bearing and spring steels", matches: (grade) => /52100|6150|9310|E9310|16MnCrS5/i.test(grade) },
       ],
     ),
@@ -214,24 +220,27 @@ const customerMaterialCatalogEntries: CustomerMaterialCatalogEntry[] = [
     materialGroups: groupGrades(steelGrades.filter((grade) => toolSteelNames.test(grade)), [
       { name: "Cold work and die steels", matches: (grade) => /A2|SKD11|X160|Z160|1\.2085|1\.2510|100MnCrW4/i.test(grade) },
       { name: "High-speed/tooling steels", matches: (grade) => /M2|Toolox|ST TOOL/i.test(grade) },
-      { name: "Free-machining bar stock", matches: (grade) => /1215|12L14|1\.0718/i.test(grade) },
     ]),
   },
   {
     ...existing("titanium"),
     materialGroups: groupGrades(titaniumGrades, [
-      { name: "Commercially pure titanium", matches: (grade) => /Grade [1-4]$|^Titanium$/i.test(grade) },
+      { name: "Commercially pure titanium", matches: (grade) => /Grade [1-4]$/i.test(grade) },
       { name: "Alpha-beta titanium alloys", matches: (grade) => /Grade 5|Grade 6|Grade 7|Grade 9|Grade 12|6Al|8Al|TC4|TA6V|6AL4V/i.test(grade) },
     ]),
   },
   {
     ...existing("inconel-incoloy"),
+    name: "Nickel & specialty alloys",
+    summary: "Nickel-based and other high-performance alloys for heat, corrosion, and demanding service conditions.",
+    details: "This family includes nickel superalloys and related specialty materials. Confirm the exact grade, condition, product form, and certification requirements for each RFQ.",
     materialGroups: groupGrades(nickelGrades, [
       { name: "Inconel / Incoloy families", matches: (grade) => /Inconel|Incoloy|Alloy 6|Alloy 7|Alloy 8|Alloy 925|Alloy 925|Alloy 600|Alloy 601|Alloy 625|Alloy 686|Alloy 718|Alloy X|Alloy X-750/i.test(grade) },
       { name: "Hastelloy / corrosion-resistant alloys", matches: (grade) => /Hastelloy|Alloy C|Alloy B|Alloy G|Alloy N|Alloy 20|Alloy 28/i.test(grade) },
       { name: "Monel and nickel-copper", matches: (grade) => /Monel|Alloy 400|Alloy K500/i.test(grade) },
       { name: "Pure nickel", matches: (grade) => /Nickel 200|Nickel 201|Alloy 200|Alloy 201/i.test(grade) },
-      { name: "High-temperature superalloys", matches: (grade) => /Waspaloy|Nimonic|MP159|MP35N|R31537|Multimet|AerMet|Alloy 188|Alloy 230|Alloy 242|Alloy 263|Alloy 282|Alloy 556|Alloy 617|Alloy 25|L605|Alloy A286|A-286/i.test(grade) },
+      { name: "Cobalt / specialty alloys", matches: (grade) => /Alloy 25|L605|MP35N|MP159|Multimet/i.test(grade) },
+      { name: "High-temperature superalloys", matches: (grade) => /Waspaloy|Nimonic|R31537|Alloy 188|Alloy 230|Alloy 242|Alloy 263|Alloy 282|Alloy 556|Alloy 617|Alloy A286|A-286/i.test(grade) },
     ]),
   },
   {

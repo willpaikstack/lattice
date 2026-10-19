@@ -1,5 +1,11 @@
 # Local quote timing — Design C
 
+## Current handoff status — October 19, 2026
+
+Use `docs/cross-device-handoff-2026-10-19.md` for current Git synchronization and other-device setup. The GitHub remote is now configured. PR #1 was merged as `cb90b13` and deployed; the newer material catalog/condition changes are being pushed separately on `codex/materials-catalog-handoff`. The experiment notes below describe the original October 18 setup and its historical verification, not current release readiness. The latest full source suite has 758 passes and one opt-in database skip; TypeScript/ESLint pass.
+
+## Original experiment record
+
 This independent local repository starts from all 997 source files of Production deployment `dpl_2PVFWrjYurFom1vhiEb9xeVgQtQ6`. Every file was verified against the deployment's SHA-1 manifest before changes. The original working repo had 13 differing runtime files. On 2026-10-18, William chose this Production-derived repository as the working copy and requested deletion of the original folder. Its Git history, uncommitted files and local configuration were preserved in the private recovery archive `/Users/williampaik/Documents/ChatGPT/Lattice Recovery Archives/lattice-original-2026-10-18.tar.gz` before removal.
 
 - Production baseline commit: `de73b9b`, tagged `production-baseline-20261018`.

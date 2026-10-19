@@ -1,10 +1,12 @@
 # TODO
 
-- Test repair complete locally (2026-10-19): 733 passed, no failures; the explicitly enabled PostgreSQL audit remains skipped. Shared-registry intake compatibility and admin queue filtering are verified. Browser/hosted verification and deployment remain separate follow-up work.
+## Current next steps — October 19, 2026
 
-- This Production-derived repo is now the primary local working copy, with the synthetic Design C preview on port 3000. Configure remote synchronization when requested; it currently has no remote. Recovery of superseded local work is documented in `LOCAL_PREVIEW.md`.
-
-- Review local Design C at `/design-preview/timing-c`; implementation and rollback are in `LOCAL_PREVIEW.md`. Before any requested rollout, confirm shipping-day units/holiday handling and align checkout, purchased order dates and PDFs with the new viewing-date calculation. No deployment is authorized for this experiment.
+- Continue from `codex/materials-catalog-handoff` in the existing GitHub repository. Read `docs/cross-device-handoff-2026-10-19.md` before starting on another computer. The local Production-derived history is preserved separately; do not push it over GitHub main or force-push.
+- Material catalog/RFQ unification is implemented and automated checks pass: 758 tests, one opt-in PostgreSQL audit skipped, TypeScript and ESLint clean. Browser-check authenticated catalog → exact-material quote → first CAD upload → draft reload, sourcing-only flow and mobile/keyboard controls. Confirm process/finish compatibility on a representative real request before requesting a release.
+- Every published grade/condition now has an existing quote selection or sourcing inquiry action. Catalog presence does not certify stock availability. Review ambiguous alias relationships individually; do not merge distinct specifications or infer T6/T651 equivalence. The remaining audit recommendations are in `docs/audits/materials-catalog-rfq-unification-2026-10-19.md`.
+- Current main/Production workflow baseline is PR #1 / `cb90b13`. Latest material changes are on the handoff branch only. Merging/releasing that branch is a separate action. Retain the existing purchasing/payment release gates below.
+- The earlier Design C synthetic preview remains available for comparison; `LOCAL_PREVIEW.md` documents rollback and its limitations. The October 19 baseline release supersedes older statements that all quote/tour changes are local only. Still review viewing-date calculations versus persisted checkout/order/PDF dates and holiday handling as a separate product decision.
 
 - Account settings usability follow-up (2026-10-15): phone formatting, billing email validation, signed-in recovery identity binding, persistent same-as-shipping and U.S. city/state/ZIP/manual-entry controls implemented. Development/Production additive schema applied and released as dpl_Bz8CdC7v4JduhdfPQZZ7uoRbRmir (source 1d5877c). Hosted Member phone-format/reset-binding/address-suggestion/manual-entry checks pass. Genuine Admin billing-checkbox save/reload/restoration and invalid/valid email controls now pass. All 17 pre-check RFQs and original shared address/contact values remain unchanged. No remaining handoff. No automated tests run for this follow-up.
 

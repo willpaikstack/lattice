@@ -317,7 +317,7 @@ describe("request persistence", () => {
     };
 
     expect(mapStoredRequest(stored).intakeDeclaration).toEqual(declaration);
-    expect(mapStoredRequest(stored).lineItems[0].manufacturingDetails).toEqual({ ...engineeringDetails, targetDeliveryDate: "" });
+    expect(mapStoredRequest(stored).lineItems[0].manufacturingDetails).toEqual({ ...engineeringDetails, targetDeliveryDate: "", materialGrade: "6061 Aluminum", materialCondition: "T6" });
     expect(mapStoredRequest(stored)).toMatchObject({
       id: "req_1",
       buyerCompany: "Amogy Manufacturing",

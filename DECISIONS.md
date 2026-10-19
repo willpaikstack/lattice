@@ -1704,3 +1704,17 @@ Use today (America/New_York), rather than an older draft creation date, as the b
 Decision: the Materials catalog, RFQ selection and prefill, and material-property lookups use `src/lib/material-identity-registry.ts` for name resolution. Aliases are scoped by use/family so a search alias or combined customer-facing choice cannot accidentally select properties for one constituent grade. Combined 304/304L and 316/316L choices remain distinct from single-grade property records; suppliers must certify the combined requirements.
 
 Reason: separate alias tables drift and can map the same label differently. Explicit scopes preserve technical distinctions while keeping customer-facing names consistent.
+
+
+## 2026-10-19 — Bind material highlights and family examples to the published directory
+
+Decision: the Materials family directory defines which grades and conditions can appear in featured/common cards and family-card examples. Curated photography and guidance may reference a published grade but cannot supply an independent material name, add an absent offering or advertise an unlisted temper. Family examples are derived from the resulting highlights. Parent alloy names and condition labels remain separate; reference properties use the same grade/condition lookup as the directory. A missing exact reference does not authorize substituting values for another grade, including either constituent of a dual-certified offering.
+
+Implementation: `src/lib/material-catalog-records.ts` and `src/lib/material-family-view-models.ts`. This completes the approved featured/examples/directory consistency item; broader catalog/RFQ unification remains a separate proposal.
+
+
+## 2026-10-19 — Give every published material a quote or sourcing path
+
+Decision: project the published material directory and existing reviewed RFQ variants into `material-quote-offerings.ts`. Every published grade and listed condition has an explicit Request quote or Ask us to source action. Catalog membership alone does not establish a ready-to-quote offering. Catalog-only choices remain searchable in Configure but require sourcing review through the existing inquiry form; opening that form in a new tab preserves the active draft. Keep distinct RFQ variants when catalog lookup aliases only establish a broader relationship.
+
+Material and Condition are separate controls. Searching a precise aluminum designation such as 6061-T651 selects both, while choosing a parent alloy requires an explicit condition. Unspecified historical variants stay available and are labelled for quote confirmation; no automatic T6/T651 substitution. Preserve the existing exact material key and full requirement label in saved drafts/submissions. Derive grade/condition metadata from that trusted key in the shared server parser; no database migration or submitted-record rewrite. Catalog links initialize the first part of a new request through CAD upload, and cannot override a saved draft or reorder. Retain the old grouped picker code as a local presentation rollback.
