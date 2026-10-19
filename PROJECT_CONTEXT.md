@@ -1,5 +1,7 @@
 # Project Context
 
+Draft PR opened (2026-10-19): [Sync production baseline and approved Lattice workflow updates](https://github.com/willpaikstack/lattice/pull/1) targets GitHub main. The review branch is `codex/materials-quote-workflow-test-repairs`, prepared from the original GitHub repository recovered from the archive; the independent local source history remains intact. GitHub main was older than the Production-derived app, so the draft includes the necessary source reconciliation plus the approved local changes. The exact PR source passed 733 tests with one opt-in database audit skipped, TypeScript, ESLint and diff checks. No merge or deployment.
+
 Local verification repair (2026-10-19): full suite passes with 733 tests passed and the existing opt-in PostgreSQL audit skipped. Restored shared search/stage/owner filters in the admin quote queue; manufacturing validation accepts approved legacy material aliases through the shared registry. Updated settings/auth/navigation/checkout/quote-detail test contracts for the approved behavior, with explicit signed-in recovery ownership, linked billing and saved AP-contact coverage. TypeScript, full ESLint and diff checks pass; lint excludes the versioned third-party OCCT runtime copied into public assets. Local only.
 
 Equipment explorer archive (2026-10-18, local): removed from navigation/tour, and its URL redirects to Equipment. Components and catalog data remain available for restoration. Not deployed.

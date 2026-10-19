@@ -2839,3 +2839,10 @@ Added `src/lib/material-identity-registry.ts` and routed the Materials catalog, 
 - Restored missing shared search/stage/owner controls in the admin quote queue in accordance with the existing documented workflow. Added search/reset, cross-table filters and archive coverage. Added signed-in password-reset ownership and authoritative linked-billing checks.
 - Excluded only the versioned third-party OCCT public runtime from source linting; application sources remain linted.
 - Final full suite: 137 test files passed, one opt-in PostgreSQL audit file skipped; 733 tests passed, zero failed, one skipped. TypeScript, full ESLint and git diff whitespace checks pass. The live database audit and browser/hosted verification were not run; no deployment or customer data changes.
+
+
+## 2026-10-19 — Publish draft workflow synchronization PR
+
+Created [Sync production baseline and approved Lattice workflow updates](https://github.com/willpaikstack/lattice/pull/1) in the original Lattice GitHub repository, targeting main on `codex/materials-quote-workflow-test-repairs`. Used a separate checkout based on current GitHub main because the active local repository has independent Production-source history. The draft explicitly documents the broader source reconciliation needed since main predates the current app. Preserved existing environment/QA exclusions, restored the original Git ignore protections and generated CAD-runtime exclusion; customer workflow data, exact production RFQ audit JSON, environment files and generated vendor bundles were omitted. A pre-existing trailing blank line in imported CAD code was removed for the review diff.
+
+The PR source passes 733 tests with one opt-in PostgreSQL audit skipped, TypeScript, full ESLint and whitespace checks. Linked the PR to this chat. No merge, deployment or database writes.

@@ -66,3 +66,8 @@ This experiment implements quote-screen presentation and calculation. Stored quo
 - The existing BuyerQuoteDetail test group has 9 passes and 2 inherited failures, unchanged when `LATTICE_QUOTE_TIMING_LAYOUT=legacy`: a removed request-title assertion and an outdated checkout-label assertion. These are baseline test drift rather than timing regressions.
 - The initial Webpack preview failed on an existing global selector in the tour CSS. The preview now uses Turbopack, as the Production build does.
 - Design A screenshots are historical. Design C browser visual verification was blocked by the browser URL policy; the updated layout and sidebar placement are covered by the focused component checks.
+
+
+## GitHub review handoff — October 19, 2026
+
+[Draft workflow synchronization PR](https://github.com/willpaikstack/lattice/pull/1) carries this current application source on a branch based on GitHub main. It includes the necessary source reconciliation because main predates this Production-source snapshot. The original independent local checkout and baseline tag remain intact; the PR uses the existing GitHub repository history. The review branch passes the full suite (733 passed, one opt-in database audit skipped), TypeScript and ESLint. No merge or deployment was performed.
