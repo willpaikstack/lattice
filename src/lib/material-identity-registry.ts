@@ -11,6 +11,10 @@ export type MaterialAlias = {
 
 const catalogAliases: Partial<Record<MaterialOfferingCategory, Record<string, string>>> = {
   "Carbon / Alloy Steel": {
+    "1018s": "1018 Steel",
+    "aisi 1010": "AISI 1010 Steel", "steel 1010": "AISI 1010 Steel",
+    "aisi 1010 steel": "AISI 1010 Steel", "aisi 1020": "AISI 1020 Steel", "steel 1020": "AISI 1020 Steel",
+    "aisi 1020 steel": "AISI 1020 Steel",
     "4130 steel": "4130", "steel 4130": "4130", "4140 steel": "4140", "steel 4140": "4140",
     "4340 steel": "4340 / E4340", "steel 4340": "4340 / E4340", "42cd4": "4140",
     "1.7227 / 42crmos4 alloy steel": "4140", "steel 1.2085": "1.2085", x160crmov12: "D2",
@@ -26,6 +30,9 @@ const catalogAliases: Partial<Record<MaterialOfferingCategory, Record<string, st
     "bronze 932": "Bronze 932 (UNS C93200)", "bronze c932": "Bronze 932 (UNS C93200)",
   },
   "Nickel / Cobalt Alloy": {
+    "alloy x": "Hastelloy X",
+    "alloy c-22": "Hastelloy C-22",
+    "alloy c-276": "Hastelloy C-276",
     "alloy 600": "Inconel 600", "alloy 601": "Inconel 601", "alloy 617": "Inconel 617",
     "alloy 625": "Inconel 625", "inconel 625 / alloy 625": "Inconel 625", "alloy 718": "Inconel 718",
     "alloy x-750": "Inconel X-750", "alloy 800": "Incoloy 800", "alloy 800h": "Incoloy 800H",
@@ -35,6 +42,8 @@ const catalogAliases: Partial<Record<MaterialOfferingCategory, Record<string, st
     "invar36 alloy": "Invar 36", "kovar / 4j29": "Kovar",
   },
   "Stainless Steel": {
+    "duplex f51": "Duplex 2205 / S31803",
+    "duplex f55": "Zeron 100", "z100 / s32760": "Zeron 100", z100: "Zeron 100",
     "18-8 stainless steel": "18-8", "ss 18-8": "18-8", "301 stainless steel": "301",
     "303 stainless steel": "303", "ss 303": "303", "304": "304/304L Stainless Steel",
     "304 stainless steel": "304/304L Stainless Steel", "ss 304": "304/304L Stainless Steel",
@@ -61,6 +70,19 @@ const catalogAliases: Partial<Record<MaterialOfferingCategory, Record<string, st
 };
 
 const quoteAliases: Record<string, { canonical: string; kind: MaterialAliasKind }> = {
+  "1018S": { canonical: "1018 Steel", kind: "equivalent" },
+  "AISI 1010": { canonical: "AISI 1010 Steel", kind: "equivalent" },
+  "Steel 1010": { canonical: "AISI 1010 Steel", kind: "equivalent" },
+  "AISI 1020": { canonical: "AISI 1020 Steel", kind: "equivalent" },
+  "Steel 1020": { canonical: "AISI 1020 Steel", kind: "equivalent" },
+  "Alloy X": { canonical: "Hastelloy X", kind: "equivalent" },
+  "Alloy C-22": { canonical: "Hastelloy C-22", kind: "equivalent" },
+  "Alloy C-276": { canonical: "Hastelloy C-276", kind: "equivalent" },
+  "Duplex F51": { canonical: "Duplex 2205 / S31803 Stainless Steel", kind: "equivalent" },
+  "Duplex 2205 / S31803": { canonical: "Duplex 2205 / S31803 Stainless Steel", kind: "equivalent" },
+  "Duplex F55": { canonical: "Zeron 100 Stainless Steel", kind: "equivalent" },
+  "Z100 / S32760": { canonical: "Zeron 100 Stainless Steel", kind: "equivalent" },
+  "Zeron 100": { canonical: "Zeron 100 Stainless Steel", kind: "equivalent" },
   "304 Stainless Steel": { canonical: "304/304L Stainless Steel", kind: "combined-selection" },
   "304L Stainless Steel": { canonical: "304/304L Stainless Steel", kind: "combined-selection" },
   "SS 304": { canonical: "304/304L Stainless Steel", kind: "combined-selection" },

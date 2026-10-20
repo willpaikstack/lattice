@@ -1,0 +1,1018 @@
+{
+  "researchedAt": "2026-10-19",
+  "scope": "109 missing composition choices from 300 dropdown browse choices",
+  "records": [
+    {
+      "family": "Aluminum",
+      "grade": "1070 Aluminum",
+      "compositionFormula": "AlFeSi",
+      "composition": "Al ≥99.70; Fe ≤0.25; Si ≤0.20",
+      "compositionSource": "https://www.aluminum.org/sites/default/files/2021-10/Teal%20Sheet.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Aluminum",
+      "grade": "2017 Aluminum",
+      "compositionFormula": "AlCuMgMnSi",
+      "composition": "Al balance; Cu 3.5–4.5; Mg 0.40–0.80; Mn 0.40–1.0; Si 0.20–0.80",
+      "compositionSource": "https://www.aluminum.org/sites/default/files/2021-10/Teal%20Sheet.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "AA 2017, not 2017A. T4 is a separate condition.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Aluminum",
+      "grade": "2A12 Aluminum",
+      "compositionFormula": "AlCuMgMn",
+      "composition": "Al balance; Cu 3.8–4.9; Mg 1.2–1.8; Mn 0.3–0.9; Si ≤0.5; Fe ≤0.5",
+      "compositionSource": "https://www.swiftmm.cn/productinfo/3827483.html",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Producer GB/T 3880-2024 plate reference; native grade retained, no 2024 equivalence inferred.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "303Sulf",
+      "compositionFormula": "FeCrNiS",
+      "composition": "Fe balance; Cr 17–19; Ni 8–10; S ≥0.15; C ≤0.12",
+      "compositionSource": "https://www.carpentertechnology.com/hubfs/7407324/Material%20Saftey%20Data%20Sheets/303.pdf",
+      "compositionBasis": "Carpenter Type 303 published chemistry, wt%; selected limits",
+      "compositionNote": "Sulfur-bearing Type 303; not selenium-bearing 303Se.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "309",
+      "compositionFormula": "FeCrNiC",
+      "composition": "Fe balance; Cr 22–24; Ni 12–15",
+      "compositionSource": "https://www.ulbrich.com/uploads/brochures/Ulbrich-Corporate-Brochure_Aug-2018.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Partial chemistry only. Carbon follows the selected Type 309 product specification; no 309S limits substituted.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "347H",
+      "compositionFormula": "FeCrNiNbC",
+      "composition": "Fe balance; Cr 17–19; Ni 9–13; C 0.04–0.08; Nb stabilized",
+      "compositionSource": "https://brasil.aperam.com/wp-content/uploads/2015/11/AISI-347347H-Niobium-Stabilized-Austenitic-Stainless.pdf",
+      "compositionBasis": "Producer 347/347H dual-certified product chemistry, wt%; narrower than generic 347H limits",
+      "compositionNote": "Reference product analysis, not universal 347H acceptance limits.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "430FR",
+      "compositionFormula": "FeCrSiSC",
+      "composition": "Fe balance; Cr 17.25–18.25; Si 1–1.5; S 0.25–0.40; C ≤0.06",
+      "compositionSource": "https://www.carpentertechnology.com/alloy-finder/430fr-solenoid-quality",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Exact 430FR manufacturer reference; not ordinary 430F.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "EN 1.4005",
+      "compositionFormula": "FeCrSC",
+      "composition": "Fe balance; Cr 12–14; C 0.06–0.15; S 0.15–0.35; Si ≤1; Mn ≤1.5; Mo ≤0.60",
+      "compositionSource": "https://www.rodacciai.com/UPLOAD/datasheets/416_X12CrS13-Nr.1.4005-ENG.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "Nitronic 40",
+      "compositionFormula": "FeCrNiMnN",
+      "composition": "Fe balance; Cr 19–21.5; Ni 5.5–7.5; Mn 8–10; N 0.15–0.40",
+      "compositionSource": "https://www.electralloy.com/images/pdf/nitronic/Nit_40.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Shared principal chemistry only. Specify S21900 or low-carbon S21904 before assigning carbon limit or UNS.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "AISI 1010",
+      "compositionFormula": "FeCMn",
+      "composition": "Fe balance; C 0.08–0.13; Mn 0.30–0.60",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "Steel 1010",
+      "compositionFormula": "FeCMn",
+      "composition": "Fe balance; C 0.08–0.13; Mn 0.30–0.60",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "Steel 1020",
+      "compositionFormula": "FeCMn",
+      "composition": "Fe balance; C 0.18–0.23; Mn 0.30–0.60",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "S15C",
+      "compositionFormula": "FeCMnSi",
+      "composition": "Fe balance; C 0.13–0.18; Si 0.15–0.35; Mn 0.30–0.60",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "JIS S15C; no substitution with SAE 1015.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "C22",
+      "compositionFormula": "FeCMnSi",
+      "composition": "Fe balance; C 0.21; Si 0.2; Mn 0.6",
+      "compositionSource": "https://www.ovako.com/en/steel-portfolio/steel-grades/general-engineering-structural-steel/",
+      "compositionBasis": "Producer typical analysis, wt%; not full EN grade limits",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "SECC",
+      "compositionFormula": "Fe · Zn coating",
+      "composition": "Steel substrate with electrolytic zinc coating; substrate grade, coating mass and treatment specified separately",
+      "compositionSource": "https://www.sekidou-kouhan.com/kouzai-zukan/g/secc.html",
+      "compositionBasis": "Product constituents; coating is a separate layer, not homogeneous bulk chemistry",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "SGCC",
+      "compositionFormula": "Fe · Zn coating",
+      "composition": "Steel substrate with hot-dip zinc coating; substrate and coating requirements specified separately",
+      "compositionSource": "https://www.nipponsteel.com/product/catalog_download/pdf/U023en.pdf",
+      "compositionBasis": "Product constituents; coating is a separate layer, not homogeneous bulk chemistry",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "SPTE",
+      "compositionFormula": "Fe · Sn coating",
+      "composition": "Steel substrate with electrolytic tin coating; base-steel type and coating mass specified separately",
+      "compositionSource": "https://www.nipponsteel.com/product/catalog_download/pdf/C003en.pdf",
+      "compositionBasis": "Product constituents; tin coating is a separate layer, not homogeneous bulk chemistry",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "40CrMnMoS8-6 / 1.2312",
+      "compositionFormula": "FeCMnCrMoSiS",
+      "composition": "Fe balance; C 0.40; Si 0.40; Mn 1.50; Cr 1.90; Mo 0.20; S 0.080",
+      "compositionSource": "https://www.bohler-edelstahl.com/app/uploads/sites/92/2021/10/productdb/api/bl009e_tool-steels-high-speed-steels-10_2018.pdf",
+      "compositionBasis": "BÖHLER M200 typical composition, wt%; exact 1.2312 grade reference",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "18CrNiMo7-6 / 1.6587",
+      "compositionFormula": "FeCCrNiMoMnSi",
+      "composition": "Fe balance; C 0.15–0.21; Si 0.15–0.40; Mn 0.50–0.90; Cr 1.50–1.80; Ni 1.40–1.70; Mo 0.25–0.35",
+      "compositionSource": "https://steelnavigator.ovako.com/steel-grades/18crnimo7-6/",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "EN ISO 683-3 standard row; not a claim that related SAE designations are equivalent.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "300M VAR / E4340 Mod",
+      "compositionFormula": "FeCSiNiMnCrMoV",
+      "composition": "Fe balance; C 0.42; Si 1.65; Ni 1.8; Mn 0.75; Cr 0.8; Mo 0.4; V 0.07",
+      "compositionSource": "https://www.carpentertechnology.com/alloy-finder/300m",
+      "compositionBasis": "Manufacturer nominal chemistry, wt%; not full AMS acceptance limits",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "16MnCrS5",
+      "compositionFormula": "FeCMnCrSiS",
+      "composition": "Fe balance; C 0.14–0.19; Si 0.15–0.40; Mn 1.00–1.30; Cr 0.80–1.10; S 0.020–0.040",
+      "compositionSource": "https://steelnavigator.ovako.com/steel-grades/16mncrs6/",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Resulfurized grade; not ordinary 16MnCr5.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "52100",
+      "compositionFormula": "FeCCrMnSi",
+      "composition": "Fe balance; C 1.05; Cr 1.4; Mn 0.35; Si 0.3",
+      "compositionSource": "https://www.carpentertechnology.com/alloy-finder/52100",
+      "compositionBasis": "Manufacturer nominal chemistry, wt%; melt practice and standard remain separate",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "Toolox 33",
+      "compositionFormula": "FeCSiMnCrMoVNi",
+      "composition": "Fe balance; C 0.23; Si 1.1; Mn 0.8; Cr ≤1.60; Mo ≤0.80; V ≤0.12; Ni ≤1.0",
+      "compositionSource": "https://www.ssab.com/-/media/files/en/toolox/607-en-toolox-typical-values-v12020.pdf?m=20210120145235",
+      "compositionBasis": "SSAB typical values with stated maxima, wt%; product reference, not a new generic grade",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Tool steel",
+      "grade": "1.2085",
+      "compositionFormula": "FeCCrMnNiSiS",
+      "composition": "Fe balance; C 0.32; Si 0.35; Mn 1.20; Cr 16.00; Ni 0.60; S 0.08",
+      "compositionSource": "https://www.bohler-edelstahl.com/app/uploads/sites/92/2021/10/productdb/api/bl009e_tool-steels-high-speed-steels-10_2018.pdf",
+      "compositionBasis": "BÖHLER M314 typical composition, wt%; exact 1.2085 reference",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Tool steel",
+      "grade": "ST TOOL M2",
+      "compositionFormula": "FeCWCrMoV",
+      "composition": "Fe balance; C 0.82; W 6.25; Cr 4.25; Mo 5; V 1.8",
+      "compositionSource": "https://www.carpentertechnology.com/alloy-finder/m2",
+      "compositionBasis": "Manufacturer nominal M2 chemistry, wt%; original supplier label retained",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Nickel & specialty alloys",
+      "grade": "Alloy X",
+      "compositionFormula": "NiCrFeMoCoWC",
+      "composition": "Ni balance; Cr 22; Fe 18; Mo 9; Co 1.5; W 0.6; C 0.1",
+      "compositionSource": "https://haynesintl.com/en/alloys/alloy-portfolio/high-temperature-alloys/hastelloy-x/",
+      "compositionBasis": "Manufacturer nominal chemistry, wt%",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Nickel & specialty alloys",
+      "grade": "Alloy R41",
+      "compositionFormula": "NiCrCoMoTiAlC",
+      "composition": "Ni balance; Cr 19; Co 11; Mo 10; Ti 3.1; Al 1.5; C 0.09",
+      "compositionSource": "https://haynesintl.com/en/alloys/alloy-portfolio/high-temperature-alloys/haynes-r-41/",
+      "compositionBasis": "Manufacturer nominal chemistry, wt%",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Nickel & specialty alloys",
+      "grade": "Alloy S",
+      "compositionFormula": "NiCrMoSiMnAlLa",
+      "composition": "Ni balance; Cr 16; Mo 15; Si 0.4; Mn 0.5; Al 0.25; La 0.02",
+      "compositionSource": "https://haynesintl.com/en/alloys/alloy-portfolio/high-temperature-alloys/hastelloy-s/",
+      "compositionBasis": "Manufacturer nominal chemistry, wt%",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Nickel & specialty alloys",
+      "grade": "Hastelloy B-2",
+      "compositionFormula": "NiMoFeCrC",
+      "composition": "Ni balance; Mo 28; Fe ≤2; Cr ≤1; C ≤0.01",
+      "compositionSource": "https://haynesintl.com/en/alloys/alloy-portfolio/alloy-nominal-compositions/",
+      "compositionBasis": "Manufacturer nominal chemistry with stated maxima, wt%",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Precision alloys",
+      "grade": "1J50",
+      "compositionFormula": "FeNiMnSi",
+      "composition": "Fe balance; Ni 49.80; Mn 0.35; Si 0.17",
+      "compositionSource": "https://www.kunsenfm.com/en/products/soft-magnetic/",
+      "compositionBasis": "Producer representative analysis, wt%; not full GB standard limits",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Precision alloys",
+      "grade": "1J79",
+      "compositionFormula": "NiFeMoMnSi",
+      "composition": "Fe balance; Ni 79.50; Mo 3.95; Mn 0.85; Si 0.38",
+      "compositionSource": "https://www.kunsenfm.com/en/products/soft-magnetic/",
+      "compositionBasis": "Producer representative analysis, wt%; not full GB standard limits",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Precision alloys",
+      "grade": "1J85",
+      "compositionFormula": "NiFeMoMnSi",
+      "composition": "Fe balance; Ni 80.30; Mo 4.95; Mn 0.35; Si 0.18",
+      "compositionSource": "https://www.kunsenfm.com/en/products/soft-magnetic/",
+      "compositionBasis": "Producer representative analysis, wt%; not full GB standard limits",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Magnesium / zinc alloys",
+      "grade": "AZ31B",
+      "compositionFormula": "MgAlZnMn",
+      "composition": "Mg balance; Al 2.5–3.5; Zn 0.7–1.3; Mn 0.20–1.0",
+      "compositionSource": "https://www.luxfermagnesium.com/wp-content/uploads/2024/01/Luxfer-Rolled-Products-AZ31B-DS-0124.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Magnesium / zinc alloys",
+      "grade": "Zamak 3",
+      "compositionFormula": "ZnAlMg",
+      "composition": "Zn balance; Al 3.8–4.2; Mg 0.035–0.060; Cu ≤0.03",
+      "compositionSource": "https://www.nyrstar.com/cdn/e335bc04-297c-463d-a3e3-1eed850c4871/technical-data-sheet-zamak-overpelt-2021.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Producer alloy-ingot chemistry reference. Product form remains unresolved for UNS assignment.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Magnesium / zinc alloys",
+      "grade": "Zamak 5 / ASTM AC41A",
+      "compositionFormula": "ZnAlCuMg",
+      "composition": "Zn balance; Al 3.8–4.2; Cu 0.7–1.1; Mg 0.035–0.060",
+      "compositionSource": "https://www.nyrstar.com/cdn/e335bc04-297c-463d-a3e3-1eed850c4871/technical-data-sheet-zamak-overpelt-2021.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Zamak 5 producer chemistry reference; bundled ASTM designation and casting/ingot form still need confirmation.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "ABS Black / White",
+      "compositionFormula": "ABS · CHN",
+      "composition": "Acrylonitrile–butadiene–styrene base polymer; black/white pigment formulation unspecified",
+      "compositionSource": "https://www.sabic.com/en/Images/SABIC-Healthcare-Brochure-Final_tcm1010-5077.pdf",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "POM / Delrin",
+      "compositionFormula": "POM · CHO",
+      "composition": "Polyoxymethylene/acetal base polymer; exact homopolymer/copolymer grade unspecified",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "POM-C",
+      "compositionFormula": "POM-C · CHO",
+      "composition": "Polyoxymethylene copolymer base resin",
+      "compositionSource": "https://www.ensingerplastics.com/en/thermoplastic-materials/pom-acetal/pom-tube",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "POM-H",
+      "compositionFormula": "POM-H · CHO",
+      "composition": "Polyoxymethylene homopolymer base resin",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Nylon 6",
+      "compositionFormula": "PA6 · CHNO",
+      "composition": "Polyamide 6 base resin",
+      "compositionSource": "https://www.ensingerplastics.com/en-us/compounds/tecacomp-pa6-id-blue",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Nylon 66",
+      "compositionFormula": "PA66 · CHNO",
+      "composition": "Polyamide 66 base resin",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA / Nylon",
+      "compositionFormula": "PA · CHNO",
+      "composition": "Polyamide family; PA6, PA66, PA12 or another exact resin must be specified",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Family-level constituent summary only; no nylon type inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA12",
+      "compositionFormula": "PA12 · CHNO",
+      "composition": "Polyamide 12 base resin",
+      "compositionSource": "https://www.arkema.com/global/en/products/product-families/specialty-polyamides/",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PVDF",
+      "compositionFormula": "PVDF · CHF",
+      "composition": "Polyvinylidene fluoride base resin",
+      "compositionSource": "https://www.ensingerplastics.com/en-gb/shapes/tecaflon-pvdf-natural",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PE",
+      "compositionFormula": "PE · CH",
+      "composition": "Polyethylene base resin; molecular-weight grade and additives unspecified",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PP",
+      "compositionFormula": "PP · CH",
+      "composition": "Polypropylene base resin; homopolymer/copolymer and additives unspecified",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PETP",
+      "compositionFormula": "PET · CHO",
+      "composition": "Polyethylene terephthalate base resin; PETP is an alternative abbreviation",
+      "compositionSource": "https://www.ensingerplastics.com/en-gb/thermoplastic-materials/pet-polyester/pet-injection-moulding",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PBT",
+      "compositionFormula": "PBT · CHO",
+      "composition": "Polybutylene terephthalate base resin",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PMMA",
+      "compositionFormula": "PMMA · CHO",
+      "composition": "Polymethyl methacrylate base resin",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PC",
+      "compositionFormula": "PC · CHO",
+      "composition": "Polycarbonate base resin",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "EPDM",
+      "compositionFormula": "EPDM · CH",
+      "composition": "Ethylene–propylene–diene terpolymer; exact monomer ratios and cure package unspecified",
+      "compositionSource": "https://www.dow.com/en-us/product-technology/pt-elastomers-rubber/pg-elastomers-epdm.html",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Aluminum",
+      "grade": "2A14 Aluminum",
+      "compositionFormula": "AlCuSiMgMn",
+      "composition": "Al balance; Cu 3.9–4.8; Si 0.6–1.2; Mg 0.4–0.8; Mn 0.4–1.0",
+      "compositionSource": "https://www.mdpi.com/2075-4701/12/2/184/xml",
+      "compositionBasis": "Published research reference composition, wt%; selected principal alloying ranges only",
+      "compositionNote": "Native 2A14 reference; not merged with AA 2014. Iron limits omitted because cited sources differ.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "20Cr13",
+      "compositionFormula": "FeCrC",
+      "composition": "Fe balance; Cr 12–14; C 0.16–0.25; Si ≤1; Mn ≤1",
+      "compositionSource": "https://www.dsmsteel.com/DSM-is-a-supplier-of-corrosion-resistant-high-quality-knife-steel-materials-pd531420158.html",
+      "compositionBasis": "Producer-published selected chemistry, wt%; native GB designation retained",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "40Cr13",
+      "compositionFormula": "FeCrC",
+      "composition": "Fe balance; Cr 12–14; C 0.36–0.45; Si ≤0.8; Mn ≤0.8",
+      "compositionSource": "https://www.dsmsteel.com/DSM-is-a-supplier-of-corrosion-resistant-high-quality-knife-steel-materials-pd531420158.html",
+      "compositionBasis": "Producer-published selected chemistry, wt%; native GB designation retained",
+      "compositionNote": "",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "SPCC",
+      "compositionFormula": "FeCMn",
+      "composition": "Fe balance; C ≤0.15; Mn ≤1.00; P ≤0.100; S ≤0.035",
+      "compositionSource": "https://www.nipponsteel.com/product/catalog_download/pdf/U003en.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "JIS G3141 table in producer catalog; not SAE 1008/1010 substitution.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "SPHC",
+      "compositionFormula": "FeCMn",
+      "composition": "Fe balance; C ≤0.12; Mn ≤0.60; P ≤0.045; S ≤0.035",
+      "compositionSource": "https://www.nipponsteel.com/product/catalog_download/pdf/U001en.pdf",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "JIS G3131 table in producer catalog.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "4140 Annealed",
+      "compositionFormula": "FeCCrMoMnSi",
+      "composition": "Fe balance; C 0.38–0.43; Mn 0.75–1.00; Si 0.15–0.35; Cr 0.80–1.10; Mo 0.15–0.25",
+      "compositionSource": "https://www.laxconsteels.com/grades/sae-4140/",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "SAE 4140 chemistry. Annealing/normalizing changes condition, not the specified alloy chemistry.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "4140 Normalized",
+      "compositionFormula": "FeCCrMoMnSi",
+      "composition": "Fe balance; C 0.38–0.43; Mn 0.75–1.00; Si 0.15–0.35; Cr 0.80–1.10; Mo 0.15–0.25",
+      "compositionSource": "https://www.laxconsteels.com/grades/sae-4140/",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "SAE 4140 chemistry. Annealing/normalizing changes condition, not the specified alloy chemistry.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "EN19",
+      "compositionFormula": "FeCCrMoMnSi",
+      "composition": "Fe balance; C 0.36–0.44; Mn 0.70–1.00; Si 0.10–0.35; Cr 0.90–1.20; Mo 0.25–0.35",
+      "compositionSource": "https://www.laxconsteels.com/grades/en-19/",
+      "compositionBasis": "Producer-published EN19 chemistry, wt%; confirm exact governing BS specification with supplier",
+      "compositionNote": "Not silently assigned SAE 4140 chemistry or UNS.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "6150 Vac Melt Annealed",
+      "compositionFormula": "FeCCrVMnSi",
+      "composition": "Fe balance; C 0.480–0.530; Cr 0.800–1.10; Mn 0.7–0.9; Si 0.150–0.3; V ≥0.150",
+      "compositionSource": "https://waltermetals.elwd.com/product/6150/",
+      "compositionBasis": "Selected chemistry limits, wt%; reference summary, not a complete purchase specification",
+      "compositionNote": "Grade chemistry only; vacuum melt and annealed condition retained separately.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Magnesium / zinc alloys",
+      "grade": "AM60B",
+      "compositionFormula": "MgAlMn",
+      "composition": "Mg balance; Al 5.5–6.5; Mn 0.24–0.60; Zn ≤0.22",
+      "compositionSource": "https://standards.iteh.ai/catalog/standards/astm/d92b55de-13b7-49ef-a9ee-8a164f69d141/astm-b94-18",
+      "compositionBasis": "ASTM B94-18 Table 1 die-casting chemistry, wt%; selected limits",
+      "compositionNote": "Die-casting reference; do not substitute ingot chemistry or another standard edition.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Magnesium / zinc alloys",
+      "grade": "AZ91D",
+      "compositionFormula": "MgAlZnMn",
+      "composition": "Mg balance; Al 8.3–9.7; Zn 0.35–1.0; Mn 0.15–0.50",
+      "compositionSource": "https://standards.iteh.ai/catalog/standards/astm/d92b55de-13b7-49ef-a9ee-8a164f69d141/astm-b94-18",
+      "compositionBasis": "ASTM B94-18 Table 1 die-casting chemistry, wt%; selected limits",
+      "compositionNote": "Die-casting reference; do not substitute ingot chemistry or another standard edition.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Brass",
+      "grade": "Brass H59",
+      "compositionFormula": "CuZn",
+      "composition": "Cu 57.0–60.0; Zn balance",
+      "compositionSource": "https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web3429/site/attach/0/5e4fecdd294e48f381b631eb718dd424.pdf",
+      "compositionBasis": "Manufacturer environmental assessment published by Zhejiang government, wt%; principal constituents only",
+      "compositionNote": "Native H-series brass; not assigned a similar UNS alloy.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Brass",
+      "grade": "Brass H62",
+      "compositionFormula": "CuZn",
+      "composition": "Cu 60.5–63.5; Zn balance",
+      "compositionSource": "https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web3429/site/attach/0/5e4fecdd294e48f381b631eb718dd424.pdf",
+      "compositionBasis": "Manufacturer environmental assessment published by Zhejiang government, wt%; principal constituents only",
+      "compositionNote": "Native H-series brass; not assigned a similar UNS alloy.",
+      "compositionStatus": "verified-summary"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "HDPE 1000",
+      "compositionFormula": "PE · CH",
+      "composition": "Polyethylene base resin; the HDPE versus PE1000/UHMW designation needs confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Do not infer molecular weight or rename the saved material from this chemistry summary.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Fire-Resistant PC",
+      "compositionFormula": "PC · CHO",
+      "composition": "Polycarbonate base resin; flame-retardant additive chemistry unspecified",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Base resin only; does not establish a fire rating or a particular additive package.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Flame Retardant ABS",
+      "compositionFormula": "ABS · CHN",
+      "composition": "Acrylonitrile–butadiene–styrene base resin; flame-retardant additive chemistry unspecified",
+      "compositionSource": "https://www.sabic.com/en/Images/SABIC-Healthcare-Brochure-Final_tcm1010-5077.pdf",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Base resin only; does not establish a fire rating or a particular additive package.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "ABS+30% PC",
+      "compositionFormula": "ABS + PC · CHNO",
+      "composition": "Acrylonitrile–butadiene–styrene/polycarbonate blend; label-declared PC fraction requires supplier confirmation",
+      "compositionSource": "https://www.sabic.com/en/products/specialties/lnp-compounds-and-pc-copolymer-resins/cycoloy-fr-resin?grade=c2805",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "No fixed blend ratio, pigment or additive formulation inferred from a generic label.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PC+ABS/T85",
+      "compositionFormula": "PC + ABS · CHNO",
+      "composition": "Polycarbonate/acrylonitrile–butadiene–styrene blend; T85 product designation unresolved",
+      "compositionSource": "https://www.sabic.com/en/products/specialties/lnp-compounds-and-pc-copolymer-resins/cycoloy-fr-resin?grade=c2805",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Blend constituent reference only; this does not identify T85 as a SABIC product.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "ABS+30% GF",
+      "compositionFormula": "ABS · CHN + glass fiber",
+      "composition": "ABS base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "POM+30%GF",
+      "compositionFormula": "POM · CHO + glass fiber",
+      "composition": "POM base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA+13%GF",
+      "compositionFormula": "PA · CHNO + glass fiber",
+      "composition": "PA base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA+15%GF",
+      "compositionFormula": "PA · CHNO + glass fiber",
+      "composition": "PA base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA+20%GF",
+      "compositionFormula": "PA · CHNO + glass fiber",
+      "composition": "PA base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA+30%GF",
+      "compositionFormula": "PA · CHNO + glass fiber",
+      "composition": "PA base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA12+30%GF",
+      "compositionFormula": "PA12 · CHNO + glass fiber",
+      "composition": "PA12 base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA66+20%GF",
+      "compositionFormula": "PA66 · CHNO + glass fiber",
+      "composition": "PA66 base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PA66+30%GF",
+      "compositionFormula": "PA66 · CHNO + glass fiber",
+      "composition": "PA66 base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PPS+30%GF",
+      "compositionFormula": "PPS · CHS + glass fiber",
+      "composition": "PPS base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.celanese.com/products/fortron-polyphenylene-sulfide",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PPS+40%GF",
+      "compositionFormula": "PPS · CHS + glass fiber",
+      "composition": "PPS base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.celanese.com/products/fortron-polyphenylene-sulfide",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PP+20%GF",
+      "compositionFormula": "PP · CH + glass fiber",
+      "composition": "PP base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PP+30%GF",
+      "compositionFormula": "PP · CH + glass fiber",
+      "composition": "PP base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "PC+30%GF",
+      "compositionFormula": "PC · CHO + glass fiber",
+      "composition": "PC base resin with label-declared glass-fiber reinforcement; glass type, fraction basis and additives require manufacturer confirmation",
+      "compositionSource": "https://www.ensingerplastics.com/-/media/Ensinger/Files/Document%20Teaser%20Files/Brochures/Shapes/Stock%20Shapes-catalog-en-2024",
+      "compositionBasis": "Qualitative base-resin/constituent identity only; additives, pigment and exact formulation require the manufacturer datasheet",
+      "compositionNote": "Qualitative constituent summary only. Percentage in the catalog name is not independently certified; no pure SiO2 glass composition inferred.",
+      "compositionStatus": "constituents-only"
+    },
+    {
+      "family": "Aluminum",
+      "grade": "A413 Aluminum",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Confirm A413.0 casting versus A413.1 ingot before assigning a grade composition.",
+      "compositionSource": "https://dl.asminternational.org/alloy-digest/article-abstract/33/5/Al-251/4818/ALUMINUM-A413-0Die-Casting-Alloy"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "304LVM",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Confirm supplier grade and melt/product specification; 304V, 304LV and implant-grade labels are not automatically interchangeable.",
+      "compositionSource": "https://www.ulbrich.com/uploads/miscellaneous/Ulbrich-Safety-Data-Sheets-5-30-19.pdf"
+    },
+    {
+      "family": "Stainless steel",
+      "grade": "410Mod",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Modified 410 has no single chemistry without the governing modification and specification.",
+      "compositionSource": "https://www.ssina.com/education/technical-resources/composition-properties/"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "1018S",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Supplier suffix S is unresolved; ordinary 1018 chemistry is not automatically applicable.",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "Steel 20#",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Confirm governing GB product specification and full native grade before importing ranges.",
+      "compositionSource": "https://esales.baosteel.com/portal/download/manual/Tube.pdf"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "Steel 1045 / 45#",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Bundled SAE 1045 / GB 45 needs distinct standard-specific chemistry; no single merged recipe.",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "44W Steel",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "CSA structural designation; obtain the product-specific chemistry and mill certificate. Producer page does not publish a universal recipe.",
+      "compositionSource": "https://www.ssab.com/en-us/brands-and-products/commercial-steel/structural-steel/csa-g40-21-13/44w"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "FE510 Steel",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Full structural subgrade, product standard and thickness are needed.",
+      "compositionSource": "https://industry.arcelormittal.com/catalogue/H30/EN"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "Q235",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Specify A/B/C/D quality subgrade and applicable GB product standard before chemistry limits.",
+      "compositionSource": "https://esales.baosteel.com/portal/download/manual/Tube.pdf"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "S355",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Specify JR/J0/J2 or other subgrade, product standard and thickness.",
+      "compositionSource": "https://steelnavigator.ovako.com/steel-grades/s355/"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "S355J2",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Published producer chemistry is product/thickness-specific; select the procurement specification before applying numeric limits.",
+      "compositionSource": "https://www.ssab.com/-/media/files/en/zero/data_sheet_2422_ssab_s355j2n_zero_2025_01_21.pdf"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "SS400",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Strength-defined structural grade does not establish a fixed C/Mn recipe; require product chemistry/certificate.",
+      "compositionSource": "https://www.nipponsteel.com/product/catalog_download/pdf/U001en.pdf"
+    },
+    {
+      "family": "Mild steel",
+      "grade": "Steel S355JR",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Published producer chemistry varies by product and thickness; obtain procurement specification.",
+      "compositionSource": "https://steelnavigator.ovako.com/steel-grades/s355/"
+    },
+    {
+      "family": "Copper",
+      "grade": "Beryllium Copper",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Specify exact alloy, such as C17200, C17500 or C17510; their chemistries differ.",
+      "compositionSource": "https://alloys.copper.org/search/alloys/browse?fq=element_names%3A%22Beryllium%22&fq=element_names%3A%22Copper%22"
+    },
+    {
+      "family": "Copper",
+      "grade": "QSN6-6-3 / CuSn6Zn6",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Bundled designations may omit lead; confirm exact native tin-zinc-lead bronze identity before assigning constituents.",
+      "compositionSource": "https://datasheets.copper.org/"
+    },
+    {
+      "family": "Copper",
+      "grade": "QSN6.5-0.1 / CuSn6",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Confirm the bundled GB/EN phosphor-bronze designations and phosphorus requirements.",
+      "compositionSource": "https://datasheets.copper.org/"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "40CrNiMo",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Confirm full GB grade/suffix and procurement specification; do not substitute 40CrNiMoA or 4340 automatically.",
+      "compositionSource": "https://www.steel-n.com/e-sales/pdf/en/wirerod.pdf"
+    },
+    {
+      "family": "Alloy steel",
+      "grade": "4330 Mod VM N&T",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Published 4330 modifications differ; exact modified composition and governing specification needed.",
+      "compositionSource": "https://nickelinstitute.org/media/8d91ba660c3cea5/ni_inco_389_isothermaltransformationdiagramsofnickelalloysteels.pdf"
+    },
+    {
+      "family": "Nickel & specialty alloys",
+      "grade": "Nimonic 300",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Exact manufacturer product identity and datasheet not established; no chemistry borrowed from another NIMONIC grade.",
+      "compositionSource": "https://www.specialmetals.com/documents/special-metals-quick-reference-guide.pdf"
+    },
+    {
+      "family": "Precision alloys",
+      "grade": "4J32",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Published supplier chemistry conflicts; resolve governing standard and producer certificate.",
+      "compositionSource": "https://www.faber-alloy.com/products/chanpinzhanshi/square-tube/-4J32-Square-tube.html"
+    },
+    {
+      "family": "Precision alloys",
+      "grade": "Invar",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Generic trade/family label; specify exact Invar grade before applying Invar 36 chemistry.",
+      "compositionSource": "https://www.carpentertechnology.com/alloy-finder/invar-36"
+    },
+    {
+      "family": "Magnesium / zinc alloys",
+      "grade": "ZN",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Generic zinc label; specify purity/alloy grade and product form.",
+      "compositionSource": "https://www.nyrstar.com/cdn/e335bc04-297c-463d-a3e3-1eed850c4871/technical-data-sheet-zamak-overpelt-2021.pdf"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "TEFLON",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Brand includes PTFE, FEP, PFA and other fluoropolymers; exact resin required.",
+      "compositionSource": "https://www.teflon.com/en/products/resins"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Bakelite Resin",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Brand spans several resin systems; exact phenolic or other resin SKU and filler required.",
+      "compositionSource": "https://bakelite.com/products/"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Fibre glass",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Reinforcement alone does not identify glass type, resin matrix or complete material formulation.",
+      "compositionSource": "https://www.owenscorning.com/en-us/composites"
+    },
+    {
+      "family": "Plastics / polymers",
+      "grade": "Photopolymer Resin",
+      "compositionStatus": "needs-specification",
+      "compositionNote": "Specify manufacturer/SKU and cured formulation; generic photopolymer has no fixed chemical composition.",
+      "compositionSource": "https://formlabs.com/materials/"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { customerMaterialCatalog, type CustomerMaterialCatalogEntry } from "./customer-material-catalog";
 import type { MaterialMechanicalProperties } from "./material-grade-properties";
 import { catalogGradeRecords, catalogReferenceProperties, type CatalogGradeRecord } from "./material-catalog-records";
+import { catalogMaterialUnsReference } from "./material-uns-references";
 
 export type MaterialFamilyCardData = {
   catalogNoun: "grades" | "offerings";
@@ -615,6 +616,7 @@ export function getFeaturedMaterialGrades(material: CustomerMaterialCatalogEntry
       ...presentation,
       grade: record.grade,
       name: record.name,
+      uns: catalogMaterialUnsReference(material.name, record.grade)?.unsNumber ?? presentation.uns,
       condition: condition?.label,
       mechanicalProperties: catalogReferenceProperties(material.name, record.grade, condition),
     }];
@@ -636,7 +638,7 @@ export function getFeaturedMaterialGrades(material: CustomerMaterialCatalogEntry
     imageAlt: `${material.name} material surface`,
     machinability: "Application review",
     selectionNote: "Confirm grade, condition, stock form, and documentation requirements during RFQ review.",
-    uns: "UNS / specification review",
+    uns: catalogMaterialUnsReference(material.name, record.grade)?.unsNumber ?? "UNS / specification review",
     mechanicalProperties: catalogReferenceProperties(material.name, record.grade),
   }));
 }

@@ -180,8 +180,7 @@ describe("RequestForm", () => {
     confirmSelectedCad();
     await screen.findByText("Line item 1: bracket");
     expect(screen.getByLabelText("Material")).toHaveValue("6061_t651_aluminum");
-    expect(screen.getByLabelText("Condition")).toHaveValue("6061_t651_aluminum");
-    expect(screen.getByRole("option", { name: "T651" })).toHaveProperty("selected", true);
+    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T651");
   });
 
   it("keeps tolerance choices and ISO Fine values when switching between new and legacy designs", async () => {

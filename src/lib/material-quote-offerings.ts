@@ -1,8 +1,9 @@
 import { customerMaterialCatalog } from "./customer-material-catalog";
 import { catalogGradeRecords } from "./material-catalog-records";
 import { resolveMaterialName } from "./material-identity-registry";
+import { catalogMaterialReference } from "./material-uns-references";
 import { canonicalMaterialValue, selectableRfqMaterials, searchRfqMaterials } from "./rfq-material-search";
-import type { RfqOption } from "./rfq-options";
+import { otherMaterialValue, type RfqOption } from "./rfq-options";
 
 export type MaterialConditionChoice = { label: string; value: string; sourcing: boolean };
 export type MaterialOffering = {
@@ -19,6 +20,12 @@ export type MaterialSearchChoice = RfqOption & { category: string; subgroup: str
 function catalogValue(slug: string, grade: string) {
   return `catalog:${slug}:${encodeURIComponent(grade)}`;
 }
+function quoteMaterialLabel(family: string, name: string) {
+  if (family === "Aluminum" && !/\bAluminum$/i.test(name)) return `${name} Aluminum`;
+  if (family === "Stainless steel" && !/\bStainless Steel$/i.test(name)) return `${name} Stainless Steel`;
+  if (family === "Titanium" && !/\bTitanium\b/i.test(name)) return `${name} Titanium`;
+  return name;
+}
 function aluminumCondition(label: string) {
   return label.match(/-(T\d+|H\d+) Aluminum$/i)?.[1].toUpperCase();
 }
@@ -33,7 +40,7 @@ function catalogNameFor(option: RfqOption) {
 const offerings: MaterialOffering[] = customerMaterialCatalog.flatMap((family) => catalogGradeRecords(family.materialGroups).map((record) => {
   const value = catalogValue(family.slug, record.grade);
   return {
-    value, grade: record.grade, label: record.name, family: family.name, familySlug: family.slug,
+    value, grade: record.grade, label: quoteMaterialLabel(family.name, record.name), family: family.name, familySlug: family.slug,
     variants: [],
     conditions: record.conditions.map((condition) => ({ label: condition.label, value: `${value}:condition:${condition.label}`, sourcing: true })),
   };
@@ -69,6 +76,15 @@ for (const offering of materialOfferings) {
   for (const condition of offering.conditions) offeringByValue.set(condition.value, offering);
 }
 const variantByValue = new Map(selectableRfqMaterials.map((option) => [option.value, option]));
+const namedSteelConditions: Record<string, { grade: string; condition: string }> = {
+  "4140 Annealed": { grade: "4140", condition: "Annealed" },
+  "4140 Normalized": { grade: "4140", condition: "Normalized" },
+  "6150 Vac Melt Annealed": { grade: "6150", condition: "Annealed" },
+  "4330 Mod VM N&T": { grade: "4330 Mod VM", condition: "Normalized and tempered" },
+};
+const gradesWithNamedSteelConditions = new Set(materialOfferings
+  .filter((offering) => offering.family === "Alloy steel" && namedSteelConditions[offering.grade])
+  .map((offering) => namedSteelConditions[offering.grade].grade));
 
 export function materialOfferingFor(value: string) {
   return offeringByValue.get(canonicalMaterialValue(value));
@@ -89,6 +105,11 @@ export function materialSelectionError(value: string) {
   const offering = materialOfferingFor(value);
   if (offering?.conditions.some((condition) => condition.value === value && condition.sourcing) || !offering?.variants.length) return "Request sourcing review for this material";
   return "Select a material condition";
+}
+export function materialNotesError(value: string, notes: string) {
+  return canonicalMaterialValue(value) === otherMaterialValue && !notes.trim()
+    ? "Specify the material, grade and temper/condition in Manufacturing notes"
+    : null;
 }
 export function initialOfferingValue(offering: MaterialOffering) {
   return offering.conditions.length ? offering.value : offering.variants[0]?.value ?? offering.value;
@@ -118,22 +139,70 @@ export function catalogMaterialAction(familyName: string, grade: string, conditi
 
 function searchChoice(offering: MaterialOffering, value: string, condition?: MaterialConditionChoice): MaterialSearchChoice {
   const variant = materialVariantFor(value);
+  const reference = catalogMaterialReference(offering.family, offering.grade);
+  const existingMetadata = { ...offering.variants[0]?.metadata, ...variant?.metadata };
+  const existingComposition = String(existingMetadata.composition ?? "").trim();
+  const hasExistingComposition = !!existingComposition && !/^(?:N\/?A|unknown|not listed|composition pending)$/i.test(existingComposition);
   const sourcing = condition?.sourcing ?? !offering.variants.length;
   return {
     value,
-    label: `${offering.label}${condition ? ` · ${condition.label}` : ""}`,
+    label: condition
+      ? offering.family === "Aluminum"
+        ? `${offering.label.replace(/ Aluminum$/i, "")}-${condition.label} Aluminum`
+        : `${offering.label} · ${condition.label}`
+      : variant && offering.family === "Aluminum" && offering.conditions.length
+        ? `${variant.label} · Temper not specified`
+        : variant && offering.family === "Titanium" && !/\bTitanium\b/i.test(variant.label)
+          ? `${variant.label} Titanium`
+        : variant?.label ?? offering.label,
     description: sourcing ? "Sourcing review required" : variant?.description,
-    metadata: { ...offering.variants[0]?.metadata, ...variant?.metadata, family: offering.family },
+    metadata: {
+      ...reference, ...existingMetadata,
+      // A reviewed canonical identifier supersedes legacy placeholders such as
+      // UNS N/A. Preserve existing exact-variant composition metadata.
+      ...(reference?.unsNumber ? { unsNumber: reference.unsNumber, unsSource: reference.unsSource } : {}),
+      // Empty legacy fields must not erase a researched grade reference. Preserve
+      // complete existing variant chemistry; never borrow a sibling's condition.
+      ...(!hasExistingComposition && reference ? {
+        composition: reference.composition,
+        compositionFormula: reference.compositionFormula,
+        compositionSource: reference.compositionSource,
+        compositionBasis: reference.compositionBasis,
+        compositionNote: reference.compositionNote,
+        compositionStatus: reference.compositionStatus,
+      } : {}),
+      family: offering.family,
+    },
     category: offering.family, subgroup: offering.family, sourcing,
   };
 }
 export const materialGradeChoices = materialOfferings.map((offering) => searchChoice(offering, initialOfferingValue(offering)));
+const excludedQuoteMaterialLabels = new Set([
+  "18-8", "18-8 Stainless Steel", "Invar", "ZN", "Beryllium Copper", "Magnesium", "Zinc", "Cast Iron",
+  "Duplex 2205 / S31803", "Duplex 2205 / S31803 Stainless Steel",
+  "Duplex 2205 / S32205", "Duplex 2205 / S32205 Stainless Steel",
+].map((label) => label.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "")));
+function quoteMaterialIdentity(value: string) {
+  return value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+function excludedFromQuotePicker(offering: MaterialOffering, choice: MaterialSearchChoice) {
+  return [offering.grade, offering.label, choice.label].some((label) => excludedQuoteMaterialLabels.has(quoteMaterialIdentity(label)));
+}
+// Offer exact conditions when published; keep generic grades only where no
+// condition choices exist. Hidden legacy keys remain resolvable for saved drafts.
+export const materialBrowseChoices = materialOfferings.flatMap((offering) => {
+  if (excludedQuoteMaterialLabels.has(quoteMaterialIdentity(offering.grade)) || excludedQuoteMaterialLabels.has(quoteMaterialIdentity(offering.label))) return [];
+  if (offering.family === "Alloy steel" && gradesWithNamedSteelConditions.has(offering.grade)) return [];
+  if (!offering.conditions.length) return [searchChoice(offering, initialOfferingValue(offering))];
+  return offering.conditions.map((condition) => searchChoice(offering, condition.value, condition)).filter((choice) => !excludedFromQuotePicker(offering, choice));
+});
 export const materialSearchChoices = [...new Map([
-  ...materialGradeChoices,
-  ...materialOfferings.flatMap((offering) => offering.conditions.map((condition) => searchChoice(offering, condition.value, condition))),
+  // The single selector must offer the same exact requirements when browsing
+  // and searching. Parent-only selections previously relied on a second control.
+  ...materialBrowseChoices,
 ].map((option) => [option.value, option])).values()];
 export function searchMaterialOfferings(query: string) {
-  return query.trim() ? searchRfqMaterials(materialSearchChoices, query) : materialGradeChoices;
+  return query.trim() ? searchRfqMaterials(materialSearchChoices, query) : materialBrowseChoices;
 }
 
 export function catalogInquiryPrefill(value?: string) {
@@ -144,5 +213,8 @@ export function catalogInquiryPrefill(value?: string) {
 
 export function materialSelectionDetails(value: string) {
   const offering = materialOfferingFor(value);
-  return offering ? { materialGrade: offering.grade, materialCondition: materialConditionFor(value)?.label ?? "" } : {};
+  // These requirements already name their heat treatment. Keep that detail in
+  // structured submission metadata as well as in the single dropdown label.
+  // Never interpret grade numbers (e.g. Brass H59 or PC+ABS/T85) as tempers.
+  return offering ? { materialGrade: offering.grade, materialCondition: materialConditionFor(value)?.label ?? (offering.family === "Alloy steel" ? namedSteelConditions[offering.grade]?.condition : undefined) ?? "" } : {};
 }

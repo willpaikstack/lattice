@@ -1,5 +1,8 @@
 # TODO
 
+> Local comparison update (October 19): the newer Material/Condition picker is active for comparison with UNS number and composition below each choice and the selected material. Existing RFQ metadata supplies the reference line; unavailable data is labelled rather than invented. Set `useMaterialConditionPicker = false` to restore the previous grouped dropdown. This update follows the pushed handoff and is not yet pushed or deployed. Earlier verification counts describe the preceding implementation.
+
+
 ## Current next steps — October 19, 2026
 
 - Continue from `codex/materials-catalog-handoff` in the existing GitHub repository. Read `docs/cross-device-handoff-2026-10-19.md` before starting on another computer. The local Production-derived history is preserved separately; do not push it over GitHub main or force-push.
@@ -266,3 +269,14 @@ Twelve genuine-customer Production RFQs across four accounts are submitted and a
 ## 2026-10-16 — Address lookup activation
 
 - Completed 2026-10-16: Lattice Geoapify Free-plan project created with owner approval; server-only key connected as a Vercel Secret for Production/Preview and deployment promoted. Genuine Admin shipping/billing suggestions, keyboard/mouse autofill, manual entry and native state dropdown verified. Original address values preserved. See docs/address-autocomplete-setup.md and the completed-work log.
+
+
+## 2026-10-19 — Material composition and condition follow-up
+
+- Resolve the 26 specification-dependent composition entries listed in `docs/audits/material-composition-completion-2026-10-19.md` using exact supplier/product standards. No approximate UNS/chemistry or invented temper should be assigned.
+- Current dropdown uses one material control for all grade/condition choices; retain separate structured grade/condition metadata internally. Keep unnamed conditions unspecified until documented, and keep sourcing eligibility independent of reference-data coverage.
+- Pending: authenticated browser review of the updated single selector and reference lines. Application tests were not run for this follow-up. Local changes need review/commit/push/deployment separately.
+
+- October 19 selector follow-up: visible browse/search count is now 293 after hiding seven unspecified choices with specific condition alternatives. Legacy saved keys remain valid. Browser review remains pending.
+
+- October 19 material curation follow-up: the selector now has 287 choices, including Other with required per-part Manufacturing notes. 18-8 Stainless Steel, generic Invar, ZN, Beryllium Copper, Magnesium, Zinc and Cast Iron are omitted from quote selection; 18-8, generic Invar and ZN are also omitted from the Materials page, while the remaining four stay catalogued. Browser follow-through should cover choosing Other, saved-draft restore, blank-note blocking, submission and admin notes display. No new tests run.

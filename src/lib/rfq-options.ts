@@ -12,6 +12,9 @@ export type RfqOption = {
   surfaceFinish?: SurfaceFinishMetadata;
 };
 
+export const otherMaterialValue = "other_material";
+export const otherMaterialInstructions = "Specify the material, grade and temper/condition (if applicable) in Manufacturing notes at the bottom. Include any material specifications, such as ASTM or AMS requirements, there as well.";
+
 export type SurfaceFinishBadge =
   | "Non cosmetic"
   | "Cosmetic on request"
@@ -129,20 +132,31 @@ function uniqueOptionsByValue(options: RfqOption[]) {
 }
 
 const rawRfqMaterialOptions: RfqOption[] = uniqueOptionsByValue(
-  cncMaterialLibrary.map((entry) =>
-    option(entry.value, entry.label, entry.value, {
-      family: entry.family,
-      unsNumber: entry.unsNumber,
-      composition: entry.composition,
-      compositionFormula: entry.compositionFormula,
-      sources: entry.sources.join(", "),
-    }),
-  ),
+  [
+    ...cncMaterialLibrary.map((entry) =>
+      option(entry.value, entry.label, entry.value, {
+        family: entry.family,
+        unsNumber: entry.unsNumber,
+        composition: entry.composition,
+        compositionFormula: entry.compositionFormula,
+        sources: entry.sources.join(", "),
+      }),
+    ),
+    {
+      ...option(otherMaterialValue, "Other", otherMaterialValue, { family: "Other materials", requiresMaterialNotes: true }),
+      description: otherMaterialInstructions,
+    },
+  ],
 );
 
 export const rfqMaterialOptions: RfqOption[] = rawRfqMaterialOptions.map((material) => {
   const canonicalLabel = resolveMaterialName("rfq", material.label);
   const sourceLabelsByCanonicalLabel: Record<string, string[]> = {
+    "AISI 1010 Steel": ["AISI 1010", "Steel 1010"],
+    "AISI 1020 Steel": ["AISI 1020", "Steel 1020"],
+    "Hastelloy X": ["Alloy X", "Hastelloy X"],
+    "Hastelloy C-22": ["Alloy C-22", "Hastelloy C-22"],
+    "Hastelloy C-276": ["Alloy C-276", "Hastelloy C-276"],
     "Brass 360 (UNS C36000)": ["Brass 360", "Brass C360"],
     "Copper 110 (UNS C11000)": ["Copper 110", "Copper C110"],
     "Bronze 932 (UNS C93200)": ["Bronze 932", "Bronze C932"],

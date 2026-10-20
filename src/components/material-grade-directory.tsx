@@ -8,6 +8,7 @@ import { catalogGradeName as displayGradeName, catalogGradeRecords, catalogRefer
 import { MaterialRequestAction } from "@/components/material-request-action";
 import { PlasticFunctionalProfile } from "@/components/plastic-functional-profile";
 import type { MaterialMechanicalProperties } from "@/lib/material-grade-properties";
+import { catalogMaterialUnsReference } from "@/lib/material-uns-references";
 
 type GradeProfile = {
   applications: string;
@@ -331,7 +332,7 @@ function functionalTraitsForPlastic(grade: string): NonNullable<GradeProfile["fu
   return { heatTolerance: "Low", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Moderate" };
 }
 
-export function profileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
+function baseProfileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
   const base = seriesProfiles[groupName] ?? seriesProfiles["Other grades"];
 
   if (familyName === "Aluminum" && /6063-T5/i.test(grade)) {
@@ -369,6 +370,12 @@ export function profileForGrade(familyName: string, groupName: string, grade: st
   }
 
   return { ...base, temper: temperForGrade(grade), uns: unsForGrade(grade) };
+}
+
+export function profileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
+  const profile = baseProfileForGrade(familyName, groupName, grade);
+  const reference = catalogMaterialUnsReference(familyName, grade);
+  return reference ? { ...profile, uns: reference.unsNumber } : profile;
 }
 
 function MachinabilityScale({ value }: { value: GradeProfile["machinability"] }) {

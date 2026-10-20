@@ -119,7 +119,7 @@ const aluminumGrades = aluminumOfferings.grades;
 const steelGrades = combinedGrades("Carbon / Alloy Steel", "Steel", "Tool steel")
   .filter((grade) => !/^(?:1\.033|1\.0718|1\.0737|12L14|Steel 12L14|817M40T)$/i.test(grade));
 const stainlessGrades = combinedGrades("Stainless Steel", "Stainless steel")
-  .filter((grade) => !/^(?:SS\s*)?(?:1\.2085|817M40T|Alloy 20|330\s*\/\s*RA330)$/i.test(grade));
+  .filter((grade) => !/^(?:(?:SS\s*)?(?:1\.2085|817M40T|Alloy 20|330\s*\/\s*RA330)|18-8(?:\s+Stainless Steel)?)$/i.test(grade));
 // Controlled-expansion grades have their own family in the customer catalog.
 // Keep the source labels and aliases intact, but avoid listing them again in
 // the broader Inconel/Incoloy family.
@@ -128,11 +128,12 @@ const nickelGrades = unique([
   ...combinedGrades("Stainless Steel", "Stainless steel").filter((grade) => /^330\s*\/\s*RA330$/i.test(grade)),
 ]).filter((grade) => !/^(?:Invar(?:\s*36)?|Kovar|AerMet 100)$/i.test(grade));
 const precisionGrades = combinedGrades("Controlled Expansion / Precision Alloy", "Nickel / precision alloy")
-  .filter((grade) => /Invar|Kovar|4J|1J/i.test(grade));
+  .filter((grade) => /Invar|Kovar|4J|1J/i.test(grade) && !/^Invar$/i.test(grade));
 const titaniumGrades = combinedGrades("Titanium", "Titanium").filter((grade) => !/^Titanium$/i.test(grade));
 const copperFamilyGrades = combinedGrades("Copper / Brass / Bronze", "Copper / brass / bronze")
   .filter((grade) => !/^(?:Brass|Bronze)$/i.test(grade));
-const magnesiumZincGrades = combinedGrades("Magnesium / Zinc", "Magnesium / zinc");
+const magnesiumZincGrades = combinedGrades("Magnesium / Zinc", "Magnesium / zinc")
+  .filter((grade) => !/^ZN$/i.test(grade));
 const plasticGrades = combinedGrades("Plastics / Polymers", "Plastic / polymer", "Composite")
   .filter((grade) => !/^(?:ASTM D6100|Carbon Fibre|PC \+ PU8400 Overmolded|PX233 HT|PX521|PX527|PU8150|PU8400)$/i.test(grade));
 
