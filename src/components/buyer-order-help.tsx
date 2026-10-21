@@ -1,11 +1,13 @@
 "use client";
 
+import type { CustomerRequest } from "@/lib/customer-request";
+
 import { submitOrderSupport } from "@/app/(workspace)/orders/[requestId]/help/actions";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, FileText, MessageSquare, PackageCheck, Truck } from "lucide-react";
 import { FormEvent, useState } from "react";
 
-import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
+import type { SupplierOrderStatus } from "@/lib/request-model";
 import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 
 const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
@@ -18,11 +20,11 @@ const supplierStatusLabels: Record<SupplierOrderStatus, string> = {
   DELIVERED: "Delivered",
 };
 
-function orderReference(order: LatticeRequest) {
+function orderReference(order: CustomerRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function quoteReference(order: LatticeRequest) {
+function quoteReference(order: CustomerRequest) {
   return order.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
@@ -53,7 +55,7 @@ function HelpCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function BuyerOrderHelp({ order }: { order: LatticeRequest }) {
+export function BuyerOrderHelp({ order }: { order: CustomerRequest }) {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");

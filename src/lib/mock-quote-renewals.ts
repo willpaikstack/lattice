@@ -9,7 +9,7 @@ import type { LatticeRequest } from "./request-model";
 type MockRenewal = CustomerSupportRequest & { quoteVersionId: string };
 const storePath = path.join(process.cwd(), ".data", "mock", "quote-renewals.json");
 
-export function isMockQuoteRenewal(request: LatticeRequest) {
+export function isMockQuoteRenewal(request: Pick<LatticeRequest, "id">) {
   return isMockDataMode() && (request.id.startsWith("demo_") || request.id.startsWith("fixture_"));
 }
 

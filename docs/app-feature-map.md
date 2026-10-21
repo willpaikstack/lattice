@@ -1,6 +1,6 @@
 # Lattice OS App Feature Map
 
-Last updated: 2026-10-15
+Last updated: 2026-10-20
 
 P0 patch released (2026-10-13): application commit `db347a6` fixes normal upload completion, administrative data exposure and CAD model isolation. All 557 tests pass; hosted Preview retests verified normal large/small CAD/PDF uploads, original hashes, role/company boundaries and real APS resource-scoped tokens. Production build `dpl_EmQHJHnZtE1ohen8tAMbuyagnTek` was promoted to latticeos.co and anonymous smoke checks pass. October 14 native browser retests also pass: large/small CAD and PDF uploads, saved two-part solid CAD rendering, draft reload/restore, normal RFQ submission and byte-identical original downloads; foreign-company model access remains denied. Live checkout stays disabled; P1/P2 rollout gates remain open. See [P0 remediation and retest](audits/p0-remediation-2026-10-13.md) and the [original readiness inventory](audits/hosted-readiness-2026-10-13.md).
 
@@ -415,3 +415,10 @@ Target delivery minimum (2026-10-18): optional RFQ target dates must be at least
 Restored the documented shared search, stage and owner controls in the admin quote queue. Search matches RFQ title/reference, company, contact and part names across Submitted RFQs, Customer quotes issued, Archive and Drafts; stage/owner filters apply to the non-draft views. Tab totals remain independent of filtering and section counts reflect matched rows. Manufacturing intake now compares approved canonical material names, accepting legacy SS 304 and other approved aliases without changing saved historical records.
 
 Updated test contracts for current Companies/Users navigation, mobile/desktop Request Quote controls, the optional post-tour address flow, combined pricing, activity layout and complete-address display fallback. Recovery tests cover signed-in token ownership; settings tests cover transaction-backed linked billing; checkout checks preserve saved AP contact with reviewed addresses. Full suite: 733 passed, one opt-in database audit skipped. TypeScript passes. No deployment or authenticated browser verification in this pass.
+
+
+## 2026-10-20 — Customer request payload isolation (local)
+
+Customer quotes, quote detail/checkout, orders/detail/help, shipped orders, RFQ continuation/reorder, dashboard and notifications now use the explicit server-side `CustomerRequest` projection. Supplier quotes, costs, nested supplier notes, supplier-quote attachment metadata, internal assignments/package notes, guest credentials and payment-provider IDs are absent from customer payloads. Customer prices/quote versions, original-file references, neutral supplier progress, quality-document downloads, shipping/billing/PO and refund display remain available. Request-info/no-quote customer messages retain their existing behavior; other internal review notes are excluded. RFQ submission, idempotent retries and draft archive return ID-only receipts. Shared drafts project their saved request, envelope and form state on reads and writes, including legacy records; malformed nested records remain quarantined with recovery IDs.
+
+Full internal records remain available to authorized admin flows. Original-file authorization is unchanged. No schema migration or deployment; genuine hosted Admin/Member HTML/RSC/JSON payload checks remain required before rollout.

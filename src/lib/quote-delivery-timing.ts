@@ -1,4 +1,5 @@
-import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "./request-model";
+import type { CustomerRequest } from "./customer-request";
+import { quotedLineForRequestItem, type RequestLineItem } from "./request-model";
 
 function positiveDays(value: number | null | undefined) {
   return typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
@@ -13,14 +14,14 @@ export function shippingBusinessDays(method: string) {
   }
 }
 
-export function partProductionDays(request: LatticeRequest, item: RequestLineItem) {
+export function partProductionDays(request: CustomerRequest, item: RequestLineItem) {
   const line = quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
   const days = positiveDays(line?.leadTimeDays);
   // A single-part legacy quote can use its quoted overall production duration.
   return days ?? (request.lineItems.length === 1 ? positiveDays(request.quote.leadTimeDays) : null);
 }
 
-export function quoteDeliveryTiming(request: LatticeRequest) {
+export function quoteDeliveryTiming(request: CustomerRequest) {
   const parts = request.lineItems.map(item => partProductionDays(request, item));
   // An unknown part could be the longest one, so do not promise a partial estimate.
   const productionDays = parts.length && parts.every((days): days is number => days !== null)

@@ -12,7 +12,7 @@ export function customerCompanyOwnsRequest(companyId: string | null | undefined,
   return Boolean(companyId && request.buyerCompanyId && companyId === request.buyerCompanyId);
 }
 
-export function canSessionAccessCustomerRequest(session: Session | null, request: LatticeRequest) {
+export function canSessionAccessCustomerRequest(session: Session | null, request: Pick<LatticeRequest, "buyerCompanyId">) {
   if (!session) {
     return false;
   }
@@ -24,7 +24,7 @@ export function canSessionAccessCustomerRequest(session: Session | null, request
   return session.user.role === "customer" && customerCompanyOwnsRequest(session.user.companyId, request);
 }
 
-export function filterCustomerVisibleRequests(requests: LatticeRequest[], session: Session | null) {
+export function filterCustomerVisibleRequests<T extends Pick<LatticeRequest, "buyerCompanyId">>(requests: T[], session: Session | null) {
   return requests.filter((request) => canSessionAccessCustomerRequest(session, request));
 }
 

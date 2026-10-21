@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     if (submissionId) {
       try {
         const existing = await getRequestById(submissionId, { requireDatabase: true });
-        if (existing) return NextResponse.json({ request: existing }, { status: 200 });
+        if (existing) return NextResponse.json({ request: { id: existing.id } }, { status: 200 });
       } catch {
         return NextResponse.json({ error: "The RFQ database is unavailable. Your draft is retained; please try again." }, { status: 503 });
       }
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     };
     try {
       const created = await createSubmittedRequest(input, { buyerCompanyId: companyId ?? undefined, ...(submissionId ? { submissionId } : {}), requireDatabase: true });
-      return NextResponse.json({ request: created }, { status: 201 });
+      return NextResponse.json({ request: { id: created.id } }, { status: 201 });
     } catch {
       return NextResponse.json({ error: "The RFQ could not be saved to the database. Your draft is retained; please try again." }, { status: 503 });
     }

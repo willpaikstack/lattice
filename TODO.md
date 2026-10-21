@@ -1,5 +1,7 @@
 # TODO
 
+- Customer supplier-data exposure repaired locally (2026-10-20): explicit customer payload allowlists cover RFQ/quote/order/checkout/reorder, shared drafts and notification surfaces; submission/retry/archive return ID receipts. Before customer rollout, deploy the reviewed source and inspect authenticated HTML/RSC/JSON as genuine Customer Admin and Member accounts with populated synthetic supplier pricing, notes and attachments. Confirm internal markers are absent and authorized customer/quality downloads plus admin supplier detail still work. No deployment was performed in this repair.
+
 - Test repair complete locally (2026-10-19): 733 passed, no failures; the explicitly enabled PostgreSQL audit remains skipped. Shared-registry intake compatibility and admin queue filtering are verified. Browser/hosted verification and deployment remain separate follow-up work.
 
 - This Production-derived repo is now the primary local working copy, with the synthetic Design C preview on port 3000. Configure remote synchronization when requested; it currently has no remote. Recovery of superseded local work is documented in `LOCAL_PREVIEW.md`.

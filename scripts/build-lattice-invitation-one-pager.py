@@ -71,9 +71,10 @@ c.restoreState()
 
 # Source: normalized equipment catalog and network-scale source notes.
 label("ACROSS OUR PARTNER MANUFACTURING NETWORK",44,94)
-for x,value,caption in [(44,"335","documented CNC machines; 109 are 5-axis"),(322,"590+","personnel reported by two partners")]:
+for x,value,caption in [(44,"335","documented CNC machines; 109 are 5-axis"),(322,"590+","personnel reported")]:
     paragraph(value,x,77,246,21,23,INK,True)
-    paragraph(caption,x,48,246,8.5,11)
+    if caption:
+        paragraph(caption,x,48,246,8.5,11)
 
 label("ONE PARTNER, FROM REQUEST TO DELIVERY",44,303)
 # Recreate the website's flowing journey as crisp PDF vector artwork.

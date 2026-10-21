@@ -8,7 +8,7 @@ function isCadFile(file: UploadedFile) {
   return /\.(step|stp|iges|igs|sldprt|x_t|x_b|sat|ipt)$/i.test(file.name) || /step|cad|iges|solidworks|parasolid/i.test(file.type);
 }
 
-export function bundledFilesByLineItem(request: LatticeRequest) {
+export function bundledFilesByLineItem(request: Pick<LatticeRequest, "files" | "lineItems">) {
   const cadFiles = request.files.filter(isCadFile);
   const drawingFiles = request.files.filter(isDrawingFile);
 

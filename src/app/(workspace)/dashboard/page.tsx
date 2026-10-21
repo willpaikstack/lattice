@@ -4,7 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import {
   buildCustomerDashboardSummary,
 } from "@/lib/customer-dashboard";
-import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { customerSafeRequest } from "@/lib/customer-request";
 import { clerkUserDisplayName } from "@/lib/clerk-user-profile";
 import { getPendingQuoteRenewalIds } from "@/lib/quote-renewal-status";
 import { filterCustomerVisibleRequests } from "@/lib/request-access-policy";

@@ -1,10 +1,11 @@
+import type { CustomerRequest } from "./customer-request";
 import "server-only";
 import type { PrismaClient } from "@prisma/client";
 import { getPrismaClient } from "./prisma";
 import { isMockQuoteRenewal, listMockQuoteRenewals } from "./mock-quote-renewals";
-import type { LatticeRequest } from "./request-model";
 
-export async function getPendingQuoteRenewalIds(quotes: LatticeRequest[]) {
+
+export async function getPendingQuoteRenewalIds(quotes: CustomerRequest[]) {
   const candidates = quotes.filter((quote) => quote.status === "QUOTED" && quote.customerQuotes.length > 0);
   const real = candidates.filter((quote) => !isMockQuoteRenewal(quote) && quote.buyerCompanyId);
   const [mockTickets, realTickets] = await Promise.all([

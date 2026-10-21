@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { buildCustomerActivityFeed } from "@/lib/customer-notifications";
-import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { customerSafeRequest } from "@/lib/customer-request";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 import { requireRouteRole } from "@/lib/route-authorization";

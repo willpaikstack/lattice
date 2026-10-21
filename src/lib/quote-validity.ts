@@ -23,7 +23,7 @@ export function resolveQuoteValidUntil(issuedOn: string, selectedDate?: string) 
   return selectedDate;
 }
 
-export function quoteHasExpired(request: LatticeRequest, now = new Date()) {
+export function quoteHasExpired(request: Pick<LatticeRequest, "customerQuotes" | "quote">, now = new Date()) {
   const expiry = request.customerQuotes.at(-1)?.validUntil || request.quote.quoteValidUntil;
   return !expiry || expiry < now.toISOString().slice(0, 10);
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { buildCustomerActionWorkflows } from "@/lib/customer-action-center";
 import { buildCustomerActivityFeed } from "@/lib/customer-notifications";
-import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { customerSafeRequest } from "@/lib/customer-request";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders, listBuyerQuotes } from "@/lib/request-repository";
 

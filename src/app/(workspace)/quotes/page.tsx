@@ -1,3 +1,4 @@
+import { customerSafeRequest } from "@/lib/customer-request";
 import { WorkspaceContentReveal } from "@/components/workspace-content-reveal";
 import { WorkspaceListHeader } from "@/components/workspace-list-loading";
 import { BuyerQuotes } from "@/components/buyer-quotes";
@@ -13,7 +14,7 @@ export default async function QuotesPage() {
     <div data-workspace-tour="quotes" className="mx-auto max-w-[1180px] space-y-6">
       <WorkspaceListHeader kind="quotes" />
       <WorkspaceContentReveal>
-        <BuyerQuotes requests={quotes} />
+        <BuyerQuotes requests={quotes.map(customerSafeRequest)} />
       </WorkspaceContentReveal>
     </div>
   );

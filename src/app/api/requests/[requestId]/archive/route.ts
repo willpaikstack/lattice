@@ -31,7 +31,7 @@ export async function POST(request: Request, { params }: ArchiveDraftRequestCont
     const body = (await request.json().catch(() => ({}))) as { reason?: unknown };
     const archived = await archiveDraftRequest(requestId, typeof body.reason === "string" ? body.reason : "");
 
-    return NextResponse.json({ request: archived });
+    return NextResponse.json({ request: { id: archived.id } });
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : "Unable to archive draft request.";
     return NextResponse.json({ error: message }, { status: 400 });

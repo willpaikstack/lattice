@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { BuyerOrders } from "@/components/buyer-orders";
-import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { customerSafeRequest } from "@/lib/customer-request";
 import { filterCustomerVisibleRequestsForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerOrders } from "@/lib/request-repository";
 

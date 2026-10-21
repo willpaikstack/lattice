@@ -1,6 +1,7 @@
+import type { CustomerRequest } from "./customer-request";
 import { processLabel, readTargetDeliveryDate, type ManufacturingDetails } from "./rfq-manufacturing";
 import type { RequestFormInitialState } from "@/components/request-form";
-import type { LatticeRequest } from "@/lib/request-model";
+
 import { canonicalMaterialValue } from "@/lib/rfq-material-search";
 import {
   generalToleranceOptions,
@@ -45,19 +46,19 @@ function compactLines(lines: Array<string | null | undefined>) {
   return lines.map((line) => line?.trim()).filter(Boolean).join("\n");
 }
 
-export function quoteReference(request: LatticeRequest) {
+export function quoteReference(request: CustomerRequest) {
   return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-export function orderReference(request: LatticeRequest) {
+export function orderReference(request: CustomerRequest) {
   return `PO-${request.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function isDrawingFile(file: LatticeRequest["files"][number]) {
+function isDrawingFile(file: CustomerRequest["files"][number]) {
   return /pdf|drawing|dxf|dwg|png|jpg|jpeg/i.test(`${file.name} ${file.type}`);
 }
 
-function isCadFile(file: LatticeRequest["files"][number]) {
+function isCadFile(file: CustomerRequest["files"][number]) {
   return !isDrawingFile(file);
 }
 
@@ -92,7 +93,7 @@ function lineItemNotesWithoutGeneratedDrawingPrompts(notes: string | undefined) 
     .trim();
 }
 
-export function isResumeCandidate(request: LatticeRequest) {
+export function isResumeCandidate(request: CustomerRequest) {
   return (
     !request.isArchived &&
     (request.status === "DRAFT" ||
@@ -103,7 +104,7 @@ export function isResumeCandidate(request: LatticeRequest) {
 }
 
 function copiedRequestInitialState(
-  request: LatticeRequest,
+  request: CustomerRequest,
   {
     notes,
     projectName,
@@ -172,7 +173,7 @@ function copiedRequestInitialState(
   };
 }
 
-export function reorderInitialState(order: LatticeRequest): RequestFormInitialState {
+export function reorderInitialState(order: CustomerRequest): RequestFormInitialState {
   const primaryLineItem = order.lineItems[0];
 
   return copiedRequestInitialState(order, {
@@ -186,6 +187,6 @@ export function reorderInitialState(order: LatticeRequest): RequestFormInitialSt
   });
 }
 
-export function draftInitialState(draft: LatticeRequest): RequestFormInitialState {
+export function draftInitialState(draft: CustomerRequest): RequestFormInitialState {
   return copiedRequestInitialState(draft, { notes: [draft.lineItems[0]?.notes], projectName: draft.title });
 }

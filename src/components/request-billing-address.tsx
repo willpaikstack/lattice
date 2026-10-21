@@ -1,8 +1,9 @@
+import type { CustomerRequest } from "@/lib/customer-request";
 import Link from "next/link";
-import type { LatticeRequest } from "@/lib/request-model";
+
 
 /** A read-only record snapshot, shared by quote, checkout and order detail. */
-export function RequestBillingAddress({ request, showConfigurationPrompts = false }: { request: LatticeRequest; showConfigurationPrompts?: boolean }) {
+export function RequestBillingAddress({ request, showConfigurationPrompts = false }: { request: CustomerRequest; showConfigurationPrompts?: boolean }) {
   if (!request.billingSnapshot && !showConfigurationPrompts) return null;
   const snapshot = request.billingSnapshot ?? { address: { address1: "", address2: "", city: "", company: request.buyerCompany, name: request.requesterName, state: "", zipCode: "" }, contact: { email: request.requesterEmail, invoiceRoutingNotes: "" } };
   const addressLines = [snapshot.address.name || request.requesterName, snapshot.address.company || request.buyerCompany, snapshot.address.address1, snapshot.address.address2, [snapshot.address.city, [snapshot.address.state, snapshot.address.zipCode].filter(Boolean).join(" ")].filter(Boolean).join(", ")].filter(Boolean);

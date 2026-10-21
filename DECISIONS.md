@@ -1,5 +1,9 @@
 # Decisions
 
+## 2026-10-20 — Explicit customer request payloads
+
+Keep complete request/supplier records on the server for administrative and transaction workflows. Before returning customer RSC props or JSON, explicitly construct the approved `CustomerRequest` fields in `src/lib/customer-request.ts`; never spread stored requests or nested JSON into a customer response. Exclude supplier quotes/costs/line notes/attachment metadata, internal ownership/package notes, guest credentials and provider identifiers. Keep customer commercial values and authorized customer/quality files. The legacy `operatorReview.internalNotes` field is exposed only for the existing explicit customer-facing NEEDS_INFO/CLOSED decision messages. Shared drafts also project their envelope and form state; malformed legacy rows remain quarantined for recovery. Submission, retry and archive APIs return only the request ID needed by the browser. Authorization and original-file policy continue to run independently before projection.
+
 ## 2026-10-18 — Reversible, drawing-aware tolerance choices
 
 Use Standard tolerances / Drawing-specific tolerances as the primary controls. Preserve ISO Medium/Fine profiles and independent threads/fits/features. Specific drawing callouts take precedence over general tolerances; conflicting requirements require Lattice review before quoting. Drawing-specific choice is a structured drawing requirement enforced at submission. Retain the previous controls behind the toleranceDesign URL parameter and LATTICE_TOLERANCE_DESIGN environment switch, preserving saved values when switching. No schema migration; local only until deployment is requested.

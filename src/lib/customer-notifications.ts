@@ -1,4 +1,5 @@
-import type { LatticeRequest } from "./request-model";
+import type { CustomerRequest } from "./customer-request";
+
 import { customerOrderStatusLabel, isOrderMilestoneLate, orderNextStep } from "./order-progress";
 
 type CustomerActivityTone = "attention" | "documents" | "shipping" | "status";
@@ -17,7 +18,7 @@ export type CustomerActivityFeedItem = {
 
 const supplierStatusLabels = customerOrderStatusLabel;
 
-const quoteStatusLabels: Record<LatticeRequest["status"], string> = {
+const quoteStatusLabels: Record<CustomerRequest["status"], string> = {
   CLOSED: "Archived",
   DRAFT: "Draft",
   NEEDS_INFO: "More information needed",
@@ -50,15 +51,15 @@ function formatMoney(cents: number) {
   }).format(cents / 100);
 }
 
-function orderReference(order: LatticeRequest) {
+function orderReference(order: CustomerRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function quoteReference(request: LatticeRequest) {
+function quoteReference(request: CustomerRequest) {
   return `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function quoteEventTitle(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+function quoteEventTitle(request: CustomerRequest, event: CustomerRequest["statusEvents"][number]) {
   if (event.from === null && event.to === "DRAFT") {
     return "Draft created";
   }
@@ -86,7 +87,7 @@ function quoteEventTitle(request: LatticeRequest, event: LatticeRequest["statusE
   return quoteStatusLabels[event.to];
 }
 
-function quoteEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+function quoteEventDetail(request: CustomerRequest, event: CustomerRequest["statusEvents"][number]) {
   if (event.from === null) {
     const createdMessage = `${quoteReference(request)} was created.`;
     const hasBeenSubmitted = request.status !== "DRAFT" || request.statusEvents.some((statusEvent) => statusEvent.to === "SUBMITTED");
@@ -120,7 +121,7 @@ function quoteEventDetail(request: LatticeRequest, event: LatticeRequest["status
   return `Lattice moved the request to ${quoteStatusLabels[event.to].toLowerCase()}.`;
 }
 
-function quoteEventMeta(event: LatticeRequest["statusEvents"][number]) {
+function quoteEventMeta(event: CustomerRequest["statusEvents"][number]) {
   if (event.to === "NEEDS_INFO") {
     return "Action needed";
   }
@@ -136,7 +137,7 @@ function quoteEventMeta(event: LatticeRequest["statusEvents"][number]) {
   return "RFQ status";
 }
 
-function quoteEventHref(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+function quoteEventHref(request: CustomerRequest, event: CustomerRequest["statusEvents"][number]) {
   if (event.to === "DRAFT") {
     return `/requests/new?draft=${request.id}`;
   }
@@ -144,7 +145,7 @@ function quoteEventHref(request: LatticeRequest, event: LatticeRequest["statusEv
   return event.to === "PURCHASED" || request.status === "PURCHASED" ? `/orders/${request.id}` : `/quotes/${request.id}`;
 }
 
-function quoteStatusEventItems(request: LatticeRequest) {
+function quoteStatusEventItems(request: CustomerRequest) {
   const statusEvents = request.statusEvents
     .filter((event) => event.to !== "READY_FOR_SUPPLIER_RFQ")
     .map<CustomerActivityFeedItem>((event) => ({
@@ -177,7 +178,7 @@ function quoteStatusEventItems(request: LatticeRequest) {
   return statusEvents;
 }
 
-function orderStatusDetail(order: LatticeRequest, status: LatticeRequest["supplierOrder"]["status"]) {
+function orderStatusDetail(order: CustomerRequest, status: CustomerRequest["supplierOrder"]["status"]) {
   if (status === "SHIPPED") {
     return order.supplierOrder.trackingNumber ? `${orderReference(order)} shipped. Tracking ${order.supplierOrder.trackingNumber} is available.` : `${orderReference(order)} shipped. Tracking details are pending.`;
   }
@@ -201,7 +202,7 @@ function orderStatusDetail(order: LatticeRequest, status: LatticeRequest["suppli
   return `Supplier status changed to ${supplierStatusLabels[status].toLowerCase()}.`;
 }
 
-function orderProgressTitle(status: LatticeRequest["supplierOrder"]["status"]) {
+function orderProgressTitle(status: CustomerRequest["supplierOrder"]["status"]) {
   if (status === "IN_PRODUCTION") {
     return "In Production";
   }
@@ -213,7 +214,7 @@ function orderProgressTitle(status: LatticeRequest["supplierOrder"]["status"]) {
   return null;
 }
 
-function orderStatusTone(status: LatticeRequest["supplierOrder"]["status"]): CustomerActivityTone {
+function orderStatusTone(status: CustomerRequest["supplierOrder"]["status"]): CustomerActivityTone {
   if (status === "DOCUMENTS_UPLOADED") {
     return "documents";
   }
@@ -229,8 +230,8 @@ export function buildCustomerActivityFeed({
   orders = [],
   quotes = [],
 }: {
-  orders?: LatticeRequest[];
-  quotes?: LatticeRequest[];
+  orders?: CustomerRequest[];
+  quotes?: CustomerRequest[];
 }): CustomerActivityFeedItem[] {
   const quoteItems = quotes.flatMap((request) => {
     const items = quoteStatusEventItems(request);

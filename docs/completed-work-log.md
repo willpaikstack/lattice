@@ -2846,3 +2846,32 @@ Added `src/lib/material-identity-registry.ts` and routed the Materials catalog, 
 Created [Sync production baseline and approved Lattice workflow updates](https://github.com/willpaikstack/lattice/pull/1) in the original Lattice GitHub repository, targeting main on `codex/materials-quote-workflow-test-repairs`. Used a separate checkout based on current GitHub main because the active local repository has independent Production-source history. The draft explicitly documents the broader source reconciliation needed since main predates the current app. Preserved existing environment/QA exclusions, restored the original Git ignore protections and generated CAD-runtime exclusion; customer workflow data, exact production RFQ audit JSON, environment files and generated vendor bundles were omitted. A pre-existing trailing blank line in imported CAD code was removed for the review diff.
 
 The PR source passes 733 tests with one opt-in PostgreSQL audit skipped, TypeScript, full ESLint and whitespace checks. Linked the PR to this chat. No merge, deployment or database writes.
+
+## 2026-10-20 — Repair local Prisma schema sync
+
+Regenerated the Prisma Client and synchronized the localhost `lattice_os` development database with the current Prisma schema. The database was missing the `CustomerRequestDraft` table and newer account/request columns, which caused `/admin/quotes` to fail and the shared-drafts API to return errors. The schema diff contained additive columns, tables and indexes; no existing customer records were rewritten. Restarted the local LaunchAgent and confirmed `/admin/quotes` loads with the shared-drafts warning cleared. No application behavior change, tests, or deployment.
+
+## 2026-10-20 — Restore local sign-in route dependencies
+
+The installed `node_modules` did not match the existing lockfile: `@aws-sdk/s3-request-presigner` was already declared and locked but unavailable to Next.js. Ran `npm install` to restore the local dependency tree and restarted the local server. `/account/set-password` now compiles. The next visible state is an unprovisioned-account message: the localhost `lattice_os` database has no `User` row for `willclawpaik@gmail.com`. No account or company membership was created. npm reported this shell uses Node 22 while the package requests Node 24; the route rendered successfully after restart. No app behavior change or deployment.
+
+## 2026-10-20 — Provision local Apple customer admin
+
+Used the repository onboarding script to create an Apple company and Customer Admin membership for `willclawpaik@gmail.com` in the localhost `lattice_os` database, following the user's approval. No invitation or password change was sent or performed, and production was not touched. The set-password route now recognizes the account and says its password is already set. The browser then redirected to `/dashboard` under an existing session displayed as Nathan, so the target email's own sign-in was not verified.
+
+## 2026-10-20 — Full-width material option highlight
+
+Removed horizontal inset around grouped material options in the quote configuration picker so the selected/hovered row highlight reaches the full dropdown width, matching the category hover state. Reloaded the local request form and visually confirmed the selected Aluminum grade highlight spans the menu row. No application behavior changed; no tests run.
+
+## 2026-10-20 — Revise partner personnel caption in invitation PDF
+
+Removed "by two partners" from the 590+ network statistic, retaining "personnel reported," in the editable one-page invitation builder. Rebuilt both the source PDF and email attachment copy. Confirmed the revised wording, retained 590+ figure, identical PDFs, and clean rendered page.
+
+
+## 2026-10-20 — Close customer supplier-data payload exposure locally
+
+Replaced the spread-based customer redaction helper with a server-only, explicit `CustomerRequest` field projection. Supplier quotes/costs/nested supplier notes, supplier quote attachment metadata, internal assignments/package notes, guest credentials and provider IDs are absent from customer payloads. Applied it to quote/order/checkout/detail/help/shipped routes, RFQ continuation/reorder, dashboard and notifications. Submission/retry/archive APIs now return only the request ID. Shared draft reads/writes project the request, envelope and form state, and quarantine malformed nested legacy records without deleting them. Customer prices, quote versions, original files, quality download references, billing/PO/refund displays and explicit request-info/no-quote messages remain available. Admin server records retain their supplier details.
+
+Added 45 regressions covering nested canary fields, populated supplier prices/attachments, both Customer Admin and Member route props/JSON, company isolation, receipts, legacy draft sanitation/quarantine and actual customer screen rendering. Final verification: 778 tests pass across 140 files; the existing opt-in PostgreSQL audit remains skipped. The customer-access command passes 54 tests across seven files. TypeScript, full ESLint, production build and diff whitespace checks pass. Build migration/bootstrap flags were explicitly disabled. Restored local dependencies using the declared Node 24/npm 11.6.2 toolchain with successful `npm ci`, without changing the lockfile; regenerated stale Next route types before typechecking.
+
+Updated the original separation audit, feature map, project context, durable decision and next release gate. No deployment, database schema/customer workflow mutation, email or payment operation was performed by this repair. Genuine authenticated hosted HTML/RSC/JSON verification remains required after deploying this source; the current hosted app is not certified by these local checks. Preserved the pre-existing completed-work-log entries from other local sessions.

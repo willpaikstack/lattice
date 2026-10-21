@@ -3,7 +3,7 @@ import { getCurrentSession } from "@/lib/session";
 import { notFound } from "next/navigation";
 
 import { BuyerOrderDetail } from "@/components/buyer-order-detail";
-import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { customerSafeRequest } from "@/lib/customer-request";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";

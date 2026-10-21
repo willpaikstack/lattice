@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { BuyerOrderHelp } from "@/components/buyer-order-help";
-import { customerSafeRequest } from "@/lib/customer-partner-privacy";
+import { customerSafeRequest } from "@/lib/customer-request";
 import { getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 
 export const dynamic = "force-dynamic";

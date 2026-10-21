@@ -1,5 +1,7 @@
 "use client";
 
+import type { CustomerRequest } from "@/lib/customer-request";
+
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, CheckCircle2, CreditCard, FileText, Landmark, MapPin, ShieldCheck, Truck, Upload, X } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
@@ -7,7 +9,7 @@ import { useMemo, useRef, useState } from "react";
 
 import { hasFinalLandedDeliveryTerms } from "@/lib/checkout-delivery";
 import type { AccountAddress, PaymentCard } from "@/lib/account-settings-shared";
-import { quotedLineForRequestItem, type LatticeRequest, type RequestLineItem } from "@/lib/request-model";
+import { quotedLineForRequestItem, type RequestLineItem } from "@/lib/request-model";
 import { CheckoutAddresses, type CheckoutAddressDefaults } from "./checkout-addresses";
 import { checkoutAddressFromForm } from "@/lib/checkout-addresses";
 import { StripeElementsPayment } from "./stripe-elements-payment";
@@ -30,11 +32,11 @@ function formatPrice(cents: number | null) {
   }).format(cents / 100);
 }
 
-function quoteReference(request: LatticeRequest) {
+function quoteReference(request: CustomerRequest) {
   return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function lineTotalCents(request: LatticeRequest, item: RequestLineItem) {
+function lineTotalCents(request: CustomerRequest, item: RequestLineItem) {
   const customerLine = quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
 
   if (customerLine) {
@@ -48,7 +50,7 @@ function lineTotalCents(request: LatticeRequest, item: RequestLineItem) {
   return null;
 }
 
-function deliveryDate(request: LatticeRequest) {
+function deliveryDate(request: CustomerRequest) {
   const leadTimeDays = request.quote.leadTimeDays ?? 18;
   const date = new Date();
   date.setDate(date.getDate() + leadTimeDays + 5);
@@ -143,7 +145,7 @@ export function BuyerQuoteCheckout({
   paymentNotice?: string;
   placeOrderAction: (formData: FormData) => void | Promise<void>;
   receivingPhone?: string;
-  request: LatticeRequest;
+  request: CustomerRequest;
   shippingAddress?: AccountAddress;
   stripeElementsSession?: StripeElementsCheckoutSession | null;
   updateStripeElementsSessionAction?: (checkoutSessionId: string, formData: FormData) => Promise<void>;

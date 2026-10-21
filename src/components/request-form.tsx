@@ -58,6 +58,7 @@ import {
   type CadUploadPreviewState,
 } from "@/components/cad-upload-preview";
 import { CustomSelect } from "@/components/custom-select";
+import type { CustomerRequest } from "@/lib/customer-request";
 import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
   generalToleranceOptions,
@@ -149,7 +150,7 @@ type RequestFormProps = {
   initialState?: RequestFormInitialState;
   localDraftId?: string;
   prefillNotice?: string;
-  resumeRequests?: LatticeRequest[];
+  resumeRequests?: CustomerRequest[];
 };
 
 
@@ -474,7 +475,7 @@ function lineItemsHaveMissingRequiredDrawing(lineItems: LineItemState[]) {
   );
 }
 
-function resumeRequestHref(request: LatticeRequest) {
+function resumeRequestHref(request: CustomerRequest) {
   return `/requests/new?draft=${request.id}`;
 }
 
@@ -551,7 +552,7 @@ function formCompletionPercent(project: ProjectFormState, items: LineItemState[]
   return complete === checks.length ? 100 : Math.min(99, Math.round(complete / checks.length * 100));
 }
 
-export function draftCompletionPercent(request: LatticeRequest, savedState?: RequestFormInitialState) {
+export function draftCompletionPercent(request: CustomerRequest, savedState?: RequestFormInitialState) {
   const cadFiles = request.files.filter((file) => isCadFileName(file.name));
   const state = savedState ?? {
     ...draftInitialState(request),
@@ -1276,7 +1277,7 @@ function ArchiveDraftModal({
   onCancel: () => void;
   onConfirm: () => void;
   reason: string;
-  request: LatticeRequest;
+  request: CustomerRequest;
   setReason: (reason: string) => void;
 }) {
   return (
@@ -1349,12 +1350,12 @@ function ResumeQuotePanel({
   savedStates,
 }: {
   onArchived: (requestId: string) => void;
-  onArchiveDraft: (request: LatticeRequest, reason: string) => Promise<void>;
-  requests: LatticeRequest[];
+  onArchiveDraft: (request: CustomerRequest, reason: string) => Promise<void>;
+  requests: CustomerRequest[];
   savedStates: Record<string, RequestFormInitialState>;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
-  const [archiveRequest, setArchiveRequest] = useState<LatticeRequest | null>(null);
+  const [archiveRequest, setArchiveRequest] = useState<CustomerRequest | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
   const [archiveError, setArchiveError] = useState<string | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -1371,7 +1372,7 @@ function ResumeQuotePanel({
     return null;
   }
 
-  function openArchiveModal(request: LatticeRequest) {
+  function openArchiveModal(request: CustomerRequest) {
     setArchiveRequest(request);
     setArchiveReason("");
     setArchiveError(null);
@@ -2153,7 +2154,7 @@ function LegacyMaterialSelect({
                         </span>
                       </button>
                       {isGroupOpen ? (
-                        <div className="bg-white px-5 pb-4">
+                        <div className="bg-white pb-4">
                           {group.subgroups.map((subgroup) => {
                             const showSubgroupHeading =
                               group.subgroups.length > 1 && subgroup.name !== group.name;
@@ -4126,7 +4127,7 @@ export function RequestForm({
     }
   }
 
-  async function archiveResumeRequest(request: LatticeRequest, reason: string) {
+  async function archiveResumeRequest(request: CustomerRequest, reason: string) {
     const isLocalDraft = localResumeRequests.some((draft) => draft.id === request.id);
 
     if (isLocalDraft) {

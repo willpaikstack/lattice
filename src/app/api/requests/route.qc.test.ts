@@ -137,6 +137,25 @@ describe("requests API QC", () => {
     expect(mocks.createSubmittedRequest).not.toHaveBeenCalled();
   });
 
+  it("returns only an RFQ receipt on both creation and retry, even after supplier pricing is populated", async () => {
+    const { POST } = await import("./route");
+    const internal = Object.assign({ id: "rfq_receipt", files: [] }, {
+      supplierQuotes: [{ priceCents: 123456789, lineItems: [{ supplierNotes: "PRIVATE_SUPPLIER_RECEIPT", unitPrice: 9876 }] }],
+      supplierQuoteFiles: [{ storageKey: "PRIVATE_SUPPLIER_RECEIPT/pricing.pdf" }],
+      operatorReview: { internalNotes: "PRIVATE_SUPPLIER_RECEIPT" },
+    });
+    mocks.state.session = session("customer");
+    mocks.createSubmittedRequest.mockResolvedValueOnce(internal);
+    const created = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(validInput()) }));
+    expect(created.status).toBe(201);
+    expect(await created.json()).toEqual({ request: { id: "rfq_receipt" } });
+
+    mocks.getRequestById.mockResolvedValueOnce(internal);
+    const retry = await POST(new Request("http://localhost/api/requests", { method: "POST", headers: { "Idempotency-Key": "local_draft_retry" }, body: "unparsed retry" }));
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toEqual({ request: { id: "rfq_receipt" } });
+  });
+
   it("scopes retry identifiers to the signed-in user", async () => {
     const { POST } = await import("./route");
     const retry = () => new Request("http://localhost/api/requests", {

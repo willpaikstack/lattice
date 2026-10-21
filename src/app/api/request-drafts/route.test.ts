@@ -1,5 +1,5 @@
 import {buildDraftRequest} from "@/lib/request-model";
-import {normalizePersistedDraft} from "@/lib/persisted-draft-validation";
+import { privateMarker, privateRequestFixture } from "@/test-fixtures/customer-request";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -28,7 +28,10 @@ describe("company draft persistence and deletion", () => {
   });
   it("returns only this company's drafts and deletion markers", async () => {
     mocks.drafts.findMany.mockResolvedValue([{ id: "company_a:local_draft_example", contents: draft }, { id: "company_a:local_draft_removed", contents: { deleted: true } }]);
-    expect(await (await GET()).json()).toEqual({ drafts: [normalizePersistedDraft(draft)], invalidIds: [], deletedIds: ["local_draft_removed"] });
+    const response = await (await GET()).json();
+    expect(response).toMatchObject({ drafts: [{ id: draft.id, request: { id: draft.id, status: "DRAFT", title: "QA" } }], invalidIds: [], deletedIds: ["local_draft_removed"] });
+    expect(response.drafts[0].request).not.toHaveProperty("supplierQuotes");
+    expect(response.drafts[0].request).not.toHaveProperty("supplierQuoteFiles");
     expect(mocks.drafts.findMany.mock.calls[0][0].where).toEqual({ ownerScope: "company_a" });
   });
   it("namespaces an identical browser id separately for each company", async () => {
@@ -36,6 +39,34 @@ describe("company draft persistence and deletion", () => {
     mocks.session.mockResolvedValue({ user: { role: "customer", companyId: "company_b", id: "user_b" } });
     await POST(post([draft]));
     expect(mocks.drafts.createMany.mock.calls.map(([arg]) => arg.data[0].id)).toEqual(["company_a:local_draft_example", "company_b:local_draft_example"]);
+  });
+  it("strips legacy internal fields from saved draft requests, envelopes and nested form state", async () => {
+    const legacy = {
+      id: "local_draft_legacy", updatedAt: draft.updatedAt, futureInternalField: privateMarker,
+      request: { ...privateRequestFixture(), id: "local_draft_legacy", status: "DRAFT", billingSnapshot: null, purchasePayment: { ...draft.request.purchasePayment, futureInternalField: privateMarker } },
+      initialState: { projectName: "Customer draft", surfaceFinishColor: "Blue", futureInternalField: privateMarker,
+        lineItems: [{ material: "al_6061_t6", drawingSpecificTolerances: true, notes: "Keep this customer requirement.", futureInternalField: privateMarker,
+          cadPreview: { status: "ready", fileName: "part.step", urn: "customer-urn", futureInternalField: privateMarker } }] },
+    };
+    mocks.drafts.findMany.mockResolvedValue([{ id: "company_a:local_draft_legacy", contents: legacy }]);
+    const response = await GET();
+    const contents = await response.json();
+    expect(JSON.stringify(contents)).not.toContain(privateMarker);
+    expect(contents.drafts[0].initialState).toMatchObject({ projectName: "Customer draft", surfaceFinishColor: "Blue", lineItems: [{ drawingSpecificTolerances: true, notes: "Keep this customer requirement.", cadPreview: { urn: "customer-urn" } }] });
+    expect((await POST(post([legacy]))).status).toBe(200);
+    expect(JSON.stringify(mocks.drafts.createMany.mock.calls)).not.toContain(privateMarker);
+    expect(JSON.stringify(mocks.drafts.updateMany.mock.calls)).not.toContain(privateMarker);
+  });
+  it("quarantines malformed nested legacy records without exposing or deleting them", async () => {
+    const malformed = { ...draft, request: { ...draft.request, customerQuotes: [{ internalNotes: privateMarker }] } };
+    mocks.drafts.findMany.mockResolvedValue([{ id: `company_a:${draft.id}`, contents: malformed }]);
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ drafts: [], invalidIds: [draft.id], deletedIds: [] });
+    expect((await POST(post([malformed]))).status).toBe(400);
+    expect(mocks.drafts.createMany).not.toHaveBeenCalled();
+    expect(mocks.drafts.updateMany).not.toHaveBeenCalled();
+    expect(mocks.drafts.upsert).not.toHaveBeenCalled();
   });
   it("prevents stale browsers from resurrecting a deleted draft", async () => {
     mocks.drafts.findUnique.mockResolvedValue({ contents: { deleted: true } });

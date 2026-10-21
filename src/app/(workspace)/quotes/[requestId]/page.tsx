@@ -1,3 +1,4 @@
+import { customerSafeRequest } from "@/lib/customer-request";
 import { getAccountSettings } from "@/lib/account-settings";
 import { billingSnapshotFromAccountSettings } from "@/lib/request-billing";
 import type { PrismaClient } from "@prisma/client";
@@ -45,7 +46,7 @@ export default async function BuyerQuoteDetailPage({ params }: BuyerQuoteDetailP
   ]);
   return (
     <div className="space-y-5">
-      <BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={request} savedShippingAddress={settings?.shipping} savedBillingSnapshot={settings ? billingSnapshotFromAccountSettings(settings) : undefined} />
+      <BuyerQuoteDetail checkoutHref={`/quotes/${request.id}/checkout`} request={customerSafeRequest(request)} savedShippingAddress={settings?.shipping} savedBillingSnapshot={settings ? billingSnapshotFromAccountSettings(settings) : undefined} />
       {expired ? <CustomerQuoteRenewal key={latestQuote?.id ?? request.id} requestId={requestId} quoteVersionId={latestQuote?.id ?? ""} quoteNumber={latestQuote?.quoteNumber ?? requestId} demo={demo} canSubmit={Boolean(latestQuote && (demo || (request.buyerCompanyId && !request.id.startsWith("demo_") && !request.id.startsWith("fixture_"))))} requestedAt={renewal?.createdAt.toISOString()} /> : null}
       {request.status === "NEEDS_INFO" ? <CustomerClarification requestId={requestId} parts={request.lineItems.map((item) => item.partName)} /> : null}
       {replies.length > 0 ? <section className="rounded-lg border bg-white p-5"><h2 className="font-semibold">Clarification history</h2>{replies.map((reply) => <article className="mt-3 border-t pt-3" key={reply.id}><p className="text-xs text-stone-500">{reply.email} · {reply.createdAt.toISOString()}</p><p className="whitespace-pre-wrap">{reply.message}</p></article>)}</section> : null}

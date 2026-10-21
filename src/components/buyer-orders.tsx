@@ -1,9 +1,11 @@
 "use client";
 
+import type { CustomerRequest } from "@/lib/customer-request";
+
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import type { LatticeRequest, SupplierOrderStatus } from "@/lib/request-model";
+import type { SupplierOrderStatus } from "@/lib/request-model";
 import { isOrderMilestoneLate, orderNextStep } from "@/lib/order-progress";
 import { customerPartnerPrivacy } from "@/lib/customer-partner-privacy";
 
@@ -65,11 +67,11 @@ function formatUpdatedAt(value: string) {
   }).format(new Date(value));
 }
 
-function orderReference(order: LatticeRequest) {
+function orderReference(order: CustomerRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-export function BuyerOrders({ orders }: { orders: LatticeRequest[] }) {
+export function BuyerOrders({ orders }: { orders: CustomerRequest[] }) {
   const [query, setQuery] = useState("");
 
   const filteredOrders = useMemo(() => {

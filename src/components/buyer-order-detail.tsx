@@ -1,3 +1,4 @@
+import type { CustomerRequest } from "@/lib/customer-request";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Download, ExternalLink, FileText, HelpCircle, ImageIcon, PackageCheck, ReceiptText, RotateCcw, Truck, User } from "lucide-react";
 import type { ReactNode } from "react";
@@ -107,11 +108,11 @@ function formatPrice(cents: number | null) {
   }).format(cents / 100);
 }
 
-function orderReference(order: LatticeRequest) {
+function orderReference(order: CustomerRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function paymentMethodLabel(order: LatticeRequest) {
+function paymentMethodLabel(order: CustomerRequest) {
   if (order.purchasePayment.method === "CARD") {
     return "Credit card";
   }
@@ -123,16 +124,16 @@ function paymentMethodLabel(order: LatticeRequest) {
   return "Pending review";
 }
 
-function cardPaymentLabel(order: LatticeRequest) {
+function cardPaymentLabel(order: CustomerRequest) {
   const card = order.purchasePayment.card;
   return card ? `${card.brand || "Card"} ending in ${card.last4}` : "Saved card pending";
 }
 
-function customerPoReference(order: LatticeRequest) {
+function customerPoReference(order: CustomerRequest) {
   return order.purchasePayment.customerPoNumber || orderReference(order);
 }
 
-function supplierQuoteTotalLabel(order: LatticeRequest, selectedSupplier: LatticeRequest["supplierQuotes"][number] | null) {
+function supplierQuoteTotalLabel(order: CustomerRequest, selectedSupplier: LatticeRequest["supplierQuotes"][number] | null) {
   if (selectedSupplier?.priceCents !== null && selectedSupplier?.priceCents !== undefined) {
     return formatPrice(selectedSupplier.priceCents);
   }
@@ -150,7 +151,7 @@ function localFileHref(storageKey: string | undefined, name: string) {
   return storageKey ? `/api/local-files/${storageKey.split("/").map(encodeURIComponent).join("/")}?name=${encodeURIComponent(name)}` : null;
 }
 
-function CustomerPurchaseOrderFile({ order }: { order: LatticeRequest }) {
+function CustomerPurchaseOrderFile({ order }: { order: CustomerRequest }) {
   const attachment = order.customerPurchaseOrderAttachment;
 
   if (order.purchasePayment.method !== "PURCHASE_ORDER") {
@@ -190,11 +191,11 @@ function CustomerPurchaseOrderFile({ order }: { order: LatticeRequest }) {
   );
 }
 
-function quoteReference(order: LatticeRequest) {
+function quoteReference(order: CustomerRequest) {
   return order.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${order.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function lineItemTotalCents(order: LatticeRequest, item: RequestLineItem) {
+function lineItemTotalCents(order: CustomerRequest, item: RequestLineItem) {
   const quotedLine = quotedLineForRequestItem(order.customerQuotes.at(-1)?.lineItems, item);
 
   if (quotedLine) {
@@ -208,7 +209,7 @@ function lineItemTotalCents(order: LatticeRequest, item: RequestLineItem) {
   return null;
 }
 
-function moneyBreakdown(order: LatticeRequest) {
+function moneyBreakdown(order: CustomerRequest) {
   const subtotalCents = order.customerQuotes.at(-1)?.totalCents ?? order.quote.estimatedPriceCents;
   const shippingCents = order.quote.shippingCostCents;
   const taxCents = subtotalCents === null ? null : Math.max(0, (order.purchasePayment.stripe.amountCents ?? subtotalCents + (shippingCents ?? 0)) - subtotalCents - (shippingCents ?? 0));
@@ -247,7 +248,7 @@ export function BuyerOrderDetail({
   order,
   routeConfig,
 }: {
-  order: LatticeRequest;
+  order: CustomerRequest | LatticeRequest;
   routeConfig?: Partial<OrderDetailRouteConfig>;
 }) {
   const routes: OrderDetailRouteConfig = {
@@ -263,7 +264,8 @@ export function BuyerOrderDetail({
     supplierQuoteReturnTo: `/orders/${encodeURIComponent(order.id)}`,
     ...routeConfig,
   };
-  const selectedSupplier = order.supplierQuotes.find((quote) => quote.isSelected) ?? order.supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
+  const supplierQuotes = "supplierQuotes" in order ? order.supplierQuotes : [];
+  const selectedSupplier = supplierQuotes.find((quote) => quote.isSelected) ?? supplierQuotes.find((quote) => quote.status === "SELECTED") ?? null;
   const structuredSupplierQuoteReady = hasPricedSupplierQuoteLines(selectedSupplier);
   const status = supplierStatusLabels[order.supplierOrder.status];
   const { shippingCents, subtotalCents, taxCents, totalCents } = moneyBreakdown(order);
@@ -503,7 +505,7 @@ export function BuyerOrderDetail({
             </Section></div>
           </div>
 
-          {routes.showSupplierQuoteFiles ? (
+          {routes.showSupplierQuoteFiles && "supplierQuoteFiles" in order ? (
             <SupplierQuoteFiles
               request={order}
               returnTo={routes.supplierQuoteReturnTo}

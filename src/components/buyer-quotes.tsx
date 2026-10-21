@@ -12,7 +12,7 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { deleteBuyerQuoteAction } from "@/app/(workspace)/quotes/actions";
 import { CadRenderThumbnail } from "@/components/cad-file-preview";
 import { buyerLifecycleTag, type BuyerLifecycleTag } from "@/lib/buyer-lifecycle";
-import type { LatticeRequest } from "@/lib/request-model";
+import type { CustomerRequest } from "@/lib/customer-request";
 
 
 
@@ -48,11 +48,11 @@ function formatLastEdited(value: string) {
   }).format(date);
 }
 
-function quoteReference(request: LatticeRequest) {
+function quoteReference(request: CustomerRequest) {
   return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function quoteRowHref(request: LatticeRequest) {
+function quoteRowHref(request: CustomerRequest) {
   if (request.status === "DRAFT") {
     return `/requests/new?draft=${request.id}`;
   }
@@ -73,7 +73,7 @@ function readLocalIncompleteRequests(incompleteRfqStorageKey: string | null) {
 
     return parsed
       .map((draft) => normalizePersistedDraft(draft)?.request)
-      .filter((request): request is LatticeRequest => Boolean(request?.id && request?.status === "DRAFT"));
+      .filter((request): request is NonNullable<typeof request> => Boolean(request?.id && request?.status === "DRAFT"));
   } catch {
     return [];
   }
@@ -121,20 +121,20 @@ function removeLocalIncompleteRequest(incompleteRfqStorageKey: string | null, id
   }
 }
 
-function requestEditedTime(request: LatticeRequest) {
+function requestEditedTime(request: CustomerRequest) {
   const value = request.updatedAt || request.createdAt;
   const time = new Date(value).getTime();
 
   return Number.isNaN(time) ? 0 : time;
 }
 
-function sortRequestsNewestEditedFirst(requests: LatticeRequest[]) {
+function sortRequestsNewestEditedFirst(requests: CustomerRequest[]) {
   return [...requests].sort(
     (left, right) => requestEditedTime(right) - requestEditedTime(left),
   );
 }
 
-function quoteTotalQuantity(request: LatticeRequest) {
+function quoteTotalQuantity(request: CustomerRequest) {
   if (request.lineItems.length === 0) {
     return null;
   }
@@ -142,7 +142,7 @@ function quoteTotalQuantity(request: LatticeRequest) {
   return request.lineItems.reduce((total, lineItem) => total + lineItem.quantity, 0);
 }
 
-function QuotePartPreview({ request }: { request: LatticeRequest }) {
+function QuotePartPreview({ request }: { request: CustomerRequest }) {
   const primaryLine = request.lineItems[0];
   const primaryFile = request.files[0];
   const partCount = Math.max(request.lineItems.length, 1);
@@ -171,10 +171,10 @@ function QuoteTable({
   requests,
   title,
 }: {
-  deleteQuote: (request: LatticeRequest) => void;
+  deleteQuote: (request: CustomerRequest) => void;
   emptyMessage: string;
   pendingDeleteId: string | null;
-  requests: LatticeRequest[];
+  requests: CustomerRequest[];
   title: string;
 }) {
   const [pageIndex, setPageIndex] = useState(0);
@@ -314,7 +314,7 @@ function QuoteTable({
 }
 
 function DeleteQuoteDialog({ request, pending, error, onCancel, onConfirm }: {
-  request: LatticeRequest;
+  request: CustomerRequest;
   pending: boolean;
   error: string | null;
   onCancel: () => void;
@@ -353,13 +353,13 @@ function DeleteQuoteDialog({ request, pending, error, onCancel, onConfirm }: {
   );
 }
 
-export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
+export function BuyerQuotes({ requests }: { requests: CustomerRequest[] }) {
   const scope = useCustomerWorkspaceScope();
   const incompleteRfqStorageKey = customerDraftStorageKey(scope);
   const deletedQuoteStorageKey = scope ? `lattice.deletedBuyerQuotes.v2.${encodeURIComponent(scope)}` : null;
-  const [localIncompleteRequests, setLocalIncompleteRequests] = useState<LatticeRequest[]>([]);
+  const [localIncompleteRequests, setLocalIncompleteRequests] = useState<CustomerRequest[]>([]);
   const [deletedQuoteIds, setDeletedQuoteIds] = useState<string[]>([]);
-  const [quoteToDelete, setQuoteToDelete] = useState<LatticeRequest | null>(null);
+  const [quoteToDelete, setQuoteToDelete] = useState<CustomerRequest | null>(null);
   const deletingRef = useRef(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -386,7 +386,7 @@ export function BuyerQuotes({ requests }: { requests: LatticeRequest[] }) {
   const quotedRequests = useMemo(() => visibleRequests.filter((request) => request.status === "QUOTED" || request.status === "CLOSED"), [visibleRequests]);
   const activePendingDeleteId = isPending ? pendingDeleteId : null;
 
-  function deleteQuote(request: LatticeRequest) {
+  function deleteQuote(request: CustomerRequest) {
     const isBrowserDraft = localIncompleteRequests.some((draft) => draft.id === request.id);
     if (deletingRef.current) return;
     deletingRef.current = true;

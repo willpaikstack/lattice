@@ -1,3 +1,4 @@
+import type { CustomerRequest } from "@/lib/customer-request";
 import { quoteWithDisplayAddresses } from "@/lib/quote-address-display";
 import type { RequestBillingSnapshot } from "@/lib/request-billing";
 import { localDateKey, partProductionDays, quoteDeliveryTiming } from "@/lib/quote-delivery-timing";
@@ -7,7 +8,7 @@ import Link from "next/link";
 import { ArrowLeft, CircleDot, Download, Mail, Phone, User } from "lucide-react";
 
 import type { AccountAddress } from "@/lib/account-settings-shared";
-import { quotedLineForRequestItem, requestShipToLines, type LatticeRequest, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
+import { quotedLineForRequestItem, requestShipToLines, type RequestLineItem, type RequestStatus } from "@/lib/request-model";
 import { bundledFilesByLineItem } from "@/lib/document-line-item-details";
 import { quoteHasExpired } from "@/lib/quote-validity";
 import { CadRenderThumbnail } from "./cad-file-preview";
@@ -131,7 +132,7 @@ function fileExtension(fileName: string | undefined) {
   return extension ? extension.toUpperCase() : "CAD";
 }
 
-function activityEventTitle(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+function activityEventTitle(request: CustomerRequest, event: CustomerRequest["statusEvents"][number]) {
   if (event.from === null && event.to === "DRAFT") {
     return "Draft created";
   }
@@ -159,7 +160,7 @@ function activityEventTitle(request: LatticeRequest, event: LatticeRequest["stat
   return quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle;
 }
 
-function activityEventDetail(request: LatticeRequest, event: LatticeRequest["statusEvents"][number]) {
+function activityEventDetail(request: CustomerRequest, event: CustomerRequest["statusEvents"][number]) {
   if (event.from === null) {
     const createdMessage = `${quoteReference(request)} was created.`;
     const hasBeenSubmitted = request.status !== "DRAFT" || request.statusEvents.some((statusEvent) => statusEvent.to === "SUBMITTED");
@@ -193,11 +194,11 @@ function activityEventDetail(request: LatticeRequest, event: LatticeRequest["sta
   return `Lattice moved the request to ${quoteStatusCopy[event.to].label ?? quoteStatusCopy[event.to].requestTitle.toLowerCase()}.`;
 }
 
-function quoteReference(request: LatticeRequest) {
+function quoteReference(request: CustomerRequest) {
   return `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function quotedLineForItem(item: RequestLineItem, request: LatticeRequest) {
+function quotedLineForItem(item: RequestLineItem, request: CustomerRequest) {
   return quotedLineForRequestItem(request.customerQuotes.at(-1)?.lineItems, item);
 }
 
@@ -209,7 +210,7 @@ function lineItemUnitCents(item: RequestLineItem, totalCents: number | null) {
   return Math.round(totalCents / item.quantity);
 }
 
-function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
+function lineItemTotalCents(item: RequestLineItem, request: CustomerRequest) {
   const customerLine = quotedLineForItem(item, request);
 
   if (customerLine) {
@@ -223,7 +224,7 @@ function lineItemTotalCents(item: RequestLineItem, request: LatticeRequest) {
   return null;
 }
 
-function lineItemLeadTime(item: RequestLineItem, request: LatticeRequest) {
+function lineItemLeadTime(item: RequestLineItem, request: CustomerRequest) {
   const customerLine = quotedLineForItem(item, request);
 
   if (customerLine?.leadTimeDays) {
@@ -237,7 +238,7 @@ function lineItemLeadTime(item: RequestLineItem, request: LatticeRequest) {
   return request.customerQuotes.at(-1)?.leadTime || "Pending";
 }
 
-function CadRenderPreview({ file }: { file: LatticeRequest["files"][number] | undefined }) {
+function CadRenderPreview({ file }: { file: CustomerRequest["files"][number] | undefined }) {
   return (
     <div className="w-20 shrink-0 overflow-hidden rounded-md border border-[#d9dde4] bg-white">
       <CadRenderThumbnail className="h-16 w-full rounded-none border-0" file={file} label={file?.name || "Part"} />
@@ -250,13 +251,13 @@ function customerFacingFileName(fileName: string | undefined, fallback: string) 
   return fileName?.trim() || fallback;
 }
 
-function fileDownloadHref(file: LatticeRequest["files"][number] | undefined) {
+function fileDownloadHref(file: CustomerRequest["files"][number] | undefined) {
   return file?.storageKey
     ? `/api/local-files/${file.storageKey}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type)}`
     : null;
 }
 
-function quoteShippingAddressLines(request: LatticeRequest, savedShippingAddress?: AccountAddress) {
+function quoteShippingAddressLines(request: CustomerRequest, savedShippingAddress?: AccountAddress) {
   const hasCompleteSnapshot = Boolean(request.shipToAddress1 && request.shipToCity && request.shipToState && request.shipToZipCode);
   const shippingSource = request.status !== "DRAFT" || hasCompleteSnapshot || !savedShippingAddress
     ? {
@@ -295,7 +296,7 @@ export function BuyerQuoteDetail({
   initialViewingDate = localDateKey(new Date()),
 }: {
   checkoutHref?: string;
-  request: LatticeRequest;
+  request: CustomerRequest;
   savedShippingAddress?: AccountAddress;
   savedBillingSnapshot?: RequestBillingSnapshot;
   timingLayout?: "sidebar" | "legacy";

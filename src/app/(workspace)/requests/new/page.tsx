@@ -1,3 +1,4 @@
+import { customerSafeRequest } from "@/lib/customer-request";
 import { RequestForm } from "@/components/request-form";
 import { filterCustomerVisibleRequests, getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerQuotes } from "@/lib/request-repository";
@@ -27,9 +28,9 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
     listBuyerQuotes(),
     getCurrentSession(),
   ]);
-  const visibleBuyerQuotes = filterCustomerVisibleRequests(buyerQuotes, session);
+  const visibleBuyerQuotes = filterCustomerVisibleRequests(buyerQuotes, session).map(customerSafeRequest);
   const editableDraft = draftSource?.status === "DRAFT" ? draftSource : null;
-  const initialState = reorderSource ? reorderInitialState(reorderSource) : editableDraft ? draftInitialState(editableDraft) : undefined;
+  const initialState = reorderSource ? reorderInitialState(customerSafeRequest(reorderSource)) : editableDraft ? draftInitialState(customerSafeRequest(editableDraft)) : undefined;
 
   return (
     <RequestForm

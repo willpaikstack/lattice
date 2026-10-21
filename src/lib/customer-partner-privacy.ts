@@ -9,39 +9,7 @@ export const customerPartnerPrivacy = {
   progressUpdate: "Lattice is coordinating the next production milestone and will post the next update here.",
 } as const;
 
-export function customerSafeRequest<T extends {
-  supplierOrder: {
-    contactName: string;
-    documents: Array<{ category: string; name: string }>;
-    notes: string;
-    shopName: string;
-    updates: Array<{ note: string }>;
-  };
-  supplierQuotes: Array<{ contactName: string; notes: string; shopName: string }>;
-}>(request: T): T {
-  return {
-    ...request,
-    supplierOrder: {
-      ...request.supplierOrder,
-      contactName: customerPartnerPrivacy.partnerLabel,
-      documents: request.supplierOrder.documents.map((document) => ({
-        ...document,
-        name: customerDocumentName(document.category),
-      })),
-      notes: customerPartnerPrivacy.progressUpdate,
-      shopName: customerPartnerPrivacy.networkLabel,
-      updates: request.supplierOrder.updates.map((update) => ({ ...update, note: customerPartnerPrivacy.progressUpdate })),
-    },
-    supplierQuotes: request.supplierQuotes.map((quote) => ({
-      ...quote,
-      contactName: customerPartnerPrivacy.partnerLabel,
-      notes: customerPartnerPrivacy.progressUpdate,
-      shopName: customerPartnerPrivacy.networkLabel,
-    })),
-  };
-}
-
-function customerDocumentName(category: string) {
+export function customerDocumentName(category: string) {
   const labels: Record<string, string> = {
     CERTIFICATE_OF_CONFORMANCE: "Certificate of conformance",
     INSPECTION_REPORT: "Inspection report",

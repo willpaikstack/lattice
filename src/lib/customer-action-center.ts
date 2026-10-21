@@ -1,4 +1,5 @@
-import type { LatticeRequest } from "./request-model";
+import type { CustomerRequest } from "./customer-request";
+
 import { isOrderMilestoneLate, orderNextStep } from "./order-progress";
 
 export type CustomerActionWorkflowType =
@@ -72,15 +73,15 @@ function relativeDateLabel(value: string, now: Date, futureVerb: string) {
   return `${overdueDays} ${overdueDays === 1 ? "day" : "days"} overdue`;
 }
 
-function orderReference(order: LatticeRequest) {
+function orderReference(order: CustomerRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function quoteReference(request: LatticeRequest) {
+function quoteReference(request: CustomerRequest) {
   return request.customerQuotes.at(-1)?.quoteNumber ?? `LQ-${request.id.replace(/^req_/, "").slice(0, 8).toUpperCase()}`;
 }
 
-function buildSupplierQuestionWorkflow(request: LatticeRequest): CustomerActionWorkflow | null {
+function buildSupplierQuestionWorkflow(request: CustomerRequest): CustomerActionWorkflow | null {
   if (request.status !== "NEEDS_INFO") {
     return null;
   }
@@ -106,7 +107,7 @@ function buildSupplierQuestionWorkflow(request: LatticeRequest): CustomerActionW
   };
 }
 
-function buildQuoteWorkflow(request: LatticeRequest, now: Date, renewalRequested: boolean): CustomerActionWorkflow | null {
+function buildQuoteWorkflow(request: CustomerRequest, now: Date, renewalRequested: boolean): CustomerActionWorkflow | null {
   if (request.status !== "QUOTED") {
     return null;
   }
@@ -146,7 +147,7 @@ function buildQuoteWorkflow(request: LatticeRequest, now: Date, renewalRequested
   };
 }
 
-function buildOrderDelayWorkflow(order: LatticeRequest, now: Date): CustomerActionWorkflow | null {
+function buildOrderDelayWorkflow(order: CustomerRequest, now: Date): CustomerActionWorkflow | null {
   if (order.status !== "PURCHASED" || !isOrderMilestoneLate(order, now)) {
     return null;
   }
@@ -175,7 +176,7 @@ function buildOrderDelayWorkflow(order: LatticeRequest, now: Date): CustomerActi
   };
 }
 
-function buildOrderMilestoneWorkflow(order: LatticeRequest): CustomerActionWorkflow | null {
+function buildOrderMilestoneWorkflow(order: CustomerRequest): CustomerActionWorkflow | null {
   if (
     order.status !== "PURCHASED" ||
     order.supplierOrder.status === "DELIVERED" ||
@@ -206,7 +207,7 @@ function buildOrderMilestoneWorkflow(order: LatticeRequest): CustomerActionWorkf
   };
 }
 
-function buildCustomerRequirementWorkflow(order: LatticeRequest): CustomerActionWorkflow | null {
+function buildCustomerRequirementWorkflow(order: CustomerRequest): CustomerActionWorkflow | null {
   const documents = order.supplierOrder.documents.filter((document) => document.category !== "PHOTO");
 
   if (order.status !== "PURCHASED" || !order.requiresQualityApproval || order.qualityApprovedAt || documents.length === 0) {
@@ -243,8 +244,8 @@ export function buildCustomerActionWorkflows({
   pendingRenewalIds = new Set<string>(),
 }: {
   now?: Date;
-  orders?: LatticeRequest[];
-  quotes?: LatticeRequest[];
+  orders?: CustomerRequest[];
+  quotes?: CustomerRequest[];
   pendingRenewalIds?: ReadonlySet<string>;
 }): CustomerActionWorkflow[] {
   const quoteWorkflows = quotes.flatMap((request) => {

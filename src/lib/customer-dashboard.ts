@@ -1,6 +1,7 @@
+import type { CustomerRequest } from "./customer-request";
 import { buyerLifecycleTag, type BuyerLifecycleTag } from "./buyer-lifecycle";
 import { buildCustomerActionWorkflows, type CustomerActionWorkflow } from "./customer-action-center";
-import type { LatticeRequest, RequestStatus } from "./request-model";
+import type { RequestStatus } from "./request-model";
 
 export type CustomerDashboardMetric = {
   detail: string;
@@ -60,22 +61,22 @@ function formatDateTime(value: string) {
   }).format(date);
 }
 
-function latestStatusEvent(request: LatticeRequest, status = request.status) {
+function latestStatusEvent(request: CustomerRequest, status = request.status) {
   return request.statusEvents
     .filter((event) => event.to === status)
     .sort((left, right) => Number(new Date(right.at)) - Number(new Date(left.at)))
     .at(0) ?? request.statusEvents.at(-1) ?? null;
 }
 
-function quoteAmount(request: LatticeRequest) {
+function quoteAmount(request: CustomerRequest) {
   return request.customerQuotes.at(-1)?.totalCents ?? request.quote.estimatedPriceCents;
 }
 
-function orderReference(order: LatticeRequest) {
+function orderReference(order: CustomerRequest) {
   return `PO-${order.id.replace(/^req_/, "").toUpperCase()}`;
 }
 
-function buildQuoteOrderActivity(quotes: LatticeRequest[], orders: LatticeRequest[]) {
+function buildQuoteOrderActivity(quotes: CustomerRequest[], orders: CustomerRequest[]) {
   const quoteRows = quotes.flatMap<CustomerDashboardActivityRow>((request) => {
     const latestQuote = request.customerQuotes.at(-1);
 
@@ -129,7 +130,7 @@ function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-export function buildCustomerDashboardSummary(quotes: LatticeRequest[], orders: LatticeRequest[], now = new Date(), pendingRenewalIds?: ReadonlySet<string>): CustomerDashboardSummary {
+export function buildCustomerDashboardSummary(quotes: CustomerRequest[], orders: CustomerRequest[], now = new Date(), pendingRenewalIds?: ReadonlySet<string>): CustomerDashboardSummary {
   const actionWorkflows = buildCustomerActionWorkflows({ now, orders, quotes, pendingRenewalIds });
   const customerActionCount = actionWorkflows.filter((workflow) => workflow.owner === "Customer").length;
   const priorityItemCount = actionWorkflows.filter((workflow) => workflow.priority !== "normal").length;

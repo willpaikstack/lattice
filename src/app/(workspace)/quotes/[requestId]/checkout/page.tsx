@@ -1,3 +1,4 @@
+import { customerSafeRequest } from "@/lib/customer-request";
 import Link from "next/link";
 import { getCurrentSession } from "@/lib/session";
 import { getAccountSettings } from "@/lib/account-settings";
@@ -37,7 +38,7 @@ export default async function BuyerQuoteCheckoutPage({ params, searchParams }: B
       accountsPayableEmail={request.billingSnapshot?.contact.email ?? request.purchasePayment.accountsPayableEmail}
       paymentNotice={payment}
       receivingPhone={request.shipToPhone || request.requesterPhone}
-      request={request}
+      request={customerSafeRequest(request)}
       hostedCheckout
       checkoutAvailable={process.env.STRIPE_CHECKOUT_ENABLED === "true" && Boolean(process.env.STRIPE_SECRET_KEY)}
     />
