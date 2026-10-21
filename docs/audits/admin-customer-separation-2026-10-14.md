@@ -31,3 +31,10 @@ Regression evidence uses a synthetic two-part request containing populated suppl
 Final verification: 778 tests pass across 140 files, with the existing opt-in PostgreSQL audit skipped; 54 customer-access checks pass. TypeScript, full ESLint, the optimized production build and diff whitespace checks pass. The local production build runs with migration/bootstrap flags explicitly disabled. No database schema, customer workflow records, external providers or hosted deployment are changed by this repair.
 
 Remaining release gate: deploy the reviewed source and inspect genuine authenticated hosted HTML, RSC navigation responses and JSON as Customer Admin and Member with synthetic populated internal records. Confirm internal markers are absent, customer/quality downloads still work and authorized admin supplier detail remains available. This local repair does not certify the currently deployed application.
+
+
+## Production deployment — October 21, 2026
+
+Production release verified (2026-10-21): GitHub main `1a3f348` combines the customer payload isolation fix, existing deployed materials/RFQ updates and revised invitation PDF. Vercel Git deployment `dpl_EFPNBVb6rMaeu6K1bX2UboC1MQBZ` is READY and assigned to latticeos.co/www.latticeos.co. All 803 tests, 54 customer-access checks, TypeScript, ESLint and local/hosted production builds pass (one opt-in database audit skipped). Live anonymous smoke checks pass, including production Clerk configuration, protected-route/API denial, disabled development preview and a byte-identical invitation PDF. Immediate deployment error/fatal scan returned no records. Genuine authenticated customer onboarding/isolation/payload verification remains a separate follow-up; no customer workflow data, email or payment was changed by this release.
+
+This supersedes the local-only deployment status above. Authenticated Customer Admin/Member raw-payload and normal customer-flow verification remains unclaimed.

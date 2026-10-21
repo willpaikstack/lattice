@@ -3030,3 +3030,12 @@ William authorized pushing updates to Git and deploying to Vercel. Verified the 
 The first combined test run exposed eight stale material/UI expectations and two incomplete draft/reorder test fixtures. Updated those tests for the documented single selector, hidden legacy choices with preserved saved keys, exact tempers, sourcing-only choices, Other path and canonical mild-steel cards. Added the material grade/condition preservation assertion to the privacy regression. No material eligibility or pricing behavior was changed during release integration.
 
 Final checks: 803 tests pass across 143 files, one existing opt-in PostgreSQL audit skipped; 54 customer-access checks pass; TypeScript, full ESLint, diff whitespace and local optimized build pass. One-time migration/bootstrap flags were explicitly disabled in the local build. No database/schema changes, customer emails or payment operations are part of this release.
+
+
+## 2026-10-21 — Push and deploy verified combined release
+
+Pushed GitHub main `1a3f348b6b0e5737b1ae62881e29b85696193854` after integrating the already-deployed materials branch with the privacy repair. Vercel's connected Git build created READY Production deployment `dpl_EFPNBVb6rMaeu6K1bX2UboC1MQBZ` (`lattice-exmkvq766-willpaikstacks-projects.vercel.app`); project and domain records confirm latticeos.co/www.latticeos.co are assigned. Previous Production `dpl_6xJ2Pv8YtBkTuugfMVFjAKt83ANj` remains the rollback reference.
+
+Live anonymous checks pass: home/login 200; quote/admin quote pages 307 to login; request API 401; shared drafts API 403; development-only timing preview 404. Login contains the Production Clerk public key and no Development key. Public invitation PDF returns application/pdf and matches the committed revised PDF byte-for-byte. Immediate deployment-scoped error/fatal runtime query returns zero groups. Local combined verification: 803 tests pass across 143 files, one opt-in database audit skipped; 54 customer-access checks, TypeScript, full ESLint, whitespace and optimized build pass; hosted build also passes.
+
+Updated shared release memory and handoff status. No database/schema changes, customer RFQs/orders, emails or payments were made during deployment. These anonymous release checks do not replace the pending genuine Customer Admin/Member onboarding, company-isolation and raw-payload audit.

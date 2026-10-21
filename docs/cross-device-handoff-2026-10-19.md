@@ -1,5 +1,7 @@
 # Cross-device handoff — October 19, 2026
 
+> October 21 release update: the material handoff branch is now integrated into GitHub `main` together with customer payload isolation and the revised invitation guide. Continue from `main`; source `1a3f348` is deployed to latticeos.co as `dpl_EFPNBVb6rMaeu6K1bX2UboC1MQBZ`. Combined checks pass 803 tests (one opt-in DB audit skipped), TypeScript, lint and local/hosted builds. Earlier branch-only/local-only statements below are historical. Authenticated customer journey and payload checks remain follow-up work.
+
 > Material selector follow-up (October 19): the single dropdown displays researched UNS/composition references, exact temper/condition choices, and `Other` guidance. Exact duplex rows S31803 and S32205 are hidden from RFQ browse/search but remain in the public Materials catalog; the broad dual-certified 2205 selection remains. `1018S` is an alias of the `1018 Steel` quote offering, while the supplier label remains in sourcing records. Earlier verification counts describe the preceding implementation; the follow-up receives a fresh typecheck and production build before Vercel Preview.
 
 

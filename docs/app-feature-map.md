@@ -1,6 +1,6 @@
 # Lattice OS App Feature Map
 
-Last updated: 2026-10-20
+Last updated: 2026-10-21
 
 P0 patch released (2026-10-13): application commit `db347a6` fixes normal upload completion, administrative data exposure and CAD model isolation. All 557 tests pass; hosted Preview retests verified normal large/small CAD/PDF uploads, original hashes, role/company boundaries and real APS resource-scoped tokens. Production build `dpl_EmQHJHnZtE1ohen8tAMbuyagnTek` was promoted to latticeos.co and anonymous smoke checks pass. October 14 native browser retests also pass: large/small CAD and PDF uploads, saved two-part solid CAD rendering, draft reload/restore, normal RFQ submission and byte-identical original downloads; foreign-company model access remains denied. Live checkout stays disabled; P1/P2 rollout gates remain open. See [P0 remediation and retest](audits/p0-remediation-2026-10-13.md) and the [original readiness inventory](audits/hosted-readiness-2026-10-13.md).
 
@@ -502,3 +502,8 @@ At William's request, Technical Drawing Specifications uses a compact tolerance 
 ## 2026-10-19 — Curate generic material choices (local)
 
 The Materials page omits 18-8 Stainless Steel, generic Invar (Invar 36 remains), and ZN. The quote picker omits those labels plus Beryllium Copper, Magnesium, Zinc, and Cast Iron. Beryllium Copper, Magnesium, Zinc, and Cast Iron remain on the Materials page. Existing aliases and historical RFQ keys remain readable; no database migration or deployment.
+
+
+## 2026-10-21 — Combined Production release
+
+Production release verified (2026-10-21): GitHub main `1a3f348` combines the customer payload isolation fix, existing deployed materials/RFQ updates and revised invitation PDF. Vercel Git deployment `dpl_EFPNBVb6rMaeu6K1bX2UboC1MQBZ` is READY and assigned to latticeos.co/www.latticeos.co. All 803 tests, 54 customer-access checks, TypeScript, ESLint and local/hosted production builds pass (one opt-in database audit skipped). Live anonymous smoke checks pass, including production Clerk configuration, protected-route/API denial, disabled development preview and a byte-identical invitation PDF. Immediate deployment error/fatal scan returned no records. Genuine authenticated customer onboarding/isolation/payload verification remains a separate follow-up; no customer workflow data, email or payment was changed by this release.
