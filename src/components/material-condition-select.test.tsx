@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { materialOfferingFor, materialSelectionError } from "@/lib/material-quote-offerings";
 import { MaterialConditionSelect } from "./material-condition-select";
 
 function Picker({ initial = "" }: { initial?: string }) {
@@ -13,32 +14,40 @@ function search(query: string) {
   return screen.getByRole("listbox", { name: "Material grades" });
 }
 
-describe("Material and Condition selection", () => {
-  it("fills both fields from an exact temper search and restores trigger focus", () => {
+describe("Single material requirement selection", () => {
+  it("selects an exact temper and restores trigger focus", () => {
     render(<Picker />);
     const results = search("6061-T651");
-    fireEvent.click(within(results).getByRole("option", { name: /6061 · T651/ }));
+    fireEvent.click(within(results).getByRole("option", { name: /6061-T651 Aluminum/ }));
     expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveTextContent("6061");
-    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T651");
+    expect(screen.queryByLabelText("Condition")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Material")).toHaveValue("6061_t651_aluminum");
     expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveFocus();
-    fireEvent.change(screen.getByLabelText("Condition"), { target: { value: "al_6061_t6" } });
-    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T6");
+    fireEvent.click(within(search("6061-T6")).getByRole("option", { name: /6061-T6 Aluminum/ }));
+    expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveTextContent("6061-T6 Aluminum");
     expect(screen.getByLabelText("Material")).toHaveValue("al_6061_t6");
   });
 
-  it("requires a deliberate condition choice when choosing the parent alloy", () => {
-    render(<Picker />);
-    fireEvent.click(within(search("6061")).getByRole("option", { name: "6061 Aluminum" }));
-    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("Select a condition");
-    expect(screen.getByText("Choose the condition required by your drawing.")).toBeInTheDocument();
+  it("requires an exact requirement for a saved alloy parent without adding another control", () => {
+    render(<Picker initial={materialOfferingFor("al_6061_t6")!.value} />);
+    expect(screen.queryByLabelText("Condition")).not.toBeInTheDocument();
+    expect(screen.getByText("Choose the material and temper required by your drawing from the material dropdown.")).toBeInTheDocument();
+    const options = search("6061");
+    expect(within(options).queryByRole("option", { name: "6061 Aluminum" })).not.toBeInTheDocument();
+    fireEvent.click(within(options).getByRole("option", { name: /6061-T6 Aluminum/ }));
+    expect(screen.getByLabelText("Material")).toHaveValue("al_6061_t6");
   });
 
-  it("restores legacy exact choices and presents catalog-only materials with a sourcing action", () => {
+  it("restores legacy choices and retains sourcing-only choices plus the Other path", () => {
     render(<Picker initial="al_6061_t6" />);
-    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T6");
-    fireEvent.click(within(search("321")).getByRole("option", { name: "321 Sourcing review required" }));
-    expect(screen.getByRole("link", { name: /Ask us to source this material/ })).toHaveAttribute("target", "_blank");
-    expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveTextContent("321");
+    expect(screen.getByLabelText("Material")).toHaveValue("al_6061_t6");
+    fireEvent.click(within(search("321")).getByRole("option", { name: /321 Stainless Steel Sourcing review required/ }));
+    const selected = (screen.getByLabelText("Material") as HTMLSelectElement).value;
+    expect(materialSelectionError(selected)).toMatch(/sourcing review/);
+    expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveTextContent("321 Stainless Steel");
+    expect(screen.queryByRole("link", { name: /Ask us to source this material/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Other" }));
+    expect(screen.getByLabelText("Material")).toHaveValue("other_material");
   });
 });

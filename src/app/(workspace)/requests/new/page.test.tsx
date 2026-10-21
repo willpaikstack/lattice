@@ -1,3 +1,4 @@
+import { buildDraftRequest } from "@/lib/request-model";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { catalogMaterialAction, materialOfferingFor } from "@/lib/material-quote-offerings";
 
@@ -44,7 +45,8 @@ describe("catalog-to-quote handoff", () => {
 
   it.each(["draft", "reorder"])("keeps saved %s requirements ahead of a material query", async (mode) => {
     const state = { projectName: "Saved requirement", lineItems: [{ material: "al_6061_t6" }] };
-    mocks.getRequest.mockResolvedValue({ status: "DRAFT", id: "saved" });
+    const saved = buildDraftRequest({ title: "Saved request", lineItems: [{ material: "6061-T6 Aluminum", quantity: 1 }], files: [] });
+    mocks.getRequest.mockResolvedValue({ ...saved, status: mode === "draft" ? "DRAFT" : "PURCHASED", id: "saved" });
     mocks.draft.mockReturnValue(state);
     mocks.reorder.mockReturnValue(state);
     const page = await NewRequestPage({ searchParams: Promise.resolve({ [mode]: "saved", material: "6061_t651_aluminum" }) });

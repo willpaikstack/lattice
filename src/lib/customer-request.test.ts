@@ -31,7 +31,7 @@ describe("customer request payload contract", () => {
     expect(customer.customerQuotes[0].lineItems[0].unitPrice).toBe(source.customerQuotes[0].lineItems[0].unitPrice);
     expect(customer.customerQuotes[0].totalCents).toBe(source.customerQuotes[0].totalCents);
     expect(customer.files[0].storageKey).toBe("rfq/customer-part.step");
-    expect(customer.lineItems[0].manufacturingDetails).toMatchObject({ customerPartNumber: "CUSTOMER-PART-1", cadRevision: "B", drawingRevision: "B", drawingRequirements: { threads: true }, cadMetadata: { dimensionsMm: [20, 30, 40] } });
+    expect(customer.lineItems[0].manufacturingDetails).toMatchObject({ materialGrade: "6061 Aluminum", materialCondition: "T6", customerPartNumber: "CUSTOMER-PART-1", cadRevision: "B", drawingRevision: "B", drawingRequirements: { threads: true }, cadMetadata: { dimensionsMm: [20, 30, 40] } });
     expect(customer.billingSnapshot?.contact.email).toBe("ap@example.test");
     expect(customer.purchasePayment).toMatchObject({ customerPoNumber: "CUSTOMER-PO-1", stripe: { amountCents: 444000 }, card: { last4: "4242" } });
     expect(customer.checkoutDetails).toEqual({ refundedAmountCents: "1000", pendingRefundAmountCents: "200", failedRefundAmountCents: "0" });

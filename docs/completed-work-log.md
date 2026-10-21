@@ -3021,3 +3021,12 @@ Merged Duplex F51 into Duplex 2205 / S31803 in the canonical Stainless Steel cat
 - Added `1018S` as an alias of `1018 Steel` in catalog and RFQ identity resolution; supplier source naming remains available. This does not invent separate chemistry or temper data for the unresolved supplier suffix.
 - Existing customer material details and catalog records remain intact. No schema/database migration or submitted RFQ rewrite.
 - On the handoff branch, `npm run typecheck`, `git diff --check`, and `npm run build` pass. The automated test suite and authenticated browser review were not run. Production remains unchanged pending Vercel Preview deployment.
+
+
+## 2026-10-21 — Prepare combined Git and Vercel release
+
+William authorized pushing updates to Git and deploying to Vercel. Verified the linked `lattice` project under `willpaikstacks-projects`, Node 24, GitHub `willpaikstack/lattice` with Production branch `main`, and the current latticeos.co deployment `dpl_6xJ2Pv8YtBkTuugfMVFjAKt83ANj` from `49d8575`. Integrated that deployed materials/RFQ branch with the local customer payload isolation fix instead of replacing live material functionality with the older local main. Preserved both branches' documentation and combined the material query-prefill/draft restoration code with customer projection. Restored the missing public invitation attachment from the revised generated PDF and checked byte equality plus the approved personnel caption.
+
+The first combined test run exposed eight stale material/UI expectations and two incomplete draft/reorder test fixtures. Updated those tests for the documented single selector, hidden legacy choices with preserved saved keys, exact tempers, sourcing-only choices, Other path and canonical mild-steel cards. Added the material grade/condition preservation assertion to the privacy regression. No material eligibility or pricing behavior was changed during release integration.
+
+Final checks: 803 tests pass across 143 files, one existing opt-in PostgreSQL audit skipped; 54 customer-access checks pass; TypeScript, full ESLint, diff whitespace and local optimized build pass. One-time migration/bootstrap flags were explicitly disabled in the local build. No database/schema changes, customer emails or payment operations are part of this release.

@@ -180,7 +180,8 @@ describe("RequestForm", () => {
     confirmSelectedCad();
     await screen.findByText("Line item 1: bracket");
     expect(screen.getByLabelText("Material")).toHaveValue("6061_t651_aluminum");
-    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T651");
+    expect(screen.queryByLabelText("Condition")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveTextContent("6061-T651 Aluminum");
   });
 
   it("keeps tolerance choices and ISO Fine values when switching between new and legacy designs", async () => {
@@ -576,7 +577,7 @@ describe("RequestForm", () => {
     expect(screen.getByRole("button", { name: /Aluminum/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Stainless steel/i })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Search materials" })).toHaveFocus();
-    expect(screen.getAllByRole("option", { name: /2014 Aluminum/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("option", { name: /2014-.*Aluminum/i }).length).toBeGreaterThan(0);
     fireEvent.change(screen.getByPlaceholderText("Search grade, alloy, or family..."), {
       target: { value: "Ultem 2300" },
     });
@@ -585,13 +586,14 @@ describe("RequestForm", () => {
     expect(screen.getByRole("option", { name: /ULTEM 2300 Plastics/ })).toBeInTheDocument();
     fireEvent.click(ultemOptions.at(-1)!);
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("ULTEM 2300");
-    expect(screen.getByLabelText("Condition")).toBeDisabled();
+    expect(screen.queryByLabelText("Condition")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
     const materialSearch = screen.getByPlaceholderText("Search grade, alloy, or family...");
     fireEvent.change(materialSearch, { target: { value: "6061-T651" } });
     fireEvent.keyDown(materialSearch, { key: "Enter" });
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("6061-T651 Aluminum");
-    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T651");
+    expect(screen.queryByLabelText("Condition")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Material dropdown" })).toHaveTextContent("6061-T651 Aluminum");
     expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("±0.005″ (±0.127 mm)");
     fireEvent.change(screen.getByLabelText("General Tolerances"), { target: { value: "iso_2768_medium_m" } });
     fireEvent.click(screen.getByRole("button", { name: "ISO 2768-1 standards" }));

@@ -8,7 +8,7 @@ describe("material family detail view models", () => {
   it.each([
     ["aluminum", "6061", 4],
     ["stainless-steel", "304/304L Stainless Steel", 4],
-    ["mild-steel", "A36 Steel", 4],
+    ["mild-steel", "A36 Steel", 3],
     ["brass", "Brass 360 (UNS C36000)", 2],
     ["copper", "Copper 110 (UNS C11000)", 2],
     ["alloy-steel", "4140", 3],

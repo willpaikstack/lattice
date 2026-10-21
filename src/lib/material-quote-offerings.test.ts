@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { customerMaterialCatalog } from "./customer-material-catalog";
 import { catalogGradeRecords } from "./material-catalog-records";
-import { catalogInquiryPrefill, catalogMaterialAction, initialOfferingValue, materialConditionFor, materialOfferingFor, materialOfferings, materialSearchChoices, materialSelectionError, materialSelectionLabel, searchMaterialOfferings } from "./material-quote-offerings";
+import { catalogInquiryPrefill, catalogMaterialAction, initialOfferingValue, materialConditionFor, materialOfferingFor, materialOfferings, materialSearchChoices, materialSelectionError, materialSelectionLabel, materialVariantFor, searchMaterialOfferings } from "./material-quote-offerings";
 import { readManufacturingDetails, restrictionPolicyVersion, validateManufacturingIntake } from "./rfq-manufacturing";
 import { selectableRfqMaterials } from "./rfq-material-search";
 import { buildDraftRequest } from "./request-model";
@@ -29,13 +29,17 @@ describe("catalog material quote and sourcing paths", () => {
     }
   });
 
-  it("keeps every previously selectable RFQ variant available in the visible picker", () => {
+  it("keeps historical RFQ keys readable while hiding curated requirements from the picker", () => {
     for (const variant of selectableRfqMaterials) {
-      const offering = materialOfferingFor(variant.value)!;
-      const condition = materialConditionFor(variant.value);
-      const unspecified = offering.variants.filter((option) => !offering.conditions.some((candidate) => candidate.value === option.value));
-      const availableViaConditionField = !condition && offering.conditions.length > 0 && unspecified[0]?.value === variant.value;
-      expect(materialSearchChoices.some((choice) => choice.value === variant.value) || availableViaConditionField, variant.label).toBeTruthy();
+      expect(materialOfferingFor(variant.value), variant.label).toBeDefined();
+      expect(materialVariantFor(variant.value)?.value, variant.label).toBe(variant.value);
+      expect(materialSelectionError(variant.value), variant.label).toBeNull();
+    }
+    for (const value of ["al_6061_t6", "6061_t651_aluminum"]) {
+      expect(materialSearchChoices.some(choice => choice.value === value)).toBe(true);
+    }
+    for (const label of ["18-8 Stainless Steel", "Beryllium Copper", "Magnesium", "Zinc", "Cast Iron", "Duplex 2205 / S31803", "Duplex 2205 / S32205"]) {
+      expect(materialSearchChoices.some(choice => choice.label === label), label).toBe(false);
     }
   });
 
@@ -48,8 +52,10 @@ describe("catalog material quote and sourcing paths", () => {
 
   it("routes 321 and 347 to sourcing without claiming an unqualified quote selection", () => {
     for (const grade of ["321", "347"]) {
-      expect(catalogMaterialAction("Stainless steel", grade).sourcing).toBe(true);
-      const choice = searchMaterialOfferings(grade).find((candidate) => candidate.label === grade)!;
+      const action = catalogMaterialAction("Stainless steel", grade);
+      expect(action.sourcing).toBe(true);
+      const value = new URL(action.href, "https://lattice.example").searchParams.get("material");
+      const choice = searchMaterialOfferings(grade).find((candidate) => candidate.value === value)!;
       expect(choice.sourcing).toBe(true);
       expect(materialSelectionError(choice.value)).toMatch(/sourcing review/);
     }
