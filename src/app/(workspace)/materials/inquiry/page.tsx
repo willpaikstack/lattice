@@ -2,11 +2,12 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { catalogInquiryPrefill } from "@/lib/material-quote-offerings";
 import { getCurrentSession } from "@/lib/session";
 import { submitMaterialInquiryAction } from "./actions";
 
 type MaterialInquiryPageProps = {
-  searchParams?: Promise<{ status?: string }>;
+  searchParams?: Promise<{ status?: string; material?: string | string[]; materialName?: string | string[]; specification?: string | string[] }>;
 };
 
 const inputClass = "mt-2 h-11 w-full rounded-[6px] border border-[#d8d9dc] bg-white px-3 text-[14px] text-[#242424] outline-none transition placeholder:text-[#929397] focus:border-[#8b8d91] focus:ring-2 focus:ring-[#222222]/10";
@@ -18,6 +19,11 @@ export default async function MaterialInquiryPage({ searchParams }: MaterialInqu
   if (!session) {
     redirect("/login?returnTo=/materials/inquiry");
   }
+
+  const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+  const prefill = catalogInquiryPrefill(first(params?.material));
+  const materialName = prefill?.materialName ?? first(params?.materialName)?.slice(0, 255) ?? "";
+  const specification = prefill?.specification ?? first(params?.specification)?.slice(0, 255) ?? "";
 
   if (params?.status === "submitted") {
     return (
@@ -53,7 +59,7 @@ export default async function MaterialInquiryPage({ searchParams }: MaterialInqu
 
         <div className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
           <section>
-            <h1 className="text-[42px] font-bold leading-none tracking-[-0.045em] text-[#202020] sm:text-[48px]">Request an unlisted material</h1>
+            <h1 className="text-[42px] font-bold leading-none tracking-[-0.045em] text-[#202020] sm:text-[48px]">{prefill ? "Request material sourcing review" : "Request an unlisted material"}</h1>
             <p className="mt-4 max-w-2xl text-[15px] leading-6 text-[#676a70]">
               Tell us what material you need. We will check the designation, available forms and conditions, supplier coverage, and any documentation requirements before confirming it for an RFQ.
             </p>
@@ -62,17 +68,17 @@ export default async function MaterialInquiryPage({ searchParams }: MaterialInqu
               <div className="grid gap-5 sm:grid-cols-2">
                 <label className="text-[13px] font-semibold text-[#3d3e41] sm:col-span-2" htmlFor="material-name">
                   Material name or family
-                  <input className={inputClass} id="material-name" name="materialName" placeholder="Example: Cobalt-chrome alloy" required />
+                  <input className={inputClass} defaultValue={materialName} id="material-name" name="materialName" placeholder="Example: Cobalt-chrome alloy" required />
                 </label>
 
                 <label className="text-[13px] font-semibold text-[#3d3e41]" htmlFor="specification">
                   Grade, specification, or trade name
-                  <input className={inputClass} id="specification" name="specification" placeholder="Example: ASTM F75" />
+                  <input className={inputClass} defaultValue={specification} id="specification" name="specification" placeholder="Example: ASTM F75" />
                 </label>
 
                 <label className="text-[13px] font-semibold text-[#3d3e41]" htmlFor="company">
                   Company
-                  <input autoComplete="organization" className={inputClass} id="company" name="company" placeholder="Company name" required />
+                  <input autoComplete="organization" defaultValue={session.user.companyName ?? ""} className={inputClass} id="company" name="company" placeholder="Company name" required />
                 </label>
 
                 <label className="text-[13px] font-semibold text-[#3d3e41]" htmlFor="stock-form">

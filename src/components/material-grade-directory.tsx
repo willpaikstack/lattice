@@ -4,8 +4,11 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { CustomerMaterialCondition, CustomerMaterialSubGroup } from "@/lib/customer-material-catalog";
+import { catalogGradeName as displayGradeName, catalogGradeRecords, catalogReferenceProperties } from "@/lib/material-catalog-records";
+import { MaterialRequestAction } from "@/components/material-request-action";
 import { PlasticFunctionalProfile } from "@/components/plastic-functional-profile";
-import { getDirectoryMechanicalProperties, getMaterialMechanicalProperties, type MaterialMechanicalProperties } from "@/lib/material-grade-properties";
+import type { MaterialMechanicalProperties } from "@/lib/material-grade-properties";
+import { catalogMaterialUnsReference } from "@/lib/material-uns-references";
 
 type GradeProfile = {
   applications: string;
@@ -36,11 +39,7 @@ const unavailableMechanicalProperties: MaterialMechanicalProperties = {
 };
 
 function mechanicalPropertiesForGrade(familyName: string, grade: string, condition?: CustomerMaterialCondition) {
-  const propertyGrade = condition?.grade ?? grade;
-
-  return getDirectoryMechanicalProperties(familyName, propertyGrade)
-    ?? getMaterialMechanicalProperties(displayGradeName(propertyGrade))
-    ?? unavailableMechanicalProperties;
+  return catalogReferenceProperties(familyName, grade, condition) ?? unavailableMechanicalProperties;
 }
 
 const seriesProfiles: Record<string, Omit<GradeProfile, "temper" | "uns">> = {
@@ -118,10 +117,6 @@ const mildSteelMachinabilitySources = {
   grade1018: "https://www.matweb.com/search/datasheet_print.aspx?matguid=3a9cc570fbb24d119f08db22a53e2421",
   grade1045: "https://asia.matweb.com/search/SpecificMaterialPrint.asp?bassnum=m1045a",
 } as const;
-
-function displayGradeName(grade: string) {
-  return grade.replace(/ Aluminum$/i, "");
-}
 
 function temperForGrade(grade: string) {
   return grade.match(/-(T\d+|H\d+)/i)?.[1]?.toUpperCase() ?? "As listed";
@@ -337,7 +332,7 @@ function functionalTraitsForPlastic(grade: string): NonNullable<GradeProfile["fu
   return { heatTolerance: "Low", moistureResponse: "Low", chemicalResistance: "Good", wearFriction: "Moderate" };
 }
 
-export function profileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
+function baseProfileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
   const base = seriesProfiles[groupName] ?? seriesProfiles["Other grades"];
 
   if (familyName === "Aluminum" && /6063-T5/i.test(grade)) {
@@ -377,6 +372,12 @@ export function profileForGrade(familyName: string, groupName: string, grade: st
   return { ...base, temper: temperForGrade(grade), uns: unsForGrade(grade) };
 }
 
+export function profileForGrade(familyName: string, groupName: string, grade: string): GradeProfile {
+  const profile = baseProfileForGrade(familyName, groupName, grade);
+  const reference = catalogMaterialUnsReference(familyName, grade);
+  return reference ? { ...profile, uns: reference.unsNumber } : profile;
+}
+
 function MachinabilityScale({ value }: { value: GradeProfile["machinability"] }) {
   const filled = value === "Good" ? 4 : value === "Fair" ? 2 : value === "Difficult" || value === "Review" ? 1 : 0;
 
@@ -398,6 +399,7 @@ function PlasticDirectoryGradeCard({ grade, profile }: { grade: string; profile:
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Best suited for</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.applications}</p></div>
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Common forms</span><p className="text-[12px] leading-[18px] text-[#5f6165]">{profile.forms}</p></div>
       <div><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">â€”</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}</div>
+      <div className="md:col-span-4"><MaterialRequestAction familyName="Plastics / polymers" grade={grade} /></div>
       <PlasticFunctionalProfile detailsClassName="md:col-span-4" summaryClassName="md:ml-auto md:w-[150px]" traits={profile.functionalTraits} />
     </article>
   );
@@ -468,9 +470,10 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                       <span>{familyName === "Aluminum" ? "Alloy offering" : "Grade"}</span><span>Best suited for</span><span>Common forms</span><span>Machinability</span>
                     </div>
 
-                    {group.grades.map((grade) => {
+                    {catalogGradeRecords([group]).map((record) => {
+                    const grade = record.grade;
                     const profile = profileForGrade(familyName, group.name, grade);
-                    const conditions = group.conditionsByGrade?.[grade] ?? [];
+                    const conditions = record.conditions;
                     const selectedCondition = conditions.find((condition) => condition.grade === selectedConditionByGrade[grade]) ?? conditions[0];
                     const mechanicalProperties = mechanicalPropertiesForGrade(familyName, grade, selectedCondition);
                     const isExpanded = expandedGrade === grade;
@@ -488,6 +491,7 @@ export function MaterialGradeDirectory({ familyName, groups, totalCount }: { fam
                           <div className="relative"><span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.08em] text-[#8a8c90] md:hidden">Machinability</span>{profile.machinability === "Unspecified" ? <p className="text-[12px] text-[#8a8c90]">—</p> : <><p className="text-[12px] text-[#505257]">{profile.machinability}</p><MachinabilityScale value={profile.machinability} /></>}{isExpanded ? <ChevronUp aria-hidden="true" className="absolute right-0 top-0 h-4 w-4" /> : <ChevronDown aria-hidden="true" className="absolute right-0 top-0 h-4 w-4" />}</div>
                         </button>
 
+                        <div className="px-4 pb-2"><MaterialRequestAction familyName={familyName} grade={grade} condition={selectedCondition?.label} /></div>
                         {isExpanded ? (
                           <div className="mx-3 mb-3 rounded-[6px] border border-[#deddda] bg-[#f5f4f1] px-4 py-4 md:min-w-[796px] md:px-5">
                             <div className="grid gap-5 md:grid-cols-2 md:gap-8">

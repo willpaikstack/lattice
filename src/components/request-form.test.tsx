@@ -171,6 +171,18 @@ describe("RequestForm", () => {
     vi.unstubAllGlobals();
   });
 
+  it("preserves a catalog-selected material and condition through the first CAD upload", async () => {
+    mockRequestFormFetch();
+    render(<RequestForm initialMaterial="6061_t651_aluminum" />);
+    fireEvent.change(screen.getByLabelText("Choose CAD file"), {
+      target: { files: [new File(["solid"], "bracket.step", { type: "model/step" })] },
+    });
+    confirmSelectedCad();
+    await screen.findByText("Line item 1: bracket");
+    expect(screen.getByLabelText("Material")).toHaveValue("6061_t651_aluminum");
+    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T651");
+  });
+
   it("keeps tolerance choices and ISO Fine values when switching between new and legacy designs", async () => {
     mockRequestFormFetch();
     const initialState = { projectName: "Tolerance comparison", lineItems: [{ fileName: "bracket.step", fileSizeBytes: 10, fileStorageKey: "rfq/test/bracket.step", material: "ss_304", quantity: "1", generalTolerance: "iso_2768_fine_f" }] };
@@ -563,23 +575,23 @@ describe("RequestForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
     expect(screen.getByRole("button", { name: /Aluminum/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Stainless steel/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/UNS: A96061 \| AlMg1SiCu/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("combobox", { name: "Search materials" })).toHaveFocus();
     expect(screen.getAllByRole("option", { name: /2014 Aluminum/i }).length).toBeGreaterThan(0);
     fireEvent.change(screen.getByPlaceholderText("Search grade, alloy, or family..."), {
       target: { value: "Ultem 2300" },
     });
     const ultemOptions = screen.getAllByRole("option", { name: /ULTEM 2300/ });
     expect(ultemOptions.length).toBeGreaterThan(0);
-    expect(screen.getByRole("option", { name: /UNS: N\/A \| PEI GF30/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /ULTEM 2300 Plastics/ })).toBeInTheDocument();
     fireEvent.click(ultemOptions.at(-1)!);
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("ULTEM 2300");
-    expect(screen.getByText(/UNS: N\/A \| PEI GF30/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Condition")).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Material dropdown" }));
     const materialSearch = screen.getByPlaceholderText("Search grade, alloy, or family...");
-    fireEvent.change(materialSearch, { target: { value: "6061" } });
-    fireEvent.keyDown(materialSearch, { key: "ArrowDown" });
+    fireEvent.change(materialSearch, { target: { value: "6061-T651" } });
     fireEvent.keyDown(materialSearch, { key: "Enter" });
     expect(screen.getByLabelText("Material")).toHaveDisplayValue("6061-T651 Aluminum");
+    expect(screen.getByLabelText("Condition")).toHaveDisplayValue("T651");
     expect(screen.getByLabelText("General Tolerances")).toHaveDisplayValue("±0.005″ (±0.127 mm)");
     fireEvent.change(screen.getByLabelText("General Tolerances"), { target: { value: "iso_2768_medium_m" } });
     fireEvent.click(screen.getByRole("button", { name: "ISO 2768-1 standards" }));

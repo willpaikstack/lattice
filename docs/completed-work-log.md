@@ -2875,3 +2875,149 @@ Replaced the spread-based customer redaction helper with a server-only, explicit
 Added 45 regressions covering nested canary fields, populated supplier prices/attachments, both Customer Admin and Member route props/JSON, company isolation, receipts, legacy draft sanitation/quarantine and actual customer screen rendering. Final verification: 778 tests pass across 140 files; the existing opt-in PostgreSQL audit remains skipped. The customer-access command passes 54 tests across seven files. TypeScript, full ESLint, production build and diff whitespace checks pass. Build migration/bootstrap flags were explicitly disabled. Restored local dependencies using the declared Node 24/npm 11.6.2 toolchain with successful `npm ci`, without changing the lockfile; regenerated stale Next route types before typechecking.
 
 Updated the original separation audit, feature map, project context, durable decision and next release gate. No deployment, database schema/customer workflow mutation, email or payment operation was performed by this repair. Genuine authenticated hosted HTML/RSC/JSON verification remains required after deploying this source; the current hosted app is not certified by these local checks. Preserved the pre-existing completed-work-log entries from other local sessions.
+
+## 2026-10-19 — Merge approved workflow updates and verify Production
+
+Production release completed (2026-10-19): [Sync production baseline and approved Lattice workflow updates](https://github.com/willpaikstack/lattice/pull/1) was marked ready and squash merged with user authorization. Main commit `cb90b1398bd3781877a03256aebba0b885b91146` has the same tree as the tested PR head. Automatic Vercel Production deployment `dpl_HsJxrQ2G5EQcMHATMK3KSGXTYMgX` is READY and assigned to latticeos.co and www.latticeos.co. Release source passed 733 tests (one opt-in PostgreSQL audit skipped), TypeScript, ESLint, diff checks, and a fresh production build. Anonymous live checks: home/login/icon return 200, protected quotes/admin/settings redirect to login, development-only timing preview returns 404. Deployment-scoped error/fatal runtime-log query returned no records during the release check. Authenticated browser flows and real database audit were not exercised. Local memory entry only; no extra deployment triggered.
+
+
+
+## 2026-10-19 — Audit materials catalog and quote selection unification
+
+Completed a source/data based UX audit of the active Materials atlas/family directories and grouped RFQ picker after the approved cleanup. Evaluated current exports: 284 directory rows across 12 families and 104 selectable RFQ options (114 raw); counts use different grade/condition units. Documented catalog/picker coverage differences, independently authored featured-grade inconsistencies, remaining aliases, family-name lookup fragility after renaming, sourcing claims, condition modeling, cross-page continuity, and accessibility/hierarchy improvements. Recommended one reviewed material registry with stable IDs, shared family/condition relationships, explicit request/sourcing actions and historical compatibility. Full proposal: `docs/audits/materials-catalog-rfq-unification-2026-10-19.md`. Anonymous local route check redirected to authentication, so no new authenticated browser or customer-task testing is claimed. No app changes, database writes, deployment or test suite run in this audit.
+
+
+## 2026-10-19 — Generate material highlights from published directory records
+
+Implemented the approved catalog consistency recommendation. A shared `material-catalog-records.ts` projection supplies canonical grade names, listed conditions and reference-property lookup to the directory and family view models. Family atlas examples derive from the same catalog-backed highlighted selections; featured presentation data references exact directory grades rather than defining independent display identities. Removed display-only highlights absent from the published directory (including D2/H13, C385/C464, C122/C172, 8620 and Grade 23) without adding new offerings. Stainless highlights use the combined 304/304L and 316/316L names and identifiers; single-grade reference values are not substituted for those requirements. Aluminum highlights display parent alloy and condition separately. Removed/changed grades and tempers automatically disappear from highlights, and generic family fallbacks use directory records instead of legacy display variants. Validation: 39 focused tests passed across family view models, directory interactions and CNC catalog coverage; TypeScript, targeted ESLint and whitespace checks passed. React component boundary/accessibility checklist reviewed. Local change only; no deployment or authenticated browser review.
+
+
+## 2026-10-19 — Unify catalog material actions and RFQ Material/Condition selection
+
+Implemented both approved follow-ups. Added a shared catalog/RFQ offering projection; every published grade and condition now exposes Request quote for an existing reviewed variant, or Ask us to source with editable inquiry prefill. Family highlights and full directory rows share the action component. Configure can find catalog-only requirements and opens sourcing review in a separate tab so the draft remains intact. Retained all previously selectable RFQ requirements, including distinct steel designations that broader catalog aliases relate to another grade.
+
+Added grouped searchable Material and separate Condition controls. Exact 6061-T651 search fills both while T6/T651 remain distinct. Parent selection requires deliberate condition choice, and unreviewed conditions do not substitute a generic alloy. Existing exact keys/full labels persist; the server derives optional grade/condition metadata and rejects incomplete/source-only submissions. Catalog quote links initialize the first part through CAD upload; draft/reorder requirements take priority. Kept the legacy picker code for presentation rollback. No database migration, submitted-record rewrite or deployment.
+
+Verification: full Vitest suite passes with 758 tests and one opt-in PostgreSQL audit skipped (140 files passed, one skipped). Includes exhaustive published grade/condition action coverage, legacy RFQ availability, precise condition search/keyboard selection, first CAD upload, draft roundtrip, trusted server metadata, and quote/inquiry route prefill. Updated stale presentation and persistence assertions for canonical names, shared reference source and derived metadata. TypeScript, full ESLint and whitespace checks pass. React component boundaries, keyboard/focus behavior and rendering checklist reviewed. Authenticated browser review was not performed.
+
+
+## 2026-10-19 — Prepare documented cross-device Git handoff
+
+Updated README, PROJECT_CONTEXT, TODO and LOCAL_PREVIEW with the current material implementation, verification, release boundary and canonical GitHub handoff. Added `docs/cross-device-handoff-2026-10-19.md` with exact branch/setup commands, credential/data exclusions, legacy compatibility, rollback and next checks. Prepared `codex/materials-catalog-handoff` from existing GitHub main `cb90b13`, overlaying reviewed source changes while preserving upstream-only files and excluding local private RFQ evidence, Production manifest and generated CAD runtime. Retained independent local history; no force-push, database reset or Production deployment is part of this handoff. Latest application verification remains 758 passing tests, one opt-in PostgreSQL skip, TypeScript/ESLint/whitespace checks clean.
+
+
+Git handoff publication: committed the reviewed material/catalog changes and updated Markdown memory on `codex/materials-catalog-handoff` (initial commit `6702ac0`), based on existing main. Pushed the branch to the existing GitHub repository without changing main. Follow-up normalizes one new-file trailing blank line and records publication. No secrets or private local records are included. Git cleanup preserves local data/configuration; any broader reset requires clarification.
+
+
+## 2026-10-19 — Restore previous material dropdown for comparison
+
+At William's request, archived the newer Material/Condition picker by setting `useMaterialConditionPicker = false` in `src/components/request-form.tsx`. The original grouped searchable dropdown is active again, with full grade/temper labels in one selection. `material-condition-select.tsx` and its component coverage remain intact; setting the switch to true restores the archived design. The older experimental search-first picker also stays disabled. Existing catalog actions, shared offering data, exact saved keys and server validation remain in place. Saved parent/sourcing-only requirements display their human-readable label rather than appearing blank and must still be completed with an eligible exact option before submission. Updated existing form assertions for the restored single-control UI. TypeScript and whitespace checks pass. No tests or authenticated browser checks run for this comparison switch; no push or deployment.
+
+
+## 2026-10-19 — Compare the newer picker with UNS/composition formatting
+
+At William's request, reactivated the preserved Material/Condition picker and carried over the previous dropdown's reference-line presentation: UNS identifier and composition/formula beneath each choice and the selected material. Uses existing RFQ metadata from the shared offering projection; suppresses placeholder identifiers/compositions and labels absent reference data instead of inventing it. Catalog-only sourcing status and inquiry actions remain explicit. The original grouped dropdown remains recoverable with `useMaterialConditionPicker = false`. Updated existing form assertions for the active comparison design. TypeScript, scoped ESLint and whitespace checks pass. Local only; no tests, browser review, push or deployment performed.
+
+## 2026-10-19 — Research missing material reference metadata
+
+Inventoried the local comparison picker's 190 choices without a usable reference line: 189 distinct catalog grades, comprising 150 metal entries and 39 polymer/composite entries. Researched manufacturer and standards-body sources and produced `docs/audits/material-reference-data-research-2026-10-19.md` with companion CSV/JSON covering every entry. Outcomes: 80 source-backed UNS/composition summaries ready for reference metadata; 25 partial references; 23 identities requiring clarification; 22 requiring further primary evidence; 39 entries where UNS does not apply. Recorded nominal versus limiting chemistry, native-grade cross-reference limits, product-form dependencies, ambiguous supplier labels and source conflicts (including Nitronic 50 UNS). Missing sourcing evidence is explicitly distinguished from missing chemistry. This is research only: no application material metadata, eligibility, saved RFQs or deployment changed. No tests run. Remaining research and supplier/specification confirmations are itemized per row; the report does not claim all gaps are resolved.
+
+
+## 2026-10-19 — Inventory sourcing-review flags
+
+Evaluated the current local offering projection and listed all 197 flagged search choices in `docs/audits/materials-sourcing-review-required-2026-10-19.md` and CSV: 189 catalog grade choices plus eight condition choices (including 2017 T4 under a catalog-only grade). Seven condition choices belong to grades with other legacy requestable variants. Clarified that this flag reflects legacy dropdown coverage, not verified supplier unavailability or missing chemistry. No application changes, tests or deployment.
+
+
+## 2026-10-19 — Add verified catalog UNS references without changing sourcing flags
+
+Added `src/lib/material-uns-references.ts`, an exact family/grade lookup containing 89 source-backed UNS identities from the research report: 80 reference-ready entries plus nine entries with confirmed UNS but incomplete chemistry. The shared picker projection uses these as fallback metadata; existing RFQ metadata keeps precedence. Each UNS retains its source URL. Conditional, ambiguous and unverified identifiers remain unset; no chemistry was imported. Existing variant/condition matching, all sourcing-review labels, material keys, saved requests and server eligibility rules remain unchanged. TypeScript and scoped ESLint pass. No tests or browser verification run; local only, no push/deployment.
+
+
+## 2026-10-19 — Display verified catalog chemistry alongside UNS
+
+Added 80 source-backed composition summaries to the existing 89-entry UNS reference lookup. The active picker already renders the composition metadata below each option and selected material; it now receives the verified summaries through the shared offering projection. Numeric alloy chemistry explicitly uses weight percent and labels nominal data; unalloyed titanium entries identify their base material without inventing impurity limits. Composition source and basis are retained per record. The nine entries with verified UNS but incomplete chemistry remain UNS-only. Existing RFQ metadata retains precedence, and sourcing labels, saved keys, validation and quote eligibility are unchanged. TypeScript and scoped ESLint pass. No tests or authenticated browser review run; no push/deployment.
+
+
+## 2026-10-19 — Restore material-family suffixes in quote labels
+
+Restored Aluminum and Stainless Steel after catalog grade names in the shared quote-offering display labels, including dropdown results and selected parent labels. Existing suffixes are not duplicated. Catalog identity keys, reference metadata, condition mappings and sourcing eligibility remain unchanged. Confirmed from source that previous T6/T651/T5/H111/T7351 options are retained under separate Condition controls and exact-condition search; their removal from the default parent-grade list was a presentation change. Recommended making these variants more visible; no further temper UI redesign implemented in this pass. TypeScript and scoped ESLint pass. No tests, browser review or deployment.
+
+
+## 2026-10-19 — Browse exact material conditions and collapse family groups
+
+Implemented approved direct browsing of grade/condition requirements. Added a shared browse projection that lists each known temper (for example 6061-T6 Aluminum and 6061-T651 Aluminum) within the family, preserving explicit unspecified legacy variants. Search uses the same full labels; the selected trigger now displays the exact chosen requirement, and Condition changes remain synchronized through the existing persisted value. Existing non-aluminum variant names retain their full grade/condition descriptions; no additional equivalences or conditions were invented. Restored suffixes, UNS/composition references and sourcing eligibility are preserved.
+
+Family headings now toggle open/closed, with an empty-expanded-family state, accurate aria-expanded values and a choose-family prompt. Keyboard navigation guards empty results, and only the exact variant is marked selected rather than all sibling conditions. TypeScript and scoped ESLint pass. No tests or authenticated browser checks run; local only, no deployment.
+
+
+## 2026-10-19 — Compact composition formatting for catalog additions
+
+Matched the existing picker reference-line presentation by adding compact element shorthand to all 80 newly added composition summaries through the existing `compositionFormula` display field. Dropdown rows and the selected trigger now prefer this compact representation (for example FeCrNiMoC, or Ti for unalloyed titanium) instead of long percentage/range text. The shorthand describes elements in the verified summary; it is not a molecular formula, full chemistry specification or invented EN designation. Detailed numeric composition, nominal/limit basis and source URLs remain retained in underlying metadata. The nine UNS-only records remain unchanged. Sourcing review, exact condition keys and original RFQ references remain intact. TypeScript and scoped ESLint pass. No tests, browser review, push or deployment.
+
+
+## 2026-10-19 — Verify CSV UNS proposals and update canonical references
+
+Reviewed the 19 identifier-bearing CSV proposals against producer, agency and standards references. Added 13 exact catalog UNS references with source and scope notes, bringing the shared lookup to 102 records. Corrected CSV AM60B M10600 to ASTM B94 M10602. Six entries remain unresolved because of product-form, grade-variant or combined-specification ambiguity; recorded exact reasons and sources in `docs/audits/material-uns-csv-verification-2026-10-19.md`. Zamak 3 ingot/casting assignments in the CSV disagree with SAE J468 and were not imported.
+
+The quote projection now lets verified canonical UNS override old N/A placeholders (notably 2007) without replacing existing variant chemistry. Catalog directory profiles and featured cards read the same canonical lookup. Sourcing review, saved material keys, conditions, aliases and historical RFQs are unchanged. No new composition imported. TypeScript and scoped ESLint pass; no tests/browser verification, push or deployment.
+
+
+## 2026-10-19 — Single material selector and composition completion (local)
+
+- Removed the redundant visible Condition selector at William's request. Material browse and search now both use the same 300 exact choices, including all 104 legacy RFQ selections. Documented aluminum tempers remain embedded in names; six legacy unspecified aluminum selections say `Temper not specified`. Parent-only deep links still require choosing an exact requirement in the single dropdown.
+- Kept T6/T651/T7351, other published tempers, and named steel annealed/normalized conditions distinct. Structured new-submission metadata retains the condition for four already-named steel requirements. No unspecified material receives an assumed temper; no new material/condition combination was invented.
+- Researched all 109 initially missing composition choices. Added 45 metal chemistry summaries, 3 coated-sheet constituent summaries and 35 polymer/base-resin constituent summaries in `src/lib/material-composition-references.ts`. Added source, basis, limitations and explicit status independently of UNS and sourcing eligibility. The remaining 26 choices (22 metals, 4 polymers) state `Composition needs specification`; exact identities/formulations are unresolved rather than filled with approximate grades.
+- `catalogMaterialReference` combines exact family/grade UNS and chemistry references. The dropdown preserves valid existing variant chemistry and fills missing fields from the shared records. Compact element notation remains under choices and selected values; hover text includes chemistry basis and limitations. Polymer constituents are qualitative, not certified formulations; coating is represented separately from the substrate.
+- Sources and the full 109-row outcome are in `docs/audits/material-composition-completion-2026-10-19.md` and `.json`. Existing UNS, sourcing flags, material IDs, saved drafts and submitted records are preserved. No database write, migration, push or deployment.
+
+Verification for the preceding local update: TypeScript and scoped ESLint pass; data inspection retains all 300 browse/search choices and all 104 legacy RFQ keys. Application tests and authenticated browser review were not run.
+
+## 2026-10-19 — Hide unspecified grades when conditions are offered (local)
+
+At William's request, the single material selector now shows only specific condition/temper choices for a grade that has them. Both browse and search hide generic 2014, 2024, 5052, 6060, 6063 and 6082 Aluminum, plus generic 4140 Steel (Annealed/Normalized remain). Generic grades without condition choices, including 7050 Aluminum, remain visible. The selector now exposes 293 choices. Old generic selection keys remain registered and valid in saved drafts/submitted records; no automatic temper assignment or data migration occurs. The hidden native select includes an old generic key only when it is the current saved selection. No new material/temper combination, UNS/composition change, sourcing change, database write or deployment.
+
+## 2026-10-19 — Other material requests through Manufacturing notes (local)
+
+- Removed the selected-material sourcing-review paragraph/link and replaced the material dropdown footer's external inquiry link with `Select Other`.
+- Added RFQ-only `other_material` / `Other`, visible in the single selector and searchable. Instructions ask for material, grade and temper/condition (if applicable) in Manufacturing notes at the bottom. No fake UNS, composition or standard grade is assigned. Visible selector count is now 294; this is not a new published catalog grade.
+- Manufacturing notes are required for Other in the form readiness checks and server manufacturing validation. The missing-field action scrolls/focuses the per-part notes textarea. Existing draft/submit persistence carries the Other material key and the per-part notes; the admin receives the existing line-item notes and material fields without a schema change.
+- Unknown Other chemistry does not qualify material-specific coatings. Neutral as-machined finishes are available for CNC and As fabricated for sheet metal; additional finish requirements belong in the notes for review. Listed-material sourcing eligibility and badges are unchanged.
+- Applied the React skill checklist to the two edited components: semantic buttons, existing controlled state/focus handling, labelled required textarea, and shared validation/constants. No new effects, listeners or external dependency.
+- Local only: no database mutation, migration, push or deployment. Application tests and authenticated browser review were not run.
+
+## 2026-10-19 — Add material specification guidance to Other (local)
+
+Updated the `Other` material guidance to ask customers to include applicable material specifications, including ASTM or AMS requirements, in Manufacturing notes. This uses the existing required-notes flow for unlisted materials. No validation, catalog data, persistence, or schema behavior changed. Local only; no deployment.
+
+## 2026-10-19 — Curate generic material choices (local)
+
+At William's request, removed 18-8 Stainless Steel, generic Invar and ZN from the canonical Materials page lists (Invar 36 remains). Hid those plus Beryllium Copper, Magnesium, Zinc and Cast Iron from RFQ material browse/search. Beryllium Copper, Magnesium, Zinc and Cast Iron remain in the Materials catalog. Legacy RFQ material keys, aliases and saved values remain available for historical drafts/records. No database mutation, migration or deployment. Tests were not run.
+
+## 2026-10-19 — Compact drawing-popup tolerance selector (local)
+
+At William's request, Technical Drawing Specifications uses a compact tolerance dropdown instead of three expanded radio cards. The selected option's existing explanation is shown below the control. Main quote configuration retains the card presentation. Both presentations share the same tolerance values, approved copy, selection callback, drawing-required behavior and saved ISO preservation. No submission/schema change, migration or deployment. Applied the React checklist to the shared presentation and popup call site; no new state/effects or dependencies.
+
+## 2026-10-19 — Material identity labels and steel property correction (local)
+
+- Added the word `Titanium` to titanium RFQ dropdown names while retaining the grade/alloy designation.
+- Consolidated AISI 1010 and supplier label Steel 1010 as `AISI 1010 Steel` (UNS G10100), preserving both names as aliases. Separated its cold-drawn reference properties from AISI 1020.
+- Normalized Steel 1020 to `AISI 1020 Steel` (UNS G10200). Removed unsupported S15C/C22/Steel 20# property aliases from that record.
+- Consolidated the verified X, C-22, and C-276 name pairs in the catalog and quote selection, displaying the recognizable Hastelloy brand names and retaining Alloy names as searchable aliases with citations.
+- UNS is a strong identity signal for these confirmed name pairs, but does not by itself erase distinctions in condition, temper, product form, or governing specification. No database migration or rewrite of submitted RFQs. Local only; application tests and browser review were not run.
+
+
+## 2026-10-19 — Show selectable-material counts in family picker (local)
+
+Each RFQ material-family header now shows the number of choices currently displayed under that family. Counts use the same browse-choice projection rendered in the expanded group, so distinct selectable temper/condition variants count separately; the public Materials catalog totals are not used. Search continues to show its matching-result count. No catalog data, persistence or schema behavior changed. Local only; no deployment.
+
+
+## 2026-10-19 — Consolidate duplex stainless duplicate UNS entries (local)
+
+Merged Duplex F51 into Duplex 2205 / S31803 in the canonical Stainless Steel catalog, and merged Duplex F55 plus Z100 / S32760 into Zeron 100. The catalog and RFQ dropdown now present one choice for each shared UNS identity; F51, F55 and Z100 remain searchable aliases. Added source-backed Zeron 100 UNS/composition and its form-specific ATI plate minimum reference properties. Removed the incorrect association of F55/S32760 with Super Duplex 2507/S32750 so the distinct grade remains separate. Supplier source labels and records remain intact. No database migration or rewrite of submitted RFQs. Local only; no deployment.
+
+## 2026-10-19 — Material selector follow-up
+
+- Hid the exact `Duplex 2205 / S31803` and `Duplex 2205 / S32205` requirements from RFQ browse and search while retaining both entries on the Materials page. The broad `2205 Duplex Stainless Steel` dual-certified option remains in the RFQ selector.
+- Added `1018S` as an alias of `1018 Steel` in catalog and RFQ identity resolution; supplier source naming remains available. This does not invent separate chemistry or temper data for the unresolved supplier suffix.
+- Existing customer material details and catalog records remain intact. No schema/database migration or submitted RFQ rewrite.
+- On the handoff branch, `npm run typecheck`, `git diff --check`, and `npm run build` pass. The automated test suite and authenticated browser review were not run. Production remains unchanged pending Vercel Preview deployment.

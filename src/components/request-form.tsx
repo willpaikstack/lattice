@@ -13,6 +13,8 @@ import { useDialogFocus } from "./use-dialog-focus";
 import { PreparedCadModelHost, PreparedCadViewerContext } from "./prepared-cad-viewer";
 import { createPortal } from "react-dom";
 import { SearchFirstMaterialSelect } from "./search-first-material-select";
+import { MaterialConditionSelect } from "./material-condition-select";
+import { materialNotesError, materialSelectionError, materialSelectionLabel, materialSelectionDetails } from "@/lib/material-quote-offerings";
 import { CadMetadataSummary } from "./cad-metadata-summary";
 import { earliestTargetDeliveryDate, targetDeliveryDateError } from "@/lib/target-delivery-date";
 import { TargetDatePicker } from "./target-date-picker";
@@ -63,8 +65,8 @@ import type { DraftRequestInput, LatticeRequest } from "@/lib/request-model";
 import {
   generalToleranceOptions,
   optionLabel,
+  otherMaterialValue,
   qualityDocumentationOptions,
-  rfqMaterialOptions,
   surfaceFinishColorOption,
   surfaceFinishColorOptionsFor,
   surfaceFinishCosmeticRequirementLabel,
@@ -148,6 +150,7 @@ export type RequestFormInitialState = LegacyInitialState;
 type RequestFormProps = {
   toleranceDesign?: ToleranceDesign;
   initialState?: RequestFormInitialState;
+  initialMaterial?: string;
   localDraftId?: string;
   prefillNotice?: string;
   resumeRequests?: CustomerRequest[];
@@ -495,7 +498,7 @@ function formatResumeLastEdited(value: string) {
   }).format(date);
 }
 
-type ConfigurationField = "cad" | "material" | "quantity" | "finish" | "tolerance" | "drawing" | "process" | "targetDate";
+type ConfigurationField = "cad" | "material" | "quantity" | "finish" | "tolerance" | "drawing" | "process" | "targetDate" | "notes";
 
 function configurationFieldId(lineId: string, field: ConfigurationField) {
   return `configure-${lineId}-${field}`;
@@ -505,8 +508,11 @@ function missingLineItemFields(item: LineItemState): Array<{ field: Configuratio
   const missing: Array<{ field: ConfigurationField; label: string }> = [];
   if (!item.fileName.trim() || !lineItemHasCadBytes(item)) missing.push({ field: "cad", label: "Upload the CAD file" });
   if (!offeredProcessOptions.some(option => option.value === item.process)) missing.push({ field: "process", label: "Select a supported process" });
-  if (item.material && finishCompatibilityError(item.material, item.surfaceFinish, item.process)) missing.push({ field: "finish", label: "Choose a compatible surface finish" });
-  if (!item.material.trim()) missing.push({ field: "material", label: "Select a material" });
+  if (!materialSelectionError(item.material) && finishCompatibilityError(item.material, item.surfaceFinish, item.process)) missing.push({ field: "finish", label: "Choose a compatible surface finish" });
+  const materialError = materialSelectionError(item.material);
+  if (materialError) missing.push({ field: "material", label: materialError });
+  const notesError = materialNotesError(item.material, item.notes);
+  if (notesError) missing.push({ field: "notes", label: notesError });
   if (!(Number(item.quantity) > 0)) missing.push({ field: "quantity", label: "Enter a quantity greater than zero" });
   const deliveryError = targetDeliveryDateError(item.targetDeliveryDate);
   if (deliveryError) missing.push({ field: "targetDate", label: deliveryError });
@@ -518,7 +524,7 @@ function missingLineItemFields(item: LineItemState): Array<{ field: Configuratio
 
 function manufacturingDetailsFor(item: LineItemState): ManufacturingDetails {
   return { process: item.process, customerPartNumber: item.customerPartNumber, cadRevision: item.cadRevision,
-    drawingRevision: item.drawingRevision, targetDeliveryDate: item.targetDeliveryDate, materialKey: item.material, finishKey: item.surfaceFinish,
+    drawingRevision: item.drawingRevision, targetDeliveryDate: item.targetDeliveryDate, materialKey: item.material, ...materialSelectionDetails(item.material), finishKey: item.surfaceFinish,
     fileHistory: [], drawingRequirements: { partMarkings: item.partMarkings, tightLinearTolerance: item.tightLinearTolerance, drawingSpecificTolerances: item.drawingSpecificTolerances || item.generalTolerance === "linear_tighter_005_in",
       threads: item.threads, engineeringFits: item.engineeringFits, sharpInternalCorners: item.sharpInternalCorners },
     ...(item.cadMetadata ? { cadMetadata: item.cadMetadata } : {}) };
@@ -535,7 +541,7 @@ function formCompletionPercent(project: ProjectFormState, items: LineItemState[]
   for (const item of items) {
     checks.push(
       Boolean(item.fileName.trim()) && lineItemHasCadBytes(item),
-      Boolean(item.material.trim()),
+      !materialSelectionError(item.material) && !materialNotesError(item.material, item.notes),
       offeredProcessOptions.some(option => option.value === item.process),
       !finishCompatibilityError(item.material, item.surfaceFinish, item.process),
       Boolean(item.generalTolerance.trim()),
@@ -1060,7 +1066,7 @@ function TechnicalDrawingReviewModal({
           </div>
 
           <div className="flex-1 space-y-6 overflow-y-auto p-6">
-            {toleranceDesign === "cards" ? <ToleranceRequirements generalTolerance={lineItem.generalTolerance} drawingSpecific={lineItem.drawingSpecificTolerances || lineItem.tightLinearTolerance} onGeneralChange={value => updateLineItem(lineItem.id, "generalTolerance", value)} /> : <>
+            {toleranceDesign === "cards" ? <ToleranceRequirements presentation="dropdown" generalTolerance={lineItem.generalTolerance} drawingSpecific={lineItem.drawingSpecificTolerances || lineItem.tightLinearTolerance} onGeneralChange={value => updateLineItem(lineItem.id, "generalTolerance", value)} /> : <>
             <CustomSelect
               label="General Tolerance"
               value={lineItem.generalTolerance}
@@ -1778,8 +1784,11 @@ function TechnicalDrawingBucket({
 
 // Reversible concept-A trial: false restores the original grouped material picker.
 const useSearchFirstMaterialPicker = false;
+// Material/Condition comparison is active with the legacy UNS/composition format.
+// Set false to restore the previous grouped material dropdown.
+const useMaterialConditionPicker = true;
 function MaterialSelect(props: { value: string; onChange: (value: string) => void }) {
-  return useSearchFirstMaterialPicker
+  return useMaterialConditionPicker ? <MaterialConditionSelect {...props} /> : useSearchFirstMaterialPicker
     ? <SearchFirstMaterialSelect {...props} options={materialSelectOptions} />
     : <LegacyMaterialSelect {...props} />;
 }
@@ -2021,6 +2030,7 @@ function LegacyMaterialSelect({
             {option.label}
           </option>
         ))}
+        {value && !selectedOption ? <option value={resolvedValue}>{materialSelectionLabel(value)}</option> : null}
       </select>
       <div className="relative">
         <button
@@ -2040,7 +2050,7 @@ function LegacyMaterialSelect({
         >
           <span className="min-w-0">
             <span className="block truncate text-[15px] font-semibold leading-6 text-[#020617]">
-              {selectedOption?.label ?? "Select a material"}
+              {selectedOption?.label ?? (value ? materialSelectionLabel(value) : "Select a material")}
             </span>
             {selectedOption ? (
               <span className="mt-0.5 block truncate text-[12px] font-medium leading-4 text-[#64748b]">
@@ -2857,7 +2867,7 @@ function LineItemConfigurationCard({
                     updateLineItem(lineItem.id, "surfaceFinish", value)
                   }
                   options={compatibleFinishOptions(lineItem.material, lineItem.process, lineItem.surfaceFinish)}
-                  disabled={!lineItem.material}
+                  disabled={!!materialSelectionError(lineItem.material)}
                   required
                   showSearch
                 />
@@ -2955,7 +2965,7 @@ function LineItemConfigurationCard({
                     ) : null}
                   </fieldset>
                 ) : null}
-                {lineItem.material && finishCompatibilityError(lineItem.material, lineItem.surfaceFinish, lineItem.process) ? <p role="alert" className="text-sm text-red-700">{finishCompatibilityError(lineItem.material, lineItem.surfaceFinish, lineItem.process)}</p> : null}
+                {!materialSelectionError(lineItem.material) && finishCompatibilityError(lineItem.material, lineItem.surfaceFinish, lineItem.process) ? <p role="alert" className="text-sm text-red-700">{finishCompatibilityError(lineItem.material, lineItem.surfaceFinish, lineItem.process)}</p> : null}
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
                   <span>Part Markings</span>
                   <span className="flex items-center gap-2">
@@ -3059,11 +3069,12 @@ function LineItemConfigurationCard({
                   Lattice can store the actual STEP/part bytes for quoting.
                 </p>
               ) : null}
-              <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
-                <span>Manufacturing notes</span>
+              <label id={configurationFieldId(lineItem.id, "notes")} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 text-sm font-medium text-slate-700">
+                <span>Manufacturing notes{lineItem.material === otherMaterialValue ? <span className="ml-1 text-[#d4183d]">*</span> : null}</span>
                 <textarea
                   className={`${inputClass} min-h-32`}
-                  placeholder="Share any details that will help us manufacture this part."
+                  placeholder={lineItem.material === otherMaterialValue ? "Specify the material, grade and temper/condition (if applicable), plus any other manufacturing requirements." : "Share any details that will help us manufacture this part."}
+                  required={lineItem.material === otherMaterialValue}
                   value={lineItem.notes}
                   onChange={(event) =>
                     updateLineItem(lineItem.id, "notes", event.target.value)
@@ -3119,6 +3130,7 @@ function useDrawingPreviewUrl(activeDrawingFile: File | null | undefined, active
 export function RequestForm({
   toleranceDesign = "cards",
   initialState,
+  initialMaterial,
   localDraftId,
   prefillNotice,
   resumeRequests = [],
@@ -3135,7 +3147,7 @@ export function RequestForm({
   const [lineItems, setLineItems] = useState<LineItemState[]>(() =>
     initialState?.lineItems?.length
       ? initialState.lineItems.map((lineItem, index) => lineItemFromInitialLineItem(lineItem, `line-${index + 1}`))
-      : [lineItemFromInitialState(initialState)],
+      : [lineItemFromInitialState(initialState ?? (initialMaterial ? { material: initialMaterial } : undefined))],
   );
   const [stagedCad, setStagedCad] = useState<{ files: File[]; targetId?: string } | null>(null);
   const pendingPartRevealRef = useRef<string | null>(null);
@@ -3491,7 +3503,7 @@ export function RequestForm({
         partName: displayNameFromFile(lineItem.fileName) || "Part",
         quantity: Number(lineItem.quantity) || 1,
         manufacturingDetails: manufacturingDetailsFor(lineItem),
-        material: optionLabel(rfqMaterialOptions, canonicalMaterialValue(lineItem.material)),
+        material: materialSelectionLabel(lineItem.material),
         generalTolerance: optionLabel(generalToleranceOptions, lineItem.generalTolerance),
         surfaceFinish: surfaceFinishDisplayValue(lineItem),
         qualityDocumentation: lineItem.qualityDocumentation.map((value) => optionLabel(qualityDocumentationOptions, value)),
@@ -4064,7 +4076,7 @@ export function RequestForm({
           return {
                   quantity: Number(lineItem.quantity),
             manufacturingDetails: manufacturingDetailsFor(lineItem),
-            material: optionLabel(rfqMaterialOptions, canonicalMaterialValue(lineItem.material)),
+            material: materialSelectionLabel(lineItem.material),
             generalTolerance: optionLabel(
               generalToleranceOptions,
               lineItem.generalTolerance,

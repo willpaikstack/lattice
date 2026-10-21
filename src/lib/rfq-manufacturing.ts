@@ -1,6 +1,7 @@
+import { materialNotesError, materialSelectionDetails, materialSelectionError } from "./material-quote-offerings";
 import { cncMaterialLibrary } from "./cnc-material-library";
 import { resolveMaterialName } from "./material-identity-registry";
-import { optionLabel, rfqMaterialOptions, surfaceFinishOptions } from "./rfq-options";
+import { optionLabel, otherMaterialValue, rfqMaterialOptions, surfaceFinishOptions } from "./rfq-options";
 
 export const restrictionPolicyVersion = "overseas-intake-2026-10-12";
 export type RestrictionStatus = "unconfirmed" | "unrestricted" | "restricted" | "unsure";
@@ -18,7 +19,7 @@ export type PartFileHistory = {
 };
 export type ManufacturingDetails = {
   process: string; customerPartNumber: string; cadRevision: string; drawingRevision: string; targetDeliveryDate?: string;
-  materialKey: string; finishKey: string; fileHistory: PartFileHistory[]; cadMetadata?: CadMetadata;
+  materialKey: string; materialGrade?: string; materialCondition?: string; finishKey: string; fileHistory: PartFileHistory[]; cadMetadata?: CadMetadata;
   drawingRequirements?: Partial<Record<"partMarkings" | "tightLinearTolerance" | "drawingSpecificTolerances" | "threads" | "engineeringFits" | "sharpInternalCorners", boolean>>;
 };
 
@@ -74,13 +75,17 @@ export function readManufacturingDetails(value: unknown): ManufacturingDetails |
     ? Object.fromEntries(["partMarkings", "tightLinearTolerance", "drawingSpecificTolerances", "threads", "engineeringFits", "sharpInternalCorners"].map(key => [key, (record.drawingRequirements as Record<string, unknown>)[key] === true])) : undefined;
   const cadMetadata = metadata && Array.isArray(metadata.dimensionsMm) && metadata.dimensionsMm.length === 3 && metadata.dimensionsMm.every(value => Number.isFinite(value) && value >= 0) && typeof metadata.sourceUnit === "string"
     ? { dimensionsMm: metadata.dimensionsMm as [number, number, number], sourceUnit: metadata.sourceUnit.slice(0, 40) } : undefined;
-  return { process: text("process"), customerPartNumber: text("customerPartNumber"), cadRevision: text("cadRevision"), drawingRevision: text("drawingRevision"), targetDeliveryDate: readTargetDeliveryDate(record), materialKey: text("materialKey"), finishKey: text("finishKey"), fileHistory, ...(cadMetadata ? { cadMetadata } : {}), ...(drawingRequirements ? { drawingRequirements } : {}) };
+  return { process: text("process"), customerPartNumber: text("customerPartNumber"), cadRevision: text("cadRevision"), drawingRevision: text("drawingRevision"), targetDeliveryDate: readTargetDeliveryDate(record), materialKey: text("materialKey"), ...materialSelectionDetails(text("materialKey")), finishKey: text("finishKey"), fileHistory, ...(cadMetadata ? { cadMetadata } : {}), ...(drawingRequirements ? { drawingRequirements } : {}) };
 }
 
 // Conservative service matrix, researched from Protolabs Network's service table.
 // Physical possibilities outside this matrix require custom supplier review.
 export function finishCompatibilityError(material: string, finish: string, process = "cnc_milling") {
   if (!material) return "Select a material to see compatible finishes.";
+  if (material === otherMaterialValue) {
+    if (process === "sheet_metal_fabrication") return finish === "as_fabricated" ? null : "Choose As fabricated and describe any additional finish requirements in Manufacturing notes.";
+    return finish === "as_machined_ra_3_2" || finish === "smooth_machining_ra_1_6" ? null : "Choose an as-machined finish and describe any additional finish requirements in Manufacturing notes.";
+  }
   const label = optionLabel(rfqMaterialOptions, material);
   const family = cncMaterialLibrary.find(entry => entry.value === material || entry.label === label)?.family
     ?? (/^SS /.test(label) ? "Stainless steel" : undefined);
@@ -102,7 +107,7 @@ export function compatibleFinishOptions(material: string, process: string, selec
   return invalid ? [{ ...invalid, label: `${invalid.label} — select a compatible finish` }, ...options] : options;
 }
 
-export function validateManufacturingIntake(input: { intakeDeclaration?: IntakeDeclaration; lineItems: Array<{ material: string; surfaceFinish?: string; manufacturingDetails?: ManufacturingDetails }>; process?: string }) {
+export function validateManufacturingIntake(input: { intakeDeclaration?: IntakeDeclaration; lineItems: Array<{ material: string; notes?: string; surfaceFinish?: string; manufacturingDetails?: ManufacturingDetails }>; process?: string }) {
   for (const part of input.lineItems) {
     const date = readTargetDeliveryDate(part.manufacturingDetails);
     if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date)) {
@@ -117,6 +122,10 @@ export function validateManufacturingIntake(input: { intakeDeclaration?: IntakeD
   input.lineItems.forEach((part, index) => {
     const details = readManufacturingDetails(part.manufacturingDetails);
     if (!details || !offeredProcessOptions.some(option => option.value === details.process)) throw new Error(`Part ${index + 1}: select milling, turning or sheet metal.`);
+    const selectionError = materialSelectionError(details.materialKey);
+    if (selectionError) throw new Error(`Part ${index + 1}: ${selectionError}.`);
+    const notesError = materialNotesError(details.materialKey, part.notes ?? "");
+    if (notesError) throw new Error(`Part ${index + 1}: ${notesError}.`);
     const selectedMaterial = optionLabel(rfqMaterialOptions, details.materialKey);
     const savedMaterial = resolveMaterialName("rfq", part.material);
     if (selectedMaterial !== savedMaterial || !details.materialKey) throw new Error(`Part ${index + 1}: invalid material selection.`);

@@ -1708,3 +1708,71 @@ Use today (America/New_York), rather than an older draft creation date, as the b
 Decision: the Materials catalog, RFQ selection and prefill, and material-property lookups use `src/lib/material-identity-registry.ts` for name resolution. Aliases are scoped by use/family so a search alias or combined customer-facing choice cannot accidentally select properties for one constituent grade. Combined 304/304L and 316/316L choices remain distinct from single-grade property records; suppliers must certify the combined requirements.
 
 Reason: separate alias tables drift and can map the same label differently. Explicit scopes preserve technical distinctions while keeping customer-facing names consistent.
+
+
+## 2026-10-19 — Bind material highlights and family examples to the published directory
+
+Decision: the Materials family directory defines which grades and conditions can appear in featured/common cards and family-card examples. Curated photography and guidance may reference a published grade but cannot supply an independent material name, add an absent offering or advertise an unlisted temper. Family examples are derived from the resulting highlights. Parent alloy names and condition labels remain separate; reference properties use the same grade/condition lookup as the directory. A missing exact reference does not authorize substituting values for another grade, including either constituent of a dual-certified offering.
+
+Implementation: `src/lib/material-catalog-records.ts` and `src/lib/material-family-view-models.ts`. This completes the approved featured/examples/directory consistency item; broader catalog/RFQ unification remains a separate proposal.
+
+
+## 2026-10-19 — Give every published material a quote or sourcing path
+
+Decision: project the published material directory and existing reviewed RFQ variants into `material-quote-offerings.ts`. Every published grade and listed condition has an explicit Request quote or Ask us to source action. Catalog membership alone does not establish a ready-to-quote offering. Catalog-only choices remain searchable in Configure but require sourcing review through the existing inquiry form; opening that form in a new tab preserves the active draft. Keep distinct RFQ variants when catalog lookup aliases only establish a broader relationship.
+
+Material and Condition are separate controls. Searching a precise aluminum designation such as 6061-T651 selects both, while choosing a parent alloy requires an explicit condition. Unspecified historical variants stay available and are labelled for quote confirmation; no automatic T6/T651 substitution. Preserve the existing exact material key and full requirement label in saved drafts/submissions. Derive grade/condition metadata from that trusted key in the shared server parser; no database migration or submitted-record rewrite. Catalog links initialize the first part of a new request through CAD upload, and cannot override a saved draft or reorder. Retain the old grouped picker code as a local presentation rollback.
+
+
+## 2026-10-19 — Compare material picker designs with legacy active
+
+William requested archiving the new Material/Condition picker and restoring the previous grouped dropdown. Default to the legacy dropdown; retain the new component unchanged behind `useMaterialConditionPicker` for restoration. This is a presentation comparison, not a reversal of shared catalog/offering data, approved material identities, sourcing actions or server validation. Preserve saved requirements without converting grades or tempers.
+
+
+## 2026-10-19 — Preserve material reference details in the comparison picker
+
+William requested viewing the archived Material/Condition picker with the old dropdown's UNS and chemical-composition subtext. Activate that comparison and retain the legacy dropdown for rollback. Existing metadata is the source; do not invent missing catalog identifiers or composition, or conceal sourcing-only status behind reference information.
+
+
+## 2026-10-19 — Show exact material conditions during browsing
+
+Expose known grade/condition variants directly in the quote Material family list, using full labels such as 6061-T651 Aluminum. Retain the separate Condition field synchronized by the same saved selection value. Keep genuinely unspecified legacy choices separate and do not infer a temper or merge grade requirements. The separate fields were introduced to model alloy and condition independently; they must not hide specific requirements while browsing. Family headings must support both expansion and collapse.
+
+
+## 2026-10-19 — Keep material reference lines compact
+
+Display concise element/alloy shorthand beneath material choices, following the original dropdown style. Retain detailed chemistry, nominal-versus-limiting basis and sources separately in metadata. Do not invent standardized designations or convert ranges into exact nominal quantities merely to create a short label.
+
+
+## 2026-10-19 — Single material selector and composition completion (local)
+
+- Removed the redundant visible Condition selector at William's request. Material browse and search now both use the same 300 exact choices, including all 104 legacy RFQ selections. Documented aluminum tempers remain embedded in names; six legacy unspecified aluminum selections say `Temper not specified`. Parent-only deep links still require choosing an exact requirement in the single dropdown.
+- Kept T6/T651/T7351, other published tempers, and named steel annealed/normalized conditions distinct. Structured new-submission metadata retains the condition for four already-named steel requirements. No unspecified material receives an assumed temper; no new material/condition combination was invented.
+- Researched all 109 initially missing composition choices. Added 45 metal chemistry summaries, 3 coated-sheet constituent summaries and 35 polymer/base-resin constituent summaries in `src/lib/material-composition-references.ts`. Added source, basis, limitations and explicit status independently of UNS and sourcing eligibility. The remaining 26 choices (22 metals, 4 polymers) state `Composition needs specification`; exact identities/formulations are unresolved rather than filled with approximate grades.
+- `catalogMaterialReference` combines exact family/grade UNS and chemistry references. The dropdown preserves valid existing variant chemistry and fills missing fields from the shared records. Compact element notation remains under choices and selected values; hover text includes chemistry basis and limitations. Polymer constituents are qualitative, not certified formulations; coating is represented separately from the substrate.
+- Sources and the full 109-row outcome are in `docs/audits/material-composition-completion-2026-10-19.md` and `.json`. Existing UNS, sourcing flags, material IDs, saved drafts and submitted records are preserved. No database write, migration, push or deployment.
+
+## 2026-10-19 — Hide unspecified grades when conditions are offered (local)
+
+At William's request, the single material selector now shows only specific condition/temper choices for a grade that has them. Both browse and search hide generic 2014, 2024, 5052, 6060, 6063 and 6082 Aluminum, plus generic 4140 Steel (Annealed/Normalized remain). Generic grades without condition choices, including 7050 Aluminum, remain visible. The selector now exposes 293 choices. Old generic selection keys remain registered and valid in saved drafts/submitted records; no automatic temper assignment or data migration occurs. The hidden native select includes an old generic key only when it is the current saved selection. No new material/temper combination, UNS/composition change, sourcing change, database write or deployment.
+
+## 2026-10-19 — Other material requests through Manufacturing notes (local)
+
+- Removed the selected-material sourcing-review paragraph/link and replaced the material dropdown footer's external inquiry link with `Select Other`.
+- Added RFQ-only `other_material` / `Other`, visible in the single selector and searchable. Instructions ask for material, grade and temper/condition (if applicable) in Manufacturing notes at the bottom. No fake UNS, composition or standard grade is assigned. Visible selector count is now 294; this is not a new published catalog grade.
+- Manufacturing notes are required for Other in the form readiness checks and server manufacturing validation. The missing-field action scrolls/focuses the per-part notes textarea. Existing draft/submit persistence carries the Other material key and the per-part notes; the admin receives the existing line-item notes and material fields without a schema change.
+- Unknown Other chemistry does not qualify material-specific coatings. Neutral as-machined finishes are available for CNC and As fabricated for sheet metal; additional finish requirements belong in the notes for review. Listed-material sourcing eligibility and badges are unchanged.
+- Applied the React skill checklist to the two edited components: semantic buttons, existing controlled state/focus handling, labelled required textarea, and shared validation/constants. No new effects, listeners or external dependency.
+- Local only: no database mutation, migration, push or deployment. Application tests and authenticated browser review were not run.
+
+## 2026-10-19 — Remove broad material labels from current selection (local)
+
+Omit 18-8 Stainless Steel, generic Invar, and ZN from the canonical Materials page lists; retain Invar 36. Hide those labels and Beryllium Copper, Magnesium, Zinc, and Cast Iron from the RFQ dropdown. Keep Beryllium Copper, Magnesium, Zinc, and Cast Iron in the Materials catalog. Preserve old aliases and saved material keys for existing requests.
+
+## 2026-10-19 — Compact drawing-popup tolerance selector (local)
+
+At William's request, Technical Drawing Specifications uses a compact tolerance dropdown instead of three expanded radio cards. The selected option's existing explanation is shown below the control. Main quote configuration retains the card presentation. Both presentations share the same tolerance values, approved copy, selection callback, drawing-required behavior and saved ISO preservation. No submission/schema change, migration or deployment. Applied the React checklist to the shared presentation and popup call site; no new state/effects or dependencies.
+
+## Material names with matching UNS numbers (2026-10-19)
+
+Use a matching UNS as strong evidence to canonicalize confirmed alternate names, while preserving all supplier/catalog labels as searchable aliases and source provenance. This is not a blanket rule to merge records: retain distinct temper, condition, product form, or governing specification when those define a materially different requirement. Applied to AISI 1010 / Steel 1010 (G10100), Steel 1020 / AISI 1020 (G10200), and the Hastelloy X (N06002), Hastelloy C-22 (N06022), and Hastelloy C-276 (N10276) display names, with Alloy names retained as searchable aliases. Titanium RFQ labels must include the word Titanium after the specific grade/alloy name.

@@ -3,10 +3,16 @@
 - Customer supplier-data exposure repaired locally (2026-10-20): explicit customer payload allowlists cover RFQ/quote/order/checkout/reorder, shared drafts and notification surfaces; submission/retry/archive return ID receipts. Before customer rollout, deploy the reviewed source and inspect authenticated HTML/RSC/JSON as genuine Customer Admin and Member accounts with populated synthetic supplier pricing, notes and attachments. Confirm internal markers are absent and authorized customer/quality downloads plus admin supplier detail still work. No deployment was performed in this repair.
 
 - Test repair complete locally (2026-10-19): 733 passed, no failures; the explicitly enabled PostgreSQL audit remains skipped. Shared-registry intake compatibility and admin queue filtering are verified. Browser/hosted verification and deployment remain separate follow-up work.
+> Local comparison update (October 19): the newer Material/Condition picker is active for comparison with UNS number and composition below each choice and the selected material. Existing RFQ metadata supplies the reference line; unavailable data is labelled rather than invented. Set `useMaterialConditionPicker = false` to restore the previous grouped dropdown. This update follows the pushed handoff and is not yet pushed or deployed. Earlier verification counts describe the preceding implementation.
 
-- This Production-derived repo is now the primary local working copy, with the synthetic Design C preview on port 3000. Configure remote synchronization when requested; it currently has no remote. Recovery of superseded local work is documented in `LOCAL_PREVIEW.md`.
 
-- Review local Design C at `/design-preview/timing-c`; implementation and rollback are in `LOCAL_PREVIEW.md`. Before any requested rollout, confirm shipping-day units/holiday handling and align checkout, purchased order dates and PDFs with the new viewing-date calculation. No deployment is authorized for this experiment.
+## Current next steps — October 19, 2026
+
+- Continue from `codex/materials-catalog-handoff` in the existing GitHub repository. Read `docs/cross-device-handoff-2026-10-19.md` before starting on another computer. The local Production-derived history is preserved separately; do not push it over GitHub main or force-push.
+- Material catalog/RFQ unification is implemented and automated checks pass: 758 tests, one opt-in PostgreSQL audit skipped, TypeScript and ESLint clean. Browser-check authenticated catalog → exact-material quote → first CAD upload → draft reload, sourcing-only flow and mobile/keyboard controls. Confirm process/finish compatibility on a representative real request before requesting a release.
+- Every published grade/condition now has an existing quote selection or sourcing inquiry action. Catalog presence does not certify stock availability. Review ambiguous alias relationships individually; do not merge distinct specifications or infer T6/T651 equivalence. The remaining audit recommendations are in `docs/audits/materials-catalog-rfq-unification-2026-10-19.md`.
+- Current main/Production workflow baseline is PR #1 / `cb90b13`. Latest material changes are on the handoff branch only. Merging/releasing that branch is a separate action. Retain the existing purchasing/payment release gates below.
+- The earlier Design C synthetic preview remains available for comparison; `LOCAL_PREVIEW.md` documents rollback and its limitations. The October 19 baseline release supersedes older statements that all quote/tour changes are local only. Still review viewing-date calculations versus persisted checkout/order/PDF dates and holiday handling as a separate product decision.
 
 - Account settings usability follow-up (2026-10-15): phone formatting, billing email validation, signed-in recovery identity binding, persistent same-as-shipping and U.S. city/state/ZIP/manual-entry controls implemented. Development/Production additive schema applied and released as dpl_Bz8CdC7v4JduhdfPQZZ7uoRbRmir (source 1d5877c). Hosted Member phone-format/reset-binding/address-suggestion/manual-entry checks pass. Genuine Admin billing-checkbox save/reload/restoration and invalid/valid email controls now pass. All 17 pre-check RFQs and original shared address/contact values remain unchanged. No remaining handoff. No automated tests run for this follow-up.
 
@@ -266,3 +272,14 @@ Twelve genuine-customer Production RFQs across four accounts are submitted and a
 ## 2026-10-16 — Address lookup activation
 
 - Completed 2026-10-16: Lattice Geoapify Free-plan project created with owner approval; server-only key connected as a Vercel Secret for Production/Preview and deployment promoted. Genuine Admin shipping/billing suggestions, keyboard/mouse autofill, manual entry and native state dropdown verified. Original address values preserved. See docs/address-autocomplete-setup.md and the completed-work log.
+
+
+## 2026-10-19 — Material composition and condition follow-up
+
+- Resolve the 26 specification-dependent composition entries listed in `docs/audits/material-composition-completion-2026-10-19.md` using exact supplier/product standards. No approximate UNS/chemistry or invented temper should be assigned.
+- Current dropdown uses one material control for all grade/condition choices; retain separate structured grade/condition metadata internally. Keep unnamed conditions unspecified until documented, and keep sourcing eligibility independent of reference-data coverage.
+- Pending: authenticated browser review of the updated single selector and reference lines. Application tests were not run for this follow-up. Local changes need review/commit/push/deployment separately.
+
+- October 19 selector follow-up: visible browse/search count is now 293 after hiding seven unspecified choices with specific condition alternatives. Legacy saved keys remain valid. Browser review remains pending.
+
+- October 19 material curation follow-up: the selector now has 287 choices, including Other with required per-part Manufacturing notes. 18-8 Stainless Steel, generic Invar, ZN, Beryllium Copper, Magnesium, Zinc and Cast Iron are omitted from quote selection; 18-8, generic Invar and ZN are also omitted from the Materials page, while the remaining four stay catalogued. Browser follow-through should cover choosing Other, saved-draft restore, blank-note blocking, submission and admin notes display. No new tests run.

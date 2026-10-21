@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { MaterialRequestAction } from "@/components/material-request-action";
 import { MaterialGradeDirectory } from "@/components/material-grade-directory";
 import { PlasticFunctionalProfile } from "@/components/plastic-functional-profile";
 import { PlasticFunctionalProfileGroup } from "@/components/plastic-functional-profile-group";
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: MaterialFamilyPageProps): Pro
     : { title: "Material not found | Lattice OS" };
 }
 
-function GradeProfileRow({ grade, usesFunctionalTraits = false }: { grade: NonNullable<ReturnType<typeof getMaterialFamilyDetail>>["featuredGrades"][number]; usesFunctionalTraits?: boolean }) {
+function GradeProfileRow({ grade, familyName, usesFunctionalTraits = false }: { familyName: string; grade: NonNullable<ReturnType<typeof getMaterialFamilyDetail>>["featuredGrades"][number]; usesFunctionalTraits?: boolean }) {
   const machinabilityScore = ["Excellent", "Good", "Easy"].includes(grade.machinability)
     ? 4
     : ["Fair", "Medium"].includes(grade.machinability)
@@ -42,6 +43,7 @@ function GradeProfileRow({ grade, usesFunctionalTraits = false }: { grade: NonNu
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2 lg:block">
           <h3 className="text-[17px] font-semibold leading-6 tracking-[-0.02em] text-[#202020]">{grade.name}</h3>
+          {grade.condition ? <p className="mt-0.5 text-[12px] font-medium text-[#505257]">Condition: {grade.condition}</p> : null}
           <p className="mt-0.5 text-[12px] text-[#77797c]">{grade.uns}</p>
         </div>
       </div>
@@ -73,6 +75,7 @@ function GradeProfileRow({ grade, usesFunctionalTraits = false }: { grade: NonNu
         <p className="mt-1 text-[12px] leading-[18px] text-[#56585c]">{grade.selectionNote}</p>
       </div>
 
+      <div className="sm:col-span-2 lg:col-span-5"><MaterialRequestAction familyName={familyName} grade={grade.grade} condition={grade.condition} showCondition={false} /></div>
       {usesFunctionalTraits && grade.functionalTraits ? (
         <PlasticFunctionalProfile detailsClassName="sm:col-span-2 lg:col-span-5" summaryClassName="lg:ml-auto lg:w-[122px]" traits={grade.functionalTraits} />
       ) : grade.mechanicalProperties ? (
@@ -139,7 +142,7 @@ export default async function MaterialFamilyPage({ params }: MaterialFamilyPageP
           </div>
 
           <div className="overflow-hidden rounded-[8px] border border-[#deddda] bg-white">
-            {material.featuredGrades.map((grade) => <GradeProfileRow grade={grade} key={grade.name} usesFunctionalTraits={material.slug === "plastics-polymers"} />)}
+            {material.featuredGrades.map((grade) => <GradeProfileRow grade={grade} familyName={material.name} key={grade.name} usesFunctionalTraits={material.slug === "plastics-polymers"} />)}
           </div>
           {material.slug === "plastics-polymers" ? <p className="border-t border-[#e3e2df] px-3 py-3 text-[11px] leading-4 text-[#73757a]"><span className="font-medium text-[#55575a]">Functional selection guidance</span> — confirm the specific resin grade and data sheet during RFQ.</p> : null}
         </section>

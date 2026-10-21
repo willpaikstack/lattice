@@ -2,6 +2,7 @@ import type { CustomerRequest } from "./customer-request";
 import { processLabel, readTargetDeliveryDate, type ManufacturingDetails } from "./rfq-manufacturing";
 import type { RequestFormInitialState } from "@/components/request-form";
 
+import { materialOfferingFor } from "./material-quote-offerings";
 import { canonicalMaterialValue } from "@/lib/rfq-material-search";
 import {
   generalToleranceOptions,
@@ -139,7 +140,9 @@ function copiedRequestInitialState(
       fileStorageKey: cadFile?.storageKey,
       fileType: cadFile?.type ?? "",
       generalTolerance: optionValueFromLabel(generalToleranceOptions, lineItem.generalTolerance, "iso_2768_medium_m"),
-      material: canonicalMaterialValue(optionValueFromLabel(rfqMaterialOptions, lineItem.material, "")),
+      material: lineItem.manufacturingDetails?.materialKey && materialOfferingFor(lineItem.manufacturingDetails.materialKey)
+        ? canonicalMaterialValue(lineItem.manufacturingDetails.materialKey)
+        : canonicalMaterialValue(optionValueFromLabel(rfqMaterialOptions, lineItem.material, "")),
       notes: lineItemNotesWithoutGeneratedDrawingPrompts(lineItem.notes),
       qualityDocumentation: lineItem.qualityDocumentation?.length
         ? lineItem.qualityDocumentation.map((label) => optionValueFromLabel(qualityDocumentationOptions, label, "standard_inspection"))

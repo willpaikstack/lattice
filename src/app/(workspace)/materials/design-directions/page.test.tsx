@@ -12,7 +12,7 @@ describe("MaterialsDesignDirectionsPage", () => {
     expect(screen.getByText("Direction 02 / Spec Finder")).toBeInTheDocument();
     expect(screen.getByText("Direction 03 / Reliability Narrative")).toBeInTheDocument();
     expect(screen.getAllByText(/Stainless steel/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Inconel\/Incoloy/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Nickel & specialty alloys/).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /Start RFQ/i })).toHaveAttribute("href", "/requests/new");
   });
 });

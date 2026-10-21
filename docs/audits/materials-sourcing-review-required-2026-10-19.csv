@@ -1,0 +1,198 @@
+family,label,value
+Aluminum,1070,catalog:aluminum:1070%20Aluminum
+Aluminum,2A12,catalog:aluminum:2A12%20Aluminum
+Aluminum,2A14,catalog:aluminum:2A14%20Aluminum
+Aluminum,2017,catalog:aluminum:2017%20Aluminum
+Aluminum,A413,catalog:aluminum:A413%20Aluminum
+Stainless steel,302,catalog:stainless-steel:302
+Stainless steel,303Se,catalog:stainless-steel:303Se
+Stainless steel,303Sulf,catalog:stainless-steel:303Sulf
+Stainless steel,304H,catalog:stainless-steel:304H
+Stainless steel,304LVM,catalog:stainless-steel:304LVM
+Stainless steel,309,catalog:stainless-steel:309
+Stainless steel,310,catalog:stainless-steel:310
+Stainless steel,310S,catalog:stainless-steel:310S
+Stainless steel,316H,catalog:stainless-steel:316H
+Stainless steel,316LVM,catalog:stainless-steel:316LVM
+Stainless steel,321,catalog:stainless-steel:321
+Stainless steel,347,catalog:stainless-steel:347
+Stainless steel,347H,catalog:stainless-steel:347H
+Stainless steel,20Cr13,catalog:stainless-steel:20Cr13
+Stainless steel,40Cr13,catalog:stainless-steel:40Cr13
+Stainless steel,410Mod,catalog:stainless-steel:410Mod
+Stainless steel,430F,catalog:stainless-steel:430F
+Stainless steel,430FR,catalog:stainless-steel:430FR
+Stainless steel,431,catalog:stainless-steel:431
+Stainless steel,EN 1.4005,catalog:stainless-steel:EN%201.4005
+Stainless steel,Nitronic 40,catalog:stainless-steel:Nitronic%2040
+Stainless steel,13-8PH,catalog:stainless-steel:13-8PH
+Stainless steel,Custom 455,catalog:stainless-steel:Custom%20455
+Stainless steel,Duplex 2205 / S31803,catalog:stainless-steel:Duplex%202205%20%2F%20S31803
+Stainless steel,Duplex 2205 / S32205,catalog:stainless-steel:Duplex%202205%20%2F%20S32205
+Stainless steel,Duplex F51,catalog:stainless-steel:Duplex%20F51
+Stainless steel,Duplex F55,catalog:stainless-steel:Duplex%20F55
+Stainless steel,Super Duplex 2507,catalog:stainless-steel:Super%20Duplex%202507
+Stainless steel,Z100 / S32760,catalog:stainless-steel:Z100%20%2F%20S32760
+Stainless steel,253MA,catalog:stainless-steel:253MA
+Stainless steel,254SMO,catalog:stainless-steel:254SMO
+Stainless steel,904L,catalog:stainless-steel:904L
+Stainless steel,Nitronic 50,catalog:stainless-steel:Nitronic%2050
+Mild steel,1018S,catalog:mild-steel:1018S
+Mild steel,AISI 1010,catalog:mild-steel:AISI%201010
+Mild steel,C22,catalog:mild-steel:C22
+Mild steel,S15C,catalog:mild-steel:S15C
+Mild steel,Steel 20#,catalog:mild-steel:Steel%2020%23
+Mild steel,Steel 1010,catalog:mild-steel:Steel%201010
+Mild steel,Steel 1020,catalog:mild-steel:Steel%201020
+Mild steel,Steel 1045 / 45#,catalog:mild-steel:Steel%201045%20%2F%2045%23
+Mild steel,44W Steel,catalog:mild-steel:44W%20Steel
+Mild steel,FE510 Steel,catalog:mild-steel:FE510%20Steel
+Mild steel,Q235,catalog:mild-steel:Q235
+Mild steel,S355,catalog:mild-steel:S355
+Mild steel,S355J2,catalog:mild-steel:S355J2
+Mild steel,SS400,catalog:mild-steel:SS400
+Mild steel,Steel S355JR,catalog:mild-steel:Steel%20S355JR
+Mild steel,SECC,catalog:mild-steel:SECC
+Mild steel,SGCC,catalog:mild-steel:SGCC
+Mild steel,SPCC,catalog:mild-steel:SPCC
+Mild steel,SPHC,catalog:mild-steel:SPHC
+Mild steel,SPTE,catalog:mild-steel:SPTE
+Brass,Brass H59,catalog:brass:Brass%20H59
+Brass,Brass H62,catalog:brass:Brass%20H62
+Copper,Beryllium Copper,catalog:copper:Beryllium%20Copper
+Copper,QSN6-6-3 / CuSn6Zn6,catalog:copper:QSN6-6-3%20%2F%20CuSn6Zn6
+Copper,QSN6.5-0.1 / CuSn6,catalog:copper:QSN6.5-0.1%20%2F%20CuSn6
+Alloy steel,40CrMnMoS8-6 / 1.2312,catalog:alloy-steel:40CrMnMoS8-6%20%2F%201.2312
+Alloy steel,40CrNiMo,catalog:alloy-steel:40CrNiMo
+Alloy steel,4140 Annealed,catalog:alloy-steel:4140%20Annealed
+Alloy steel,4140 Normalized,catalog:alloy-steel:4140%20Normalized
+Alloy steel,18CrNiMo7-6 / 1.6587,catalog:alloy-steel:18CrNiMo7-6%20%2F%201.6587
+Alloy steel,300M VAR / E4340 Mod,catalog:alloy-steel:300M%20VAR%20%2F%20E4340%20Mod
+Alloy steel,4330 Mod VM N&T,catalog:alloy-steel:4330%20Mod%20VM%20N%26T
+Alloy steel,AerMet 100,catalog:alloy-steel:AerMet%20100
+Alloy steel,EN19,catalog:alloy-steel:EN19
+Alloy steel,16MnCrS5,catalog:alloy-steel:16MnCrS5
+Alloy steel,6150 Vac Melt Annealed,catalog:alloy-steel:6150%20Vac%20Melt%20Annealed
+Alloy steel,9310 / E9310,catalog:alloy-steel:9310%20%2F%20E9310
+Alloy steel,52100,catalog:alloy-steel:52100
+Alloy steel,Toolox 33,catalog:alloy-steel:Toolox%2033
+Tool steel,1.2085,catalog:tool-steel:1.2085
+Tool steel,ST TOOL M2,catalog:tool-steel:ST%20TOOL%20M2
+Titanium,Grade 1,catalog:titanium:Grade%201
+Titanium,Grade 3,catalog:titanium:Grade%203
+Titanium,Grade 4,catalog:titanium:Grade%204
+Titanium,6Al-2Sn-4Zr-2Mo,catalog:titanium:6Al-2Sn-4Zr-2Mo
+Titanium,6Al-6V-2Sn,catalog:titanium:6Al-6V-2Sn
+Titanium,6Al-7Nb,catalog:titanium:6Al-7Nb
+Titanium,8Al-1Mo-1V,catalog:titanium:8Al-1Mo-1V
+Titanium,Grade 6 / 5Al-2.5Sn,catalog:titanium:Grade%206%20%2F%205Al-2.5Sn
+Titanium,Grade 7,catalog:titanium:Grade%207
+Titanium,Grade 9 / 3Al-2.5V,catalog:titanium:Grade%209%20%2F%203Al-2.5V
+Titanium,Grade 12,catalog:titanium:Grade%2012
+Nickel & specialty alloys,Alloy 80A,catalog:inconel-incoloy:Alloy%2080A
+Nickel & specialty alloys,Alloy 686,catalog:inconel-incoloy:Alloy%20686
+Nickel & specialty alloys,Alloy 725,catalog:inconel-incoloy:Alloy%20725
+Nickel & specialty alloys,Alloy X,catalog:inconel-incoloy:Alloy%20X
+Nickel & specialty alloys,Incoloy 800,catalog:inconel-incoloy:Incoloy%20800
+Nickel & specialty alloys,Incoloy 800H,catalog:inconel-incoloy:Incoloy%20800H
+Nickel & specialty alloys,Incoloy 800HT,catalog:inconel-incoloy:Incoloy%20800HT
+Nickel & specialty alloys,Incoloy 825,catalog:inconel-incoloy:Incoloy%20825
+Nickel & specialty alloys,Incoloy 925,catalog:inconel-incoloy:Incoloy%20925
+Nickel & specialty alloys,Incoloy A-286,catalog:inconel-incoloy:Incoloy%20A-286
+Nickel & specialty alloys,Inconel 600,catalog:inconel-incoloy:Inconel%20600
+Nickel & specialty alloys,Inconel 601,catalog:inconel-incoloy:Inconel%20601
+Nickel & specialty alloys,Inconel 617,catalog:inconel-incoloy:Inconel%20617
+Nickel & specialty alloys,Inconel 690,catalog:inconel-incoloy:Inconel%20690
+Nickel & specialty alloys,Inconel 718,catalog:inconel-incoloy:Inconel%20718
+Nickel & specialty alloys,Inconel X-750,catalog:inconel-incoloy:Inconel%20X-750
+Nickel & specialty alloys,Alloy 20,catalog:inconel-incoloy:Alloy%2020
+Nickel & specialty alloys,Alloy 28,catalog:inconel-incoloy:Alloy%2028
+Nickel & specialty alloys,Alloy 282,catalog:inconel-incoloy:Alloy%20282
+Nickel & specialty alloys,Alloy B-3,catalog:inconel-incoloy:Alloy%20B-3
+Nickel & specialty alloys,Alloy C-4,catalog:inconel-incoloy:Alloy%20C-4
+Nickel & specialty alloys,Alloy C-22,catalog:inconel-incoloy:Alloy%20C-22
+Nickel & specialty alloys,Alloy C-276,catalog:inconel-incoloy:Alloy%20C-276
+Nickel & specialty alloys,Alloy G-30,catalog:inconel-incoloy:Alloy%20G-30
+Nickel & specialty alloys,Alloy G-35,catalog:inconel-incoloy:Alloy%20G-35
+Nickel & specialty alloys,Alloy N,catalog:inconel-incoloy:Alloy%20N
+Nickel & specialty alloys,Hastelloy B-2,catalog:inconel-incoloy:Hastelloy%20B-2
+Nickel & specialty alloys,Hastelloy C-22,catalog:inconel-incoloy:Hastelloy%20C-22
+Nickel & specialty alloys,Hastelloy C-276,catalog:inconel-incoloy:Hastelloy%20C-276
+Nickel & specialty alloys,Hastelloy X,catalog:inconel-incoloy:Hastelloy%20X
+Nickel & specialty alloys,Monel 400,catalog:inconel-incoloy:Monel%20400
+Nickel & specialty alloys,Monel K-500,catalog:inconel-incoloy:Monel%20K-500
+Nickel & specialty alloys,Nickel 200,catalog:inconel-incoloy:Nickel%20200
+Nickel & specialty alloys,Nickel 201,catalog:inconel-incoloy:Nickel%20201
+Nickel & specialty alloys,Alloy 25 / L605,catalog:inconel-incoloy:Alloy%2025%20%2F%20L605
+Nickel & specialty alloys,MP35N,catalog:inconel-incoloy:MP35N
+Nickel & specialty alloys,MP159,catalog:inconel-incoloy:MP159
+Nickel & specialty alloys,Multimet N155,catalog:inconel-incoloy:Multimet%20N155
+Nickel & specialty alloys,Alloy 188,catalog:inconel-incoloy:Alloy%20188
+Nickel & specialty alloys,Alloy 230,catalog:inconel-incoloy:Alloy%20230
+Nickel & specialty alloys,Alloy 242,catalog:inconel-incoloy:Alloy%20242
+Nickel & specialty alloys,Alloy 263,catalog:inconel-incoloy:Alloy%20263
+Nickel & specialty alloys,Alloy 556,catalog:inconel-incoloy:Alloy%20556
+Nickel & specialty alloys,Nimonic 300,catalog:inconel-incoloy:Nimonic%20300
+Nickel & specialty alloys,R31537,catalog:inconel-incoloy:R31537
+Nickel & specialty alloys,Waspaloy,catalog:inconel-incoloy:Waspaloy
+Nickel & specialty alloys,330 / RA330,catalog:inconel-incoloy:330%20%2F%20RA330
+Nickel & specialty alloys,Alloy R41,catalog:inconel-incoloy:Alloy%20R41
+Nickel & specialty alloys,Alloy S,catalog:inconel-incoloy:Alloy%20S
+Precision alloys,4J32,catalog:precision-alloys:4J32
+Precision alloys,Invar,catalog:precision-alloys:Invar
+Precision alloys,1J50,catalog:precision-alloys:1J50
+Precision alloys,1J79,catalog:precision-alloys:1J79
+Precision alloys,1J85,catalog:precision-alloys:1J85
+Magnesium / zinc alloys,AM60B,catalog:magnesium-zinc:AM60B
+Magnesium / zinc alloys,AZ31B,catalog:magnesium-zinc:AZ31B
+Magnesium / zinc alloys,AZ91D,catalog:magnesium-zinc:AZ91D
+Magnesium / zinc alloys,Zamak 3,catalog:magnesium-zinc:Zamak%203
+Magnesium / zinc alloys,Zamak 5 / ASTM AC41A,catalog:magnesium-zinc:Zamak%205%20%2F%20ASTM%20AC41A
+Magnesium / zinc alloys,ZN,catalog:magnesium-zinc:ZN
+Plastics / polymers,ABS Black / White,catalog:plastics-polymers:ABS%20Black%20%2F%20White
+Plastics / polymers,ABS+30% GF,catalog:plastics-polymers:ABS%2B30%25%20GF
+Plastics / polymers,ABS+30% PC,catalog:plastics-polymers:ABS%2B30%25%20PC
+Plastics / polymers,Fire-Resistant PC,catalog:plastics-polymers:Fire-Resistant%20PC
+Plastics / polymers,Flame Retardant ABS,catalog:plastics-polymers:Flame%20Retardant%20ABS
+Plastics / polymers,PC+ABS/T85,catalog:plastics-polymers:PC%2BABS%2FT85
+Plastics / polymers,POM / Delrin,catalog:plastics-polymers:POM%20%2F%20Delrin
+Plastics / polymers,POM-C,catalog:plastics-polymers:POM-C
+Plastics / polymers,POM-H,catalog:plastics-polymers:POM-H
+Plastics / polymers,POM+30%GF,catalog:plastics-polymers:POM%2B30%25GF
+Plastics / polymers,Nylon 6,catalog:plastics-polymers:Nylon%206
+Plastics / polymers,Nylon 66,catalog:plastics-polymers:Nylon%2066
+Plastics / polymers,PA / Nylon,catalog:plastics-polymers:PA%20%2F%20Nylon
+Plastics / polymers,PA+13%GF,catalog:plastics-polymers:PA%2B13%25GF
+Plastics / polymers,PA+15%GF,catalog:plastics-polymers:PA%2B15%25GF
+Plastics / polymers,PA+20%GF,catalog:plastics-polymers:PA%2B20%25GF
+Plastics / polymers,PA+30%GF,catalog:plastics-polymers:PA%2B30%25GF
+Plastics / polymers,PA12,catalog:plastics-polymers:PA12
+Plastics / polymers,PA12+30%GF,catalog:plastics-polymers:PA12%2B30%25GF
+Plastics / polymers,PA66+20%GF,catalog:plastics-polymers:PA66%2B20%25GF
+Plastics / polymers,PA66+30%GF,catalog:plastics-polymers:PA66%2B30%25GF
+Plastics / polymers,PPS+30%GF,catalog:plastics-polymers:PPS%2B30%25GF
+Plastics / polymers,PPS+40%GF,catalog:plastics-polymers:PPS%2B40%25GF
+Plastics / polymers,PVDF,catalog:plastics-polymers:PVDF
+Plastics / polymers,TEFLON,catalog:plastics-polymers:TEFLON
+Plastics / polymers,HDPE 1000,catalog:plastics-polymers:HDPE%201000
+Plastics / polymers,PE,catalog:plastics-polymers:PE
+Plastics / polymers,PP,catalog:plastics-polymers:PP
+Plastics / polymers,PP+20%GF,catalog:plastics-polymers:PP%2B20%25GF
+Plastics / polymers,PP+30%GF,catalog:plastics-polymers:PP%2B30%25GF
+Plastics / polymers,Bakelite Resin,catalog:plastics-polymers:Bakelite%20Resin
+Plastics / polymers,EPDM,catalog:plastics-polymers:EPDM
+Plastics / polymers,Fibre glass,catalog:plastics-polymers:Fibre%20glass
+Plastics / polymers,PBT,catalog:plastics-polymers:PBT
+Plastics / polymers,PETP,catalog:plastics-polymers:PETP
+Plastics / polymers,Photopolymer Resin,catalog:plastics-polymers:Photopolymer%20Resin
+Plastics / polymers,PMMA,catalog:plastics-polymers:PMMA
+Plastics / polymers,PC,catalog:plastics-polymers:PC
+Plastics / polymers,PC+30%GF,catalog:plastics-polymers:PC%2B30%25GF
+Aluminum,2014 · T6,catalog:aluminum:2014%20Aluminum:condition:T6
+Aluminum,2014 · T651,catalog:aluminum:2014%20Aluminum:condition:T651
+Aluminum,2017 · T4,catalog:aluminum:2017%20Aluminum:condition:T4
+Aluminum,2024 · T3,catalog:aluminum:2024%20Aluminum:condition:T3
+Aluminum,5052 · H32,catalog:aluminum:5052%20Aluminum:condition:H32
+Aluminum,6060 · T6,catalog:aluminum:6060%20Aluminum:condition:T6
+Aluminum,6063 · T6,catalog:aluminum:6063%20Aluminum:condition:T6
+Aluminum,6082 · T6,catalog:aluminum:6082%20Aluminum:condition:T6

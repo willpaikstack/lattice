@@ -1,4 +1,6 @@
 import { customerSafeRequest } from "@/lib/customer-request";
+import { materialOfferingFor, materialConditionFor, materialSelectionLabel } from "@/lib/material-quote-offerings";
+import { canonicalMaterialValue } from "@/lib/rfq-material-search";
 import { RequestForm } from "@/components/request-form";
 import { filterCustomerVisibleRequests, getCustomerRequestByIdForCurrentSession } from "@/lib/request-access-policy";
 import { listBuyerQuotes } from "@/lib/request-repository";
@@ -22,6 +24,9 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
   const params = searchParams ? await searchParams : {};
   const reorderId = firstParam(params.reorder);
   const draftId = firstParam(params.draft);
+  const requestedMaterial = canonicalMaterialValue(firstParam(params.material) ?? "");
+  const offering = materialOfferingFor(requestedMaterial);
+  const initialMaterial = !draftId && !reorderId && offering?.variants.length && !materialConditionFor(requestedMaterial)?.sourcing ? requestedMaterial : undefined;
   const [reorderSource, draftSource, buyerQuotes, session] = await Promise.all([
     reorderId ? getCustomerRequestByIdForCurrentSession(reorderId) : Promise.resolve(null),
     draftId ? getCustomerRequestByIdForCurrentSession(draftId) : Promise.resolve(null),
@@ -34,16 +39,17 @@ export default async function NewRequestPage({ searchParams }: NewRequestPagePro
 
   return (
     <RequestForm
-      key={draftId ?? reorderId ?? "new-request"}
+      key={draftId ?? reorderId ?? `new-request:${initialMaterial ?? ""}`}
       toleranceDesign={firstParam(params.toleranceDesign) === "legacy" ? "legacy" : firstParam(params.toleranceDesign) === "cards" ? "cards" : process.env.LATTICE_TOLERANCE_DESIGN === "legacy" ? "legacy" : "cards"}
       initialState={initialState}
+      initialMaterial={initialMaterial}
       localDraftId={draftId}
       prefillNotice={
         reorderSource
           ? `Reorder draft prepared from ${orderReference(reorderSource)}. Review the copied part, files, material, tolerance, finish, quantity, and timing before submitting.`
           : editableDraft
             ? "Incomplete RFQ reopened. Finish the missing details, then click Request Quote when it is ready for Lattice review."
-          : undefined
+          : initialMaterial ? `Selected material: ${materialSelectionLabel(initialMaterial)}. Upload your CAD file and review the material and condition for this part.` : undefined
       }
       resumeRequests={visibleBuyerQuotes.filter(isResumeCandidate)}
     />
