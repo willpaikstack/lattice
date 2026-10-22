@@ -37,3 +37,10 @@ Browser → `requestCallAction` → `saveCallRequest` → existing `createWaitin
 ## Handoff
 
 Branch: `codex/public-site-redesign`, based on main `d008329`. Review locally at http://localhost:3000/. Production has not been changed. Before publication, review design/copy, resolve existing framework advisories and verify one controlled hosted call request reaches the admin queue. Consider an operator notification or calendar integration separately if needed.
+
+
+## Approved release verification — October 22
+
+William approved publishing and retaining Classic. Next.js/eslint-config-next are now 16.4.2; runtime audit is clean, 818 tests pass, and the Node 24 production build passes. Staged Production `dpl_923DWCotxzP41yFx7b3Kw7ZBXwK3` uses the existing project’s Production configuration with one-time migration/bootstrap flags disabled. Its real homepage and call form return 200. A single clearly labelled synthetic internal call request successfully returned the saved, scheduling-pending receipt. It sends no email and explicitly says not to schedule/contact anyone; retain it as release evidence. Public-page/protection checks precede final main release. Preview-only deployment failure was traced to missing Preview Clerk keys; Production keys are used for this staged release, and Preview configuration remains unchanged.
+
+The original public design is permanently preserved as **Lattice Classic — Before Call-First Redesign**; see `docs/archives/lattice-classic-before-call-first-2026-10-22.md` and its screenshot.

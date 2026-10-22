@@ -17,6 +17,8 @@ The tag holds the complete tracked repository as it existed before the call-firs
 
 Dark charcoal machining hero headed “Additional capacity when you need it.” A light partner-network industry section follows. Header actions are Log in and Request an account. The page ends with “Quality you can verify” and inspection-report imagery. There is no Book a call primary action.
 
+![Lattice Classic production homepage](lattice-classic-homepage-2026-10-22.png)
+
 ## Switching back later
 
 Ask to restore **Lattice Classic — Before Call-First Redesign**. Prefer restoring the public-page design from the tag into a fresh review branch while keeping current framework security patches, authorization, customer data and subsequent app improvements. Do not reset the entire main branch or overwrite the live database. Update relevant homepage/access tests with the restored design.
