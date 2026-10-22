@@ -39,6 +39,6 @@ describe("Waiting list page", () => {
     expect(screen.queryByRole("form", { name: "Waiting list request form" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Return to Lattice" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "See how Lattice works" })).toHaveAttribute("href", "/how-it-works");
-    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login");
+    for (const link of screen.getAllByRole("link", { name: "Log in" })) expect(link).toHaveAttribute("href", "/login");
   });
 });

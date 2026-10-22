@@ -1,144 +1,331 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { BarChart3, ClipboardCheck, FileSearch } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ClipboardCheck,
+  Focus,
+  Layers3,
+  MoveUpRight,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
+import {
+  BookCallLink,
+  CheckList,
+  InviteOnlyLabel,
+  PublicClosing,
+  PublicSite,
+} from "@/components/public-marketing";
+import s from "@/components/public-marketing.module.css";
 
-import { TechnicalBackground } from "@/components/public-entry";
-import { PublicSiteHeader } from "@/components/public-site-header";
-
-const managedProof = [
-  { icon: FileSearch, label: "Engineer-reviewed RFQs" },
-  { icon: ClipboardCheck, label: "Inspection plan included" },
-  { icon: BarChart3, label: "Production updates" },
+export const metadata: Metadata = {
+  title: "Lattice | More capacity. Still your customer.",
+  description:
+    "An invite-only manufacturing network for domestic machine shops. Add CNC machining and fabrication capacity with Lattice managing supplier coordination, quality documentation, and delivery. Book a call to explore the fit.",
+};
+const situations = [
+  {
+    title: "The schedule is full.",
+    body: "A good job comes in, but every machine is spoken for. Route suitable overflow work through Lattice while your team stays focused on existing commitments.",
+  },
+  {
+    title: "The job needs more.",
+    body: "A process, material, or machine you don’t have in-house. Explore a qualified production path without buying equipment for a single opportunity.",
+  },
+  {
+    title: "The demand comes in waves.",
+    body: "Add capacity for repeat work and demand peaks. Keep your own floor available for the urgent, complex work that needs your team.",
+  },
 ];
-
-const workflowSteps = ["Upload files", "Review your quote", "Track production"];
-
-const partnerNetworkIndustries = [
-  "Automotive & mobility",
-  "Medical technology",
-  "Aerospace",
-  "Robotics & automation",
-  "Semiconductors",
-  "Energy systems",
-  "Industrial equipment",
-  "Consumer products",
+const capabilities = [
+  {
+    icon: Focus,
+    title: "CNC milling",
+    body: "3-, 4-, and 5-axis machining for prismatic parts, housings, fixtures, and complex geometries.",
+  },
+  {
+    icon: Wrench,
+    title: "CNC turning",
+    body: "Turned components, shafts, bushings, and parts that combine turning and milled features.",
+  },
+  {
+    icon: Layers3,
+    title: "Sheet metal fabrication",
+    body: "Cutting, forming, and fabrication coordinated around your drawings and finishing requirements.",
+  },
 ];
-
+const steps = [
+  {
+    title: "Start with your shop",
+    body: "Talk through your work, capacity gaps, and what a useful partnership would look like.",
+  },
+  {
+    title: "Share a suitable job",
+    body: "Once invited, submit CAD, drawings, quantities, materials, and the requirements that matter.",
+  },
+  {
+    title: "Review a real quote",
+    body: "We confirm a production path and prepare a supplier-backed quote with pricing and lead time.",
+  },
+  {
+    title: "Keep the work moving",
+    body: "Lattice coordinates production, requested quality documents, and delivery. You stay informed.",
+  },
+];
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#171817] font-sans text-white selection:bg-stone-300 selection:text-stone-950">
-      <PublicSiteHeader />
-
-      <section className="relative overflow-hidden border-b border-white/10 bg-[#171817]">
-        <TechnicalBackground />
-        <div className="relative z-10 mx-auto grid min-h-[545px] max-w-[1440px] lg:grid-cols-[57%_43%]">
-          <div className="relative z-20 flex items-center px-6 py-16 sm:px-10 lg:translate-y-9 lg:py-14 lg:pl-[96px] lg:pr-0">
-            <div className="max-w-[700px]">
-              <h1 className="text-[48px] font-semibold leading-[1.06] tracking-[-0.045em] text-white sm:text-[58px]">
-                <span className="block">Additional capacity</span>{" "}
-                <span className="block">when you need it.</span>
-              </h1>
-              <p className="mt-7 max-w-[580px] text-lg leading-8 text-stone-300 sm:text-xl">
-                Access Lattice&apos;s qualified global CNC machining and fabrication network for overflow and cyclical demand—without disrupting your schedule. We coordinate production, documentation, and delivery so you can protect lead times and stay responsive to customers.
-              </p>
-              <Link className="mt-7 inline-flex items-center gap-2 rounded-md text-sm font-semibold text-white transition hover:text-stone-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-4 focus-visible:ring-offset-stone-950" href="/how-it-works">
-                See how Lattice delivers <span aria-hidden="true">→</span>
+    <PublicSite>
+      <main id="main-content">
+        <section className={`${s.container} ${s.hero}`}>
+          <div className={s.heroCopy}>
+            <InviteOnlyLabel />
+            <h1>
+              Take on the work.
+              <br />
+              <span>
+                Keep your floor
+                <br />
+                focused.
+              </span>
+            </h1>
+            <p className={s.intro}>
+              More work shouldn’t always mean more machines. Lattice connects
+              domestic machine shops with qualified global manufacturing
+              capacity—and manages the work from quote to delivery.
+            </p>
+            <div className={s.actions}>
+              <BookCallLink />
+              <Link className={s.textLink} href="/how-it-works">
+                See how it works <ArrowRight aria-hidden="true" size={16} />
               </Link>
-
+            </div>
+            <p className={s.smallNote}>
+              Built for machine shops and small manufacturers. Access by
+              invitation.
+            </p>
+          </div>
+          <div className={s.heroVisual}>
+            <div className={s.imageFrame}>
+              <Image
+                alt="Precision-machined aluminum housing fixtured inside a CNC machining center"
+                fill
+                priority
+                sizes="(max-width:760px) 90vw,45vw"
+                src="/landing/manufacturing-proof-cnc.png"
+              />
+              <span className={s.imageLabel}>CAPACITY BEYOND YOUR FLOOR</span>
+              <span className={s.imageCaption}>
+                CNC MACHINING / FABRICATION
+              </span>
+            </div>
+            <div className={s.visualNote}>
+              <MoveUpRight size={27} strokeWidth={1.3} aria-hidden="true" />
+              <div>
+                <strong>More capacity. Still your customer.</strong>
+                <p>You own the relationship. We coordinate the production.</p>
+              </div>
             </div>
           </div>
-
-          <div className="relative min-h-[430px] overflow-hidden lg:-ml-[100px] lg:min-h-[545px] lg:w-[calc(100%+100px)]">
-            <Image
-              alt="Precision-machined aluminum housing fixtured inside a CNC machining center"
-              className="object-cover"
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              src="/landing/manufacturing-proof-cnc.png"
-            />
-            <div aria-hidden="true" className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#171817] to-transparent lg:w-32" />
+        </section>
+        <div className={s.proofStrip}>
+          <div className={`${s.container} ${s.proofItems}`}>
+            <p>
+              A production partner,
+              <br />
+              beyond the purchase order.
+            </p>
+            <span>
+              <Check size={17} aria-hidden="true" />
+              Supplier-backed quotes
+            </span>
+            <span>
+              <ClipboardCheck size={17} aria-hidden="true" />
+              Job-specific quality requirements
+            </span>
+            <span>
+              <ShieldCheck size={17} aria-hidden="true" />
+              One point of coordination
+            </span>
           </div>
         </div>
-      </section>
-
-      <section aria-label="What Lattice manages" className="border-b border-white/10 bg-[#1b1c1b]">
-        <ul className="mx-auto grid max-w-[1440px] md:grid-cols-3">
-          {managedProof.map((point, index) => {
-            const Icon = point.icon;
-
-            return (
-              <li className={`flex min-h-[82px] items-center gap-5 px-7 py-5 lg:px-14 ${index > 0 ? "border-t border-white/10 md:border-l md:border-t-0" : ""}`} key={point.label}>
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.055] text-stone-200">
-                  <Icon size={23} strokeWidth={1.6} />
-                </span>
-                <span className="text-base font-medium text-stone-200">{point.label}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      <section aria-labelledby="partner-network-heading" className="border-b border-stone-200 bg-[#f7f6f3] text-stone-950">
-        <div className="mx-auto max-w-[1440px] px-6 py-16 sm:px-10 lg:px-[72px] lg:py-20">
-          <div className="max-w-[680px]">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Partner-network experience</p>
-            <h2 className="mt-4 text-[38px] font-semibold leading-[1.08] tracking-[-0.04em] sm:text-[44px]" id="partner-network-heading">
-              Capability across demanding industries.
+        <section className={`${s.container} ${s.section}`}>
+          <p className={s.eyebrow}>Built around the realities of your shop</p>
+          <div className={s.sectionHeading}>
+            <h2>
+              A good opportunity.
+              <br />
+              An already busy shop.
             </h2>
-            <p className="mt-5 max-w-[620px] text-lg leading-8 text-stone-600">
-              Documented partner capabilities span the industries where precision production, material control, and dependable execution matter most.
+            <p>
+              You know the work. You know your customers. Sometimes you just
+              need another way to get the job done.
             </p>
           </div>
-
-          <ul aria-label="Industries represented by documented partner capabilities" className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {partnerNetworkIndustries.map((industry) => (
-              <li className="flex min-h-20 items-center justify-center rounded-lg border border-stone-200 bg-white px-4 text-center text-sm font-semibold leading-5 text-stone-700 shadow-sm" key={industry}>
-                {industry}
-              </li>
+          <div className={s.situations}>
+            {situations.map((item, index) => (
+              <article className={s.situation} key={item.title}>
+                <span className={s.number}>0{index + 1} /</span>
+                <h3>{item.title}</h3>
+                <p>{item.body}</p>
+              </article>
             ))}
-          </ul>
-
-          <p className="mt-5 text-sm leading-6 text-stone-500">
-            Industry coverage reflects public supplier capability information. Production fit and availability are confirmed for each job.
-          </p>
-        </div>
-      </section>
-
-      <section className="overflow-hidden bg-[#171817]" id="how-it-works">
-        <div className="mx-auto grid max-w-[1440px] items-stretch lg:grid-cols-[0.39fr_0.61fr]">
-          <div className="flex flex-col justify-center px-6 py-16 sm:px-10 lg:py-14 lg:pl-[72px] lg:pr-6">
-            <h2 className="text-[38px] font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-[44px]">
-              Quality you can verify.
-            </h2>
-            <p className="mt-5 max-w-[420px] text-lg leading-8 text-stone-300">
-              Requested inspection reports and material documentation are uploaded to Lattice for your review before shipment.
+          </div>
+        </section>
+        <section className={`${s.section} ${s.darkSection}`} id="capabilities">
+          <div className={s.container}>
+            <p className={s.eyebrow}>An extension of your capabilities</p>
+            <div className={s.sectionHeading}>
+              <h2>
+                The right process.
+                <br />
+                Beyond your own machines.
+              </h2>
+              <p>
+                Access qualified overseas manufacturing partners through a team
+                that coordinates the details.
+              </p>
+            </div>
+            <div className={s.capabilities}>
+              {capabilities.map(({ icon: Icon, title, body }, index) => (
+                <article className={s.capability} key={title}>
+                  <Icon aria-hidden="true" size={32} strokeWidth={1.2} />
+                  <span className={s.number}>0{index + 1}</span>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </article>
+              ))}
+            </div>
+            <p className={s.capabilityNote}>
+              Process, material, tolerance, finish, and production availability
+              are reviewed for each job.
             </p>
-
-            <ol className="mt-9 grid grid-cols-3 gap-3" aria-label="Lattice order workflow">
-              {workflowSteps.map((step, index) => (
-                <li className="relative min-w-0" key={step}>
-                  <div className="flex items-center">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-500 text-sm font-medium text-white">{index + 1}</span>
-                    {index < workflowSteps.length - 1 ? <span aria-hidden="true" className="h-px flex-1 bg-stone-600" /> : null}
-                  </div>
-                  <p className="mt-3 pr-2 text-xs leading-5 text-stone-300 sm:text-sm">{step}</p>
+          </div>
+        </section>
+        <section className={`${s.container} ${s.section} ${s.split}`}>
+          <div className={s.splitImage}>
+            <Image
+              alt="Illustrative dimensional inspection report beside an engineering drawing"
+              fill
+              sizes="(max-width:760px) 90vw,45vw"
+              src="/landing/manufacturing-proof-inspection-report.png"
+            />
+          </div>
+          <div className={s.splitCopy}>
+            <p className={s.eyebrow}>The details stay with the job</p>
+            <h2>
+              More than finding
+              <br />
+              someone to make it.
+            </h2>
+            <p>
+              Outsourcing only helps if someone owns the follow-through. Lattice
+              coordinates the manufacturing requirements, supplier
+              communication, and documentation from the start.
+            </p>
+            <CheckList
+              items={[
+                "A production path reviewed against your drawings",
+                "Requested inspection reports and material documentation",
+                "Order updates and delivery coordination",
+              ]}
+            />
+            <Link className={s.textLink} href="/how-it-works">
+              Explore the Lattice workflow{" "}
+              <ArrowRight aria-hidden="true" size={16} />
+            </Link>
+          </div>
+        </section>
+        <section className={`${s.section} ${s.workflow}`}>
+          <div className={s.container}>
+            <div className={s.sectionHeading}>
+              <div>
+                <p className={s.eyebrow}>
+                  From first conversation to finished parts
+                </p>
+                <h2>
+                  Start small.
+                  <br />
+                  Build a working relationship.
+                </h2>
+              </div>
+              <Link className={s.textLink} href="/how-it-works">
+                How it works <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+            </div>
+            <ol className={s.steps}>
+              {steps.map((step, index) => (
+                <li className={s.step} key={step.title}>
+                  <span className={s.number}>0{index + 1}</span>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
                 </li>
               ))}
             </ol>
           </div>
-
-          <div className="relative min-h-[360px] bg-[#f5f4f1] lg:min-h-[420px]">
-            <Image
-              alt="Example Lattice dimensional inspection report and engineering drawing"
-              className="object-cover object-left"
-              fill
-              sizes="(max-width: 1024px) 100vw, 61vw"
-              src="/landing/manufacturing-proof-inspection-report.png"
-            />
+        </section>
+        <section className={`${s.container} ${s.section} ${s.faq}`}>
+          <div>
+            <p className={s.eyebrow}>A few things to know</p>
+            <h2>
+              A conversation first.
+              <br />A better fit from the start.
+            </h2>
           </div>
-        </div>
-      </section>
-    </main>
+          <div>
+            <details>
+              <summary>Why is Lattice invite-only?</summary>
+              <p>
+                We start by understanding your shop and the work you need
+                support with. Access follows a conversation about fit, so the
+                production requirements and working relationship are clear from
+                the start.
+              </p>
+            </details>
+            <details>
+              <summary>Is Lattice for shops like mine?</summary>
+              <p>
+                We focus on domestic machine shops and small manufacturing
+                companies that need help with overflow, repeat production, or
+                work beyond their in-house capabilities.
+              </p>
+            </details>
+            <details>
+              <summary>Where are parts manufactured?</summary>
+              <p>
+                Lattice works with qualified overseas manufacturing partners,
+                including partners in China. We review the production path and
+                applicable requirements for each job. Domestic-only or
+                restricted work may not be suitable.
+              </p>
+            </details>
+            <details>
+              <summary>Do I need a job ready to quote?</summary>
+              <p>
+                No. The first call can simply be about your shop, the work you
+                do, and where capacity gets tight. If you have a suitable job in
+                mind, we can talk through what would be needed to review it.
+              </p>
+            </details>
+            <details>
+              <summary>Can I request access without a call?</summary>
+              <p>
+                Yes.{" "}
+                <Link
+                  className="underline underline-offset-4"
+                  href="/waiting-list"
+                >
+                  Request access
+                </Link>{" "}
+                and share a little about your company and manufacturing needs.
+                We’ll review your request before inviting your team.
+              </p>
+            </details>
+          </div>
+        </section>
+        <PublicClosing />
+      </main>
+    </PublicSite>
   );
 }

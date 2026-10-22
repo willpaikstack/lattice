@@ -7,6 +7,7 @@ import { getCurrentSession } from "@/lib/session";
 import { vendorEquipment } from "@/lib/vendor-equipment";
 
 import { ValueBenefits } from "./value-benefits";
+import { PublicHowItWorks } from "@/components/public-how-it-works";
 
 function listedEquipmentQuantity(quantity: string) {
   const match = quantity.match(/[\d,]+/);
@@ -303,5 +304,5 @@ export function HowItWorksContent({ inCustomerPortal = false }: { inCustomerPort
 export default async function HowItWorksPage() {
   const session = await getCurrentSession({ allowPasswordChange: true });
 
-  return <HowItWorksContent inCustomerPortal={Boolean(session?.user)} />;
+  return session?.user ? <HowItWorksContent inCustomerPortal /> : <PublicHowItWorks />;
 }

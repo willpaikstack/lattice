@@ -1,5 +1,18 @@
 # Lattice OS App Feature Map
 
+## Public-site redesign — October 22, 2026 (local review)
+
+Supersedes older public-site visual/navigation descriptions below; not yet deployed.
+
+| Feature | Routes | Current behavior | Data and limitations |
+| --- | --- | --- | --- |
+| Invite-only marketing homepage | `/` | Domestic machine-shop audience; Book a call primary, How it works and in-page Capabilities, secondary Request access, Log in. Shared warm-white, graphite and green identity; overflow/capability/demand scenarios, processes, quality explanation, workflow and accessible FAQ. | Existing manufacturing imagery; no invented customer logos, testimonials, capacity guarantees, or public RFQ action. |
+| Introductory call request | `/book-a-call` | Name, company, email and manufacturing needs required; optional phone and preferred times/time zone. Save errors retain inputs. Receipt explicitly says time will be arranged by email. | Existing `WaitingListEntry` Prisma storage (development disk fallback), marked `CALL REQUEST` in `procurementNeeds`; visible in admin Companies → Waiting list. No account provision, calendar integration, automatic outbound email or schema migration. Production DB errors fail closed. Existing access requests do not block a separate call lead. |
+| Public workflow | Guest `/how-it-works` | Conversation/invitation → manufacturing package → supplier-backed quote → production/quality/delivery coordination. Overseas production is explicit. | Signed-in resource page and existing permission boundaries preserved. |
+| Access and account entry | `/waiting-list`, `/login`, `/forgot-password`, `/reset-password` | Matching public header, footer and visual treatment; existing access submission, duplicate/confirmation handling, Clerk challenges and password-recovery behavior retained. | No changes to user provisioning, company isolation or payment gates. Existing provider/hosted account flows require controlled release verification. |
+
+
+
 Last updated: 2026-10-21
 
 P0 patch released (2026-10-13): application commit `db347a6` fixes normal upload completion, administrative data exposure and CAD model isolation. All 557 tests pass; hosted Preview retests verified normal large/small CAD/PDF uploads, original hashes, role/company boundaries and real APS resource-scoped tokens. Production build `dpl_EmQHJHnZtE1ohen8tAMbuyagnTek` was promoted to latticeos.co and anonymous smoke checks pass. October 14 native browser retests also pass: large/small CAD and PDF uploads, saved two-part solid CAD rendering, draft reload/restore, normal RFQ submission and byte-identical original downloads; foreign-company model access remains denied. Live checkout stays disabled; P1/P2 rollout gates remain open. See [P0 remediation and retest](audits/p0-remediation-2026-10-13.md) and the [original readiness inventory](audits/hosted-readiness-2026-10-13.md).
