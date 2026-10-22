@@ -1,5 +1,7 @@
 # TODO
 
+Approved public-site release (2026-10-22): preserve the Lattice Classic archive tag and restoration guide. Verify staged Production, then publish the approved redesign and record the final deployment/domain evidence. Restore only public design files from the archive if Classic is requested later; retain current security patches.
+
 Public-site review (2026-10-22): review the homepage and `/book-a-call`, `/waiting-list`, guest `/how-it-works`, `/login`, `/forgot-password`, `/reset-password` on `codex/public-site-redesign`. Confirm copy/design, then validate a controlled hosted call submission and operator receipt before release. Call requests are in Companies → Waiting list; times are arranged manually by email, with no new notification email. Resolve existing Next.js 16.4.0 critical runtime advisories before publishing; dependency upgrade is separate from this design work. See `docs/public-site-redesign-2026-10-22.md`.
 
 - Customer supplier-data exposure fix deployed (2026-10-21): main `1a3f348` is released as `dpl_EFPNBVb6rMaeu6K1bX2UboC1MQBZ`. Explicit customer allowlists and ID-only submission/retry/archive receipts are in Production; combined 803 tests, 54 access checks and release smoke pass. Remaining: inspect authenticated HTML/RSC/JSON as genuine Customer Admin and Member accounts with populated synthetic supplier pricing, notes and attachments; verify authorized customer/quality downloads and admin supplier detail. This authenticated verification was not performed during deployment.

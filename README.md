@@ -1,5 +1,7 @@
 # Lattice OS
 
+Release preparation (2026-10-22): William approved publishing the call-first public redesign. The former site is permanently tagged as **Lattice Classic — Before Call-First Redesign**; see [archive and restoration notes](docs/archives/lattice-classic-before-call-first-2026-10-22.md). Next.js/eslint-config-next are patched to 16.4.2 for release; runtime dependency audit is clean. Final deployment verification is recorded below/in the work log when complete.
+
 Public-site redesign prepared (2026-10-22): `codex/public-site-redesign` adds the invite-only, call-first homepage for domestic machine shops and matching public workflow, access, login and recovery pages. `/book-a-call` saves call requests into the existing admin Companies → Waiting list queue, marked `CALL REQUEST`; operators arrange times by email. Local review only; not released to Production. See [redesign handoff](docs/public-site-redesign-2026-10-22.md).
 
 Production update (2026-10-21): main `1a3f348` is deployed at latticeos.co with customer payload isolation, the existing material catalog/RFQ updates and revised invitation guide. Combined verification passes 803 tests, 54 customer-access checks, TypeScript, lint and production builds; live anonymous smoke checks pass. Genuine authenticated customer journey checks remain separate. See `docs/completed-work-log.md`.
