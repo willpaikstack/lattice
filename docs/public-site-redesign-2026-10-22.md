@@ -44,3 +44,10 @@ Branch: `codex/public-site-redesign`, based on main `d008329`. Review locally at
 William approved publishing and retaining Classic. Next.js/eslint-config-next are now 16.4.2; runtime audit is clean, 818 tests pass, and the Node 24 production build passes. Staged Production `dpl_923DWCotxzP41yFx7b3Kw7ZBXwK3` uses the existing project’s Production configuration with one-time migration/bootstrap flags disabled. Its real homepage and call form return 200. A single clearly labelled synthetic internal call request successfully returned the saved, scheduling-pending receipt. It sends no email and explicitly says not to schedule/contact anyone; retain it as release evidence. Public-page/protection checks precede final main release. Preview-only deployment failure was traced to missing Preview Clerk keys; Production keys are used for this staged release, and Preview configuration remains unchanged.
 
 The original public design is permanently preserved as **Lattice Classic — Before Call-First Redesign**; see `docs/archives/lattice-classic-before-call-first-2026-10-22.md` and its screenshot.
+
+
+## Published
+
+The approved source was fast-forwarded to main `6d75d19` and deployed as READY Production `dpl_2QeCCzoyg63HxaGXJF6RSxDAtSgv`, with latticeos.co and www.latticeos.co assigned. Live public pages and intended protected-route/API denials pass; in-app browser confirms the new homepage. Immediate Production error/fatal log scan is empty. All 818 tests and 54 access checks pass; typecheck/lint/optimized builds pass; runtime dependency audit is clean.
+
+The staged synthetic call save is additional persistence evidence; no genuine customer/admin authentication journey was repeated. The labelled QA lead is retained and no email was sent. Staged logs included only the pg SSL-mode future-behavior warning, not an application failure. The Classic archive and screenshot remain permanent source references.

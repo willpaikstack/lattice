@@ -1,8 +1,8 @@
 # Lattice OS App Feature Map
 
-## Public-site redesign — October 22, 2026 (local review)
+## Public-site redesign — October 22, 2026 (Production)
 
-Supersedes older public-site visual/navigation descriptions below; not yet deployed.
+Deployed to latticeos.co and www.latticeos.co from main `6d75d19` as `dpl_2QeCCzoyg63HxaGXJF6RSxDAtSgv`. Supersedes older public-site visual/navigation descriptions below. Classic is archived under `archive/lattice-classic-before-call-first-2026-10-22`; restoration guide and screenshot are in `docs/archives/`. A labelled internal call request saved successfully on staged Production; meeting scheduling and operator follow-up remain manual.
 
 | Feature | Routes | Current behavior | Data and limitations |
 | --- | --- | --- | --- |

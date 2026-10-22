@@ -1,5 +1,7 @@
 # TODO
 
+Public-site release completed (2026-10-22): the call-first redesign is live. Preserve **Lattice Classic — Before Call-First Redesign**, tag `archive/lattice-classic-before-call-first-2026-10-22`; see its archive/restoration guide. Operators arrange requested calls manually from Companies → Waiting list. Keep the labelled QA call request as release evidence. Optional follow-up: operator notifications/calendar integration. Preview Clerk keys are absent and remain a separate environment-configuration follow-up; Production smoke and a staged Production call save pass.
+
 Approved public-site release (2026-10-22): preserve the Lattice Classic archive tag and restoration guide. Verify staged Production, then publish the approved redesign and record the final deployment/domain evidence. Restore only public design files from the archive if Classic is requested later; retain current security patches.
 
 Public-site review (2026-10-22): review the homepage and `/book-a-call`, `/waiting-list`, guest `/how-it-works`, `/login`, `/forgot-password`, `/reset-password` on `codex/public-site-redesign`. Confirm copy/design, then validate a controlled hosted call submission and operator receipt before release. Call requests are in Companies → Waiting list; times are arranged manually by email, with no new notification email. Resolve existing Next.js 16.4.0 critical runtime advisories before publishing; dependency upgrade is separate from this design work. See `docs/public-site-redesign-2026-10-22.md`.
