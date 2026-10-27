@@ -1,0 +1,12 @@
+export type Line = { grade: string; form: string; dimensions: string; quantity: string; specification: string; notes: string };
+export type Supplier = { id: string; name: string; contactName: string; email: string; archived: boolean };
+export type Draft = { version: 1; title: string; lines: Line[]; mtr: string; substitutions: string; delivery: string; neededBy: string; notes: string; messages: { supplierId: string; subject: string; body: string }[] };
+export const blankLine = (): Line => ({ grade: "", form: "", dimensions: "", quantity: "", specification: "", notes: "" });
+export const blankDraft = (): Draft => ({ version: 1, title: "", lines: [blankLine()], mtr: "", substitutions: "", delivery: "", neededBy: "", notes: "", messages: [] });
+const clean = (v: unknown, max = 2000) => typeof v === "string" ? v.trim().slice(0, max) : "";
+export function parseDraft(raw: string): Draft {
+ if (raw.length > 100000) throw new Error("Draft too large");
+ const d = JSON.parse(raw); if (!d || d.version !== 1 || !Array.isArray(d.lines) || !Array.isArray(d.messages) || d.lines.length > 100 || d.messages.length > 100) throw new Error("Invalid draft");
+ return { version: 1, title: clean(d.title, 200), lines: d.lines.map((l: Line) => ({ grade: clean(l?.grade, 200), form: clean(l?.form, 200), dimensions: clean(l?.dimensions, 500), quantity: clean(l?.quantity, 200), specification: clean(l?.specification, 500), notes: clean(l?.notes) })), mtr: clean(d.mtr, 200), substitutions: clean(d.substitutions, 200), delivery: clean(d.delivery), neededBy: clean(d.neededBy, 50), notes: clean(d.notes), messages: d.messages.map((m: Draft["messages"][number]) => ({ supplierId: clean(m?.supplierId, 100), subject: clean(m?.subject, 300), body: clean(m?.body, 10000) })) };
+}
+export function emailFor(d: Draft, s: Supplier) { return { supplierId: s.id, subject: `Material RFQ${d.title ? `: ${d.title}` : ""}`, body: `Hello${s.contactName ? ` ${s.contactName}` : ""},\n\nPlease quote the following material:\n${d.lines.map((l, i) => `${i+1}. ${[l.grade, l.form, l.dimensions, l.quantity, l.specification, l.notes].filter(Boolean).join(" · ")}`).join("\n")}\n\nMTR: ${d.mtr || "Not specified"}\nSubstitutions: ${d.substitutions || "Not specified"}\nDelivery: ${d.delivery || "Not specified"}\nNeeded by: ${d.neededBy || "Not specified"}\nNotes: ${d.notes || "None"}\n\nPlease include pricing, availability, lead time, and freight.\n\nThank you.` }; }

@@ -1,3 +1,8 @@
+
+## Material procurement (local, incomplete; schema not applied)
+
+`/procurement` lists company-owned drafts; `/procurement/new` and `/procurement/[id]` edit material lines, delivery requirements, supplier selections and individualized email drafts. `/procurement/suppliers` adds, edits, archives and restores company-private supplier contacts. A signed-in customer company is required; support impersonation is blocked. Email sending, incoming replies, attachments and quote comparison are not implemented. The additive database schema must be applied and authenticated isolation verified before release.
+
 # Lattice OS App Feature Map
 
 ## Public-site redesign — October 22, 2026 (Production)

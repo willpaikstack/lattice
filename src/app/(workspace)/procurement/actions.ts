@@ -1,0 +1,12 @@
+"use server";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { getPrismaClient } from "@/lib/prisma";
+import { requireActionRole } from "@/lib/route-authorization";
+import { parseDraft } from "@/lib/procurement";
+async function company() { const {user} = await requireActionRole(["customer"]); if (!user.companyId || user.supportAdmin) throw new Error("Customer company account required"); return user.companyId; }
+const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
+export async function saveSupplier(f: FormData) { const companyId = await company(); const db = await getPrismaClient() as PrismaClient; const id = str(f,"id"), name = str(f,"name").slice(0,200), contactName = str(f,"contactName").slice(0,200), email = str(f,"email").toLowerCase().slice(0,254); if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Supplier name and valid email required"); if (id) { const r = await db.procurementSupplier.updateMany({where:{id,companyId},data:{name,contactName,email}}); if (!r.count) throw new Error("Supplier not found"); } else await db.procurementSupplier.create({data:{companyId,name,contactName,email}}); revalidatePath("/procurement/suppliers"); }
+export async function archiveSupplier(f: FormData) { const companyId = await company(); const db = await getPrismaClient() as PrismaClient; await db.procurementSupplier.updateMany({where:{id:str(f,"id"),companyId},data:{archived:str(f,"archived") === "true"}}); revalidatePath("/procurement/suppliers"); }
+export async function saveDraft(f: FormData) { const companyId = await company(); const db = await getPrismaClient() as PrismaClient; const draft = parseDraft(str(f,"draft")), id = str(f,"id"), ids = draft.messages.map(m => m.supplierId); if (new Set(ids).size !== ids.length || await db.procurementSupplier.count({where:{companyId,id:{in:ids}}}) !== ids.length) throw new Error("Invalid supplier"); const data = draft as unknown as Prisma.InputJsonValue; let savedId = id; if (id) { const r = await db.materialRfq.updateMany({where:{id,companyId},data:{title:draft.title,data}}); if (!r.count) throw new Error("Draft not found"); } else { const r = await db.materialRfq.create({data:{companyId,title:draft.title,data}}); savedId = r.id; } revalidatePath("/procurement"); redirect(`/procurement/${savedId}?saved=1`); }

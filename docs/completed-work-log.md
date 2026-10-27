@@ -1,3 +1,16 @@
+## 2026-10-27 — Procurement handoff checks
+
+Prepared the unfinished procurement slice on a separate handoff branch based on GitHub main `806a534`; it must not be merged or deployed until its database and authenticated flows have been validated. Restored dependencies, regenerated route types and Prisma client, and verified TypeScript, scoped ESLint and 32 procurement/access and app-shell tests. The full test run was interrupted, so no full-suite claim is made. The schema has not been applied; Clerk development credentials are absent on this computer.
+
+## 2026-10-27 — Update local main from GitHub
+
+Fast-forwarded the existing `C:/Users/william.paik/lattice` checkout from `d008329` to GitHub main `806a534`, preserving the uncommitted procurement implementation and documentation. The October 22 public-site updates are now in this checkout. Procurement schema remains unapplied; local dependencies were subsequently restored from the lockfile. No deployment or supplier email was performed.
+
+
+## 2026-10-27 — Material procurement first slice (local, incomplete)
+
+Added customer-company-scoped material RFQ drafts, multiple material lines, delivery and MTR/substitution fields, private supplier contact management, and editable individual email drafts. Sending is not implemented; supplier emails were not sent. The separate additive schema script has not been applied to any database. Existing customer onboarding is provisioned, not open registration. Attachments, incoming correspondence, multi-contact suppliers, quote extraction/comparison, send validation and managed email are future work. Do not deploy or expose this flow until the schema is applied to the intended environment and authenticated end-to-end and cross-company checks pass. Four mocked company-boundary tests pass; full typecheck and app-shell tests are blocked by missing local dependencies and stale generated Next types.
+
 # Completed Work Log
 
 ## 2026-10-15 — Add model removal to the OpenCascade demo

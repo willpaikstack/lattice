@@ -63,6 +63,7 @@ const customerNavSections: NavSection[] = [
       { href: "/dashboard", label: "Home", icon: "home" },
       { href: "/quotes", label: "Quotes", icon: "money" },
       { href: "/orders", label: "Orders", icon: "project" },
+      { href: "/procurement", label: "Material procurement", icon: "queue" },
     ],
   },
   {

@@ -1,3 +1,10 @@
+
+## Material procurement follow-up (2026-10-27)
+
+- Run the full test suite and authenticated browser tests, including cross-company access; install local Clerk and development database configuration. TypeScript, targeted lint and 32 procurement/app-shell tests pass on the handoff branch.
+- Review and apply `scripts/material-procurement-schema-2026-10-27.sql` only to the intended development database before exercising persistence; apply to other environments as part of an authorized release.
+- Decide open registration and provisioning, attachment storage, multiple supplier contacts, Lattice-managed sending and inbound reply routing. Implement send validation, correspondence, attachments and later AI quote extraction/comparison before calling the MVP complete. No real supplier emails without explicit authorization.
+
 # TODO
 
 Public-site release completed (2026-10-22): the call-first redesign is live. Preserve **Lattice Classic — Before Call-First Redesign**, tag `archive/lattice-classic-before-call-first-2026-10-22`; see its archive/restoration guide. Operators arrange requested calls manually from Companies → Waiting list. Keep the labelled QA call request as release evidence. Optional follow-up: operator notifications/calendar integration. Preview Clerk keys are absent and remain a separate environment-configuration follow-up; Production smoke and a staged Production call save pass.
